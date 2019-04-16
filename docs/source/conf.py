@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'DBImport'
-copyright = '2019, Berry Österlund'
+# copyright = '2019, Berry Österlund'
 author = 'Berry Österlund'
 
 # The full version, including alpha/beta/rc tags
@@ -33,7 +33,17 @@ release = '0.1'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
 ]
+
+autodoc_default_options = {
+    'show-inheritance': True,
+    'members': True
+}
+
+viewcode_follow_imported_members = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -43,6 +53,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = 'sphinx'
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -50,7 +62,6 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -108,7 +119,7 @@ html_title = "DBImport Documentation"
 # html_domain_indices = True
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = True
 
 # If true, the index is split into individual pages for each letter.
 # html_split_index = False
@@ -120,7 +131,7 @@ html_title = "DBImport Documentation"
 # html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-#html_show_copyright = False
+html_show_copyright = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
