@@ -23,7 +23,7 @@ This is where all the documentation around DBImport will come.
 Content
 -------
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    license
    install
