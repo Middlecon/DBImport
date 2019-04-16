@@ -59,16 +59,16 @@ html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
-import sphinx_rtd_theme
+# import sphinx_rtd_theme
 
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 html_title = "DBImport Documentation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = ""
+# html_short_title = ""
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -108,7 +108,7 @@ html_short_title = ""
 # html_domain_indices = True
 
 # If false, no index is generated.
-html_use_index = True
+#html_use_index = True
 
 # If true, the index is split into individual pages for each letter.
 # html_split_index = False
@@ -120,7 +120,7 @@ html_use_index = True
 # html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-html_show_copyright = False
+#html_show_copyright = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
@@ -131,7 +131,7 @@ html_show_copyright = False
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'DBImportdoc'
+#htmlhelp_basename = 'DBImportdoc'
 
 # -- Extension configuration -------------------------------------------------
 
