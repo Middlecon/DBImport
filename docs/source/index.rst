@@ -17,8 +17,9 @@
 
 .. include:: ../../README.rst
 
-.. _contents:
 
+Content
+-------
 .. toctree::
     :maxdepth: 4
 
