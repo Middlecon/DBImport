@@ -15,13 +15,10 @@
     specific language governing permissions and limitations
     under the License.
 
-Welcome to DBImport's documentation!
-====================================
+.. include:: ../../README.rst
 
-This is where all the documentation around DBImport will come. 
+.. _contents:
 
-Content
--------
 .. toctree::
    :maxdepth: 4
 
