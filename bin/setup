@@ -1,0 +1,106 @@
+#!/usr/bin/python3.6
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import sys
+import getopt
+import logging
+from DBImportOperation import import_operations
+from DBImportConfig import constants as constant
+
+def printHelp():
+	print ("Options:")
+	print ("  --clearStage       Clear the stage. Requires Hive Database and Hive Table paramaters")
+	print ("")
+	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
+	print ("                     Hive database")
+	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
+	print ("                     Hive table")
+	print ("")
+	print ("  --help             Show this help message and exit")
+	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
+	sys.exit(1)
+	
+def main(argv):
+
+	try:
+		opts, args = getopt.getopt(argv, "vh:t:", ["help", "clearStage", "Hive_DB=", "Hive_Table=", "debug"])
+	except getopt.GetoptError:
+		printHelp()
+
+	version = "0.10"
+	Hive_DB = None
+	Hive_Table = None
+	operation = None
+	loggingLevel = logging.INFO
+
+	if  len(opts) == 0:
+		printHelp()
+
+	for opt, arg in opts:
+		if opt in ("-h", "--Hive_DB"):
+			Hive_DB = arg
+		elif opt in ("-t", "--Hive_Table"):
+			Hive_Table = arg
+		elif opt in ("-v", "--debug"):
+			loggingLevel = logging.DEBUG
+		elif opt == "--help":
+			printHelp()
+		elif opt == "--clearStage":
+			operation = "clearStage"
+
+	if operation == None:
+		printHelp()
+
+	if Hive_DB == None or Hive_Table == None:
+		printHelp()
+
+	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
+	sys.stdout.write(u"\u001b[35m")  # Magenta
+	sys.stdout.flush()
+	print("")
+	print(" _____  ____ _____                            _                       _               ") 
+	print("|  __ \|  _ \_   _|                          | |                     | |              ") 
+	print("| |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______   ___  ___| |_ _   _ _ __  ") 
+	print("| |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______| / __|/ _ \ __| | | | '_ \ ") 
+	print("| |__| | |_) || |_| | | | | | |_) | (_) | |  | |_           \__ \  __/ |_| |_| | |_) |")
+	print("|_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |___/\___|\__|\__,_| .__/ ")
+	print("                             | |                                                | |   ")
+	print("                             |_|                                                |_|   ")
+	sys.stdout.write(u"\u001b[0m")  # Reset
+	sys.stdout.flush()
+	print("")
+	print("Version: %s"%(constant.VERSION))
+	print("")
+	print("")
+
+	# Initiate the logging functions with the correct level
+	if loggingLevel == logging.DEBUG:
+		logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+	else:
+		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
+
+	if operation == "clearStage":
+		# Initiate the master class for all import operations
+		operation = import_operations.operation(Hive_DB, Hive_Table)
+		operation.clearStage()
+		logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
+
+	operation.remove_temporary_files()
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
