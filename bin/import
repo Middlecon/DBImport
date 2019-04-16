@@ -1,0 +1,330 @@
+#!/usr/bin/python3.6
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import sys
+import getopt
+import logging
+from DBImportOperation import import_operations
+from DBImportConfig import constants as constant
+
+def printHelp():
+	print ("import")
+	print ("Options:")
+	print ("  --help             Show this help message and exit")
+	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
+	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
+	print ("                     Hive database")
+	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
+	print ("                     Hive table")
+	print ("  -1                 Only run functions up and include the sqoop import.")
+	print ("  -2                 Only run functions after sqoop is executed. This is normaly all Hive operations.")
+	print ("  -f [Function], --function=[Function]")
+	print ("                     Only run the specified function. This is used for debugging and when migrating from")
+	print ("                     bash based DBImport scripts. Using a function ignore what ever stage the import is in.")
+	print ("                     Use with caution!")
+	print ("                     Valid function options are:")
+	print ("                     - getSourceTableSchema")
+	print ("                     - sqoop")
+	print ("                     - createImportTable")
+	print ("                     - getImportTableRowCount")
+	print ("                     - validate")
+	print ("                     - createTargetTable")
+	print ("                     - removeHiveLocks")
+	print ("                     - truncateTargetTable")
+	print ("                     - loadDataFromImportTable")
+	sys.exit(1)
+	
+def printBox(messageList):
+	# This code is not completed. It was a way to easily create the Ascii boxes used in the import, but we are still using hard-coded boxes. One day.....
+	if type(messageList) is not list:
+		messageList = [messageList]
+
+	startLine = ""
+	stopLine = ""
+	maxLength = 0
+	for message in messageList:
+		if len(message) > maxLength:
+			maxLength = len(message)
+
+	for i in range(maxLength):
+		startLine += "_"
+		stopLine += "_"
+
+	print(startLine)
+	for message in messageList:
+		if len(message) > maxLength:
+			maxLength = len(message)
+	print(stopLine)
+
+def main(argv):
+
+	try:
+		opts, args = getopt.getopt(argv, "v12f:h:t:", ["help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop"])
+	except getopt.GetoptError:
+		printHelp()
+
+	version = "0.10"
+	Hive_DB = None
+	Hive_Table = None
+	runOnlyFunction = None
+	loggingLevel = logging.INFO
+	skipSqoop = False
+	runStageOne = False
+	runStageTwo = False
+
+	if  len(opts) == 0:
+		printHelp()
+
+	for opt, arg in opts:
+		if opt in ("-h", "--Hive_DB"):
+			Hive_DB = arg
+		elif opt in ("-t", "--Hive_Table"):
+			Hive_Table = arg
+		elif opt in ("-v", "--debug"):
+			loggingLevel = logging.DEBUG
+		elif opt == "--skipSqoop":
+			skipSqoop = True
+		elif opt in ("-f", "--function"):
+			runOnlyFunction = arg
+		elif opt == "--help":
+			printHelp()
+		elif opt == "-1":
+			runStageOne = True
+		elif opt == "-2":
+			runStageTwo = True
+
+	if Hive_DB == None or Hive_Table == None:
+		printHelp()
+
+	if runStageOne == False and runStageTwo == False:
+		# If nothing is specified we run both stages
+		runStageOne = True
+		runStageTwo = True
+
+	if runOnlyFunction != None:
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "validate", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable"):
+			printHelp()
+
+	# Initiate the logging functions with the correct level
+	if loggingLevel == logging.DEBUG:
+		logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+	else:
+		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
+
+	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20import
+	sys.stdout.write(u"\u001b[35m")  # Magenta
+	sys.stdout.flush()
+	print("")
+	print("  _____  ____ _____                            _              _                            _   ") 
+	print(" |  __ \|  _ \_   _|                          | |            (_)                          | |  ") 
+	print(" | |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______   _ _ __ ___  _ __   ___  _ __| | _") 
+	print(" | |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______| | | '_ ` _ \| '_ \ / _ \| '__| __|")
+	print(" | |__| | |_) || |_| | | | | | |_) | (_) | |  | |_           | | | | | | | |_) | (_) | |  | |_ ")
+	print(" |_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |_|_| |_| |_| .__/ \___/|_|   \__|")
+	print("                             | |                                         | |                   ")
+	print("                             |_|                                         |_|                   ")
+	sys.stdout.write(u"\u001b[0m")  # Reset
+	sys.stdout.flush()
+	print("")
+	print("Version: %s"%(constant.VERSION))
+	print("")
+	print("")
+	
+	# Initiate the master class for all import operations
+	operation = import_operations.operation(Hive_DB, Hive_Table)
+
+	print("The following table will be imported")
+	print("______________________________________________________________________________")
+	print("")
+	print("Import Type:          %s"%(operation.import_config.import_type))
+	print("Import description:   %s"%(operation.import_config.import_type_description))
+	print("Source hostname:      %s"%(operation.import_config.common_config.jdbc_hostname))
+	print("Source database type: %s"%(operation.import_config.common_config.jdbc_servertype))
+	print("Source database:      %s"%(operation.import_config.common_config.jdbc_database))
+	if operation.import_config.source_schema != "-":
+		print("Source schema:        %s"%(operation.import_config.source_schema))
+	print("Source table:         %s"%(operation.import_config.source_table))
+	print("Hive database:        %s"%(operation.import_config.Hive_DB))
+	print("Hive table:           %s"%(operation.import_config.Hive_Table))
+	print("______________________________________________________________________________")
+	print("")
+
+	if ( runStageOne == True and runStageTwo == False ) and runOnlyFunction == None:
+		print(" _______________________ ")
+		print("|                       |")
+		print("| Stage 1 import only   |")
+		print("|_______________________|")
+		print("")
+		print("")
+
+	if ( runStageOne == False and runStageTwo == True ) and runOnlyFunction == None:
+		print(" _______________________ ")
+		print("|                       |")
+		print("| Stage 2 import only   |")
+		print("|_______________________|")
+		print("")
+		print("")
+
+	if runOnlyFunction != None:
+		print(" _______________________________________________________ ")
+		print("|                                                       |")
+		print("| This is not a full import as a function was specified |") 	
+		print("|_______________________________________________________|")
+		print("")
+		print("")
+
+		operation.setStageOnlyInMemory()
+
+	# TODO: make sure there is a valid Kerberos key
+
+	# Check if the configured Hive database exists
+	operation.checkHiveDB(Hive_DB)
+
+	# Checking if we are allowed to use the configued JDBC connection at this time
+	operation.checkTimeWindow()
+
+	if operation.import_config.import_type == "full" or operation.import_config.import_type == "full_direct": 
+
+		stage = operation.getStage()
+		if stage > 0 and stage != 1049:
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			print("|________________________________________________________|")
+			print("")
+			print("")
+
+		if runStageOne == True and runStageTwo == False and stage == 1049:
+			print(" ___________________________________ ")
+			print("|                                   |")
+			print("| Stage 1 is already completed.     |") 
+			print("| To continue, run with option '-2' |") 	
+			print("|___________________________________|")
+
+			operation.remove_temporary_files()
+			sys.exit(0)
+
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema"):
+			operation.setStage(1010)
+			if operation.getStage() == 1010: 
+				operation.getSourceTableSchema()
+
+		if runStageOne == True and runOnlyFunction == None: 
+			operation.setStage(1011)
+			if operation.getStage() == 1011: 
+				operation.clearTableRowCount()
+
+		if runStageOne == True and runOnlyFunction == None: 
+			operation.setStage(1012)
+			if operation.getStage() == 1012: 
+				operation.getJDBCTableRowCount()
+	
+		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			operation.setStage(1013)
+			if operation.getStage() == 1013: 
+				operation.runSqoop(False)
+
+			operation.setStage(1049)
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createImportTable"):
+			operation.setStage(1050)
+			if operation.getStage() == 1050: 
+				operation.connectToHive()
+
+			operation.setStage(1051)
+			if operation.getStage() == 1051: 
+				operation.createExternalImportTable()
+				operation.updateExternalImportTable()
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount"):
+			operation.setStage(1052)
+			if operation.getStage() == 1052: 
+				operation.connectToHive()
+				operation.getImportTableRowCount()
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "validate"):
+			operation.setStage(1053)
+			if operation.getStage() == 1053: 
+				operation.validateRowCount()
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks"):
+			operation.setStage(1054)
+			if operation.getStage() == 1054: 
+				operation.connectToHive()
+				operation.removeHiveLocks()
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createTargetTable"):
+			operation.setStage(1055)
+			if operation.getStage() == 1055: 
+				operation.connectToHive()
+				operation.createTargetTable()
+				operation.updateTargetTable()
+				operation.updatePKonTargetTable()
+				operation.updateFKonTargetTable()
+		# TODO: Handle changes in  tables
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "truncateTargetTable"):
+			operation.setStage(1056)
+			if operation.getStage() == 1056: 
+				operation.connectToHive()
+				operation.truncateTargetTable()
+		
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable"):
+			operation.setStage(1057)
+			if operation.getStage() == 1057: 
+				operation.connectToHive()
+				operation.loadDataFromImportToTargetTable()
+
+			operation.setStage(1058)
+			if operation.getStage() == 1058: 
+				operation.updateStatisticsOnTargetTable()
+
+		if runOnlyFunction == None:
+			if runStageOne == True and runStageTwo == False:
+				print(" _______________________________________ ")
+				print("|                                       |")
+				print("| DBImport Stage 1 completed successful |") 	
+				print("|_______________________________________|")
+			elif runStageOne == False and runStageTwo == True:
+				print(" _______________________________________ ")
+				print("|                                       |")
+				print("| DBImport Stage 2 completed successful |") 	
+				print("|_______________________________________|")
+			else:
+				print(" _______________________________ ")
+				print("|                               |")
+				print("| DBImport completed successful |") 	
+				print("|_______________________________|")
+			print("")
+
+			if runStageTwo == True:
+				# We can only clear the stage at the end of stage 2. 
+				operation.clearStage()
+	else:
+		logging.error("This import tool only supports 'full' and 'full_direct' so far. Please use bash version for other imports")
+		operation.remove_temporary_files()
+		sys.exit(1)
+
+	operation.remove_temporary_files()
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
