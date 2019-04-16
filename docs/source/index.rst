@@ -20,10 +20,10 @@
 .. _contents:
 
 .. toctree::
-   :maxdepth: 4
+    :maxdepth: 4
 
-   license
-   install
-   quickstart
+    license
+    install
+    quickstart
 
 
