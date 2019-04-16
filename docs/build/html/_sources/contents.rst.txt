@@ -1,4 +1,0 @@
-Contents.... 
-============
-
-A great text 
