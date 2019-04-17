@@ -15,7 +15,7 @@
     specific language governing permissions and limitations
     under the License.
 
-.. include:: ../../README.rst
+.. include:: ../README.rst
 
 
 Content

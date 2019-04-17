@@ -24,12 +24,8 @@ from DBImportConfig import constants as constant
 
 def printHelp():
 	print ("Options:")
-	print ("  --clearStage       Clear the stage. Requires Hive Database and Hive Table paramaters")
-	print ("")
-	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
-	print ("                     Hive database")
-	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
-	print ("                     Hive table")
+	print ("  --createDB         Creates the database schema in the DBImport configuration database")
+	print ("  --upgradeDB        Upgrades the configuration database to support a new DBImport version")
 	print ("")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
@@ -38,7 +34,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:", ["help", "clearStage", "Hive_DB=", "Hive_Table=", "debug"])
+		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "debug"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -52,35 +48,30 @@ def main(argv):
 		printHelp()
 
 	for opt, arg in opts:
-		if opt in ("-h", "--Hive_DB"):
-			Hive_DB = arg
-		elif opt in ("-t", "--Hive_Table"):
-			Hive_Table = arg
-		elif opt in ("-v", "--debug"):
+		if opt in ("-v", "--debug"):
 			loggingLevel = logging.DEBUG
 		elif opt == "--help":
 			printHelp()
-		elif opt == "--clearStage":
-			operation = "clearStage"
+		elif opt == "--createDB":
+			operation = "createDB"
+		elif opt == "--upgradeDB":
+			operation = "upgradeDB"
 
 	if operation == None:
-		printHelp()
-
-	if Hive_DB == None or Hive_Table == None:
 		printHelp()
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
 	sys.stdout.write(u"\u001b[35m")  # Magenta
 	sys.stdout.flush()
 	print("")
-	print(" _____  ____ _____                            _                       _               ") 
-	print("|  __ \|  _ \_   _|                          | |                     | |              ") 
-	print("| |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______   ___  ___| |_ _   _ _ __  ") 
-	print("| |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______| / __|/ _ \ __| | | | '_ \ ") 
-	print("| |__| | |_) || |_| | | | | | |_) | (_) | |  | |_           \__ \  __/ |_| |_| | |_) |")
-	print("|_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |___/\___|\__|\__,_| .__/ ")
-	print("                             | |                                                | |   ")
-	print("                             |_|                                                |_|   ")
+	print(" _____  ____ _____                            _               _____      _               ") 
+	print("|  __ \|  _ \_   _|                          | |             / ____|    | |              ")
+	print("| |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______  | (___   ___| |_ _   _ _ __  ")
+	print("| |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______|  \___ \ / _ \ __| | | | '_ \ ")
+	print("| |__| | |_) || |_| | | | | | |_) | (_) | |  | |_            ____) |  __/ |_| |_| | |_) |")
+	print("|_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |_____/ \___|\__|\__,_| .__/ ")
+	print("                            | |                                                   | |    ")
+	print("                            |_|                                                   |_|    ")
 	sys.stdout.write(u"\u001b[0m")  # Reset
 	sys.stdout.flush()
 	print("")
@@ -94,13 +85,11 @@ def main(argv):
 	else:
 		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
 
-	if operation == "clearStage":
-		# Initiate the master class for all import operations
-		operation = import_operations.operation(Hive_DB, Hive_Table)
-		operation.clearStage()
-		logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
+	if operation == "createDB":
+		print("createDB - This operation is not developed yet")
 
-	operation.remove_temporary_files()
+	if operation == "upgradeDB":
+		print("upgradeDB - This operation is not developed yet")
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
