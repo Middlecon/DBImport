@@ -1,3 +1,8 @@
+Database Tables
+===============
+
+As this version of DBImport dont have the web admin tool available, the documentation will be agains each column in the configuration database tables. The admin tool will later use the same fields so whats said in here will later be applicable on the admin tool aswell.
+
 
 Table - airflow_custom_dags
 ---------------------------
