@@ -44,6 +44,7 @@ def main(argv):
 	Hive_Table = None
 	operation = None
 	loggingLevel = logging.INFO
+	printHeader = True
 
 	if  len(opts) == 0:
 		printHelp()
@@ -59,28 +60,30 @@ def main(argv):
 			operation = "upgradeDB"
 		elif opt == "--createSchemaRst":
 			operation = "createSchemaRst"
+			printHeader = False
 
 	if operation == None:
 		printHelp()
 
-	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20Setup
-	sys.stdout.write(u"\u001b[35m")  # Magenta
-	sys.stdout.flush()
-	print("")
-	print(" _____  ____ _____                            _               _____      _               ") 
-	print("|  __ \|  _ \_   _|                          | |             / ____|    | |              ")
-	print("| |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______  | (___   ___| |_ _   _ _ __  ")
-	print("| |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______|  \___ \ / _ \ __| | | | '_ \ ")
-	print("| |__| | |_) || |_| | | | | | |_) | (_) | |  | |_            ____) |  __/ |_| |_| | |_) |")
-	print("|_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |_____/ \___|\__|\__,_| .__/ ")
-	print("                            | |                                                   | |    ")
-	print("                            |_|                                                   |_|    ")
-	sys.stdout.write(u"\u001b[0m")  # Reset
-	sys.stdout.flush()
-	print("")
-	print("Version: %s"%(constant.VERSION))
-	print("")
-	print("")
+	if printHeader == True:
+		# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20Setup
+		sys.stdout.write(u"\u001b[35m")  # Magenta
+		sys.stdout.flush()
+		print("")
+		print(" _____  ____ _____                            _               _____      _               ") 
+		print("|  __ \|  _ \_   _|                          | |             / ____|    | |              ")
+		print("| |  | | |_) || |  _ __ ___  _ __   ___  _ __| |_   ______  | (___   ___| |_ _   _ _ __  ")
+		print("| |  | |  _ < | | | '_ ` _ \| '_ \ / _ \| '__| __| |______|  \___ \ / _ \ __| | | | '_ \ ")
+		print("| |__| | |_) || |_| | | | | | |_) | (_) | |  | |_            ____) |  __/ |_| |_| | |_) |")
+		print("|_____/|____/_____|_| |_| |_| .__/ \___/|_|   \__|          |_____/ \___|\__|\__,_| .__/ ")
+		print("                            | |                                                   | |    ")
+		print("                            |_|                                                   |_|    ")
+		sys.stdout.write(u"\u001b[0m")  # Reset
+		sys.stdout.flush()
+		print("")
+		print("Version: %s"%(constant.VERSION))
+		print("")
+		print("")
 
 	# Initiate the logging functions with the correct level
 	if loggingLevel == logging.DEBUG:

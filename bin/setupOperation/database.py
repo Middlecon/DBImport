@@ -68,7 +68,7 @@ class initialize(object):
 
 	def generateSchemaRst(self):
 
-		query =  "select max(length(c.table_name)), max(length(c.column_comment)) "
+		query =  "select max(length(c.column_name)), max(length(c.column_comment)) "
 		query += "from information_schema.columns c "
 		query += "left join information_schema.tables t "
 		query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
@@ -78,7 +78,7 @@ class initialize(object):
 		self.mysql_cursor.execute(query)
 
 		row = self.mysql_cursor.fetchone()
-		maxTableLength = row[0]
+		maxColumnLength = row[0]
 		maxDescLength = row[1]
 
 		lineSingle = "+"
@@ -86,7 +86,7 @@ class initialize(object):
 		lineHeaderColumn = "Column"
 		lineHeaderDesc = "Documentation"
 
-		for i in range(maxTableLength + 2):
+		for i in range(maxColumnLength + 2):
 			lineSingle += "-"
 			lineDouble += "="
 		lineSingle += "+"
@@ -98,13 +98,22 @@ class initialize(object):
 		lineDouble += "+"
 		
 		lineHeader = "| %s"%(lineHeaderColumn)
-		for i in range(maxTableLength + 1 - len(lineHeaderColumn)):
+		for i in range(maxColumnLength + 1 - len(lineHeaderColumn)):
 			lineHeader += " "
 		lineHeader += "| %s"%(lineHeaderDesc)
 		for i in range(maxDescLength + 1 - len(lineHeaderDesc)):
 			lineHeader += " "
 		lineHeader += "|"
 		
+
+		print("Database Tables")
+		print("===============")
+		print("")
+
+		print("As this version of DBImport dont have the web admin tool available, the documentation will be agains each column in the configuration database tables. The admin tool will later use the same fields so whats said in here will later be applicable on the admin tool aswell.")
+		print("")
+
+
 
 		query =  "select "
 		query += "   c.table_name, "
@@ -114,6 +123,7 @@ class initialize(object):
 		query += "left join information_schema.tables t "
 		query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
 		query += "where c.table_schema = 'DBImport' "
+#		query += "   and c.table_name = 'import_tables' "
 		query += "order by c.table_name, c.ordinal_position "
 
 		logging.debug("SQL Statement executed: %s" % (query) )
@@ -138,7 +148,7 @@ class initialize(object):
 				print(lineDouble)	
 				
 			line = "| %s"%(row[1])
-			for i in range(maxTableLength + 1 - len(row[1])):
+			for i in range(maxColumnLength + 1 - len(row[1])):
 				line += " "
 			line += "| %s"%(row[2])
 			for i in range(maxDescLength + 1 - len(row[2])):
