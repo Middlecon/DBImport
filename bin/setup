@@ -21,6 +21,7 @@ import getopt
 import logging
 from DBImportOperation import import_operations
 from DBImportConfig import constants as constant
+from setupOperation import database as databaseOperations 
 
 def printHelp():
 	print ("Options:")
@@ -34,7 +35,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "debug"])
+		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "createSchemaRst", "debug"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -56,11 +57,13 @@ def main(argv):
 			operation = "createDB"
 		elif opt == "--upgradeDB":
 			operation = "upgradeDB"
+		elif opt == "--createSchemaRst":
+			operation = "createSchemaRst"
 
 	if operation == None:
 		printHelp()
 
-	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
+	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20Setup
 	sys.stdout.write(u"\u001b[35m")  # Magenta
 	sys.stdout.flush()
 	print("")
@@ -90,6 +93,10 @@ def main(argv):
 
 	if operation == "upgradeDB":
 		print("upgradeDB - This operation is not developed yet")
+
+	if operation == "createSchemaRst":
+		dbOperations = databaseOperations.initialize()
+		dbOperations.generateSchemaRst()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
