@@ -117,6 +117,7 @@ class initialize(object):
 
 		query =  "select "
 		query += "   c.table_name, "
+		query += "   t.table_comment, "
 		query += "   c.column_name, "
 		query += "   c.column_comment "
 		query += "from information_schema.columns c "
@@ -131,27 +132,33 @@ class initialize(object):
 
 		previousTable = ""
 		for row in self.mysql_cursor.fetchall():
-			if previousTable != row[0]:
-				previousTable = row[0]
+			tableName = row[0]
+			tableComment = row[1]
+			columnName = row[2]
+			columnComment = row[3]
+			if previousTable != tableName:
+				previousTable =tableName 
 				print("")
 				print("")
 				print("")
-				print("Table - %s"%(row[0]))
+				print("Table - %s"%(tableName))
 				line = ""
-				for i in range(len(row[0]) + 8):	
+				for i in range(len(tableName) + 8):	
 					line += "-"
 				print(line)
 				print("")
+				if tableComment != None:
+					print(tableComment)
 				print("")
 				print(lineSingle)	
 				print(lineHeader)	
 				print(lineDouble)	
 				
-			line = "| %s"%(row[1])
-			for i in range(maxColumnLength + 1 - len(row[1])):
+			line = "| %s"%(columnName)
+			for i in range(maxColumnLength + 1 - len(columnName)):
 				line += " "
-			line += "| %s"%(row[2])
-			for i in range(maxDescLength + 1 - len(row[2])):
+			line += "| %s"%(columnComment)
+			for i in range(maxDescLength + 1 - len(columnComment)):
 				line += " "
 			line += "|"
 			print(line)

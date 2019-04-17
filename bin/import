@@ -211,6 +211,8 @@ def main(argv):
 			print("")
 			print("")
 
+			# TODO. Save the retry in the import_retries_log
+
 		if runStageOne == True and runStageTwo == False and stage == 1049:
 			print(" ___________________________________ ")
 			print("|                                   |")
