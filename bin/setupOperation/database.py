@@ -138,9 +138,9 @@ class initialize(object):
 			columnComment = row[3]
 			if previousTable != tableName:
 				previousTable =tableName 
-				print("")
-				print("")
-				print("")
+				print(" ")
+				print(" ")
+				print(" ")
 				print("Table - %s"%(tableName))
 				line = ""
 				for i in range(len(tableName) + 8):	
