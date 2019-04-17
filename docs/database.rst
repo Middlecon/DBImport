@@ -7,6 +7,7 @@ Table - jdbc_connections
 ------------------------
 
 This table is used for storing all the connection details against the different source databases. 
+
 +------------------+----------------------------------------------------+
 | Column           | Description                                        |
 +==================+====================================================+
