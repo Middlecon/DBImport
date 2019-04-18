@@ -26,7 +26,7 @@ Content
     license
     install
     quickstart
-    import_method
+    import_methods
     database
 
 

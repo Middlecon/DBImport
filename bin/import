@@ -201,6 +201,18 @@ def main(argv):
 	if operation.import_config.import_type == "full" or operation.import_config.import_type == "full_direct": 
 
 		stage = operation.getStage()
+		if stage > 0 and stage < 1000:
+			# TODO: Remove this once everything is migrated to python version
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| ERROR: Stage information incorrect. Did you run the    |") 	
+			print("|        python version of DBImport last time?           |") 	
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			operation.remove_temporary_files()
+			sys.exit(1)
+
 		if stage > 0 and stage != 1049:
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
@@ -254,6 +266,7 @@ def main(argv):
 
 			operation.setStage(1051)
 			if operation.getStage() == 1051: 
+				# TODO: Log changes and failures
 				operation.createExternalImportTable()
 				operation.updateExternalImportTable()
 

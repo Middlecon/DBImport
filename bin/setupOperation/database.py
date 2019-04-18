@@ -124,7 +124,9 @@ class initialize(object):
 		query += "left join information_schema.tables t "
 		query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
 		query += "where c.table_schema = 'DBImport' "
-#		query += "   and c.table_name = 'import_tables' "
+		query += "   and c.table_name not like 'airflow%' "
+		query += "   and c.table_name != 'etl_jobs' "
+		query += "   and c.table_name != 'auto_discovered_tables' "
 		query += "order by c.table_name, c.ordinal_position "
 
 		logging.debug("SQL Statement executed: %s" % (query) )
