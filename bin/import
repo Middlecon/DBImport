@@ -23,10 +23,10 @@ from DBImportOperation import import_operations
 from DBImportConfig import constants as constant
 
 def printHelp():
-	print ("import")
 	print ("Options:")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
+	print ("  -V, --version      Displays the version of DBImport")
 	print ("  --skipSqoop        Dont run the sqoop command. Useful when the Parquet files are correct and you need to recreate Hive tables")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
@@ -75,7 +75,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "v12f:h:t:", ["help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop"])
+		opts, args = getopt.getopt(argv, "vV12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -87,6 +87,7 @@ def main(argv):
 	skipSqoop = False
 	runStageOne = False
 	runStageTwo = False
+	displayVersion = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -98,6 +99,8 @@ def main(argv):
 			Hive_Table = arg
 		elif opt in ("-v", "--debug"):
 			loggingLevel = logging.DEBUG
+		elif opt in ("-V", "--version"):
+			displayVersion = True
 		elif opt == "--skipSqoop":
 			skipSqoop = True
 		elif opt in ("-f", "--function"):
@@ -108,6 +111,10 @@ def main(argv):
 			runStageOne = True
 		elif opt == "-2":
 			runStageTwo = True
+
+	if displayVersion == True:
+		print("DBImport version: %s"%(constant.VERSION))
+		sys.exit(0)
 
 	if Hive_DB == None or Hive_Table == None:
 		printHelp()

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$DBIMPORT_HOME" == "" ]; then
+	DBIMPORT_HOME=/usr/local/dbimport
+fi
+
 CONFIG_FILE=${DBIMPORT_HOME}/conf/dbimport.cfg
 KEYTAB_FILE="$(cat $CONFIG_FILE | grep "^keytab=" | awk 'BEGIN{FS="="}{print $2}')"
 KERBEROS_PRINCIPAL="$(cat $CONFIG_FILE | grep "^principal=" | awk 'BEGIN{FS="="}{print $2}')"
