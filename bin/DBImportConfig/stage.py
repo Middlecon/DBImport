@@ -45,16 +45,19 @@ class stage(object):
 		elif stage == 1011: stageDescription = "Clear table rowcount"
 		elif stage == 1012: stageDescription = "Get source table rowcount"
 		elif stage == 1013: stageDescription = "Sqoop import"
+		elif stage == 1014: stageDescription = "Validate sqoop import"
 		elif stage == 1049: stageDescription = "Stage1 Completed"
 		elif stage == 1050: stageDescription = "Connecting to Hive"
 		elif stage == 1051: stageDescription = "Creating the import table in the staging database"
-		elif stage == 1052: stageDescription = "Get Hive table rowcount"
-		elif stage == 1053: stageDescription = "Validate import"
+		elif stage == 1052: stageDescription = "Get Import table rowcount"
+		elif stage == 1053: stageDescription = "Validate import table"
 		elif stage == 1054: stageDescription = "Removing Hive locks by force"
 		elif stage == 1055: stageDescription = "Creating the target table"
 		elif stage == 1056: stageDescription = "Truncate target table"
 		elif stage == 1057: stageDescription = "Copy rows from import to target table"
 		elif stage == 1058: stageDescription = "Update Hive statistics on target table"
+		elif stage == 1059: stageDescription = "Get Target table rowcount"
+		elif stage == 1060: stageDescription = "Validate target table"
 
 		return stageDescription
 
@@ -108,9 +111,13 @@ class stage(object):
 		logging.debug("Executing stage.getStage() - Finished")
 		return self.currentStage
 
-	def setStage(self, newStage):
+	def setStage(self, newStage, force=False):
 		""" Saves the stage information that is used for finding the correct step in the retries operations """
 		logging.debug("Executing stage.setStage()")
+
+		if force == True:
+			self.currentStage = 1000
+
 		if self.currentStage != None and self.currentStage > newStage:
 			logging.debug("Executing stage.setStage() - Finished (no stage set)")
 			return
@@ -160,3 +167,28 @@ class stage(object):
 		self.currentStage = newStage
 
 		logging.debug("Executing stage.setStage() - Finished")
+
+	def saveRetryAttempt(self, stage):
+		""" Saves the retry attempt in the import_retries_log table """
+		logging.debug("Executing stage.saveRetryAttempt()")
+
+		if self.memoryStage == True:
+			return
+
+		stageDescription = self.getStageDescription(stage)
+
+		query  = "insert into import_retries_log "
+		query += "( "
+		query += "	hive_db, "
+		query += "	hive_table, "
+		query += "	retry_time, "
+		query += "	stage, "
+		query += "	stage_description "
+		query += ") "
+		query += "values (%s, %s, %s, %s, %s)"
+
+		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), stage, stageDescription))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		logging.debug("Executing stage.saveRetryAttempt() - Finished")

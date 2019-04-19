@@ -86,8 +86,8 @@ class config(object):
 		self.generatedPKcolumns = None
 		self.sqoop_mapcolumnjava = []
 		self.sqoopStartUTS = None
-		self.sqoopSize = None
-		self.sqoopRows = None
+#		self.sqoopSize = None
+#		self.sqoopRows = None
 		self.sqoopIncrMaxvaluePending = None
 
 		self.sqlSessions = None
@@ -104,17 +104,29 @@ class config(object):
 		
 		logging.debug("Executing import_definitions.__init__() - Finished")
 
+	def logColumnAdd(self, column, columnType, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logColumnAdd(column=column, columnType=columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable) 
+
+	def logColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logColumnTypeChange(column, columnType, previous_columnType=previous_columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
+
+	def logColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logColumnRename(columnName, previous_columnName, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
+
 	def remove_temporary_files(self):
 		self.common_config.remove_temporary_files()
 
-	def setStage(self, stage):
-		self.stage.setStage(stage)
+	def setStage(self, stage, force=False):
+		self.stage.setStage(stage, force=force)
 
 	def getStage(self):
 		return self.stage.getStage()
 
 	def clearStage(self):
 		self.stage.clearStage()
+
+	def saveRetryAttempt(self, stage):
+		self.stage.saveRetryAttempt(stage)
 
 	def setStageOnlyInMemory(self):
 		self.stage.setStageOnlyInMemory()
@@ -1141,7 +1153,7 @@ class config(object):
 
 	def saveHiveTableRowCount(self, rowCount):
 		logging.debug("Executing import_definitions.saveHiveTableRowCount()")
-		logging.info("Saving the number of rows in the Hive to the configuration database")
+		logging.info("Saving the number of rows in the Hive Table to the configuration database")
 
 		# Save the value to the database
 		query = ("update import_tables set hive_rowcount = %s where table_id = %s")
@@ -1156,8 +1168,10 @@ class config(object):
 		logging.info("Saving sqoop statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
-		self.sqoopSize = sqoopSize
-		self.sqoopRows = sqoopRows
+#		self.sqoopSize = sqoopSize
+#		self.sqoopRows = sqoopRows
+		self.sqoop_last_size = sqoopSize
+		self.sqoop_last_rows = sqoopRows
 		self.sqoopIncrMaxvaluePending = sqoopIncrMaxvaluePending
 		self.sqoop_last_execution_timestamp = datetime.utcfromtimestamp(sqoopStartUTS).strftime('%Y-%m-%d %H:%M:%S.000')
 
@@ -1179,7 +1193,8 @@ class config(object):
 		query  = "select c.column_name as name, c.column_type as type, c.comment "
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
-		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source"
+		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
+		query += "order by c.column_order"
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1218,20 +1233,28 @@ class config(object):
 		logging.debug("Executing import_definitions.getHiveTableComment() - Finished")
 		return row[0]
 
-	def validateRowCount(self,):
+	def validateRowCount(self, validateSqoop=False):
 		""" Validates the rows based on values stored in import_tables -> source_columns and target_columns. Returns True or False """
 		logging.debug("Executing import_definitions.validateRowCount()")
 		returnValue = None
 
 		if self.validate_import == True:
 			# Reading the saved number from the configurationdatabase
-			query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
+			if validateSqoop == False:
+				query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
+				validateText = "Hive table"
+			else:
+				query  = "select source_rowcount from import_tables where table_id = %s "
+				validateText = "Sqoop import"
 			self.mysql_cursor01.execute(query, (self.table_id, ))
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 			row = self.mysql_cursor01.fetchone()
 			source_rowcount = row[0]
-			target_rowcount = row[1]
+			if validateSqoop == False:
+				target_rowcount = row[1]
+			else:
+				target_rowcount = self.sqoop_last_rows
 			diffAllowed = 0
 			logging.debug("source_rowcount: %s"%(source_rowcount))
 			logging.debug("target_rowcount: %s"%(target_rowcount))
@@ -1251,21 +1274,23 @@ class config(object):
 
 
 			if target_rowcount > upperValidationLimit or target_rowcount < lowerValidationLimit:
-				logging.error("Validation failed! The Hive table exceedes the allowed limit compared top the source table")
+#			if 1 == 1:
+				logging.error("Validation failed! The %s exceedes the allowed limit compared top the source table"%(validateText))
 				if target_rowcount > source_rowcount:
 					logging.info("Diff between source and target table: %s"%(target_rowcount - source_rowcount))
 				else:
 					logging.info("Diff between source and target table: %s"%(source_rowcount - target_rowcount))
-				logging.info("Source table rowcount:   %s"%(source_rowcount))
-				logging.info("Target table rowcount:   %s"%(target_rowcount))
+				logging.info("Source table rowcount: %s"%(source_rowcount))
+				logging.info("%s rowcount: %s"%(validateText, target_rowcount))
 				logging.info("Validation diff allowed: %s"%(diffAllowed))
 				logging.info("Upper limit: %s"%(upperValidationLimit))
 				logging.info("Lower limit: %s"%(lowerValidationLimit))
 				returnValue = False 
 			else:
-				logging.info("Validation successful!")
-				logging.info("Source table rowcount:   %s"%(source_rowcount))
-				logging.info("Target table rowcount:   %s"%(target_rowcount))
+				logging.info("%s validation successful!"%(validateText))
+				logging.info("Source table rowcount: %s"%(source_rowcount))
+				logging.info("%s rowcount: %s"%(validateText, target_rowcount))
+				logging.info("")
 				returnValue = True 
 
 		else:
