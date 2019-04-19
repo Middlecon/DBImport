@@ -23,6 +23,7 @@ Content
 .. toctree::
     :maxdepth: 4
 
+    project
     license
     concept
     install
