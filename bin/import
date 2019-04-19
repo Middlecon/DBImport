@@ -27,6 +27,7 @@ def printHelp():
 	print ("Options:")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
+	print ("  --skipSqoop        Dont run the sqoop command. Useful when the Parquet files are correct and you need to recreate Hive tables")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
 	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
@@ -42,7 +43,7 @@ def printHelp():
 	print ("                     - sqoop")
 	print ("                     - createImportTable")
 	print ("                     - getImportTableRowCount")
-	print ("                     - validate")
+	print ("                     - getTargetTableRowCount")
 	print ("                     - createTargetTable")
 	print ("                     - removeHiveLocks")
 	print ("                     - truncateTargetTable")
@@ -117,7 +118,7 @@ def main(argv):
 		runStageTwo = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "validate", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -214,16 +215,24 @@ def main(argv):
 			sys.exit(1)
 
 		if stage > 0 and stage != 1049:
+			operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			if stage == 1014: newStage = 1011 
+			if stage == 1053: newStage = 1050 
+			if stage == 1060: newStage = 1054
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous import failed and this execution |") 	
 			print("|          is recovering from that failure.              |") 	
 			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				operation.setStage(newStage, force=True)
 			print("|________________________________________________________|")
 			print("")
 			print("")
 
-			# TODO. Save the retry in the import_retries_log
 
 		if runStageOne == True and runStageTwo == False and stage == 1049:
 			print(" ___________________________________ ")
@@ -235,6 +244,13 @@ def main(argv):
 			operation.remove_temporary_files()
 			sys.exit(0)
 
+		if stage == 1049:
+			print(" _____________________________ ")
+			print("|                             |")
+			print("| Stage 2 import is starting  |") 
+			print("|_____________________________|")
+			print("")
+			print("")
 
 		# Fetch the source table schema. This is mandatory for all imports
 		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema"):
@@ -257,6 +273,10 @@ def main(argv):
 			if operation.getStage() == 1013: 
 				operation.runSqoop(False)
 
+			operation.setStage(1014)
+			if operation.getStage() == 1014: 
+				operation.validateSqoopRowCount()
+
 			operation.setStage(1049)
 
 		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createImportTable"):
@@ -276,7 +296,6 @@ def main(argv):
 				operation.connectToHive()
 				operation.getImportTableRowCount()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "validate"):
 			operation.setStage(1053)
 			if operation.getStage() == 1053: 
 				operation.validateRowCount()
@@ -312,6 +331,16 @@ def main(argv):
 			operation.setStage(1058)
 			if operation.getStage() == 1058: 
 				operation.updateStatisticsOnTargetTable()
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount"):
+			operation.setStage(1059)
+			if operation.getStage() == 1059: 
+				operation.connectToHive()
+				operation.getTargetTableRowCount()
+
+			operation.setStage(1060)
+			if operation.getStage() == 1060: 
+				operation.validateRowCount()
 
 		if runOnlyFunction == None:
 			if runStageOne == True and runStageTwo == False:

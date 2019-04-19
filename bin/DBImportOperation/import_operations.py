@@ -72,14 +72,17 @@ class operation(object):
 	def checkTimeWindow(self):
 		self.import_config.checkTimeWindow()
 	
-	def setStage(self, stage):
-		self.import_config.setStage(stage)
+	def setStage(self, stage, force=False):
+		self.import_config.setStage(stage, force=force)
 	
 	def getStage(self):
 		return self.import_config.getStage()
 	
 	def clearStage(self):
 		self.import_config.clearStage()
+	
+	def saveRetryAttempt(self, stage):
+		self.import_config.saveRetryAttempt(stage)
 	
 	def setStageOnlyInMemory(self):
 		self.import_config.setStageOnlyInMemory()
@@ -108,6 +111,15 @@ class operation(object):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
+	def getTargetTableRowCount(self):
+		try:
+			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table)
+			self.import_config.saveHiveTableRowCount(targetTableRowCount)
+		except:
+			logging.exception("Fatal error when reading Hive table row count")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
 	def clearTableRowCount(self):
 		try:
 			self.import_config.clearTableRowCount()
@@ -121,6 +133,18 @@ class operation(object):
 			validateResult = self.import_config.validateRowCount() 
 		except:
 			logging.exception("Fatal error when validating imported rows")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+		if validateResult == False:
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+	def validateSqoopRowCount(self):
+		try:
+			validateResult = self.import_config.validateRowCount(validateSqoop=True) 
+		except:
+			logging.exception("Fatal error when validating imported rows by sqoop")
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
@@ -377,11 +401,11 @@ class operation(object):
 	def parseSqoopOutput(self, row ):
 		# 19/03/28 05:15:44 HDFS: Number of bytes written=17
 		if "HDFS: Number of bytes written" in row:
-			self.sqoopSize = row.split("=")[1]
+			self.sqoopSize = int(row.split("=")[1])
 		
 		# 19/03/28 05:15:44 INFO mapreduce.ImportJobBase: Retrieved 2 records.
 		if "mapreduce.ImportJobBase: Retrieved" in row:
-			self.sqoopRows = row.split(" ")[5]
+			self.sqoopRows = int(row.split(" ")[5])
 
 	def connectToHive(self,):
 		logging.debug("Executing import_operations.connectToHive()")
@@ -512,7 +536,7 @@ class operation(object):
 
 	def updateHiveTable(self, hiveDB, hiveTable):
 		""" Update the target table based on the column information in the configuration database """
-# TODO: Handle deletes in source systems. As of right now, we only add and change columns. If it is a full import, we should replace all columns if the numbers of columns is equal or smaller compared to source schema
+		# TODO: If there are less columns in the source table together with a rename of a column, then it wont work. Needs to be handled
 		logging.debug("Executing import_operations.updateTargetTable()")
 		logging.info("Updating Hive table columns based on source system schema")
 		columnsConfig = self.import_config.getColumnsFromConfigDatabase() 
@@ -523,9 +547,79 @@ class operation(object):
 			columnsConfig = self.updateColumnsForImportTable(columnsConfig)
 
 		# Check for missing columns
-		columnsConfigOnlyName = columnsConfig.filter(['name']).sort_values(by=['name'], ascending=True)
-		columnsHiveOnlyName = columnsHive.filter(['name']).sort_values(by=['name'], ascending=True)
+		columnsConfigOnlyName = columnsConfig.filter(['name'])
+		columnsHiveOnlyName = columnsHive.filter(['name'])
 		columnsMergeOnlyName = pd.merge(columnsConfigOnlyName, columnsHiveOnlyName, on=None, how='outer', indicator='Exist')
+
+		columnsConfigCount = len(columnsConfigOnlyName)
+		columnsHiveCount   = len(columnsHiveOnlyName)
+		columnsMergeLeftOnlyCount  = len(columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'])
+		columnsMergeRightOnlyCount = len(columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'right_only'])
+
+		logging.debug("columnsConfigOnlyName")
+		logging.debug(columnsConfigOnlyName)
+		logging.debug("================================================================")
+		logging.debug("columnsHiveOnlyName")
+		logging.debug(columnsHiveOnlyName)
+		logging.debug("================================================================")
+		logging.debug("columnsMergeOnlyName")
+		logging.debug(columnsMergeOnlyName)
+		logging.debug("")
+
+		if columnsConfigCount == columnsHiveCount and columnsMergeLeftOnlyCount > 0:
+			# The number of columns in config and Hive is the same, but there is a difference in name. This is most likely because of a rename of one or more of the columns
+			# To handle this, we try a rename. This might fail if the column types are also changed to an incompatable type
+			# The logic here is to 
+			# 1. get all columns from mergeDF that exists in Left_Only
+			# 2. Get the position in configDF with that column name
+			# 3. Get the column in the same position from HiveDF
+			# 4. Check if that column name exists in the mergeDF with Right_Only. If it does, the column was just renamed
+			for index, row in columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'].iterrows():
+				rowInConfig = columnsConfig.loc[columnsConfig['name'] == row['name']].iloc[0]
+				indexInConfig = columnsConfig.loc[columnsConfig['name'] == row['name']].index.item()
+				rowInHive = columnsHive.iloc[indexInConfig]
+				
+				if len(columnsMergeOnlyName.loc[(columnsMergeOnlyName['Exist'] == 'right_only') & (columnsMergeOnlyName['name'] == rowInHive["name"])]) > 0: 
+					# This is executed if the column is renamed and exists in the same position
+					print(rowInConfig["name"])
+					print(rowInConfig["type"])
+					print("--------------------")
+					print(rowInHive["name"])
+					print(rowInHive["type"])
+					print("--------------------")
+					print(indexInConfig)
+					print("======================================")
+					print("")
+	
+					query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInConfig['type'])
+					self.common_operations.executeHiveQuery(query)
+
+					self.import_config.logColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
+				
+					if rowInConfig["type"] != rowInHive["type"]:
+						self.import_config.logColumnTypeChange(rowInConfig['name'], rowInConfig['type'], previous_columnType=rowInHive["type"], hiveDB=hiveDB, hiveTable=hiveTable) 
+				else:
+					if columnsMergeLeftOnlyCount == 1 and columnsMergeRightOnlyCount == 1:
+						# So the columns are not in the same position, but it's only one column that changed. In that case, we just rename that one column
+						rowInMergeLeft  = columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'].iloc[0]
+						rowInMergeRight = columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'right_only'].iloc[0]
+						rowInConfig = columnsConfig.loc[columnsConfig['name'] == rowInMergeLeft['name']].iloc[0]
+						rowInHive = columnsHive.loc[columnsHive['name'] == rowInMergeRight['name']].iloc[0]
+						print(rowInConfig["name"])
+						print(rowInConfig["type"])
+						print("--------------------")
+						print(rowInHive["name"])
+						print(rowInHive["type"])
+
+						query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInHive['type'])
+						self.common_operations.executeHiveQuery(query)
+
+						self.import_config.logColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
+
+			self.common_operations.reconnectHiveMetaStore()
+			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+			columnsHiveOnlyName = columnsHive.filter(['name'])
+			columnsMergeOnlyName = pd.merge(columnsConfigOnlyName, columnsHiveOnlyName, on=None, how='outer', indicator='Exist')
 
 		for index, row in columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'].iterrows():
 			# This will iterate over columns that only exists in the config and not in Hive. We add these to Hive
@@ -535,8 +629,9 @@ class operation(object):
 				query += " COMMENT \"%s\""%(fullRow['comment'])
 			query += ")"
 
-			print(query)
 			self.common_operations.executeHiveQuery(query)
+
+			self.import_config.logColumnAdd(fullRow['name'], columnType=fullRow['type'], hiveDB=hiveDB, hiveTable=hiveTable) 
 
 		# Check for changed column types
 		self.common_operations.reconnectHiveMetaStore()
@@ -546,15 +641,33 @@ class operation(object):
 		columnsHiveOnlyNameType = columnsHive.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsMergeOnlyNameType = pd.merge(columnsConfigOnlyNameType, columnsHiveOnlyNameType, on=None, how='outer', indicator='Exist')
 
+		logging.debug("columnsConfigOnlyNameType")
+		logging.debug(columnsConfigOnlyNameType)
+		logging.debug("================================================================")
+		logging.debug("columnsHiveOnlyNameType")
+		logging.debug(columnsHiveOnlyNameType)
+		logging.debug("================================================================")
+		logging.debug("columnsMergeOnlyNameType")
+		logging.debug(columnsMergeOnlyNameType)
+		logging.debug("")
+
 		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'left_only'].iterrows():
 			# This will iterate over columns that had the type changed from the source
 			query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, row['name'], row['name'], row['type'])
-
 			self.common_operations.executeHiveQuery(query)
+
+			# Get the previous column type from the Pandas DF with right_only in Exist column
+			previous_columnType = (columnsMergeOnlyNameType.loc[
+				(columnsMergeOnlyNameType['name'] == row['name']) &
+				(columnsMergeOnlyNameType['Exist'] == 'right_only')]
+				).reset_index().at[0, 'type']
+
+			self.import_config.logColumnTypeChange(row['name'], columnType=row['type'], previous_columnType=previous_columnType, hiveDB=hiveDB, hiveTable=hiveTable) 
 
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
 		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+		columnsHive['comment'].replace('', None, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
 		columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 		for index, row in columnsMerge.loc[columnsMerge['Exist'] == 'left_only'].iterrows():
 			if row['comment'] == None: row['comment'] = ""
@@ -590,7 +703,6 @@ class operation(object):
 
 				currentPKname = self.common_operations.getPKname(hiveDB, hiveTable)
 				if currentPKname != None:
-					# TODO: Delete PK
 					query  = "alter table `%s`.`%s` "%(self.import_config.Hive_DB, self.import_config.Hive_Table)
 					query += "drop constraint %s"%(currentPKname)
 					self.common_operations.executeHiveQuery(query)

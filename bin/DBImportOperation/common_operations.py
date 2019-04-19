@@ -70,6 +70,10 @@ class operation(object):
 			self.hive_print_messages = True
 		else:
 			self.hive_print_messages = False
+		if configuration.get("Hive", "test_hive_execution").lower() == "true":
+			self.test_hive_execution = True
+		else:
+			self.test_hive_execution = False
 
 #
 		# Esablish a connection to the Hive Metastore database in MySQL
@@ -263,7 +267,8 @@ class operation(object):
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
 
 			self.hive_cursor = self.hive_conn.cursor()
-			self.testHiveQueryExecution()
+			if self.test_hive_execution == True:
+				self.testHiveQueryExecution()
 		logging.debug("Executing common_definitions.connectToHive() - Finished")
 	
 	def testHiveQueryExecution(self,):

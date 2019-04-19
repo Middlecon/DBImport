@@ -832,4 +832,56 @@ class config(object):
 
 		logging.debug("Executing common_definitions.getJDBCTableRowCount() - Finished")
 
+#	def logColumnAdd(self, column, columnType=None, description=None, Hive_DB=self.Hive_DB, Hive_Table=self.Hive_Table):
+	def logColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
+		if description == None:
+			description = "Column '%s' added to table with type '%s'"%(column, columnType)
 
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		query  = "insert into table_change_history "
+		query += "( hive_db, hive_table, column_name, eventtime, event, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, 'column_added', %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (hiveDB, hiveTable, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), columnType, description))
+		self.mysql_conn.commit()
+
+	def logColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
+
+		if description == None:
+			if previous_columnType == None:
+				description = "Column '%s' type changed to %s"%(column, columnType)
+			else:
+				description = "Column '%s' type changed from %s to %s"%(column, previous_columnType, columnType)
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		query  = "insert into table_change_history "
+		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, 'column_type_change', %s, %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (hiveDB, hiveTable, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnType, columnType, description))
+		self.mysql_conn.commit()
+
+	def logColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
+
+		if description == None:
+			description = "Column '%s' renamed to %s"%(previous_columnName, columnName)
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		query  = "insert into table_change_history "
+		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, 'column_rename', %s, %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (hiveDB, hiveTable, columnName, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnName, columnName, description))
+		self.mysql_conn.commit()
