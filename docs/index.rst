@@ -24,6 +24,7 @@ Content
     :maxdepth: 4
 
     license
+    concept
     install
     quickstart
     import_methods

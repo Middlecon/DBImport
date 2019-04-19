@@ -5,6 +5,8 @@ When specifying a table to import, one of the most important setting is to selec
 
 .. note:: Some of these import methods are not available in the latest version of DBImport. But as some of these are used by an early version of DBImport that was not Python based and not opensource, we still keep the documentation for those. Once the unavailable import methods are implemented, they will work in the same way.
  
+.. note:: The stege number seen in the documentation are the internal stage id that is used by DBImport. This number is also used in the *import_stage* and the *import_retries_log* table.
+ 
  
 Full import
 -----------
