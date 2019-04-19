@@ -17,8 +17,8 @@ Stages
 +--------+----------------------------------------------------------------------------------------------------------+
 | Stage  | Description                                                                                              |
 +========+==========================================================================================================+
-| 1010   | Getting source tableschema                                                                               |
-|        | This stage connects to the source database and reads all columns, columntypes, primary keys,             |
+| 1010   | Getting source tableschema<br />                                                                         |
+|        | This stage connects to the source database and reads all columns, columntypes, primary keys,<br />       |
 |        | foreign keys and comments and saves the to the configuration database.                                   |
 +--------+----------------------------------------------------------------------------------------------------------+
 | 1011   | Clear table rowcount                                                                                     |
