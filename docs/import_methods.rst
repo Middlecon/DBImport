@@ -14,11 +14,19 @@ This is the most basic import method. It does exactly what it says. It reads the
 Stages
 ^^^^^^
 
+1010. | *Getting source tableschema*                                                                               |
+      | This stage connects to the source database and reads all columns, columntypes, primary keys,
+      | foreign keys and comments and saves the to the configuration database.
+1011. | *Clear table rowcount*
+      | Removes the number of rows that was import in the previous import of the table
+
++--------+----------------------------------------------------------------------------------------------------------+
+| 1011   | Clear table rowcount                                                                                     |
 +--------+----------------------------------------------------------------------------------------------------------+
 | Stage  | Description                                                                                              |
 +========+==========================================================================================================+
-| 1010   | Getting source tableschema<br />                                                                         |
-|        | This stage connects to the source database and reads all columns, columntypes, primary keys,<br />       |
+| 1010   | Getting source tableschema                                                                               |
+|        | This stage connects to the source database and reads all columns, columntypes, primary keys,             |
 |        | foreign keys and comments and saves the to the configuration database.                                   |
 +--------+----------------------------------------------------------------------------------------------------------+
 | 1011   | Clear table rowcount                                                                                     |
