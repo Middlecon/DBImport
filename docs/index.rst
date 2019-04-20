@@ -30,5 +30,6 @@ Content
     quickstart
     import_methods
     database
+    rest_interface
 
 

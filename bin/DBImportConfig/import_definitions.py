@@ -23,6 +23,7 @@ import math
 from ConfigReader import configuration
 import mysql.connector
 from DBImportConfig import common_definitions
+from DBImportConfig import rest as rest
 from DBImportConfig import constants as constant
 from DBImportConfig import stage as stage
 from mysql.connector import errorcode
@@ -86,13 +87,12 @@ class config(object):
 		self.generatedPKcolumns = None
 		self.sqoop_mapcolumnjava = []
 		self.sqoopStartUTS = None
-#		self.sqoopSize = None
-#		self.sqoopRows = None
 		self.sqoopIncrMaxvaluePending = None
 
 		self.sqlSessions = None
 
 		self.common_config = common_definitions.config(Hive_DB, Hive_Table)
+		self.rest = rest.restInterface()
 
 		self.startDate    = self.common_config.startDate
 		self.mysql_conn = self.common_config.mysql_conn
@@ -130,6 +130,19 @@ class config(object):
 
 	def setStageOnlyInMemory(self):
 		self.stage.setStageOnlyInMemory()
+
+	def convertStageStatisticsToJSON(self):
+		self.stage.convertStageStatisticsToJSON(
+			hive_db=self.Hive_DB, 
+			hive_table=self.Hive_Table, 
+			importtype=self.import_type, 
+			incremental=self.import_is_incremental,
+			source_database=self.common_config.jdbc_database,
+			source_schema=self.source_schema,
+			source_table=self.source_table,
+			sqoop_size=self.sqoop_last_size,
+			sqoop_rows=self.sqoop_last_rows
+		)
 
 	def lookupConnectionAlias(self):
 		self.common_config.lookupConnectionAlias(self.connection_alias)
@@ -807,15 +820,9 @@ class config(object):
 				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 				if self.common_config.post_column_data:
-# CREATE TABLE `json_to_rest` (
-#   `endpoint` text NOT NULL,
-#   `status` tinyint(4) NOT NULL,
-#   `jsondata` text NOT NULL,
-#   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-#   PRIMARY KEY (`id`)
-# ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1
 					jsonData = {}
-					jsonData["event_date"] = self.startDate 
+					jsonData["type"] = "column_data"
+					jsonData["date"] = self.startDate 
 					jsonData["source_database_server_type"] = self.common_config.jdbc_servertype 
 					jsonData["source_database_server"] = self.common_config.jdbc_hostname
 					jsonData["source_database"] = self.common_config.jdbc_database
@@ -827,11 +834,16 @@ class config(object):
 					jsonData["source_column"] = source_column_name
 					jsonData["source_column_type"] = source_column_type
 					jsonData["column_type"] = column_type
-					logging.debug("Saving the following JSON to json_to_rest table: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
 	
-					query = "insert into json_to_rest (endpoint, status, jsondata) values (%s, %s, %s)"
-					self.mysql_cursor01.execute(query, (self.common_config.rest_column_data_endpoint, 0, json.dumps(jsonData)))
-					logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+					logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
+					response = self.rest.sendData(json.dumps(jsonData))
+					if response != 200:
+						# There was something wrong with the REST call. So we save it to the database and handle it later
+						logging.debug("REST call failed!")
+						logging.debug("Saving the JSON to the json_to_rest table instead")
+						query = "insert into json_to_rest (type, status, jsondata) values ('import_column', 0, %s)"
+						self.mysql_cursor01.execute(query, (json.dumps(jsonData), ))
+						logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 				
 		# Commit all the changes to the import_column column
 		self.mysql_conn.commit()

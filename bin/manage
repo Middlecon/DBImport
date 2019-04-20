@@ -21,12 +21,15 @@ import getopt
 import logging
 from DBImportOperation import import_operations
 from DBImportConfig import constants as constant
+from DBImportConfig import rest
 
 def printHelp():
 	print ("Options:")
 	print ("  --clearImportStage Clear the Import stage. Requires Hive Database and Hive Table paramaters")
 	print ("  --encryptCredentials")
 	print ("                     Encrypt username and password for a Database Connection. ")
+	print ("  --sendJSONstatistics")
+	print ("                     Posts the JSON data in the 'json_to_rest' table to the configured REST endpoints")
 	print ("")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
@@ -40,7 +43,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:", ["help", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug"])
+		opts, args = getopt.getopt(argv, "vh:t:", ["help", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -66,6 +69,8 @@ def main(argv):
 			operation = "clearImportStage"
 		elif opt == "--encryptCredentials":
 			operation = "encryptCredentials"
+		elif opt == "--sendJSONstatistics":
+			operation = "sendJSONstatistics"
 
 	if operation == None:
 		printHelp()
@@ -106,8 +111,11 @@ def main(argv):
 		import_operation.remove_temporary_files()
 
 	if operation == "encryptCredentials":
+		#TODO: Implement the encryption of usernames and passwords
 		print("Yay... encryption")
 
+	if operation == "sendJSONstatistics":
+		rest.postSQLData()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
