@@ -14,6 +14,7 @@ Committers
 Versions
 --------
 
+  - v0.12. Import creates JSON data about statistics and post to REST interface
   - v0.11. Support for more column changes and logging of column changes
   - v0.10. Initial release with support for Full import only
 
