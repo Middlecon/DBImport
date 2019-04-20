@@ -115,8 +115,7 @@ class config(object):
 		mysql_username = configuration.get("Database", "mysql_username")
 		mysql_password = configuration.get("Database", "mysql_password")
 
-		self.rest_column_data_endpoint = configuration.get("REST_calls", "column_data_endpoint")
-		if configuration.get("REST_calls", "post_column_data").lower() == "true":
+		if configuration.get("REST_statistics", "post_column_data").lower() == "true":
 			self.post_column_data = True
 		else:
 			self.post_column_data = False

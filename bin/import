@@ -48,6 +48,7 @@ def printHelp():
 	print ("                     - removeHiveLocks")
 	print ("                     - truncateTargetTable")
 	print ("                     - loadDataFromImportTable")
+	print ("                     - createStatistics")
 	sys.exit(1)
 	
 def printBox(messageList):
@@ -125,7 +126,7 @@ def main(argv):
 		runStageTwo = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -348,6 +349,11 @@ def main(argv):
 			operation.setStage(1060)
 			if operation.getStage() == 1060: 
 				operation.validateRowCount()
+
+			operation.setStage(9999)
+
+		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createStatistics"):
+			operation.convertStageStatisticsToJSON()
 
 		if runOnlyFunction == None:
 			if runStageOne == True and runStageTwo == False:

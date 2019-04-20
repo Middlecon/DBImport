@@ -87,6 +87,9 @@ class operation(object):
 	def setStageOnlyInMemory(self):
 		self.import_config.setStageOnlyInMemory()
 	
+	def convertStageStatisticsToJSON(self):
+		self.import_config.convertStageStatisticsToJSON()
+	
 	def checkHiveDB(self, hiveDB):
 		try:
 			self.common_operations.checkHiveDB(hiveDB)
