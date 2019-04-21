@@ -10,6 +10,7 @@ JSON Example
 At the end of every import, all statistics about how long each stage took together with source and target tables, sqoop statistics and more are collected and saved in a JSON document. This document is then POST'ed to a REST interface. The following is an example of such a JSON document
 
 .. code-block::
+
     {
         "clear_hive_locks_duration": 0,
         "clear_hive_locks_start": "2019-04-20 09:09:14",
@@ -77,6 +78,7 @@ At the end of every import, all statistics about how long each stage took togeth
 During *getSourceTableSchema*, all columns that are read from the source table are storde in the configuration database. At the same time, a JSON document is created and are also uploaded to the REST interface. The following is an example of a colum configuration JSON
 
 .. code-block::
+
     {
         "column": "test_col_02",
         "column_type": "char(50)",
