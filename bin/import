@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -295,6 +295,7 @@ def main(argv):
 			operation.setStage(1051)
 			if operation.getStage() == 1051: 
 				# TODO: Log changes and failures
+				operation.connectToHive()
 				operation.createExternalImportTable()
 				operation.updateExternalImportTable()
 
