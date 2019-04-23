@@ -285,8 +285,7 @@ class config(object):
 
 
 		# Check to see that we have a valid import type
-#		if self.import_type not in ("full", "incr", "full_direct"):
-		if self.import_type not in ("full", "full_direct"):
+		if self.import_type not in ("full", "incr", "full_direct"):
 			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 			raise Exception
 
@@ -1138,16 +1137,32 @@ class config(object):
 
 		logging.debug("Executing import_definitions.clearTableRowCount() - Finished")
 
-	def getJDBCTableRowCount(self):
+	def getJDBCTableRowCount(self, incrValidate=False):
 		logging.debug("Executing import_definitions.getJDBCtableRowCount()")
 		logging.info("Reading number of rows in source table. This will later be used for validating the import")
 
 		whereStatement = None
 		if self.import_is_incremental == True:
-			logging.error("Incremental row counts is not supported yet!")
-			raise Exception
+			# Read the MaxValue that sqoop got in the last execution
+			if self.sqoopIncrMaxvaluePending == None:
+				query = ("select incr_maxvalue_pending from import_tables where table_id = %s")
+				self.mysql_cursor01.execute(query, (self.table_id, ))
+				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+				row = self.mysql_cursor01.fetchone()
+				self.sqoopIncrMaxvaluePending = row[0]
+
+			if self.sqoop_incr_mode == "append":
+				whereStatement = "where %s <= %s"%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+
+			if incrValidate == True:
+				whereStatement += " and %s > %s"%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
+
+			if self.sqoop_sql_where_addition != None:
+				whereStatement += " and %s"%(self.sqoop_sql_where_addition)
+			
 		else:
-			whereStatement = self.sqoop_sql_where_addition
+			whereStatement = " where %s"%(self.sqoop_sql_where_addition)
 
 		# We cant have "None" as value, so if it's null we set it to an empty string
 		if whereStatement == None: whereStatement = ""
@@ -1180,8 +1195,6 @@ class config(object):
 		logging.info("Saving sqoop statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
-#		self.sqoopSize = sqoopSize
-#		self.sqoopRows = sqoopRows
 		self.sqoop_last_size = sqoopSize
 		self.sqoop_last_rows = sqoopRows
 		self.sqoopIncrMaxvaluePending = sqoopIncrMaxvaluePending
