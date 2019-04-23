@@ -73,6 +73,12 @@ class stage(object):
 		elif stage == 1059: stageDescription = "Get Target table rowcount"
 		elif stage == 1060: stageDescription = "Validate target table"
 
+		elif stage == 1110: stageDescription = "Getting source tableschema"
+		elif stage == 1111: stageDescription = "Clear table rowcount"
+		elif stage == 1112: stageDescription = "Sqoop import"
+		elif stage == 1113: stageDescription = "Get source table rowcount"
+		elif stage == 1114: stageDescription = "Validate sqoop import"
+		elif stage == 1149: stageDescription = "Stage1 Completed"
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -120,6 +126,13 @@ class stage(object):
 			elif stage == 1058: stageJSON = "update_statistics"
 			elif stage == 1059: stageJSON = "get_target_rowcount"
 			elif stage == 1060: stageJSON = "validate_target_table"
+
+			elif stage == 1110: stageJSON = "get_source_tableschema"
+			elif stage == 1111: stageJSON = "clear_table_rowcount"
+			elif stage == 1112: stageJSON = "sqoop"
+			elif stage == 1113: stageJSON = "get_source_rowcount"
+			elif stage == 1114: stageJSON = "validate_sqoop_import"
+			elif stage == 1149: stageJSON = "skip"
 
 			if stageJSON == "":
 				logging.error("There is no stage description for the JSON data for stage %s"%(stage))

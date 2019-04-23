@@ -47,7 +47,7 @@ class operation(object):
 		self.sqoopStartUTS = None
 		self.sqoopSize = None
 		self.sqoopRows = None
-		self.sqoopIncrMaxvaluePending = None
+		self.sqoopIncrMaxValuePending = None
 
 		try:
 			# Initialize the two core classes. import_config will initialize common_config aswell
@@ -97,9 +97,9 @@ class operation(object):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def getJDBCTableRowCount(self):
+	def getJDBCTableRowCount(self, incrValidate=False):
 		try:
-			self.import_config.getJDBCTableRowCount()
+			self.import_config.getJDBCTableRowCount(incrValidate=incrValidate)
 		except:
 			logging.exception("Fatal error when reading source table row count")
 			self.import_config.remove_temporary_files()
@@ -175,22 +175,14 @@ class operation(object):
 		self.sqoopStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 		self.sqoopStartUTS = int(time.time())
 
-		if self.import_config.import_is_incremental == True:
-			logging.error("Incremental imports not supported yet")
-			self.remove_temporary_files()
-			sys.exit(3)
-			
 		# Fetch the number of mappers that should be used
 		self.import_config.calculateJobMappers()
-
 
 		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
 		sqoopQuery = ""
 		sqoopSourceSchema = "" 
-#		sqoopSourceTable = self.import_config.source_table
 		sqoopSourceTable = ""
 		sqoopDirectOption = ""
-#		if self.import_config.source_schema != "-": 
 		if self.import_config.common_config.db_mssql == True: 
 			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
 			sqoopSourceTable = self.import_config.source_table
@@ -201,7 +193,6 @@ class operation(object):
 		if self.import_config.common_config.db_postgresql == True: 
 			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
 			sqoopSourceTable = self.import_config.source_table
-#			sqoopDirectOption = "--direct  "
 		if self.import_config.common_config.db_progress == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
 			sqoopDirectOption = "--direct  "
@@ -215,7 +206,6 @@ class operation(object):
 			sqoopDirectOption = "--direct  "
 
 		if self.import_config.sqoop_use_generated_sql == True:
-#			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery.replace("\"", "\\\"")
 			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
 
 		# Handle mappers, split-by with custom query
@@ -237,7 +227,6 @@ class operation(object):
 		sqoopCommand += "-D  mapreduce.job.queuename=%s  "%(configuration.get("Sqoop", "yarnqueue"))
 		sqoopCommand += "-D  oraoop.disabled=true  " 
 		sqoopCommand += "-D  org.apache.sqoop.splitter.allow_text_splitter=%s  "%(self.import_config.sqoop_allow_text_splitter)
-		sqoopCommand += "--delete-target-dir  " 
 
 		if "split-by" not in self.import_config.sqoop_options.lower():
 			sqoopCommand += "--autoreset-to-one-mapper  "
@@ -248,33 +237,25 @@ class operation(object):
 
 		sqoopCommand += "--class-name  dbimport  " 
 
-		if self.import_config.sqoop_import_type == "hive":
-			if PKOnlyImport == True:
-				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_PKonly_DB)
-				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_PKonly_Table)
-			else:
-				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_DB)
-				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_Table)
-			sqoopCommand += "--hive-drop-import-delims  "
+#		if self.import_config.sqoop_import_type == "hive":
+#			if PKOnlyImport == True:
+#				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_PKonly_DB)
+#				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_PKonly_Table)
+#			else:
+#				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_DB)
+#				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_Table)
+#			sqoopCommand += "--hive-drop-import-delims  "
 
-		if self.import_config.sqoop_import_type == "hdfs":
-#			sqoopCommand += "--as-textfile "
-#			sqoopCommand += "--fields-terminated-by \001 "
-#			sqoopCommand += "--lines-terminated-by \002 "
-#			sqoopCommand += "--null-string \003 "
-#			sqoopCommand += "--null-non-string \003 "
+#		if self.import_config.sqoop_import_type == "hdfs":
 
-			sqoopCommand += "--as-parquetfile  " 
-			sqoopCommand += "--compress  "
-			sqoopCommand += "--compression-codec  snappy  "
+		sqoopCommand += "--as-parquetfile  " 
+		sqoopCommand += "--compress  "
+		sqoopCommand += "--compression-codec  snappy  "
 
-#			sqoopCommand += "--null-string '\\\\N' "
-#			sqoopCommand += "--null-non-string '\\\\N' "
-#			sqoopCommand += "--as-sequencefile "
-			if PKOnlyImport == True:
-				sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location_pkonly)
-			else:
-				sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location)
+		if PKOnlyImport == True:
+			sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location_pkonly)
+		else:
+			sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location)
 
 		sqoopCommand += "--outdir  %s  "%(self.import_config.common_config.tempdir)
 		sqoopCommand += "--connect  \"%s\"  "%(self.import_config.common_config.jdbc_url)
@@ -289,8 +270,12 @@ class operation(object):
 			sqoopCommand += "--table  %s  "%(sqoopSourceTable)
 
 		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
-			sqoopCommand += "--incremental  %s  "%(self.import_config.incr_mode)
-			# TODO: This code is not completed. Incre not fully supported
+			sqoopCommand += "--incremental  %s  "%(self.import_config.sqoop_incr_mode)
+			sqoopCommand += "--check-column  %s  "%(self.import_config.sqoop_incr_column)
+			if self.import_config.sqoop_incr_column != None: 
+				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
+		else:
+			sqoopCommand += "--delete-target-dir  " 
 
 		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
 			sqoopCommand += "%s  "%(self.import_config.generatedSqoopOptions.replace(" ", "  "))
@@ -392,7 +377,7 @@ class operation(object):
 		
 		if PKOnlyImport == False:
 			try:
-				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows, self.sqoopIncrMaxvaluePending)
+				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows, self.sqoopIncrMaxValuePending)
 			except:
 				logging.exception("Fatal error when saving sqoop statistics")
 				self.import_config.remove_temporary_files()
@@ -409,6 +394,10 @@ class operation(object):
 		# 19/03/28 05:15:44 INFO mapreduce.ImportJobBase: Retrieved 2 records.
 		if "mapreduce.ImportJobBase: Retrieved" in row:
 			self.sqoopRows = int(row.split(" ")[5])
+
+		# 19/04/23 17:19:58 INFO tool.ImportTool:   --last-value 34
+		if "tool.ImportTool:   --last-value" in row:
+			self.sqoopIncrMaxValuePending = int(row.split("-")[3].split(" ")[1])
 
 	def connectToHive(self,):
 		logging.debug("Executing import_operations.connectToHive()")

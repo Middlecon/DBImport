@@ -207,21 +207,20 @@ def main(argv):
 	# Checking if we are allowed to use the configued JDBC connection at this time
 	operation.checkTimeWindow()
 
+	stage = operation.getStage()
+	if stage > 0 and stage < 1000:
+		# TODO: Remove this once everything is migrated to python version
+		print(" ________________________________________________________ ")
+		print("|                                                        |")
+		print("| ERROR: Stage information incorrect. Did you run the    |") 	
+		print("|        python version of DBImport last time?           |") 	
+		print("|________________________________________________________|")
+		print("")
+		print("")
+		operation.remove_temporary_files()
+		sys.exit(1)
+
 	if operation.import_config.import_type == "full" or operation.import_config.import_type == "full_direct": 
-
-		stage = operation.getStage()
-		if stage > 0 and stage < 1000:
-			# TODO: Remove this once everything is migrated to python version
-			print(" ________________________________________________________ ")
-			print("|                                                        |")
-			print("| ERROR: Stage information incorrect. Did you run the    |") 	
-			print("|        python version of DBImport last time?           |") 	
-			print("|________________________________________________________|")
-			print("")
-			print("")
-			operation.remove_temporary_files()
-			sys.exit(1)
-
 		if stage > 0 and stage != 1049:
 			operation.saveRetryAttempt(stage)
 
@@ -377,6 +376,92 @@ def main(argv):
 			if runStageTwo == True:
 				# We can only clear the stage at the end of stage 2. 
 				operation.clearStage()
+
+	elif operation.import_config.import_type == "incr": 
+		if stage > 0 and stage != 1149:
+			operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			# TODO: Add correct restart points once incremental imports are working
+#			if stage == 1014: newStage = 1011 
+#			if stage == 1053: newStage = 1050 
+#			if stage == 1060: newStage = 1054
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+
+
+		if runStageOne == True and runStageTwo == False and stage == 1149:
+			print(" ___________________________________ ")
+			print("|                                   |")
+			print("| Stage 1 is already completed.     |") 
+			print("| To continue, run with option '-2' |") 	
+			print("|___________________________________|")
+
+			operation.remove_temporary_files()
+			sys.exit(0)
+
+		if stage == 1149:
+			print(" _____________________________ ")
+			print("|                             |")
+			print("| Stage 2 import is starting  |") 
+			print("|_____________________________|")
+			print("")
+			print("")
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema"):
+			operation.setStage(1110)
+			if operation.getStage() == 1110: 
+				operation.getSourceTableSchema()
+
+		if runStageOne == True and runOnlyFunction == None: 
+			operation.setStage(1111)
+			if operation.getStage() == 1111: 
+				operation.clearTableRowCount()
+
+		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			operation.setStage(1112)
+			if operation.getStage() == 1112: 
+				operation.runSqoop(False)
+
+		if runStageOne == True and runOnlyFunction == None: 
+			operation.setStage(1113)
+			if operation.getStage() == 1113: 
+				operation.getJDBCTableRowCount(incrValidate=True)
+	
+			operation.setStage(1114)
+			if operation.getStage() == 1114: 
+				operation.validateSqoopRowCount()
+
+			operation.setStage(1149)
+
+		if runOnlyFunction == None:
+			if runStageOne == True and runStageTwo == False:
+				print(" _______________________________________ ")
+				print("|                                       |")
+				print("| DBImport Stage 1 completed successful |") 	
+				print("|_______________________________________|")
+			elif runStageOne == False and runStageTwo == True:
+				print(" _______________________________________ ")
+				print("|                                       |")
+				print("| DBImport Stage 2 completed successful |") 	
+				print("|_______________________________________|")
+			else:
+				print(" _______________________________ ")
+				print("|                               |")
+				print("| DBImport completed successful |") 	
+				print("|_______________________________|")
+			print("")
+
 	else:
 		logging.error("This import tool only supports 'full' and 'full_direct' so far. Please use bash version for other imports")
 		operation.remove_temporary_files()
