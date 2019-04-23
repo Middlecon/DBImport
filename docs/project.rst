@@ -24,3 +24,4 @@ RoadMap
   1. Implement all existing function on 'old' DBImport into the Python version.
   2. WebGui for administration of DBImport
   3. Multi cluster ingestion of data
+  4. Custom queries and delta loads from source
