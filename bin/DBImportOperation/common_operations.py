@@ -35,11 +35,11 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 
 class operation(object):
-	def __init__(self, Hive_DB, Hive_Table):
+	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing common_operation.__init__()")
 
-		self.Hive_DB = Hive_DB.lower()	 
-		self.Hive_Table = Hive_Table.lower()	 
+		self.Hive_DB = Hive_DB	 
+		self.Hive_Table = Hive_Table	 
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.hive_conn = None
@@ -48,10 +48,6 @@ class operation(object):
 		# Fetch and initialize the Kerberos configuration
 		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
 		self.webHCatAuth = HTTPKerberosAuth(force_preemptive=True, principal=self.kerberosPrincipal)
-
-		# Fetch the Hive metastore configuration
-#		self.hiveMetaStoreList = configuration.get("Hive", "metastore").split(",")
-#		self.checkHiveMetaStore()
 
 		# TODO: Handle Kerberos init and renewal
 
@@ -75,7 +71,6 @@ class operation(object):
 		else:
 			self.test_hive_execution = False
 
-#
 		# Esablish a connection to the Hive Metastore database in MySQL
 		try:
 			self.mysql_conn = mysql.connector.connect(host=self.metastore_mysql_hostname, 
@@ -93,9 +88,7 @@ class operation(object):
 			logging.error("Error: There was a problem connecting to the Hive Metastore database. Please check configuration and try again")
 			raise Exception
 		else:
-#			self.mysql_conn.autocommit(True)
 			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
-#			self.mysql_cursor_unbuffed = self.mysql_conn.cursor(buffered=False)
 
 		logging.debug("Executing common_operations.__init__() - Finished")
 
@@ -107,6 +100,11 @@ class operation(object):
 							 user=self.metastore_mysql_username, 
 							 password=self.metastore_mysql_password)
 		self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
+
+	def setHiveTable(self, Hive_DB, Hive_Table):
+		""" Sets the parameters to work against a new Hive database and table """
+		self.Hive_DB = Hive_DB.lower()	 
+		self.Hive_Table = Hive_Table.lower()	 
 
 	def checkHiveMetaStore(self):
 		logging.debug("Executing common_definitions.checkHiveMetaStore()")
@@ -253,7 +251,7 @@ class operation(object):
 		else:
 			return False
 	
-	def connectToHive(self,):
+	def connectToHive(self, forceSkipTest=False):
 		logging.debug("Executing common_definitions.connectToHive()")
 
 		# Make sure we only connect if we havent done so before. Reason is that this function can be called from many different places
@@ -267,7 +265,7 @@ class operation(object):
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
 
 			self.hive_cursor = self.hive_conn.cursor()
-			if self.test_hive_execution == True:
+			if self.test_hive_execution == True and forceSkipTest == False:
 				self.testHiveQueryExecution()
 		logging.debug("Executing common_definitions.connectToHive() - Finished")
 	
@@ -386,12 +384,16 @@ class operation(object):
 		logging.debug("Executing common_definitions.executeHiveQuery() - Finished")
 		return result_df
 
-	def getHiveTableRowCount(self, hiveDB, hiveTable):
+	def getHiveTableRowCount(self, hiveDB, hiveTable, whereStatement=None):
 		logging.debug("Executing common_definitions.getHiveTableRowCount()")
 		logging.info("Reading the number of rows from %s.%s"%(hiveDB, hiveTable))
 		rowCount = 0
 
-		result_df = self.executeHiveQuery("select count(1) as rowcount from %s.%s"%(hiveDB, hiveTable))
+		query = "select count(1) as rowcount from %s.%s "%(hiveDB, hiveTable)
+		if whereStatement != None:
+			query += "where " + whereStatement
+
+		result_df = self.executeHiveQuery(query)
 		rowCount = int(result_df['rowcount'].iloc[0])
 		logging.debug("Rowcount from %s.%s: %s"%(hiveDB, hiveTable, rowCount))
 

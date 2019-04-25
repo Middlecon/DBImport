@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.12"
+VERSION = "0.20b"
 
 # Database types
 MYSQL = "mysql"

@@ -23,6 +23,7 @@ import subprocess
 import shutil
 import jaydebeapi
 import base64
+import re
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from subprocess import Popen, PIPE
@@ -36,11 +37,11 @@ from DBImportConfig import constants as constant
 from DBImportConfig import decryption as decryption
 
 class config(object):
-	def __init__(self, Hive_DB, Hive_Table):
+	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing common_definitions.__init__()")
 
-		self.Hive_DB = Hive_DB.lower()	 
-		self.Hive_Table = Hive_Table.lower()	 
+		self.Hive_DB = Hive_DB
+		self.Hive_Table = Hive_Table
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.tempdir = None
@@ -143,6 +144,12 @@ class config(object):
 		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_definitions.__init__() - Finished")
 
+
+	def setHiveTable(self, Hive_DB, Hive_Table):
+		""" Sets the parameters to work against a new Hive database and table """
+		self.Hive_DB = Hive_DB.lower()
+		self.Hive_Table = Hive_Table.lower()
+
 	def getMysqlCursor(self):
 		return self.mysql_cursor
 
@@ -173,6 +180,9 @@ class config(object):
 
 		if row[0] != None: timeWindowStart = str(row[0])
 		if row[1] != None: timeWindowStop = str(row[1])
+
+		if timeWindowStart != None and re.search('^[0-9]:', timeWindowStart): timeWindowStart = "0" + timeWindowStart
+		if timeWindowStop  != None and re.search('^[0-9]:', timeWindowStop):  timeWindowStop  = "0" + timeWindowStop
 
 		if timeWindowStart == None and timeWindowStop == None:
 			logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
@@ -239,10 +249,10 @@ class config(object):
 
 		# Sets a creates the password file that is used by sqoop and other tools
 		self.jdbc_password_file = self.tempdir + "/jdbc_passwd"
-		f = open(self.jdbc_password_file, "a")
+		f = open(self.jdbc_password_file, "w")
 		f.write(self.jdbc_password)
 		f.close()
-		os.chmod(self.jdbc_password_file, 0o400)
+		os.chmod(self.jdbc_password_file, 0o600)
 
 		# Lookup Connection details based on JDBC STRING for all different types we support
 		if self.jdbc_url.startswith( 'jdbc:sqlserver:'): 
@@ -794,6 +804,40 @@ class config(object):
 			self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 			self.JDBCCursor = self.JDBCConn.cursor()
 
+	def getJDBCcolumnMaxValue(self, source_schema, source_table, column):
+		logging.debug("Executing common_definitions.getJDBCcolumnMaxValue()")
+
+		self.connectToJDBC()
+		query = None
+	
+		if self.db_mssql == True:
+			query = "select max(%s) from [%s].[%s].[%s]"%(column, self.jdbc_database, source_schema, source_table) 
+
+		if self.db_oracle == True:
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema.upper(), source_table.upper())
+
+		if self.db_mysql == True:
+			query = "select max(%s) from %s"%(column, source_table)
+
+		if self.db_postgresql == True:
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
+
+		if self.db_progress == True:
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
+
+		if self.db_db2udb == True:
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
+
+		if self.db_db2as400 == True:		
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
+
+		self.JDBCCursor.execute(query)
+		logging.debug("SQL Statement executed: %s" % (query) )
+		row = self.JDBCCursor.fetchone()
+
+		return row[0]
+
+		logging.debug("Executing common_definitions.getJDBCcolumnMaxValue() - Finished")
 	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement):
 		logging.debug("Executing common_definitions.getJDBCTableRowCount()")
 
@@ -821,7 +865,8 @@ class config(object):
 		if self.db_db2as400 == True:		
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
 
-		query = query + " " + whereStatement
+		if whereStatement != None and whereStatement != "":
+			query = query + " where " + whereStatement
 
 		self.JDBCCursor.execute(query)
 		logging.debug("SQL Statement executed: %s" % (query) )
@@ -831,7 +876,6 @@ class config(object):
 
 		logging.debug("Executing common_definitions.getJDBCTableRowCount() - Finished")
 
-#	def logColumnAdd(self, column, columnType=None, description=None, Hive_DB=self.Hive_DB, Hive_Table=self.Hive_Table):
 	def logColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
 		if description == None:
 			description = "Column '%s' added to table with type '%s'"%(column, columnType)
