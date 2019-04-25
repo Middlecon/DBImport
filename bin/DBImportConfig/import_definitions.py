@@ -31,10 +31,10 @@ from datetime import datetime
 import pandas as pd
 
 class config(object):
-	def __init__(self, Hive_DB, Hive_Table):
+	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing import_definitions.__init__()")
-		self.Hive_DB = Hive_DB.lower()	 
-		self.Hive_Table = Hive_Table.lower()	 
+		self.Hive_DB = Hive_DB
+		self.Hive_Table = Hive_Table
 		self.mysql_conn = None
 		self.mysql_cursor01 = None
 		self.startDate = None
@@ -69,6 +69,7 @@ class config(object):
 		self.sqoop_incr_mode = None
 		self.sqoop_incr_column = None
 		self.sqoop_incr_lastvalue = None
+		self.sqoop_incr_validation_method = None
 		self.sqoop_import_type = None
 		self.import_is_incremental = None
 		self.create_table_with_acid = None
@@ -88,6 +89,7 @@ class config(object):
 		self.sqoop_mapcolumnjava = []
 		self.sqoopStartUTS = None
 		self.sqoopIncrMaxvaluePending = None
+		self.incr_validation_method = None
 
 		self.sqlSessions = None
 
@@ -103,6 +105,14 @@ class config(object):
 		self.stage = stage.stage(self.mysql_conn, self.Hive_DB, self.Hive_Table)
 		
 		logging.debug("Executing import_definitions.__init__() - Finished")
+
+	def setHiveTable(self, Hive_DB, Hive_Table):
+		""" Sets the parameters to work against a new Hive database and table """
+		self.Hive_DB = Hive_DB.lower()
+		self.Hive_Table = Hive_Table.lower()
+
+		self.common_config.setHiveTable(Hive_DB, Hive_Table)
+		self.stage.setHiveTable(Hive_DB, Hive_Table)
 
 	def logColumnAdd(self, column, columnType, description=None, hiveDB=None, hiveTable=None):
 		self.common_config.logColumnAdd(column=column, columnType=columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable) 
@@ -181,7 +191,8 @@ class config(object):
 				"    sqoop_sql_where_addition, "
 				"    sqoop_options, "
 				"    generated_sqoop_options, "
-				"    generated_sqoop_query "
+				"    generated_sqoop_query, "
+				"    incr_validation_method "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -244,6 +255,7 @@ class config(object):
 		self.sqoop_options = row[22]
 		self.generatedSqoopOptions = row[23]
 		self.sqlGeneratedSqoopQuery = row[24]
+		self.incr_validation_method = row[25]
 		if self.sqoop_options == None: self.sqoop_options = ""	# This is needed as we check if this contains a --split-by and it needs to be string for that
 
 		# If the self.sqoop_last_execution contains an unix time stamp, we convert it so it's usuable by sqoop
@@ -259,6 +271,10 @@ class config(object):
 				logging.error("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
 				raise Exception
 
+		if self.incr_validation_method != "full" and self.incr_validation_method != "incr":
+			logging.error("Only the values 'full' or 'incr' is valid for column incr_validation_method in import_tables.")
+			raise Exception
+
 		# Set sqoop NULL values
 		if self.sqoop_last_size == None:
 			self.sqoop_last_size = 0
@@ -272,6 +288,7 @@ class config(object):
 		self.sqoop_incr_mode = self.incr_mode
 		self.sqoop_incr_column = self.incr_column
 		self.sqoop_incr_lastvalue = self.incr_maxvalue
+		self.sqoop_incr_validation_method = self.incr_validation_method
 
 		# Set correct import_types. We do this because of old names of import_type
 		if self.import_type == "merge_acid":
@@ -471,6 +488,44 @@ class config(object):
 
 		logging.debug("Executing import_definitions.updateLastUpdateFromSource() - Finished")
 
+	def saveIncrMinValue(self):
+		""" Save the min value in the pendings column """
+		logging.debug("Executing import_definitions.savePendingIncrValues()")
+
+		query  = "update import_tables set " 
+		query += "	incr_minvalue_pending = incr_maxvalue "
+		query += "where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		self.mysql_conn.commit()
+
+		logging.debug("Executing import_definitions.savePendingIncrValues() - Finished")
+
+	def saveIncrPendingValues(self):
+		""" After the incremental import is completed, we save the pending values so the next import starts from the correct spot"""
+		logging.debug("Executing import_definitions.savePendingIncrValues()")
+
+		query  = "update import_tables set " 
+		query += "	incr_minvalue = incr_minvalue_pending, "
+		query += "	incr_maxvalue = incr_maxvalue_pending "
+		query += "where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		self.mysql_conn.commit()
+
+		query  = "update import_tables set " 
+		query += "	incr_minvalue_pending = NULL, "
+		query += "	incr_maxvalue_pending = NULL "
+		query += "where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		self.mysql_conn.commit()
+
+		logging.debug("Executing import_definitions.savePendingIncrValues() - Finished")
+
 	def removeFKforTable(self):
 		# This function will remove all ForeignKey definitions for the current table.
 		logging.debug("")
@@ -597,8 +652,12 @@ class config(object):
 				if source_column_type == "float": 
 					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 			
+				if source_column_type in ("uniqueidentifier", "ntext", "xml", "text"): 
+					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+					sqoop_column_type = "String"
+					column_type = "string"
+
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
-				column_type = re.sub('^uniqueidentifier$', 'varchar(36)', column_type)
 				column_type = re.sub('^datetime$', 'timestamp', column_type)
 				column_type = re.sub('^datetime2$', 'timestamp', column_type)
 				column_type = re.sub('^smalldatetime$', 'timestamp', column_type)
@@ -612,9 +671,6 @@ class config(object):
 				column_type = re.sub('^nchar\(', 'char(', column_type)
 				column_type = re.sub('^numeric\(', 'decimal(', column_type)
 				column_type = re.sub('^real$', 'float', column_type)
-				column_type = re.sub('^ntext$', 'string', column_type)
-				column_type = re.sub('^xml$', 'string', column_type)
-				column_type = re.sub('^text$', 'string', column_type)
 				column_type = re.sub('^time$', 'string', column_type)
 				column_type = re.sub('^varchar\(-1\)$', 'string', column_type)
 				column_type = re.sub('^varchar\(65355\)$', 'string', column_type)
@@ -651,6 +707,11 @@ class config(object):
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
+				if source_column_type in ("clob", "nclob", "nlob", "long raw"): 
+					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+					sqoop_column_type = "String"
+					column_type = "string"
+
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
 				column_type = re.sub(' char\)$', ')', column_type)
 				column_type = re.sub(' byte\)$', ')', column_type)
@@ -659,28 +720,26 @@ class config(object):
 				column_type = re.sub('^varchar2\(', 'varchar(', column_type)
 				column_type = re.sub('^nvarchar2\(', 'varchar(', column_type)
 				column_type = re.sub('^rowid\(', 'varchar(', column_type)
-				if re.search('^number\([0-9]\)', column_type) or column_type == "number":
+				column_type = re.sub('^number$', 'decimal(38,19)', column_type)
+				if re.search('^number\([0-9]\)', column_type):
 					column_type = "int"
 					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 				if re.search('^number\(1[0-8]\)', column_type):
 					column_type = "bigint"
 					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
-#				column_type = re.sub('^number\([0-9]\)', 'int', column_type)
-#				column_type = re.sub('^number\(1[0-8]\)', 'bigint', column_type)
 				column_type = re.sub('^number\(', 'decimal(', column_type)
-#				column_type = re.sub('^number$', 'int', column_type)
 				column_type = re.sub('^date$', 'timestamp', column_type)
 				column_type = re.sub('^timestamp\([0-9]*\) with time zone', 'timestamp', column_type)
 				column_type = re.sub('^blob$', 'binary', column_type)
-				column_type = re.sub('^clob$', 'string', column_type)
-				column_type = re.sub('^nclob$', 'string', column_type)
-				column_type = re.sub('^nlob$', 'string', column_type)
+#				column_type = re.sub('^clob$', 'string', column_type)
+#				column_type = re.sub('^nclob$', 'string', column_type)
+#				column_type = re.sub('^nlob$', 'string', column_type)
 				column_type = re.sub('^long$', 'binary', column_type)
 				column_type = re.sub('^xmltype\([0-9]*\)$', 'string', column_type)
 				column_type = re.sub('^raw$', 'binary', column_type)
 				column_type = re.sub('^raw\([0-9]*\)$', 'binary', column_type)
 				column_type = re.sub('^timestamp\([0-9]\)', 'timestamp', column_type)
-				column_type = re.sub('^long raw$', 'string', column_type)
+#				column_type = re.sub('^long raw$', 'string', column_type)
 				column_type = re.sub('^long raw\([0-9]*\)$', 'string', column_type)
 				column_type = re.sub('^decimal\(3,4\)', 'decimal(8,4)', column_type)    # Very stange Oracle type number(3,4), how can pricision be smaller than scale?
 				if re.search('^decimal\([0-9][0-9]\)$', column_type) != None:
@@ -1130,49 +1189,133 @@ class config(object):
 		logging.debug("Executing import_definitions.clearTableRowCount()")
 		logging.info("Clearing rowcounts from previous imports")
 
-		query = ("update import_tables set source_rowcount = NULL, hive_rowcount = NULL where table_id = %s")
+		query = ("update import_tables set source_rowcount = NULL, source_rowcount_incr = NULL, hive_rowcount = NULL where table_id = %s")
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		logging.debug("Executing import_definitions.clearTableRowCount() - Finished")
 
-	def getJDBCTableRowCount(self, incrValidate=False):
-		logging.debug("Executing import_definitions.getJDBCtableRowCount()")
-		logging.info("Reading number of rows in source table. This will later be used for validating the import")
+	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False):
+		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
+		logging.debug("Executing import_definitions.getIncrWhereStatement()")
 
 		whereStatement = None
+
 		if self.import_is_incremental == True:
-			# Read the MaxValue that sqoop got in the last execution
-			if self.sqoopIncrMaxvaluePending == None:
-				query = ("select incr_maxvalue_pending from import_tables where table_id = %s")
-				self.mysql_cursor01.execute(query, (self.table_id, ))
+			if whereForSqoop == True:
+				# If it is the where for sqoop, we need to get the max value for the configured column and save that into the config database
+				maxValue = self.common_config.getJDBCcolumnMaxValue(self.source_schema, self.source_table, self.sqoop_incr_column)
+				if self.sqoop_incr_mode == "append":
+					self.sqoopIncrMaxvaluePending = maxValue
+				if self.sqoop_incr_mode == "lastmodified":
+					if re.search('\.([0-9]{3}|[0-9]{6})$', maxValue):
+						self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S.%f')
+					else:
+						self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S')
+
+					print(self.sqoopIncrMaxvaluePending)
+					if self.common_config.jdbc_servertype == constant.MSSQL:
+						#MSSQL gets and error if there are microseconds in the timestamp
+						(dt, micro) = self.sqoopIncrMaxvaluePending.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
+						self.sqoopIncrMaxvaluePending = "%s.%03d" % (dt, int(micro) / 1000)
+
+				self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
+
+				query = ("update import_tables set incr_minvalue_pending = %s, incr_maxvalue_pending = %s where table_id = %s")
+				self.mysql_cursor01.execute(query, (self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending, self.table_id))
+				self.mysql_conn.commit()
 				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
+			if self.sqoopIncrMaxvaluePending == None:
+				# COALESCE is needed if you are going to call a function that counts source target rows outside the normal import
+				query = ("select COALESCE(incr_maxvalue_pending, incr_maxvalue) from import_tables where table_id = %s")
+				self.mysql_cursor01.execute(query, (self.table_id, ))
+				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+	
 				row = self.mysql_cursor01.fetchone()
 				self.sqoopIncrMaxvaluePending = row[0]
 
-			if self.sqoop_incr_mode == "append":
-				whereStatement = "where %s <= %s"%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+			if self.sqoop_incr_mode == "lastmodified":
+				if self.common_config.jdbc_servertype == constant.MSSQL and ( whereForSourceTable == True or whereForSqoop == True ):
+					whereStatement = "%s <= CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+				elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
+					whereStatement = "%s <= STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) + "'%Y-%m-%d %H:%i:%s') "
+				elif whereForSourceTable == True or whereForSqoop == True:
+					whereStatement = "%s <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+				else:
+					whereStatement = "%s <= '%s' "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+			else:
+				whereStatement = "%s <= %s "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 
-			if incrValidate == True:
-				whereStatement += " and %s > %s"%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
+			whereStatementSaved = whereStatement
 
 			if self.sqoop_sql_where_addition != None:
-				whereStatement += " and %s"%(self.sqoop_sql_where_addition)
+				whereStatement += "and %s "%(self.sqoop_sql_where_addition)
+
+			if ( self.sqoop_incr_validation_method == "incr" or forceIncr == True or whereForSqoop == True ) and self.sqoop_incr_lastvalue != None:
+				if self.sqoop_incr_mode == "lastmodified":
+					if self.common_config.jdbc_servertype == constant.MSSQL and ( whereForSourceTable == True or whereForSqoop == True ):
+						whereStatement += "and %s > CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
+					elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
+						whereStatement += "and %s > STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) + "'%Y-%m-%d %H:%i:%s') "
+					elif whereForSourceTable == True or whereForSqoop == True:
+						whereStatement += "and %s > TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
+					else:
+						whereStatement += "and %s > '%s' "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
+				else:
+					whereStatement += "and %s > %s "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
 			
+			if whereStatementSaved == whereStatement and ignoreIfOnlyIncrMax == True:
+				# We have only added the MAX value to there WHERE statement and have a setting to ignore it if that is the only value
+				whereStatement = None
+
+		logging.debug("whereStatement: %s"%(whereStatement))
+		logging.debug("Executing import_definitions.getIncrWhereStatement() - Finished")
+		return whereStatement
+
+	def getJDBCTableRowCount(self):
+		logging.debug("Executing import_definitions.getJDBCtableRowCount()")
+		logging.info("Reading number of rows in source table. This will later be used for validating the import")
+
+		JDBCRowsFull = None
+		JDBCRowsIncr = None
+		whereStatement = None
+
+		if self.import_is_incremental == True:
+			whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
+			logging.debug("Where statement for forceIncr = False: %s"%(whereStatement))
+			JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
+			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsFull))
+
+			whereStatement = self.getIncrWhereStatement(forceIncr = True, whereForSourceTable=True)
+			logging.debug("Where statement for forceIncr = True: %s"%(whereStatement))
+			JDBCRowsIncr = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
+			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
+
 		else:
-			whereStatement = " where %s"%(self.sqoop_sql_where_addition)
+			if self.sqoop_sql_where_addition != None:
+				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
+			else:
+				whereStatement = ""
 
-		# We cant have "None" as value, so if it's null we set it to an empty string
-		if whereStatement == None: whereStatement = ""
-
-		JDBCRows = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
-		logging.debug("Source table contains %s rows"%(JDBCRows))
+			JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
 
 		# Save the value to the database
-		query = ("update import_tables set source_rowcount = %s where table_id = %s")
-		self.mysql_cursor01.execute(query, (JDBCRows, self.table_id))
+		query = "update import_tables set "
+
+		if JDBCRowsIncr != None: 
+			query += "source_rowcount_incr = %s "%(JDBCRowsIncr)
+			logging.debug("Source table contains %s rows for the incremental part"%(JDBCRowsIncr))
+
+		if JDBCRowsFull != None: 
+			if  JDBCRowsIncr != None: query += ", "
+			query += "source_rowcount = %s "%(JDBCRowsFull)
+			logging.debug("Source table contains %s rows"%(JDBCRowsFull))
+
+		query += "where table_id = %s"%(self.table_id)
+
+		self.mysql_cursor01.execute(query)
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1190,21 +1333,55 @@ class config(object):
 
 		logging.debug("Executing import_definitions.saveHiveTableRowCount() - Finished")
 
-	def saveSqoopStatistics(self, sqoopStartUTS, sqoopSize, sqoopRows, sqoopIncrMaxvaluePending):
+	def resetSqoopStatistics(self, maxValue):
+		logging.debug("Executing import_definitions.resetSqoopStatistics()")
+		logging.info("Reseting incremental values for sqoop imports. New max value is: %s"%(maxValue))
+
+		query =  "update import_tables set "
+		query += "	incr_minvalue = NULL, "
+		query += "	incr_maxvalue = %s, "
+		query += "	incr_minvalue_pending = NULL, "
+		query += "	incr_maxvalue_pending = NULL "
+		query += "where table_id = %s "
+
+		self.mysql_cursor01.execute(query, (maxValue, self.table_id))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		self.mysql_conn.commit()
+
+		logging.debug("Executing import_definitions.resetSqoopStatistics() - Finished")
+
+	def saveSqoopStatistics(self, sqoopStartUTS, sqoopSize=None, sqoopRows=None, sqoopIncrMaxvaluePending=None):
 		logging.debug("Executing import_definitions.saveSqoopStatistics()")
 		logging.info("Saving sqoop statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
-		self.sqoop_last_size = sqoopSize
-		self.sqoop_last_rows = sqoopRows
-		self.sqoopIncrMaxvaluePending = sqoopIncrMaxvaluePending
 		self.sqoop_last_execution_timestamp = datetime.utcfromtimestamp(sqoopStartUTS).strftime('%Y-%m-%d %H:%M:%S.000')
 
+		queryParam = []
 		query =  "update import_tables set "
-		query += "sqoop_last_execution = %s, sqoop_last_size = %s, sqoop_last_rows = %s, incr_maxvalue_pending = %s "
-		query += "where table_id = %s "
+		query += "	sqoop_last_execution = %s "
+		queryParam.append(sqoopStartUTS)
 
-		self.mysql_cursor01.execute(query, (sqoopStartUTS, sqoopSize, sqoopRows, sqoopIncrMaxvaluePending, self.table_id))
+		if sqoopSize != None:
+			query += "  ,sqoop_last_size = %s "
+			self.sqoop_last_size = sqoopSize
+			queryParam.append(sqoopSize)
+
+		if sqoopRows != None:
+			query += "  ,sqoop_last_rows = %s "
+			self.sqoop_last_rows = sqoopRows
+			queryParam.append(sqoopRows)
+
+		if sqoopIncrMaxvaluePending != None:
+			query += "  ,incr_maxvalue_pending = %s "
+			self.sqoopIncrMaxvaluePending = sqoopIncrMaxvaluePending
+			queryParam.append(sqoopIncrMaxvaluePending)
+
+		query += "where table_id = %s "
+		queryParam.append(self.table_id)
+
+#		self.mysql_cursor01.execute(query, (sqoopStartUTS, sqoopSize, sqoopRows, sqoopIncrMaxvaluePending, self.table_id))
+		self.mysql_cursor01.execute(query, queryParam)
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
@@ -1258,19 +1435,50 @@ class config(object):
 		logging.debug("Executing import_definitions.getHiveTableComment() - Finished")
 		return row[0]
 
-	def validateRowCount(self, validateSqoop=False):
+	def validateRowCount(self, validateSqoop=False, incremental=False):
 		""" Validates the rows based on values stored in import_tables -> source_columns and target_columns. Returns True or False """
+		# incremental=True is used for normal validations but on ly on incremented rows, regardless if we are going to validate full or incr.
+		# This is used to validate the Import table if the validation method is full for incremental import
+
 		logging.debug("Executing import_definitions.validateRowCount()")
 		returnValue = None
 
 		if self.validate_import == True:
 			# Reading the saved number from the configurationdatabase
 			if validateSqoop == False:
-				query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
-				validateText = "Hive table"
+				if self.import_is_incremental == False:
+					# Standard full validation
+					query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
+					validateTextTarget = "Hive table"
+					validateTextSource = "Source table"
+					validateText = validateTextTarget
+				elif self.sqoop_incr_validation_method == "full" and incremental == False:
+					# We are not validating the sqoop import, but the validation is an incremental import and 
+					# we are going to validate all the data
+					query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
+					validateTextTarget = "Hive table"
+					validateTextSource = "Source table"
+					validateText = validateTextTarget
+				else:
+					# We are not validating the sqoop import, but the validation is an incremental import and
+					# we are going to validate only the incremental part of the import (what sqoop imported)
+					query  = "select source_rowcount_incr, hive_rowcount from import_tables where table_id = %s "
+					validateTextTarget = "Hive table (incr)"
+					validateTextSource = "Source table (incr)"
+					validateText = "Hive table"
 			else:
-				query  = "select source_rowcount from import_tables where table_id = %s "
-				validateText = "Sqoop import"
+				if self.import_is_incremental == False:
+					# Sqoop validation for full imports
+					query  = "select source_rowcount from import_tables where table_id = %s "
+					validateTextTarget = "Sqoop import"
+					validateTextSource = "Source table"
+					validateText = validateTextTarget
+				else:
+					# Sqoop validation for incremental imports
+					query  = "select source_rowcount_incr from import_tables where table_id = %s "
+					validateTextTarget = "Sqoop import (incr)"
+					validateTextSource = "Source table (incr)"
+					validateText = "Sqoop import"
 			self.mysql_cursor01.execute(query, (self.table_id, ))
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1305,16 +1513,16 @@ class config(object):
 					logging.info("Diff between source and target table: %s"%(target_rowcount - source_rowcount))
 				else:
 					logging.info("Diff between source and target table: %s"%(source_rowcount - target_rowcount))
-				logging.info("Source table rowcount: %s"%(source_rowcount))
-				logging.info("%s rowcount: %s"%(validateText, target_rowcount))
+				logging.info("%s rowcount: %s"%(validateTextSource, source_rowcount))
+				logging.info("%s rowcount: %s"%(validateTextTarget, target_rowcount))
 				logging.info("Validation diff allowed: %s"%(diffAllowed))
 				logging.info("Upper limit: %s"%(upperValidationLimit))
 				logging.info("Lower limit: %s"%(lowerValidationLimit))
 				returnValue = False 
 			else:
 				logging.info("%s validation successful!"%(validateText))
-				logging.info("Source table rowcount: %s"%(source_rowcount))
-				logging.info("%s rowcount: %s"%(validateText, target_rowcount))
+				logging.info("%s rowcount: %s"%(validateTextSource, source_rowcount))
+				logging.info("%s rowcount: %s"%(validateTextTarget, target_rowcount))
 				logging.info("")
 				returnValue = True 
 
@@ -1413,3 +1621,35 @@ class config(object):
 
 		logging.debug("Executing import_definitions.getForeignKeysFromConfig() - Finished")
 		return result_df.sort_values(by=['fk_name'], ascending=True)
+
+	def getAllActiveIncrImports(self):
+		""" Return all rows from import_stage that uses an incremental import_type """
+		logging.debug("Executing import_definitions.getAllActiveIncrImports()")
+		result_df = None
+
+		query  = "select "
+		query += "	stage.hive_db, "	
+		query += "	stage.hive_table, "	
+		query += "	stage.stage, "	
+		query += "	tabl.import_type "	
+		query += "from import_stage stage "	
+		query += "join import_tables tabl "	
+		query += "	on stage.hive_db = tabl.hive_db and stage.hive_table = tabl.hive_table "
+		query += "where tabl.import_type like 'incr%' "
+
+		self.mysql_cursor01.execute(query)
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		if self.mysql_cursor01.rowcount == 0:
+			return pd.DataFrame()
+
+		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+
+		# Set the correct column namnes in the DataFrame
+		result_df_columns = []
+		for columns in self.mysql_cursor01.description:
+			result_df_columns.append(columns[0])    # Name of the column is in the first position
+		result_df.columns = result_df_columns
+
+		logging.debug("Executing import_definitions.getAllActiveIncrImports() - Finished")
+		return result_df

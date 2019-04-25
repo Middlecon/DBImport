@@ -51,6 +51,11 @@ class stage(object):
 
 		self.rest = rest.restInterface()
 
+	def setHiveTable(self, Hive_DB, Hive_Table):
+		""" Sets the parameters to work against a new Hive database and table """
+		self.Hive_DB = Hive_DB.lower()
+		self.Hive_Table = Hive_Table.lower()
+
 	def getStageDescription(self, stage):
 		stageDescription = ""
 
@@ -79,6 +84,17 @@ class stage(object):
 		elif stage == 1113: stageDescription = "Get source table rowcount"
 		elif stage == 1114: stageDescription = "Validate sqoop import"
 		elif stage == 1149: stageDescription = "Stage1 Completed"
+		elif stage == 1150: stageDescription = "Connecting to Hive"
+		elif stage == 1151: stageDescription = "Creating the import table in the staging database"
+		elif stage == 1152: stageDescription = "Get Import table rowcount"
+		elif stage == 1153: stageDescription = "Validate import table"
+		elif stage == 1154: stageDescription = "Removing Hive locks by force"
+		elif stage == 1155: stageDescription = "Creating the target table"
+		elif stage == 1156: stageDescription = "Copy rows from import to target table"
+		elif stage == 1157: stageDescription = "Update Hive statistics on target table"
+		elif stage == 1158: stageDescription = "Get Target table rowcount"
+		elif stage == 1159: stageDescription = "Validate target table"
+		elif stage == 1160: stageDescription = "Saving pending incremental values"
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -133,6 +149,17 @@ class stage(object):
 			elif stage == 1113: stageJSON = "get_source_rowcount"
 			elif stage == 1114: stageJSON = "validate_sqoop_import"
 			elif stage == 1149: stageJSON = "skip"
+			elif stage == 1150: stageJSON = "connect_to_hive"
+			elif stage == 1151: stageJSON = "create_import_table"
+			elif stage == 1152: stageJSON = "get_import_rowcount"
+			elif stage == 1153: stageJSON = "validate_import_table"
+			elif stage == 1154: stageJSON = "clear_hive_locks"
+			elif stage == 1155: stageJSON = "create_target_table"
+			elif stage == 1156: stageJSON = "hive_import"
+			elif stage == 1157: stageJSON = "update_statistics"
+			elif stage == 1158: stageJSON = "get_target_rowcount"
+			elif stage == 1159: stageJSON = "validate_target_table"
+			elif stage == 1160: stageJSON = "skip"
 
 			if stageJSON == "":
 				logging.error("There is no stage description for the JSON data for stage %s"%(stage))
@@ -172,7 +199,7 @@ class stage(object):
 
 	def setStageUnrecoverable(self):
 		""" Removes all stage information from the import_stage table """
-		logging.debug("Executing stage.clearStage()")
+		logging.debug("Executing stage.setStageUnrecoverable()")
 
 		if self.memoryStage == False:
 			query = "update import_stage set unrecoverable_error = 1 where hive_db = %s and hive_table = %s"
@@ -180,7 +207,7 @@ class stage(object):
 			self.mysql_conn.commit()
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
-		logging.debug("Executing stage.clearStage() - Finished")
+		logging.debug("Executing stage.setStageUnrecoverable() - Finished")
 
 	def setStageOnlyInMemory(self):
 		self.memoryStage = True

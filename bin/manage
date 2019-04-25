@@ -30,6 +30,11 @@ def printHelp():
 	print ("                     Encrypt username and password for a Database Connection. ")
 	print ("  --sendJSONstatistics")
 	print ("                     Posts the JSON data in the 'json_to_rest' table to the configured REST endpoints")
+	print ("  --repairIncrementalImport")
+	print ("                     Resets an incremental import by getting the max value for incremental column and set that")
+	print ("                     as a starting point for the next import. Requires Hive Database and Hive Table paramaters")
+	print ("  --repairAllIncrementalImports")
+	print ("                     Resets all incremental import that have an active stage.")
 	print ("")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
@@ -43,7 +48,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:", ["help", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug"])
+		opts, args = getopt.getopt(argv, "vh:t:", ["help", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -71,11 +76,18 @@ def main(argv):
 			operation = "encryptCredentials"
 		elif opt == "--sendJSONstatistics":
 			operation = "sendJSONstatistics"
+		elif opt == "--repairIncrementalImport":
+			operation = "repairIncrementalImport"
+		elif opt == "--repairAllIncrementalImports":
+			operation = "repairAllIncrementalImports"
 
 	if operation == None:
 		printHelp()
 
 	if operation == "clearImportStage" and (Hive_DB == None or Hive_Table == None):
+		printHelp()
+
+	if operation == "repairIncrementalImport" and (Hive_DB == None or Hive_Table == None):
 		printHelp()
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
@@ -112,10 +124,36 @@ def main(argv):
 
 	if operation == "encryptCredentials":
 		#TODO: Implement the encryption of usernames and passwords
-		print("Yay... encryption")
+		print("Yay... encryption :)")
 
 	if operation == "sendJSONstatistics":
 		rest.postSQLData()
+
+	if operation == "repairAllIncrementalImports":
+		print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")
+		print("it will fetch the max value from the hive table and update the MySQL database. This value will then be used")
+		print("used as the starting point for the next sqoop import.")
+		print("")
+		answer = input("Are you sure you want to do this? (y/N): ")
+#		answer = "y"
+
+		if answer.lower() == "y":
+			import_operation = import_operations.operation()
+			import_operation.repairAllIncrementalImports()
+
+
+	if operation == "repairIncrementalImport":
+		print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
+		print("and the hive table. The tool will connect to the hive database and read the max value for the column")
+		print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
+		print("")
+		answer = input("Are you sure you want to do this? (y/N): ")
+#		answer = "y"
+
+		if answer.lower() == "y":
+			import_operation = import_operations.operation(Hive_DB, Hive_Table)
+			import_operation.resetIncrMaxValue()
+
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

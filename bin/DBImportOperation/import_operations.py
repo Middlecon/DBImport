@@ -27,16 +27,17 @@ from mysql.connector import errorcode
 from DBImportConfig import common_definitions
 from DBImportConfig import import_definitions
 from DBImportOperation import common_operations
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
+import numpy as np
 import time
 
 
 class operation(object):
-	def __init__(self, Hive_DB, Hive_Table):
+	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing import_operations.__init__()")
-		self.Hive_DB = Hive_DB.lower()	 
-		self.Hive_Table = Hive_Table.lower()	 
+		self.Hive_DB = None
+		self.Hive_Table = None
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.startDate = None
@@ -48,6 +49,7 @@ class operation(object):
 		self.sqoopSize = None
 		self.sqoopRows = None
 		self.sqoopIncrMaxValuePending = None
+		self.sqoopIncrNoNewRows = None
 
 		try:
 			# Initialize the two core classes. import_config will initialize common_config aswell
@@ -56,6 +58,19 @@ class operation(object):
 		except:
 			sys.exit(1)
 
+		if Hive_DB != None and Hive_Table != None:
+			self.setHiveTable(Hive_DB, Hive_Table)
+
+		logging.debug("Executing import_operations.__init__() - Finished")
+
+	def setHiveTable(self, Hive_DB, Hive_Table):
+		""" Sets the parameters to work against a new Hive database and table """
+		self.Hive_DB = Hive_DB.lower()
+		self.Hive_Table = Hive_Table.lower()
+
+		self.common_operations.setHiveTable(self.Hive_DB, self.Hive_Table)
+		self.import_config.setHiveTable(self.Hive_DB, self.Hive_Table)
+
 		try:
 			self.import_config.getImportConfig()
 			self.startDate = self.import_config.startDate
@@ -63,8 +78,6 @@ class operation(object):
 		except:
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
-
-		logging.debug("Executing import_operations.__init__() - Finished")
 
 	def remove_temporary_files(self):
 		self.import_config.remove_temporary_files()
@@ -87,6 +100,12 @@ class operation(object):
 	def setStageOnlyInMemory(self):
 		self.import_config.setStageOnlyInMemory()
 	
+	def saveIncrPendingValues(self):
+		self.import_config.saveIncrPendingValues()
+
+	def saveIncrMinValue(self):
+		self.import_config.saveIncrMinValue()
+
 	def convertStageStatisticsToJSON(self):
 		self.import_config.convertStageStatisticsToJSON()
 	
@@ -97,9 +116,9 @@ class operation(object):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def getJDBCTableRowCount(self, incrValidate=False):
+	def getJDBCTableRowCount(self):
 		try:
-			self.import_config.getJDBCTableRowCount(incrValidate=incrValidate)
+			self.import_config.getJDBCTableRowCount()
 		except:
 			logging.exception("Fatal error when reading source table row count")
 			self.import_config.remove_temporary_files()
@@ -116,7 +135,8 @@ class operation(object):
 
 	def getTargetTableRowCount(self):
 		try:
-			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table)
+			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True)
+			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table, whereStatement=whereStatement)
 			self.import_config.saveHiveTableRowCount(targetTableRowCount)
 		except:
 			logging.exception("Fatal error when reading Hive table row count")
@@ -155,6 +175,18 @@ class operation(object):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
+	def validateIncrRowCount(self):
+		try:
+			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=True) 
+		except:
+			logging.exception("Fatal error when validating imported incremental rows")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+		if validateResult == False:
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
 	def getSourceTableSchema(self):
 		try:
 			self.import_config.getJDBCTableDefinition()
@@ -177,6 +209,29 @@ class operation(object):
 
 		# Fetch the number of mappers that should be used
 		self.import_config.calculateJobMappers()
+
+		# As sqoop dont allow us to use the --delete-target-dir when doing incremental loads, we need to remove
+		# the HDFS dir first for those imports. Reason for not doing this here for full imports is because the
+		# --delete-target-dir is ore efficient and take less resources
+#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+#			hdfsCommandList = ['hdfs', 'dfs', '-rm', '-r', '-skipTrash', self.import_config.sqoop_hdfs_location]
+#			hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#			stdOut, stdErr = hdfsProc.communicate()
+#			stdOut = stdOut.decode('utf-8').rstrip()
+#			stdErr = stdErr.decode('utf-8').rstrip()
+#
+#			refStdOutText = "Deleted %s"%(self.import_config.sqoop_hdfs_location)
+#			refStdErrText = "No such file or directory"
+#
+#			if refStdOutText not in stdOut and refStdErrText not in stdErr:
+#				logging.error("There was an error deleting the target HDFS directory (%s)"%(self.import_config.sqoop_hdfs_location))
+#				logging.error("Please check the status of that directory and try again")
+#				logging.debug("StdOut: %s"%(stdOut))
+#				logging.debug("StdErr: %s"%(stdErr))
+#				self.import_config.remove_temporary_files()
+#				sys.exit(1)
+##		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+##			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, whereForSourceTable=True)
 
 		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
 		sqoopQuery = ""
@@ -269,13 +324,16 @@ class operation(object):
 		if sqoopQuery == "":
 			sqoopCommand += "--table  %s  "%(sqoopSourceTable)
 
-		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
-			sqoopCommand += "--incremental  %s  "%(self.import_config.sqoop_incr_mode)
-			sqoopCommand += "--check-column  %s  "%(self.import_config.sqoop_incr_column)
-			if self.import_config.sqoop_incr_column != None: 
-				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
-		else:
-			sqoopCommand += "--delete-target-dir  " 
+#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
+#			self.sqoopIncrNoNewRows = False
+#
+#			sqoopCommand += "--incremental  %s  "%(self.import_config.sqoop_incr_mode)
+#			sqoopCommand += "--check-column  %s  "%(self.import_config.sqoop_incr_column)
+#			if self.import_config.sqoop_incr_lastvalue != None: 
+#				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
+#		else:
+#			sqoopCommand += "--delete-target-dir  " 
+		sqoopCommand += "--delete-target-dir  " 
 
 		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
 			sqoopCommand += "%s  "%(self.import_config.generatedSqoopOptions.replace(" ", "  "))
@@ -283,14 +341,18 @@ class operation(object):
 			sqoopCommand += "%s  "%(self.import_config.sqoop_options.replace(" ", "  "))
 
 		if sqoopQuery == "":
-			if self.import_config.sqoop_sql_where_addition != None:
-				sqoopCommand += "--where  \"%s\""%(self.import_config.sqoop_sql_where_addition.replace('"', '\''))
+			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+				sqoopCommand += "--where  \"%s\"  "%(self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\''))
+			else:
+				if self.import_config.sqoop_sql_where_addition != None:
+					sqoopCommand += "--where  \"%s\"  "%(self.import_config.sqoop_sql_where_addition.replace('"', '\''))
 			sqoopCommand += "%s  "%(sqoopSourceSchema)
 		else:
+# TODO: Handle the same stuff here
 			if self.import_config.sqoop_sql_where_addition != None:
-				sqoopCommand += "--query  \"%s where $CONDITION and %s\""%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))
+				sqoopCommand += "--query  \"%s where $CONDITION and %s\"  "%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))
 			else:
-				sqoopCommand += "--query  \"%s where $CONDITIONS\""%(sqoopQuery)
+				sqoopCommand += "--query  \"%s where $CONDITIONS\"  "%(sqoopQuery)
 
 		print(sqoopQuery)
 
@@ -314,6 +376,7 @@ class operation(object):
 			row = sh_session.stdout.readline().decode('utf-8').rstrip()
 			if row != "": 
 				print(row)
+				sys.stdout.flush()
 				sqoopOutput += row + "\n"
 				self.parseSqoopOutput(row)
 
@@ -322,6 +385,7 @@ class operation(object):
 			row = row.decode('utf-8').rstrip()
 			if row != "": 
 				print(row)
+				sys.stdout.flush()
 				sqoopOutput += row + "\n"
 				self.parseSqoopOutput(row)
 
@@ -375,9 +439,18 @@ class operation(object):
 		# No errors detected in the output and we are ready to store the result
 		logging.info("Sqoop executed successfully")			
 		
+		if self.sqoopIncrNoNewRows == True:
+			# If there is no new rows, we cant get the MaxValue from the output. 
+			# So we need to set it to what we used to launch sqoop
+			self.sqoopIncrMaxValuePending = self.import_config.sqoop_incr_lastvalue 
+			self.sqoopSize = 0
+			self.sqoopRows = 0
+			logging.warning("There are no new rows in the source table.")
+
 		if PKOnlyImport == False:
 			try:
-				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows, self.sqoopIncrMaxValuePending)
+#				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows, self.sqoopIncrMaxValuePending)
+				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows)
 			except:
 				logging.exception("Fatal error when saving sqoop statistics")
 				self.import_config.remove_temporary_files()
@@ -397,7 +470,12 @@ class operation(object):
 
 		# 19/04/23 17:19:58 INFO tool.ImportTool:   --last-value 34
 		if "tool.ImportTool:   --last-value" in row:
-			self.sqoopIncrMaxValuePending = int(row.split("-")[3].split(" ")[1])
+#			self.sqoopIncrMaxValuePending = int(row.split("-")[3].split(" ")[1])
+			self.sqoopIncrMaxValuePending = row.split("last-value ")[1].strip()
+
+		# 19/04/24 07:13:00 INFO tool.ImportTool: No new rows detected since last import.
+		if "No new rows detected since last import" in row:
+			self.sqoopIncrNoNewRows = True
 
 	def connectToHive(self,):
 		logging.debug("Executing import_operations.connectToHive()")
@@ -849,3 +927,54 @@ class operation(object):
 		self.common_operations.executeHiveQuery(query)
 		logging.debug("Executing import_definitions.copyHiveTable() - Finished")
 
+	def resetIncrMaxValue(self, hiveDB=None, hiveTable=None):
+		""" Will read the Max value from the Hive table and save that into the incr_maxvalue column """
+		logging.debug("Executing import_operations.resetIncrMaxValue()")
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		if self.import_config.import_is_incremental == True:
+			self.sqoopIncrNoNewRows = False
+			query = "select max(%s) from `%s`.`%s` "%(self.import_config.sqoop_incr_column, hiveDB, hiveTable)
+
+			self.common_operations.connectToHive(forceSkipTest=True)
+			result_df = self.common_operations.executeHiveQuery(query)
+			maxValue = result_df.loc[0][0]
+
+			if type(maxValue) == pd._libs.tslibs.timestamps.Timestamp:
+		#		maxValue += pd.Timedelta(np.timedelta64(1, 'ms'))
+				(dt, micro) = maxValue.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
+				maxValue = "%s.%03d" % (dt, int(micro) / 1000)
+			else:
+				maxValue = int(maxValue)
+
+			self.import_config.resetSqoopStatistics(maxValue)
+			self.import_config.clearStage()
+		else:
+			logging.error("This is not an incremental import. Nothing to repair.")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+		logging.debug("Executing import_operations.resetIncrMaxValue() - Finished")
+
+	def repairAllIncrementalImports(self):
+		logging.debug("Executing import_operations.repairAllIncrementalImports()")
+		result_df = self.import_config.getAllActiveIncrImports()
+
+		# Only used under debug so I dont clear any real imports that is going on
+		tablesRepaired = False
+		for index, row in result_df.loc[result_df['hive_db'] == 'user_boszkk'].iterrows():
+#		for index, row in result_df.iterrows():
+			tablesRepaired = True
+			hiveDB = row[0]
+			hiveTable = row[1]
+			logging.info("Repairing table \u001b[33m%s.%s\u001b[0m"%(hiveDB, hiveTable))
+			self.setHiveTable(hiveDB, hiveTable)
+			self.resetIncrMaxValue(hiveDB, hiveTable)
+			print("")
+
+		if tablesRepaired == False:
+			print("\n\u001b[32mNo incremental tables found that could be repaired\u001b[0m\n")
+
+		logging.debug("Executing import_operations.repairAllIncrementalImports() - Finished")
