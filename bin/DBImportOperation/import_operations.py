@@ -196,6 +196,7 @@ class operation(object):
 			self.import_config.setPrimaryKeyColumn()
 			self.import_config.saveKeyData()
 			self.import_config.saveGeneratedData()
+			self.import_config.generateSqoopBoundaryQuery()
 		except:
 			logging.exception("Fatal error when reading and/or processing source table schema")
 			self.import_config.remove_temporary_files()
@@ -266,8 +267,11 @@ class operation(object):
 		# Handle mappers, split-by with custom query
 		if sqoopQuery != "":
 			if "split-by" not in self.import_config.sqoop_options.lower():
-				logging.warning("There is no --split-by in the sqoop_options columns but the import is executing with a custom query. This is not supported and will force the import to use only 1 mapper")
-				self.import_config.sqlSessions = 1	
+				self.import_config.generateSqoopSplitBy()
+#				if self.import_config.sqoop_options != "": self.import_config.sqoop_options += " " 
+#				self.import_config.sqoop_options += "--split-by %s"%(self.import_config.generateSqoopSplitBy())
+
+			self.import_config.generateSqoopBoundaryQuery()
 
 		# Handle the situation where the source dont have a PK and there is no split-by (force mappers to 1)
 		if self.import_config.generatedPKcolumns == None and "split-by" not in self.import_config.sqoop_options.lower():
@@ -336,9 +340,12 @@ class operation(object):
 		sqoopCommand += "--delete-target-dir  " 
 
 		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
-			sqoopCommand += "%s  "%(self.import_config.generatedSqoopOptions.replace(" ", "  "))
+			sqoopCommand += "%s  "%(self.import_config.generatedSqoopOptions)
 		if self.import_config.sqoop_options != "" and self.import_config.sqoop_options != None:
 			sqoopCommand += "%s  "%(self.import_config.sqoop_options.replace(" ", "  "))
+
+		if self.import_config.sqoopBoundaryQuery != "" and self.import_config.sqlSessions > 1:
+			sqoopCommand += "--boundary-query  %s  "%(self.import_config.sqoopBoundaryQuery)
 
 		if sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
@@ -598,10 +605,16 @@ class operation(object):
 		self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 
 	def updateColumnsForImportTable(self, columnsDF):
-		""" Parquet import format from sqoop cant handle all datatypes correctly. So for the column definition, we need to change some """
+		""" Parquet import format from sqoop cant handle all datatypes correctly. So for the column definition, we need to change some. We also replace <SPACE> with underscore in the column name """
 		columnsDF["type"].replace(["date"], "string", inplace=True)
 		columnsDF["type"].replace(["timestamp"], "string", inplace=True)
 		columnsDF["type"].replace(["decimal(.*)"], "string", regex=True, inplace=True)
+
+		# If you change any of the name replace rows, you also need to change the same data in function self.copyHiveTable() and import_definitions.saveColumnData()
+		columnsDF["name"].replace([" "], "_", regex=True, inplace=True)
+		columnsDF["name"].replace(["%"], "pct", regex=True, inplace=True)
+		columnsDF["name"].replace(["\("], "_", regex=True, inplace=True)
+		columnsDF["name"].replace(["\)"], "_", regex=True, inplace=True)
 		return columnsDF
 
 	def updateHiveTable(self, hiveDB, hiveTable):
@@ -651,15 +664,14 @@ class operation(object):
 				
 				if len(columnsMergeOnlyName.loc[(columnsMergeOnlyName['Exist'] == 'right_only') & (columnsMergeOnlyName['name'] == rowInHive["name"])]) > 0: 
 					# This is executed if the column is renamed and exists in the same position
-					print(rowInConfig["name"])
-					print(rowInConfig["type"])
-					print("--------------------")
-					print(rowInHive["name"])
-					print(rowInHive["type"])
-					print("--------------------")
-					print(indexInConfig)
-					print("======================================")
-					print("")
+					logging.debug("Name in config:  %s"%(rowInConfig["name"]))
+					logging.debug("Type in config:  %s"%(rowInConfig["type"]))
+					logging.debug("Index in config: %s"%(indexInConfig))
+					logging.debug("--------------------")
+					logging.debug("Name in Hive: %s"%(rowInHive["name"]))
+					logging.debug("Type in Hive: %s"%(rowInHive["type"]))
+					logging.debug("======================================")
+					logging.debug("")
 	
 					query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInConfig['type'])
 					self.common_operations.executeHiveQuery(query)
@@ -895,26 +907,45 @@ class operation(object):
 		""" Copy one Hive table into another for the columns that have the same name """
 		logging.debug("Executing import_definitions.copyHiveTable()")
 
+		# Logic here is to create a new column in both DF and call them sourceCol vs targetCol. These are the original names. Then we replace the values in targetColumn DF column col
+		# with the name that the column should be called in the source system. This is needed to handle characters that is not supported in Parquet files, like SPACE
 		sourceColumns = self.common_operations.getHiveColumns(sourceDB, sourceTable)
+		sourceColumns['sourceCol'] = sourceColumns['col']
+
 		targetColumns = self.common_operations.getHiveColumns(targetDB, targetTable)
+		targetColumns['targetCol'] = targetColumns['col']
+		# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
+		targetColumns['col'] = targetColumns['col'].str.replace(r' ', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\%', 'pct')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\(', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\)', '_')
+
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
+		logging.debug("\n%s"%(columnMerge))
+
+#		print(columnMerge)
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
 
 		firstLoop = True
-		columnDefinition = ""
+		columnDefinitionSource = ""
+		columnDefinitionTarget = ""
 		for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
-			if firstLoop == False: columnDefinition += ", "
-			columnDefinition += "`%s`"%(row['col'])
+			if firstLoop == False: columnDefinitionSource += ", "
+			if firstLoop == False: columnDefinitionTarget += ", "
+			columnDefinitionSource += "`%s`"%(row['sourceCol'])
+			columnDefinitionTarget += "`%s`"%(row['targetCol'])
 			firstLoop = False
 
 		query = "insert into `%s`.`%s` ("%(targetDB, targetTable)
-		query += columnDefinition
+		query += columnDefinitionTarget
 		if self.import_config.datalake_source != None:
 			query += ", datalake_source"
 		if self.import_config.create_datalake_import_column == True:
 			query += ", datalake_import"
 
 		query += ") select "
-		query += columnDefinition
+		query += columnDefinitionSource
 		if self.import_config.datalake_source != None:
 			query += ", '%s'"%(self.import_config.datalake_source)
 		if self.import_config.create_datalake_import_column == True:

@@ -389,7 +389,7 @@ class operation(object):
 		logging.info("Reading the number of rows from %s.%s"%(hiveDB, hiveTable))
 		rowCount = 0
 
-		query = "select count(1) as rowcount from %s.%s "%(hiveDB, hiveTable)
+		query = "select count(1) as rowcount from `%s`.`%s` "%(hiveDB, hiveTable)
 		if whereStatement != None:
 			query += "where " + whereStatement
 

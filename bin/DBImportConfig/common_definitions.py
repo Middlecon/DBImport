@@ -219,6 +219,40 @@ class config(object):
 		logging.debug("    timeWindowStop = %s"%(timeWindowStop))
 		logging.debug("Executing common_definitions.checkTimeWindow() - Finished")
 
+	def checkConnectionAlias(self, connection_alias):
+		""" Will check if the connection alias exists in the jdbc_connection table """
+		logging.debug("Executing common_definitions.checkConnectionAlias()")
+
+		RC = False
+
+		query = "select count(1) from jdbc_connections where dbalias = %s "
+		logging.debug("Executing the following SQL: %s" % (query))
+		self.mysql_cursor.execute(query, (connection_alias, ))
+
+		row = self.mysql_cursor.fetchone()
+		if row[0] == 1:
+			RC = True
+
+		logging.debug("Executing common_definitions.checkConnectionAlias() - Finished")
+		return RC
+
+
+	def encryptUserPassword(self, connection_alias, username, password):
+
+		strToEncrypt = "%s %s\n"%(username, password)
+		encryptedStr = self.crypto.encrypt(strToEncrypt)
+
+		if encryptedStr != None and encryptedStr != "":
+			query = "update jdbc_connections set credentials = %s where dbalias = %s "
+			logging.debug("Executing the following SQL: %s" % (query))
+			self.mysql_cursor.execute(query, (encryptedStr, connection_alias))
+			self.mysql_conn.commit()
+
+#		decryptedStr = self.crypto.decrypt(encryptedStr)
+#
+#		print("DECRYPTED VALUE USING STANDARD DECODING")
+#		print(decryptedStr)
+
 	def lookupConnectionAlias(self, connection_alias):
 		logging.debug("Executing common_definitions.lookupConnectionAlias()")
 	
