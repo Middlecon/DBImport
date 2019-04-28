@@ -20,6 +20,7 @@ import io
 import sys
 import logging
 import base64
+from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from subprocess import Popen, PIPE
@@ -65,40 +66,6 @@ class crypto(object):
 		self.publicKey = RSA.importKey(self.publicKeyString)
 
 	def decrypt(self, strToDecrypt):
-#		credentials = base64.b64decode(row[1])
-#
-#		sslKeyPrivateFile = configuration.get("Credentials", "private_key")
-#		sslKeyPublicFile = configuration.get("Credentials", "public_key")
-#
-#		if sslKeyPrivateFile.startswith("/") == False:
-#			sslKeyPrivateFile = os.environ['DBIMPORT_HOME'] + "/" + sslKeyPrivateFile
-#
-#		if sslKeyPublicFile.startswith("/") == False:
-#			sslKeyPublicFile = os.environ['DBIMPORT_HOME'] + "/" + sslKeyPublicFile
-#
-#		if os.path.isfile(sslKeyPrivateFile) == False or os.path.isfile(sslKeyPublicFile) == False:
-#			logging.error("The private and/or public key can be opened. Please check the path in the configuration file")
-#			logging.error("for settings Credentials/private_key and Credetials/public_key.")
-#			raise Exception
-#
-#		sslKeyPrivateString = open(sslKeyPrivateFile,"r").read()
-#		sslKeyPrivate = RSA.importKey(sslKeyPrivateString)
-
-#		sslKeyPublicString = open(sslKeyPublicFile,"r").read()
-#		sslKeyPublic = RSA.importKey(sslKeyPublicString)
-
-#		#Encrypt with public key
-#		encrypted = sslKeyPublic.encrypt(message, 32)
-
-		#Decrypt with private key
-#		key = PKCS1_v1_5.new(sslKeyPrivateString)
-#		sentinel = Random.new().read(15+dsize)
-#		credentialsDecrypted = key.decrypt(credentials, sentinel)
-
-#		enc_session_key = credentials.read(sslKeyPrivate.size_in_bytes())
-#		enc_session_key, nonce, tag, ciphertext = [ credentials.read(x) for x in (sslKeyPrivate.size_in_bytes(), 16, 16, -1) ] 
-#		cipher_rsa = PKCS1_OAEP.new(sslKeyPrivate)
-#		credentialsDecrypted = cipher_rsa.decrypt(enc_session_key)
 
 		strDecrypted = self.privateKey.decrypt(base64.b64decode(strToDecrypt))
 
@@ -109,7 +76,11 @@ class crypto(object):
 		else:
 			return None
 
-#			print(type(credentialsDecrypted))
-#			print("Decrypted string: %s"%(credentialsDecrypted.decode().strip()))
+	def encrypt(self, strToEncrypt):
 
+		cipher = PKCS1_v1_5.new(self.publicKey)
 
+		strEncrypted = cipher.encrypt(strToEncrypt.encode())
+		strEncrypted = base64.b64encode(strEncrypted).decode()
+
+		return strEncrypted
