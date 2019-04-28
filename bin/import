@@ -215,8 +215,14 @@ def main(argv):
 	operation.checkHiveDB(Hive_DB)
 
 	if ignoreTime == False:
-		# Checking if we are allowed to use the configued JDBC connection at this time
+#		# Checking if we are allowed to use the configued JDBC connection at this time
 		operation.checkTimeWindow()
+
+	if operation.import_config.common_config.checkKerberosTicket() == False:
+		logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
+		operation.remove_temporary_files()
+		sys.exit(1)
+
 
 	stage = operation.getStage()
 	if resetStage == True:
@@ -395,9 +401,8 @@ def main(argv):
 
 			newStage = 0
 			# TODO: Add correct restart points once incremental imports are working
-#			if stage == 1014: newStage = 1011 
-#			if stage == 1053: newStage = 1050 
-#			if stage == 1060: newStage = 1054
+			if stage == 1114: newStage = 1111 
+			if stage == 1053: newStage = 1050 
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous import failed and this execution |") 	

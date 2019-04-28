@@ -196,7 +196,6 @@ class operation(object):
 			self.import_config.setPrimaryKeyColumn()
 			self.import_config.saveKeyData()
 			self.import_config.saveGeneratedData()
-			self.import_config.generateSqoopBoundaryQuery()
 		except:
 			logging.exception("Fatal error when reading and/or processing source table schema")
 			self.import_config.remove_temporary_files()

@@ -127,7 +127,6 @@ def main(argv):
 		print("This function will encrypt a username and password for the specified Database Connection. Any previous username/password will be overwritten")
 		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
 		connectionAlias = input("DataBase Connection (dbalias): ")
-#		connectionAlias = "testdb_boszkk_mysql"
 
 		common_config = common_definitions.config()
 		if common_config.checkConnectionAlias(connectionAlias) == False:
@@ -136,8 +135,6 @@ def main(argv):
 
 		username = input("Username: ")
 		password = input("Password: ")
-#		username = "TestUser"
-#		password = "TestPassword"
 		common_config.encryptUserPassword(connectionAlias, username, password)
 
 	if operation == "sendJSONstatistics":
