@@ -81,6 +81,7 @@ Stages
         | If the incremental validation method is 'full', then a ``select count(1) from ...`` without any where statement is also executed against the source table.
   1114. | *Validate sqoop import*
         | Validates that sqoop read the same amount of rows that exists in the source system. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 1111
   1149. | *Stage1 Completed*
         | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
   1150. | *Connecting to Hive*
@@ -91,6 +92,7 @@ Stages
         | Run a ``select count(1) ...`` on the Import table in Hive to get the number of rows
   1153. | *Validate import table*
         | Compare the number of rows from the source table with the number of rows in the import table based on the min and max values that was used for sqoop. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 1150
   1154. | *Removing Hive locks by force*
         | Due to a bug in Hive, we need to remove the locks by force. This connects to the metadatabase and removes them from there
   1155. | *Creating the target table*

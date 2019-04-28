@@ -236,6 +236,34 @@ class config(object):
 		logging.debug("Executing common_definitions.checkConnectionAlias() - Finished")
 		return RC
 
+	def checkKerberosTicket(self):
+		""" Checks if there is a valid kerberos ticket or not. Runst 'klist -s' and checks the exitCode. Returns True or False """
+		logging.debug("Executing common_definitions.checkKerberosTicket()")
+		klistCommandList = ['klist', '-s']
+		klistProc = subprocess.Popen(klistCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = klistProc.communicate()
+#		stdOut = stdOut.decode('utf-8').rstrip()
+#		stdErr = stdErr.decode('utf-8').rstrip()
+		
+		if klistProc.returncode == 0:
+			return True
+		else:
+			return False
+#
+#           refStdOutText = "Deleted %s"%(self.import_config.sqoop_hdfs_location)
+#           refStdErrText = "No such file or directory"
+#
+#           if refStdOutText not in stdOut and refStdErrText not in stdErr:
+#               logging.error("There was an error deleting the target HDFS directory (%s)"%(self.import_config.sqoop_hdfs_location))
+#               logging.error("Please check the status of that directory and try again")
+#               logging.debug("StdOut: %s"%(stdOut))
+#               logging.debug("StdErr: %s"%(stdErr))
+#               self.import_config.remove_temporary_files()
+#               sys.exit(1)
+##      if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+##          whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, whereForSourceTable=True)
+		logging.debug("Executing common_definitions.checkKerberosTicket() - Finished")
+
 
 	def encryptUserPassword(self, connection_alias, username, password):
 

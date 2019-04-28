@@ -25,6 +25,7 @@ Content
 
     project
     license
+    release_notes
     concept
     install
     quickstart
