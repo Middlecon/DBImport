@@ -6,11 +6,11 @@ v0.20
 
 **Fixed issues**
 
-Issue #5: Message about 'split-by-text' even if the column is an integer
-Issue #4: Parquet cant handle SPACE in column name
-Issue #3: TimeCheck failes before 10.00
-Issue #2: 'sqoop_sql_where_addition' assumes 'where' is in config
-Issue #1: Errors when running without an valid Kerberos ticket
+  - Issue #5: Message about 'split-by-text' even if the column is an integer
+  - Issue #4: Parquet cant handle SPACE in column name
+  - Issue #3: TimeCheck failes before 10.00
+  - Issue #2: 'sqoop_sql_where_addition' assumes 'where' is in config
+  - Issue #1: Errors when running without an valid Kerberos ticket
 
 **New Features**
 
