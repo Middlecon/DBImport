@@ -24,7 +24,7 @@ from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import time, date, datetime, timedelta
-from DBImportConfig import rest as rest
+from DBImportConfig import rest
 import time
 import pandas as pd
 
@@ -99,6 +99,50 @@ class stage(object):
 
 		return stageDescription
 
+	def getStageShortName(self, stage):
+
+		stageShortName = ""
+		if   stage == 0:    stageShortName = "skip"
+		elif stage == 1010: stageShortName = "get_source_tableschema"
+		elif stage == 1011: stageShortName = "clear_table_rowcount"
+		elif stage == 1012: stageShortName = "get_source_rowcount"
+		elif stage == 1013: stageShortName = "sqoop"
+		elif stage == 1014: stageShortName = "validate_sqoop_import"
+		elif stage == 1049: stageShortName = "skip"
+		elif stage == 1050: stageShortName = "connect_to_hive"
+		elif stage == 1051: stageShortName = "create_import_table"
+		elif stage == 1052: stageShortName = "get_import_rowcount"
+		elif stage == 1053: stageShortName = "validate_import_table"
+		elif stage == 1054: stageShortName = "clear_hive_locks"
+		elif stage == 1055: stageShortName = "create_target_table"
+		elif stage == 1056: stageShortName = "truncate_target_table"
+		elif stage == 1057: stageShortName = "hive_import"
+		elif stage == 1058: stageShortName = "update_statistics"
+		elif stage == 1059: stageShortName = "get_target_rowcount"
+		elif stage == 1060: stageShortName = "validate_target_table"
+
+		elif stage == 1110: stageShortName = "get_source_tableschema"
+		elif stage == 1111: stageShortName = "clear_table_rowcount"
+		elif stage == 1112: stageShortName = "sqoop"
+		elif stage == 1113: stageShortName = "get_source_rowcount"
+		elif stage == 1114: stageShortName = "validate_sqoop_import"
+		elif stage == 1149: stageShortName = "skip"
+		elif stage == 1150: stageShortName = "connect_to_hive"
+		elif stage == 1151: stageShortName = "create_import_table"
+		elif stage == 1152: stageShortName = "get_import_rowcount"
+		elif stage == 1153: stageShortName = "validate_import_table"
+		elif stage == 1154: stageShortName = "clear_hive_locks"
+		elif stage == 1155: stageShortName = "create_target_table"
+		elif stage == 1156: stageShortName = "hive_import"
+		elif stage == 1157: stageShortName = "update_statistics"
+		elif stage == 1158: stageShortName = "get_target_rowcount"
+		elif stage == 1159: stageShortName = "validate_target_table"
+		elif stage == 1160: stageShortName = "skip"
+
+		elif stage == 9999: stageShortName = "skip"
+
+		return stageShortName
+
 	def convertStageStatisticsToJSON(self, **kwargs):
 		""" Reads the import_stage_statistics and convert the information to a JSON document """
 		logging.debug("Executing stage.convertStageStatisticsToJSON()")
@@ -123,53 +167,17 @@ class stage(object):
 			stage_stop = row[2]
 			stage_duration = row[3]
 
-			stageJSON = ""
-			if   stage == 0:    stageJSON = "skip"
-			elif stage == 1010: stageJSON = "get_source_tableschema"
-			elif stage == 1011: stageJSON = "clear_table_rowcount"
-			elif stage == 1012: stageJSON = "get_source_rowcount"
-			elif stage == 1013: stageJSON = "sqoop"
-			elif stage == 1014: stageJSON = "validate_sqoop_import"
-			elif stage == 1049: stageJSON = "skip"
-			elif stage == 1050: stageJSON = "connect_to_hive"
-			elif stage == 1051: stageJSON = "create_import_table"
-			elif stage == 1052: stageJSON = "get_import_rowcount"
-			elif stage == 1053: stageJSON = "validate_import_table"
-			elif stage == 1054: stageJSON = "clear_hive_locks"
-			elif stage == 1055: stageJSON = "create_target_table"
-			elif stage == 1056: stageJSON = "truncate_target_table"
-			elif stage == 1057: stageJSON = "hive_import"
-			elif stage == 1058: stageJSON = "update_statistics"
-			elif stage == 1059: stageJSON = "get_target_rowcount"
-			elif stage == 1060: stageJSON = "validate_target_table"
+			stageShortName = self.getStageShortName(stage)
 
-			elif stage == 1110: stageJSON = "get_source_tableschema"
-			elif stage == 1111: stageJSON = "clear_table_rowcount"
-			elif stage == 1112: stageJSON = "sqoop"
-			elif stage == 1113: stageJSON = "get_source_rowcount"
-			elif stage == 1114: stageJSON = "validate_sqoop_import"
-			elif stage == 1149: stageJSON = "skip"
-			elif stage == 1150: stageJSON = "connect_to_hive"
-			elif stage == 1151: stageJSON = "create_import_table"
-			elif stage == 1152: stageJSON = "get_import_rowcount"
-			elif stage == 1153: stageJSON = "validate_import_table"
-			elif stage == 1154: stageJSON = "clear_hive_locks"
-			elif stage == 1155: stageJSON = "create_target_table"
-			elif stage == 1156: stageJSON = "hive_import"
-			elif stage == 1157: stageJSON = "update_statistics"
-			elif stage == 1158: stageJSON = "get_target_rowcount"
-			elif stage == 1159: stageJSON = "validate_target_table"
-			elif stage == 1160: stageJSON = "skip"
-
-			if stageJSON == "":
+			if stageShortName == "":
 				logging.error("There is no stage description for the JSON data for stage %s"%(stage))
 				logging.error("Will put the raw stage number into the JSON document")
-				stageJSON = str(stage)
+				stageShortName = str(stage)
 
-			if stageJSON != "skip":
-				jsonData["%s_start"%(stageJSON)] = str(stage_start) 
-				jsonData["%s_stop"%(stageJSON)] = str(stage_stop) 
-				jsonData["%s_duration"%(stageJSON)] = stage_duration 
+			if stageShortName != "skip":
+				jsonData["%s_start"%(stageShortName)] = str(stage_start) 
+				jsonData["%s_stop"%(stageShortName)] = str(stage_stop) 
+				jsonData["%s_duration"%(stageShortName)] = stage_duration 
 
 			if stage == 0:
 				import_start = stage_start
@@ -196,6 +204,98 @@ class stage(object):
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		logging.debug("Executing stage.convertStageStatisticsToJSON() - Finished")
+
+	def saveStageStatistics(self, **kwargs):
+		""" Reads the import_stage_statistics and insert it to the import_statistics table """
+		logging.debug("Executing stage.saveStageStatistics()")
+
+		columnsPart = [] 
+		valuesPart = []
+		import_start = None
+		import_stop = None
+		import_duration = None
+
+		for key, value in kwargs.items():
+			columnsPart.append(key)
+			if value == True: value = 1
+			if value == False: value = 0
+			valuesPart.append(value)
+
+		query = "select stage, start, stop, duration from import_stage_statistics where hive_db = %s and hive_table = %s"
+		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		for row in self.mysql_cursor.fetchall():
+			stage = row[0]
+			stage_start = row[1]
+			stage_stop = row[2]
+			stage_duration = row[3]
+
+			stageShortName = self.getStageShortName(stage)
+
+			if stageShortName != "" and stageShortName != "skip":
+				columnsPart.append("%s_start"%(stageShortName))
+				valuesPart.append(str(stage_start))
+
+				columnsPart.append("%s_stop"%(stageShortName))
+				valuesPart.append(str(stage_stop))
+
+				columnsPart.append("%s_duration"%(stageShortName))
+				valuesPart.append(str(stage_duration))
+
+			if stage == 0:
+				import_start = stage_start
+			
+			if import_stop == None or stage_stop > import_stop:
+				import_stop = stage_stop
+
+		import_duration = int((import_stop - import_start).total_seconds())
+
+		columnsPart.append("start")
+		valuesPart.append(str(import_start))
+
+		columnsPart.append("stop")
+		valuesPart.append(str(import_stop))
+
+		columnsPart.append("duration")
+		valuesPart.append(str(import_duration))
+
+		query = "insert into import_statistics "
+		insertQuery = "("	
+		insertQuery += ", ".join(map(str, columnsPart))
+		insertQuery += ") values ("	
+
+		strInsert = ""
+		for i in valuesPart:
+			if strInsert != "": strInsert += ", "
+			strInsert += "%s"
+
+		insertQuery += strInsert
+		insertQuery += ")"	
+		query += insertQuery
+	
+#		print(columnsPart)
+#		print("-------------------------------------------------")
+#		print(valuesPart)
+#		print("-------------------------------------------------")
+#		print(insertQuery)
+
+		self.mysql_cursor.execute(query, valuesPart)
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		query = "delete from import_statistics_last where hive_db = %s and hive_table = %s"
+		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		query = "insert into import_statistics_last "
+		query += insertQuery
+		self.mysql_cursor.execute(query, valuesPart)
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		logging.debug("Executing stage.saveStageStatistics() - Finished")
 
 	def setStageUnrecoverable(self):
 		""" Removes all stage information from the import_stage table """

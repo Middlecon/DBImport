@@ -990,3 +990,31 @@ class config(object):
 		logging.debug("SQL Statement executed: %s" % (query))
 		self.mysql_cursor.execute(query, (hiveDB, hiveTable, columnName, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnName, columnName, description))
 		self.mysql_conn.commit()
+
+	def getQuoteAroundColumn(self):
+		quoteAroundColumn = ""
+		if self.jdbc_servertype == constant.MSSQL:        quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.ORACLE:       quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.MYSQL:        quoteAroundColumn = "`"
+		if self.jdbc_servertype == constant.POSTGRESQL:   quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.PROGRESS:     quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.DB2_UDB:      quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.DB2_AS400:    quoteAroundColumn = "\""
+
+		return quoteAroundColumn
+
+	def getJDBCsqlFromTable(self, schema, table):
+		logging.debug("Executing common_definitions.getJDBCsqlFromTable()")
+
+		fromTable = ""
+		if self.jdbc_servertype == constant.MSSQL:        fromTable = "[%s].[%s].[%s]"%(self.jdbc_database, schema, table)
+		if self.jdbc_servertype == constant.ORACLE:       fromTable = "\"%s\".\"%s\""%(schema.upper(), table.upper())
+		if self.jdbc_servertype == constant.MYSQL:        fromTable = "%s"%(table)
+		if self.jdbc_servertype == constant.POSTGRESQL:   fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.PROGRESS:     fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.DB2_UDB:      fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.DB2_AS400:    fromTable = "\"%s\".\"%s\""%(schema, table)
+
+		logging.debug("Executing common_definitions.getJDBCsqlFromTable() - Finished")
+		return fromTable
+

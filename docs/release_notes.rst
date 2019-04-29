@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+v0.21
+-----
+
+**Fixed issues**
+
+  - Issue #9: PK with spaces in column name failes on --split-by
+  - Issue #8: Columnnames with two spaces after each other failes in sqoop
+  - Issue #6: MySQL cant handle " around column names
+
+**New Features**
+
+  - You can limit the number of sqoop mappers globaly on a database connection by specifying a positiv value in the column *max_import_sessions*
+  - Import statistics is stored in table *import_statistics* and *import_statistics_last*
+
 v0.20
 -----
 

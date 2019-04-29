@@ -20,6 +20,7 @@ import re
 import logging
 import subprocess
 import errno, os, pty
+import shlex
 from subprocess import Popen, PIPE
 from ConfigReader import configuration
 import mysql.connector
@@ -108,6 +109,9 @@ class operation(object):
 
 	def convertStageStatisticsToJSON(self):
 		self.import_config.convertStageStatisticsToJSON()
+	
+	def saveStageStatistics(self):
+		self.import_config.saveStageStatistics()
 	
 	def checkHiveDB(self, hiveDB):
 		try:
@@ -235,30 +239,31 @@ class operation(object):
 
 		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
 		sqoopQuery = ""
-		sqoopSourceSchema = "" 
+		sqoopSourceSchema = [] 
 		sqoopSourceTable = ""
 		sqoopDirectOption = ""
 		if self.import_config.common_config.db_mssql == True: 
-			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
+			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
-			sqoopDirectOption = "--direct  "
+			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_oracle == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema.upper(), self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct  "
+			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_postgresql == True: 
-			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
+#			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
+			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_progress == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
-			sqoopDirectOption = "--direct  "
+			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_mysql == True: 
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_db2udb == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct  "
+			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_db2as400 == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct  "
+			sqoopDirectOption = "--direct"
 
 		if self.import_config.sqoop_use_generated_sql == True:
 			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
@@ -280,20 +285,21 @@ class operation(object):
 
 		# From here and forward we are building the sqoop command with all options
 		# You must specify two {space} between each argument
-		sqoopCommand = ""
-		sqoopCommand += "sqoop  import  -D  mapreduce.job.user.classpath.first=true  "
-		sqoopCommand += "-D  mapreduce.job.queuename=%s  "%(configuration.get("Sqoop", "yarnqueue"))
-		sqoopCommand += "-D  oraoop.disabled=true  " 
-		sqoopCommand += "-D  org.apache.sqoop.splitter.allow_text_splitter=%s  "%(self.import_config.sqoop_allow_text_splitter)
+
+		sqoopCommand = []
+		sqoopCommand.extend(["sqoop", "import", "-D", "mapreduce.job.user.classpath.first=true"])
+		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])
+		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
+		sqoopCommand.extend(["-D", "org.apache.sqoop.splitter.allow_text_splitter=%s"%(self.import_config.sqoop_allow_text_splitter)])
 
 		if "split-by" not in self.import_config.sqoop_options.lower():
-			sqoopCommand += "--autoreset-to-one-mapper  "
+			sqoopCommand.append("--autoreset-to-one-mapper")
 
 		# Progress and DB2 AS400 imports needs to know the class name for the JDBC driver. 
 		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
-			sqoopCommand += "--driver  %s  "%(self.import_config.common_config.jdbc_driver)
+			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
 
-		sqoopCommand += "--class-name  dbimport  " 
+		sqoopCommand.extend(["--class-name", "dbimport"]) 
 
 #		if self.import_config.sqoop_import_type == "hive":
 #			if PKOnlyImport == True:
@@ -306,26 +312,27 @@ class operation(object):
 
 #		if self.import_config.sqoop_import_type == "hdfs":
 
-		sqoopCommand += "--as-parquetfile  " 
-		sqoopCommand += "--compress  "
-		sqoopCommand += "--compression-codec  snappy  "
+		sqoopCommand.append("--as-parquetfile") 
+		sqoopCommand.append("--compress")
+		sqoopCommand.extend(["--compression-codec", "snappy"])
 
 		if PKOnlyImport == True:
-			sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location_pkonly)
+			sqoopCommand.extend(["--target-dir", self.import_config.sqoop_hdfs_location_pkonly])
 		else:
-			sqoopCommand += "--target-dir  %s  "%(self.import_config.sqoop_hdfs_location)
+			sqoopCommand.extend(["--target-dir", self.import_config.sqoop_hdfs_location])
 
-		sqoopCommand += "--outdir  %s  "%(self.import_config.common_config.tempdir)
-		sqoopCommand += "--connect  \"%s\"  "%(self.import_config.common_config.jdbc_url)
-		sqoopCommand += "--username  %s  "%(self.import_config.common_config.jdbc_username)
-		sqoopCommand += "--password-file  file://%s  "%(self.import_config.common_config.jdbc_password_file)
-		sqoopCommand += sqoopDirectOption
+		sqoopCommand.extend(["--outdir", self.import_config.common_config.tempdir])
+		sqoopCommand.extend(["--connect", "\"%s\""%(self.import_config.common_config.jdbc_url)])
+		sqoopCommand.extend(["--username", self.import_config.common_config.jdbc_username])
+		sqoopCommand.extend(["--password-file", "file://%s"%(self.import_config.common_config.jdbc_password_file)])
+		if sqoopDirectOption != "":
+			sqoopCommand.append(sqoopDirectOption)
 
-		sqoopCommand += "--num-mappers  %s  "%(self.import_config.sqlSessions)
+		sqoopCommand.extend(["--num-mappers", str(self.import_config.sqlSessions)])
 
 		# If we dont have a SQL query to use for sqoop, then we need to specify the table instead
 		if sqoopQuery == "":
-			sqoopCommand += "--table  %s  "%(sqoopSourceTable)
+			sqoopCommand.extend(["--table", sqoopSourceTable])
 
 #		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
 #			self.sqoopIncrNoNewRows = False
@@ -336,34 +343,37 @@ class operation(object):
 #				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
 #		else:
 #			sqoopCommand += "--delete-target-dir  " 
-		sqoopCommand += "--delete-target-dir  " 
+		sqoopCommand.append("--delete-target-dir")
 
 		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
-			sqoopCommand += "%s  "%(self.import_config.generatedSqoopOptions)
-		if self.import_config.sqoop_options != "" and self.import_config.sqoop_options != None:
-			sqoopCommand += "%s  "%(self.import_config.sqoop_options.replace(" ", "  "))
+			sqoopCommand.extend(shlex.split(self.import_config.generatedSqoopOptions))
 
-		if self.import_config.sqoopBoundaryQuery != "" and self.import_config.sqlSessions > 1:
-			sqoopCommand += "--boundary-query  %s  "%(self.import_config.sqoopBoundaryQuery)
+		if self.import_config.sqoop_options.strip() != "" and self.import_config.sqoop_options != None:
+			sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
+
+		if self.import_config.sqoopBoundaryQuery.strip() != "" and self.import_config.sqlSessions > 1:
+			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
 
 		if sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-				sqoopCommand += "--where  \"%s\"  "%(self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\''))
+				sqoopCommand.extend(["--where", self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')])
 			else:
 				if self.import_config.sqoop_sql_where_addition != None:
-					sqoopCommand += "--where  \"%s\"  "%(self.import_config.sqoop_sql_where_addition.replace('"', '\''))
-			sqoopCommand += "%s  "%(sqoopSourceSchema)
+					sqoopCommand.extend(["--where", self.import_config.sqoop_sql_where_addition.replace('"', '\'')])
+#			sqoopCommand += "%s  "%(sqoopSourceSchema)
+			sqoopCommand.extend(sqoopSourceSchema)
 		else:
 # TODO: Handle the same stuff here
 			if self.import_config.sqoop_sql_where_addition != None:
-				sqoopCommand += "--query  \"%s where $CONDITION and %s\"  "%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))
+				sqoopCommand.extend(["--query", "%s where $CONDITION and %s"%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))])
 			else:
-				sqoopCommand += "--query  \"%s where $CONDITIONS\"  "%(sqoopQuery)
+				sqoopCommand.extend(["--query", "%s where $CONDITIONS"%(sqoopQuery)])
 
-		print(sqoopQuery)
+#		print(sqoopQuery)
 
-		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand.strip()))
-		sqoopCommandList = sqoopCommand.strip().split("  ")
+#		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand.strip()))
+		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand))
+#		sqoopCommandList = sqoopCommand.strip().split("  ")
 #		sqoopCommandList.append("--query")
 #		sqoopCommandList.append("\"%s where $CONDITIONS\""%(sqoopQuery))
 		sqoopOutput = ""
@@ -375,7 +385,8 @@ class operation(object):
 		print("")
 
 		# Start Sqoop
-		sh_session = subprocess.Popen(sqoopCommandList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#		sh_session = subprocess.Popen(sqoopCommandList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		sh_session = subprocess.Popen(sqoopCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 		# Print Stdout and stderr while sqoop is running
 		while sh_session.poll() == None:
@@ -455,8 +466,7 @@ class operation(object):
 
 		if PKOnlyImport == False:
 			try:
-#				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows, self.sqoopIncrMaxValuePending)
-				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, self.sqoopSize, self.sqoopRows)
+				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=self.sqoopSize, sqoopRows=self.sqoopRows, sqoopMappers=self.import_config.sqlSessions)
 			except:
 				logging.exception("Fatal error when saving sqoop statistics")
 				self.import_config.remove_temporary_files()
@@ -614,6 +624,11 @@ class operation(object):
 		columnsDF["name"].replace(["%"], "pct", regex=True, inplace=True)
 		columnsDF["name"].replace(["\("], "_", regex=True, inplace=True)
 		columnsDF["name"].replace(["\)"], "_", regex=True, inplace=True)
+		columnsDF["name"].replace(["ü"], "u", regex=True, inplace=True)
+		columnsDF["name"].replace(["å"], "a", regex=True, inplace=True)
+		columnsDF["name"].replace(["ä"], "a", regex=True, inplace=True)
+		columnsDF["name"].replace(["ö"], "o", regex=True, inplace=True)
+
 		return columnsDF
 
 	def updateHiveTable(self, hiveDB, hiveTable):
@@ -918,6 +933,10 @@ class operation(object):
 		targetColumns['col'] = targetColumns['col'].str.replace(r'\%', 'pct')
 		targetColumns['col'] = targetColumns['col'].str.replace(r'\(', '_')
 		targetColumns['col'] = targetColumns['col'].str.replace(r'\)', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ü', 'u')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'å', 'a')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ä', 'a')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ö', 'o')
 
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
 		logging.debug("\n%s"%(columnMerge))
