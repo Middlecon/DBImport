@@ -29,7 +29,7 @@ from datetime import date, datetime, time, timedelta
 import pandas as pd
 from DBImportConfig import constants as constant
 
-class postSQLData(object):
+class postSQLDataToREST(object):
 	def __init__(self):
 		logging.debug("Executing rest.__init__()")
 

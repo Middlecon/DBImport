@@ -21,7 +21,7 @@ import getopt
 import logging
 from DBImportOperation import import_operations
 from DBImportConfig import constants as constant
-from DBImportConfig import rest
+from DBImportConfig import statistics
 from DBImportConfig import common_definitions
 
 def printHelp():
@@ -53,7 +53,6 @@ def main(argv):
 	except getopt.GetoptError:
 		printHelp()
 
-	version = "0.10"
 	Hive_DB = None
 	Hive_Table = None
 	operation = None
@@ -81,6 +80,7 @@ def main(argv):
 			operation = "repairIncrementalImport"
 		elif opt == "--repairAllIncrementalImports":
 			operation = "repairAllIncrementalImports"
+
 
 	if operation == None:
 		printHelp()
@@ -138,7 +138,7 @@ def main(argv):
 		common_config.encryptUserPassword(connectionAlias, username, password)
 
 	if operation == "sendJSONstatistics":
-		rest.postSQLData()
+		statistics.postSQLDataToREST()
 
 	if operation == "repairAllIncrementalImports":
 		print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")

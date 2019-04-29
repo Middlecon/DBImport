@@ -372,6 +372,10 @@ def main(argv):
 
 		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createStatistics"):
 			operation.convertStageStatisticsToJSON()
+			operation.saveStageStatistics()
+
+#		operation.remove_temporary_files()
+#		sys.exit(1)
 
 		if runOnlyFunction == None:
 			if runStageOne == True and runStageTwo == False:
