@@ -364,7 +364,7 @@ As DBImport progress through the different stages of the import, it also keeps t
 Table - import_statistics
 -------------------------
 
-
+At the end of each import, all statistics about how long each part took aswell as general information about Hive datbase and table, number of rows imported, size of the import and much more are logged in this table. This table grows and will never be truncated by DBImport itself. If it becomes to large for you, it's up to each user to delete or truncate this table as you see fit.
 
 +----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Column                           | Documentation                                                                                                                                                                                                               |
@@ -501,7 +501,7 @@ Table - import_statistics
 Table - import_statistics_last
 ------------------------------
 
-
+The last entry in table import_statistics is also stored in this table. This makes it easier to find the latest data without first grouping to find the latest entry. When import_statistics table grows to a high number of million rows, it saves alot of cpu power for the database server.
 
 +----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Column                           | Documentation                                                                                                                                                                                                               |
