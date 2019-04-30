@@ -19,8 +19,9 @@
 import sys
 import getopt
 import logging
+from common import constants as constant
 from DBImportOperation import import_operations
-from DBImportConfig import constants as constant
+from DBImportOperation import etl_operations
 
 def printHelp():
 	print ("Options:")
@@ -89,8 +90,9 @@ def main(argv):
 	runOnlyFunction = None
 	loggingLevel = logging.INFO
 	skipSqoop = False
-	runStageOne = False
-	runStageTwo = False
+	runPhaseOne = False
+	runPhaseTwo = False
+	runPhaseThree = False
 	displayVersion = False
 	ignoreTime = False
 	resetStage = False
@@ -118,9 +120,9 @@ def main(argv):
 		elif opt == "--help":
 			printHelp()
 		elif opt == "-1":
-			runStageOne = True
+			runPhaseOne = True
 		elif opt == "-2":
-			runStageTwo = True
+			runPhaseTwo = True
 
 	if displayVersion == True:
 		print("DBImport version: %s"%(constant.VERSION))
@@ -129,10 +131,10 @@ def main(argv):
 	if Hive_DB == None or Hive_Table == None:
 		printHelp()
 
-	if runStageOne == False and runStageTwo == False:
+	if runPhaseOne == False and runPhaseTwo == False:
 		# If nothing is specified we run both stages
-		runStageOne = True
-		runStageTwo = True
+		runPhaseOne = True
+		runPhaseTwo = True
 
 	if runOnlyFunction != None:
 		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount"):
@@ -164,37 +166,45 @@ def main(argv):
 	print("")
 	
 	# Initiate the master class for all import operations
-	operation = import_operations.operation(Hive_DB, Hive_Table)
+	import_operation = import_operations.operation(Hive_DB, Hive_Table)
+	etl_operation = etl_operations.operation()
+
+	# Get the name of the different phases we are going to execute
+	phaseOne = import_operation.import_config.phaseOne 
+	phaseTwo = import_operation.import_config.phaseTwo 
+	phaseThree = import_operation.import_config.phaseThree 
 
 	print("The following table will be imported")
 	print("______________________________________________________________________________")
 	print("")
-	print("Import Type:          %s"%(operation.import_config.import_type))
-	print("Import description:   %s"%(operation.import_config.import_type_description))
-	print("Source hostname:      %s"%(operation.import_config.common_config.jdbc_hostname))
-	print("Source database type: %s"%(operation.import_config.common_config.jdbc_servertype))
-	print("Source database:      %s"%(operation.import_config.common_config.jdbc_database))
-	if operation.import_config.source_schema != "-":
-		print("Source schema:        %s"%(operation.import_config.source_schema))
-	print("Source table:         %s"%(operation.import_config.source_table))
-	print("Hive database:        %s"%(operation.import_config.Hive_DB))
-	print("Hive table:           %s"%(operation.import_config.Hive_Table))
+	print("Import Type:          %s"%(import_operation.import_config.import_type))
+	print("Import Type Phase1:   %s"%(phaseOne))
+	print("Import Type Phase2:   %s"%(phaseTwo))
+	print("Import description:   %s"%(import_operation.import_config.import_type_description))
+	print("Source hostname:      %s"%(import_operation.import_config.common_config.jdbc_hostname))
+	print("Source database type: %s"%(import_operation.import_config.common_config.jdbc_servertype))
+	print("Source database:      %s"%(import_operation.import_config.common_config.jdbc_database))
+	if import_operation.import_config.source_schema != "-":
+		print("Source schema:        %s"%(import_operation.import_config.source_schema))
+	print("Source table:         %s"%(import_operation.import_config.source_table))
+	print("Hive database:        %s"%(import_operation.import_config.Hive_DB))
+	print("Hive table:           %s"%(import_operation.import_config.Hive_Table))
 	print("______________________________________________________________________________")
 	print("")
 	sys.stdout.flush()
 
-	if ( runStageOne == True and runStageTwo == False ) and runOnlyFunction == None:
+	if ( runPhaseOne == True and runPhaseTwo == False ) and runOnlyFunction == None:
 		print(" _______________________ ")
 		print("|                       |")
-		print("| Stage 1 import only   |")
+		print("| Phase 1 import only   |")
 		print("|_______________________|")
 		print("")
 		print("")
 
-	if ( runStageOne == False and runStageTwo == True ) and runOnlyFunction == None:
+	if ( runPhaseOne == False and runPhaseTwo == True ) and runOnlyFunction == None:
 		print(" _______________________ ")
 		print("|                       |")
-		print("| Stage 2 import only   |")
+		print("| Phase 2 import only   |")
 		print("|_______________________|")
 		print("")
 		print("")
@@ -207,26 +217,23 @@ def main(argv):
 		print("")
 		print("")
 
-		operation.setStageOnlyInMemory()
-
-	# TODO: make sure there is a valid Kerberos key
+		import_operation.setStageOnlyInMemory()
 
 	# Check if the configured Hive database exists
-	operation.checkHiveDB(Hive_DB)
+	import_operation.checkHiveDB(Hive_DB)
 
 	if ignoreTime == False:
 #		# Checking if we are allowed to use the configued JDBC connection at this time
-		operation.checkTimeWindow()
+		import_operation.checkTimeWindow()
 
-	if operation.import_config.common_config.checkKerberosTicket() == False:
+	if import_operation.import_config.common_config.checkKerberosTicket() == False:
 		logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
-		operation.remove_temporary_files()
+		import_operation.remove_temporary_files()
 		sys.exit(1)
 
-
-	stage = operation.getStage()
+	stage = import_operation.getStage()
 	if resetStage == True:
-		operation.setStage(0, force=True)
+		import_operation.setStage(0, force=True)
 		stage = 0
 
 	if stage > 0 and stage < 1000:
@@ -238,15 +245,79 @@ def main(argv):
 		print("|________________________________________________________|")
 		print("")
 		print("")
-		operation.remove_temporary_files()
+		import_operation.remove_temporary_files()
 		sys.exit(1)
 
-	if operation.import_config.import_type == "full" or operation.import_config.import_type == "full_direct": 
-		if stage > 0 and stage != 1049:
-			operation.saveRetryAttempt(stage)
+	if runPhaseOne == True and runPhaseTwo == False and ( stage == 1049 or stage == 1149 ):
+		print(" ___________________________________ ")
+		print("|                                   |")
+		print("| Phase 1 is already completed.     |") 
+		print("| To continue, run with option '-2' |") 	
+		print("|___________________________________|")
+
+		import_operation.remove_temporary_files()
+		sys.exit(0)
+
+	# ******************************************
+	# * PHASE1_FULL 
+	# ******************************************
+
+	if phaseOne == constant.PHASE1_FULL and runPhaseOne == True:
+		if stage >= 1000 and stage < 1049:
+			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
 			if stage == 1014: newStage = 1011 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			import_operation.setStage(1010)
+			if import_operation.getStage() == 1010: 
+				import_operation.getSourceTableSchema()
+
+		if runOnlyFunction == None: 
+			import_operation.setStage(1011)
+			if import_operation.getStage() == 1011: 
+				import_operation.clearTableRowCount()
+
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			import_operation.setStage(1012)
+			if import_operation.getStage() == 1012: 
+				import_operation.getJDBCTableRowCount()
+	
+		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			import_operation.setStage(1013)
+			if import_operation.getStage() == 1013: 
+				import_operation.runSqoop(False)
+
+			import_operation.setStage(1014)
+			if import_operation.getStage() == 1014: 
+				import_operation.validateSqoopRowCount()
+
+			import_operation.setStage(1049)
+
+
+	# ******************************************
+	# * PHASE1_FULL & PHASE2_COPY
+	# ******************************************
+
+	if phaseOne == constant.PHASE1_FULL and phaseTwo == constant.PHASE2_COPY and runPhaseTwo == True:
+		if stage > 0 and stage != 1049:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
 			if stage == 1053: newStage = 1050 
 			if stage == 1060: newStage = 1054
 			print(" ________________________________________________________ ")
@@ -256,157 +327,98 @@ def main(argv):
 			print("| Last execution failed on stage %s                    |"%(stage)) 	
 			if newStage != 0: 
 				print("| Will restart from stage %s                           |"%(newStage)) 	
-				operation.setStage(newStage, force=True)
+				import_operation.setStage(newStage, force=True)
 			print("|________________________________________________________|")
 			print("")
 			print("")
 
 
-		if runStageOne == True and runStageTwo == False and stage == 1049:
-			print(" ___________________________________ ")
-			print("|                                   |")
-			print("| Stage 1 is already completed.     |") 
-			print("| To continue, run with option '-2' |") 	
-			print("|___________________________________|")
-
-			operation.remove_temporary_files()
-			sys.exit(0)
-
-		if runStageOne == False and stage < 1049:
+		if runPhaseOne == False and stage < 1049:
 			logging.error("You are trying to import a stage2 only import, but there is no information about a completed stage1")
 			logging.error("Please run a stage1 first and make sure it completes successfully")
-			operation.remove_temporary_files()
+			import_operation.remove_temporary_files()
 			sys.exit(0)
 
-		# Fetch the source table schema. This is mandatory for all imports
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema"):
-			operation.setStage(1010)
-			if operation.getStage() == 1010: 
-				operation.getSourceTableSchema()
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			import_operation.setStage(1050)
+			if import_operation.getStage() == 1050: 
+				import_operation.connectToHive()
 
-		if runStageOne == True and runOnlyFunction == None: 
-			operation.setStage(1011)
-			if operation.getStage() == 1011: 
-				operation.clearTableRowCount()
+			import_operation.setStage(1051)
+			if import_operation.getStage() == 1051: 
+				import_operation.connectToHive()
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
 
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount"): 
-			operation.setStage(1012)
-			if operation.getStage() == 1012: 
-				operation.getJDBCTableRowCount()
-	
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			operation.setStage(1013)
-			if operation.getStage() == 1013: 
-				operation.runSqoop(False)
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			import_operation.setStage(1052)
+			if import_operation.getStage() == 1052: 
+				import_operation.connectToHive()
+				import_operation.getImportTableRowCount()
 
-			operation.setStage(1014)
-			if operation.getStage() == 1014: 
-				operation.validateSqoopRowCount()
+			import_operation.setStage(1053)
+			if import_operation.getStage() == 1053: 
+				import_operation.validateRowCount()
 
-			operation.setStage(1049)
+		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			import_operation.setStage(1054)
+			if import_operation.getStage() == 1054: 
+				import_operation.connectToHive()
+				import_operation.removeHiveLocks()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createImportTable"):
-			operation.setStage(1050)
-			if operation.getStage() == 1050: 
-				operation.connectToHive()
+		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+			import_operation.setStage(1055)
+			if import_operation.getStage() == 1055: 
+				import_operation.connectToHive()
+				import_operation.createTargetTable()
+				import_operation.updateTargetTable()
+				import_operation.updatePKonTargetTable()
+				import_operation.updateFKonTargetTable()
 
-			operation.setStage(1051)
-			if operation.getStage() == 1051: 
-				operation.connectToHive()
-				operation.createExternalImportTable()
-				operation.updateExternalImportTable()
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount"):
-			operation.setStage(1052)
-			if operation.getStage() == 1052: 
-				operation.connectToHive()
-				operation.getImportTableRowCount()
-
-			operation.setStage(1053)
-			if operation.getStage() == 1053: 
-				operation.validateRowCount()
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks"):
-			operation.setStage(1054)
-			if operation.getStage() == 1054: 
-				operation.connectToHive()
-				operation.removeHiveLocks()
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createTargetTable"):
-			operation.setStage(1055)
-			if operation.getStage() == 1055: 
-				operation.connectToHive()
-				operation.createTargetTable()
-				operation.updateTargetTable()
-				operation.updatePKonTargetTable()
-				operation.updateFKonTargetTable()
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "truncateTargetTable"):
-			operation.setStage(1056)
-			if operation.getStage() == 1056: 
-				operation.connectToHive()
-				operation.truncateTargetTable()
+		if runOnlyFunction == None or runOnlyFunction == "truncateTargetTable":
+			import_operation.setStage(1056)
+			if import_operation.getStage() == 1056: 
+				import_operation.connectToHive()
+				import_operation.truncateTargetTable()
 		
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable"):
-			operation.setStage(1057)
-			if operation.getStage() == 1057: 
-				operation.connectToHive()
-				operation.loadDataFromImportToTargetTable()
+		if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
+			import_operation.setStage(1057)
+			if import_operation.getStage() == 1057: 
+				import_operation.connectToHive()
+				import_operation.loadDataFromImportToTargetTable()
 
-			operation.setStage(1058)
-			if operation.getStage() == 1058: 
-				operation.updateStatisticsOnTargetTable()
+			import_operation.setStage(1058)
+			if import_operation.getStage() == 1058: 
+				import_operation.updateStatisticsOnTargetTable()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount"):
-			operation.setStage(1059)
-			if operation.getStage() == 1059: 
-				operation.connectToHive()
-				operation.getTargetTableRowCount()
+		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+			import_operation.setStage(1059)
+			if import_operation.getStage() == 1059: 
+				import_operation.connectToHive()
+				import_operation.getTargetTableRowCount()
 
-			operation.setStage(1060)
-			if operation.getStage() == 1060: 
-				operation.validateRowCount()
-
-		if runStageTwo == True and runOnlyFunction == None:
-			operation.setStage(9999)
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createStatistics"):
-			operation.convertStageStatisticsToJSON()
-			operation.saveStageStatistics()
-
-#		operation.remove_temporary_files()
-#		sys.exit(1)
+			import_operation.setStage(1060)
+			if import_operation.getStage() == 1060: 
+				import_operation.validateRowCount()
 
 		if runOnlyFunction == None:
-			if runStageOne == True and runStageTwo == False:
-				print(" _______________________________________ ")
-				print("|                                       |")
-				print("| DBImport Stage 1 completed successful |") 	
-				print("|_______________________________________|")
-			elif runStageOne == False and runStageTwo == True:
-				print(" _______________________________________ ")
-				print("|                                       |")
-				print("| DBImport Stage 2 completed successful |") 	
-				print("|_______________________________________|")
-			else:
-				print(" _______________________________ ")
-				print("|                               |")
-				print("| DBImport completed successful |") 	
-				print("|_______________________________|")
-			print("")
+			import_operation.setStage(9999)
 
-			if runStageTwo == True:
-				# We can only clear the stage at the end of stage 2. 
-				operation.clearStage()
+		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+			import_operation.convertStageStatisticsToJSON()
+			import_operation.saveStageStatistics()
 
-	elif operation.import_config.import_type == "incr": 
-		if stage > 0 and stage != 1149:
-			operation.saveRetryAttempt(stage)
+	# ******************************************
+	# * PHASE1_INCR 
+	# ******************************************
+
+	if phaseOne == constant.PHASE1_INCR and runPhaseOne == True:
+		if stage >= 1100 and stage < 1149:
+			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
 			# TODO: Add correct restart points once incremental imports are working
 			if stage == 1114: newStage = 1111 
-			if stage == 1053: newStage = 1050 
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous import failed and this execution |") 	
@@ -414,141 +426,219 @@ def main(argv):
 			print("| Last execution failed on stage %s                    |"%(stage)) 	
 			if newStage != 0: 
 				print("| Will restart from stage %s                           |"%(newStage)) 	
-				operation.setStage(newStage, force=True)
+				import_operation.setStage(newStage, force=True)
 			print("|________________________________________________________|")
 			print("")
 			print("")
 
+		# Fetch the source table schema. This is mandatory for all imports
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			import_operation.setStage(1110)
+			if import_operation.getStage() == 1110: 
+				import_operation.getSourceTableSchema()
 
-		if runStageOne == True and runStageTwo == False and stage == 1149:
-			print(" ___________________________________ ")
-			print("|                                   |")
-			print("| Stage 1 is already completed.     |") 
-			print("| To continue, run with option '-2' |") 	
-			print("|___________________________________|")
+		if runOnlyFunction == None: 
+			import_operation.setStage(1111)
+			if import_operation.getStage() == 1111: 
+				import_operation.clearTableRowCount()
 
-			operation.remove_temporary_files()
-			sys.exit(0)
+		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			import_operation.setStage(1112)
+			if import_operation.getStage() == 1112: 
+				import_operation.saveIncrMinValue()
+				import_operation.runSqoop(False)
+				if import_operation.sqoopIncrNoNewRows == True: 
+					import_operation.setStage(1149)
 
-		if runStageOne == False and stage < 1149:
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			import_operation.setStage(1113)
+			if import_operation.getStage() == 1113: 
+				import_operation.getJDBCTableRowCount()
+	
+		if runOnlyFunction == None:
+			import_operation.setStage(1114)
+			if import_operation.getStage() == 1114: 
+				import_operation.validateSqoopRowCount()
+
+			import_operation.setStage(1149)
+
+	# ******************************************
+	# * PHASE1_INCR & PHASE2_COPY
+	# ******************************************
+	
+	if phaseOne == constant.PHASE1_INCR and phaseTwo == constant.PHASE2_COPY and runPhaseTwo == True:
+		if stage > 0 and stage != 1149:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			# TODO: Add correct restart points once incremental imports are working
+			if stage == 1153: newStage = 1150 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+
+		if runPhaseOne == False and stage < 1149:
 			logging.error("You are trying to import a stage2 only import, but there is no information about a completed stage1")
 			logging.error("Please run a stage1 first and make sure it completes successfully")
-			operation.remove_temporary_files()
+			import_operation.remove_temporary_files()
 			sys.exit(0)
 
-		# Fetch the source table schema. This is mandatory for all imports
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema"):
-			operation.setStage(1110)
-			if operation.getStage() == 1110: 
-				operation.getSourceTableSchema()
-
-		if runStageOne == True and runOnlyFunction == None: 
-			operation.setStage(1111)
-			if operation.getStage() == 1111: 
-				operation.clearTableRowCount()
-
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			operation.setStage(1112)
-			if operation.getStage() == 1112: 
-				operation.saveIncrMinValue()
-				operation.runSqoop(False)
-				if operation.sqoopIncrNoNewRows == True: 
-					operation.setStage(1149)
-
-		if runStageOne == True and (runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount"): 
-			operation.setStage(1113)
-			if operation.getStage() == 1113: 
-				operation.getJDBCTableRowCount()
-	
-		if runStageOne == True and runOnlyFunction == None:
-			operation.setStage(1114)
-			if operation.getStage() == 1114: 
-				operation.validateSqoopRowCount()
-
-			operation.setStage(1149)
-
-	
-		if runStageTwo == True and runOnlyFunction == None:
-			if operation.import_config.sqoop_last_rows == 0:
+		if runOnlyFunction == None:
+			if import_operation.import_config.sqoop_last_rows == 0:
 				# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
-				operation.setStage(1160)
+				import_operation.setStage(1160)
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createImportTable"):
-			operation.setStage(1150)
-			if operation.getStage() == 1150: 
-				operation.connectToHive()
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			import_operation.setStage(1150)
+			if import_operation.getStage() == 1150: 
+				import_operation.connectToHive()
 
-			operation.setStage(1151)
-			if operation.getStage() == 1151: 
-				operation.connectToHive()
-				operation.createExternalImportTable()
-				operation.updateExternalImportTable()
+			import_operation.setStage(1151)
+			if import_operation.getStage() == 1151: 
+				import_operation.connectToHive()
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount"):
-			operation.setStage(1152)
-			if operation.getStage() == 1152: 
-				operation.connectToHive()
-				operation.getImportTableRowCount()
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			import_operation.setStage(1152)
+			if import_operation.getStage() == 1152: 
+				import_operation.connectToHive()
+				import_operation.getImportTableRowCount()
 
-			operation.setStage(1153)
-			if operation.getStage() == 1153: 
-				operation.validateIncrRowCount()
+			import_operation.setStage(1153)
+			if import_operation.getStage() == 1153: 
+				import_operation.validateIncrRowCount()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks"):
-			operation.setStage(1154)
-			if operation.getStage() == 1154: 
-				operation.connectToHive()
-				operation.removeHiveLocks()
+		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			import_operation.setStage(1154)
+			if import_operation.getStage() == 1154: 
+				import_operation.connectToHive()
+				import_operation.removeHiveLocks()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createTargetTable"):
-			operation.setStage(1155)
-			if operation.getStage() == 1155: 
-				operation.connectToHive()
-				operation.createTargetTable()
-				operation.updateTargetTable()
-				operation.updatePKonTargetTable()
-				operation.updateFKonTargetTable()
+		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+			import_operation.setStage(1155)
+			if import_operation.getStage() == 1155: 
+				import_operation.connectToHive()
+				import_operation.createTargetTable()
+				import_operation.updateTargetTable()
+				import_operation.updatePKonTargetTable()
+				import_operation.updateFKonTargetTable()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable"):
-			operation.setStage(1156)
-			if operation.getStage() == 1156: 
-				operation.connectToHive()
-				operation.loadDataFromImportToTargetTable()
+		if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
+			import_operation.setStage(1156)
+			if import_operation.getStage() == 1156: 
+				import_operation.connectToHive()
+				import_operation.loadDataFromImportToTargetTable()
 
-			operation.setStage(1157)
-			if operation.getStage() == 1157: 
-				operation.updateStatisticsOnTargetTable()
+			import_operation.setStage(1157)
+			if import_operation.getStage() == 1157: 
+				import_operation.updateStatisticsOnTargetTable()
 
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount"):
-			operation.setStage(1158)
-			if operation.getStage() == 1158: 
-				operation.connectToHive()
-				operation.getTargetTableRowCount()
+		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+			import_operation.setStage(1158)
+			if import_operation.getStage() == 1158: 
+				import_operation.connectToHive()
+				import_operation.getTargetTableRowCount()
 
-			operation.setStage(1159)
-			if operation.getStage() == 1159: 
-				operation.validateRowCount()
-
-		if runStageTwo == True and runOnlyFunction == None:
-			operation.setStage(1160)
-			if operation.getStage() == 1160: 
-				operation.saveIncrPendingValues()
-
-			operation.setStage(9999)
-
-		if runStageTwo == True and (runOnlyFunction == None or runOnlyFunction == "createStatistics"):
-			operation.convertStageStatisticsToJSON()
+			import_operation.setStage(1159)
+			if import_operation.getStage() == 1159: 
+				import_operation.validateRowCount()
 
 		if runOnlyFunction == None:
-			if runStageOne == True and runStageTwo == False:
+			import_operation.setStage(1160)
+			if import_operation.getStage() == 1160: 
+				import_operation.saveIncrPendingValues()
+
+			import_operation.setStage(9999)
+
+		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+			import_operation.convertStageStatisticsToJSON()
+			import_operation.saveStageStatistics()
+
+	# ******************************************
+	# * PHASE1_FULL & PHASE2_HISTORYAUDIT
+	# ******************************************
+
+	if phaseOne == constant.PHASE1_FULL and phaseTwo == constant.PHASE2_HISTORYAUDIT and runPhaseTwo == True:
+		if stage > 0 and stage != 1049:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+#			if stage == 1153: newStage = 1150 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+
+		if runPhaseOne == False and stage < 1049:
+			logging.error("You are trying to import a stage2 only import, but there is no information about a completed stage1")
+			logging.error("Please run a stage1 first and make sure it completes successfully")
+			import_operation.remove_temporary_files()
+			sys.exit(0)
+
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			import_operation.setStage(1200)
+			if import_operation.getStage() == 1200: 
+				import_operation.connectToHive()
+
+			import_operation.setStage(1201)
+			if import_operation.getStage() == 1201: 
+				import_operation.connectToHive()
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			import_operation.setStage(1202)
+			if import_operation.getStage() == 1202: 
+				import_operation.connectToHive()
+				import_operation.getImportTableRowCount()
+
+			import_operation.setStage(1203)
+			if import_operation.getStage() == 1203: 
+				import_operation.validateRowCount()
+
+		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			import_operation.setStage(1204)
+			if import_operation.getStage() == 1204: 
+				import_operation.connectToHive()
+				import_operation.removeHiveLocks()
+
+		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+			import_operation.setStage(1205)
+			if import_operation.getStage() == 1205: 
+				import_operation.connectToHive()
+				import_operation.createTargetTable()
+				import_operation.convertHiveTableToACID()
+				import_operation.updateTargetTable()
+				import_operation.updatePKonTargetTable()
+				import_operation.updateFKonTargetTable()
+
+	if import_operation.getStage() == 9999: 
+		if runOnlyFunction == None:
+			if runPhaseOne == True and runPhaseTwo == False:
 				print(" _______________________________________ ")
 				print("|                                       |")
-				print("| DBImport Stage 1 completed successful |") 	
+				print("| DBImport Phase 1 completed successful |") 	
 				print("|_______________________________________|")
-			elif runStageOne == False and runStageTwo == True:
+			elif runPhaseOne == False and runPhaseTwo == True:
 				print(" _______________________________________ ")
 				print("|                                       |")
-				print("| DBImport Stage 2 completed successful |") 	
+				print("| DBImport Phase 2 completed successful |") 	
 				print("|_______________________________________|")
 			else:
 				print(" _______________________________ ")
@@ -557,16 +647,16 @@ def main(argv):
 				print("|_______________________________|")
 			print("")
 
-			if runStageTwo == True:
+			if runPhaseTwo == True:
 				# We can only clear the stage at the end of stage 2. 
-				operation.clearStage()
+				import_operation.clearStage()
+#	else:
+#		logging.error("This import tool only supports 'full' and 'full_direct' so far. Please use bash version for other imports")
+#		import_operation.remove_temporary_files()
+#		sys.exit(1)
 
-	else:
-		logging.error("This import tool only supports 'full' and 'full_direct' so far. Please use bash version for other imports")
-		operation.remove_temporary_files()
-		sys.exit(1)
-
-	operation.remove_temporary_files()
+	import_operation.remove_temporary_files()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
+

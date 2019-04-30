@@ -33,10 +33,9 @@ import pandas as pd
 import numpy as np
 import time
 
-
 class operation(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
-		logging.debug("Executing import_operations.__init__()")
+		logging.debug("Executing etl_operations.__init__()")
 		self.Hive_DB = None
 		self.Hive_Table = None
 		self.mysql_conn = None
@@ -52,17 +51,18 @@ class operation(object, metaclass=Singleton):
 		self.sqoopIncrMaxValuePending = None
 		self.sqoopIncrNoNewRows = None
 
-		try:
-			# Initialize the two core classes. import_config will initialize common_config aswell
-			self.import_config = import_config.config(Hive_DB, Hive_Table)
-			self.common_operations = common_operations.operation(Hive_DB, Hive_Table)
-		except:
-			sys.exit(1)
+		self.common_operations = common_operations.operation(Hive_DB, Hive_Table)
+		self.import_config = import_config.config(Hive_DB, Hive_Table)
 
 		if Hive_DB != None and Hive_Table != None:
 			self.setHiveTable(Hive_DB, Hive_Table)
+		else:
+			# If the class already is initialized, we just pull the parameters and set them here
+			self.Hive_DB = self.common_operations.Hive_DB
+			self.Hive_Table = self.common_operations.Hive_Table
+			self.startDate = self.import_config.startDate
 
-		logging.debug("Executing import_operations.__init__() - Finished")
+		logging.debug("Executing etl_operations.__init__() - Finished")
 
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
@@ -300,7 +300,6 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
 
 		sqoopCommand.extend(["--class-name", "dbimport"]) 
-		sqoopCommand.append("--fetch-size=10000") 
 
 #		if self.import_config.sqoop_import_type == "hive":
 #			if PKOnlyImport == True:
@@ -554,11 +553,7 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.createExternalTable() - Finished")
 
-	def convertHiveTableToACID(self):
-		if self.common_operations.isHiveTableTransactional(self.Hive_DB, self.Hive_Table) == False:
-			self.common_operations.convertHiveTableToACID(self.Hive_DB, self.Hive_Table, createDeleteColumn=self.import_config.soft_delete_during_merge)
-
-	def createTargetTable(self, createHistoryTable=False):
+	def createTargetTable(self):
 		logging.debug("Executing import_operations.createTargetTable()")
 		if self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
@@ -584,20 +579,8 @@ class operation(object, metaclass=Singleton):
 			if self.import_config.datalake_source != None:
 				query += ", datalake_source varchar(256)"
 
-			self.import_config.import_with_merge = False
-			self.import_config.create_table_with_acid = False
-
-			if self.import_config.import_with_merge == False:
-				if self.import_config.create_datalake_import_column == True:
-					query += ", datalake_import timestamp COMMENT \"Import time from source database\""
-			else:
-			# if self.import_config.import_with_merge == True:
-				query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
-				query += ", datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\""
-				query += ", datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\""
-
-				if self.import_config.soft_delete_during_merge == True:
-					query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
+			if self.import_config.create_datalake_import_column == True:
+				query += ", datalake_import timestamp COMMENT \"Import time from source database\""
 
 			query += ") "
 
@@ -608,7 +591,6 @@ class operation(object, metaclass=Singleton):
 			if self.import_config.create_table_with_acid == False:
 				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB') "
 			else:
-				# TODO: HDP3 shouldnt run this
 				query += "CLUSTERED BY ("
 				firstColumn = True
 				for column in self.import_config.getPKcolumns().split(","):
@@ -616,7 +598,6 @@ class operation(object, metaclass=Singleton):
 						query += ", " 
 					query += "`" + column + "`" 
 					firstColumn = False
-				#TODO: Smarter calculation of the number of buckets
 				query += ") into 4 buckets "
 				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='true') "
 
@@ -938,24 +919,24 @@ class operation(object, metaclass=Singleton):
 
 	def copyHiveTable(self, sourceDB, sourceTable, targetDB, targetTable):
 		""" Copy one Hive table into another for the columns that have the same name """
-		logging.debug("Executing import_operations.copyHiveTable()")
+		logging.debug("Executing import_definitions.copyHiveTable()")
 
-		# Logic here is to create a new column in both DF and call them sourceName vs targetName. These are the original names. Then we replace the values in targetColumn DF column col
+		# Logic here is to create a new column in both DF and call them sourceCol vs targetCol. These are the original names. Then we replace the values in targetColumn DF column col
 		# with the name that the column should be called in the source system. This is needed to handle characters that is not supported in Parquet files, like SPACE
-		sourceColumns = self.common_operations.getHiveColumns(hiveDB=sourceDB, hiveTable=sourceTable, includeType=False, includeComment=False)
-		sourceColumns['sourceName'] = sourceColumns['name']
+		sourceColumns = self.common_operations.getHiveColumns(sourceDB, sourceTable)
+		sourceColumns['sourceCol'] = sourceColumns['col']
 
-		targetColumns = self.common_operations.getHiveColumns(hiveDB=targetDB, hiveTable=targetTable, includeType=False, includeComment=False)
-		targetColumns['targetName'] = targetColumns['name']
+		targetColumns = self.common_operations.getHiveColumns(targetDB, targetTable)
+		targetColumns['targetCol'] = targetColumns['col']
 		# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
-		targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
-		targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
+		targetColumns['col'] = targetColumns['col'].str.replace(r' ', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\%', 'pct')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\(', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'\)', '_')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ü', 'u')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'å', 'a')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ä', 'a')
+		targetColumns['col'] = targetColumns['col'].str.replace(r'ö', 'o')
 
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
 		logging.debug("\n%s"%(columnMerge))
@@ -970,8 +951,8 @@ class operation(object, metaclass=Singleton):
 		for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
 			if firstLoop == False: columnDefinitionSource += ", "
 			if firstLoop == False: columnDefinitionTarget += ", "
-			columnDefinitionSource += "`%s`"%(row['sourceName'])
-			columnDefinitionTarget += "`%s`"%(row['targetName'])
+			columnDefinitionSource += "`%s`"%(row['sourceCol'])
+			columnDefinitionTarget += "`%s`"%(row['targetCol'])
 			firstLoop = False
 
 		query = "insert into `%s`.`%s` ("%(targetDB, targetTable)
@@ -993,7 +974,7 @@ class operation(object, metaclass=Singleton):
 			query += self.import_config.nomerge_ingestion_sql_addition
 
 		self.common_operations.executeHiveQuery(query)
-		logging.debug("Executing import_operations.copyHiveTable() - Finished")
+		logging.debug("Executing import_definitions.copyHiveTable() - Finished")
 
 	def resetIncrMaxValue(self, hiveDB=None, hiveTable=None):
 		""" Will read the Max value from the Hive table and save that into the incr_maxvalue column """

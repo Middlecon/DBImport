@@ -27,7 +27,7 @@ import mysql.connector
 from mysql.connector import errorcode
 from datetime import date, datetime, time, timedelta
 import pandas as pd
-from DBImportConfig import constants as constant
+from common import constants as constant
 
 class postSQLDataToREST(object):
 	def __init__(self):
