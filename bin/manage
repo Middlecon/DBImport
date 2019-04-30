@@ -19,10 +19,10 @@
 import sys
 import getopt
 import logging
+from common import common_config
 from DBImportOperation import import_operations
 from DBImportConfig import constants as constant
-from DBImportConfig import statistics
-from DBImportConfig import common_definitions
+from DBImportConfig import rest
 
 def printHelp():
 	print ("Options:")
@@ -128,7 +128,7 @@ def main(argv):
 		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
 		connectionAlias = input("DataBase Connection (dbalias): ")
 
-		common_config = common_definitions.config()
+		common_config = common_config.config()
 		if common_config.checkConnectionAlias(connectionAlias) == False:
 			logging.error("The specified database connection does not exist.")
 			sys.exit(1)
@@ -138,7 +138,7 @@ def main(argv):
 		common_config.encryptUserPassword(connectionAlias, username, password)
 
 	if operation == "sendJSONstatistics":
-		statistics.postSQLDataToREST()
+		rest.postSQLDataToREST()
 
 	if operation == "repairAllIncrementalImports":
 		print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")

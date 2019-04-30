@@ -67,6 +67,7 @@ class stage(object):
 		elif stage == 1014: stageDescription = "Validate sqoop import"
 		elif stage == 1049: stageDescription = "Stage1 Completed"
 		elif stage == 1050: stageDescription = "Connecting to Hive"
+
 		elif stage == 1051: stageDescription = "Creating the import table in the staging database"
 		elif stage == 1052: stageDescription = "Get Import table rowcount"
 		elif stage == 1053: stageDescription = "Validate import table"
@@ -84,6 +85,7 @@ class stage(object):
 		elif stage == 1113: stageDescription = "Get source table rowcount"
 		elif stage == 1114: stageDescription = "Validate sqoop import"
 		elif stage == 1149: stageDescription = "Stage1 Completed"
+
 		elif stage == 1150: stageDescription = "Connecting to Hive"
 		elif stage == 1151: stageDescription = "Creating the import table in the staging database"
 		elif stage == 1152: stageDescription = "Get Import table rowcount"
@@ -95,6 +97,15 @@ class stage(object):
 		elif stage == 1158: stageDescription = "Get Target table rowcount"
 		elif stage == 1159: stageDescription = "Validate target table"
 		elif stage == 1160: stageDescription = "Saving pending incremental values"
+
+		# Full - History Audit
+		elif stage == 1200: stageDescription = "Connecting to Hive"
+		elif stage == 1201: stageDescription = "Creating the import table in the staging database"
+		elif stage == 1202: stageDescription = "Get Import table rowcount"
+		elif stage == 1203: stageDescription = "Validate import table"
+		elif stage == 1204: stageDescription = "Removing Hive locks by force"
+		elif stage == 1205: stageDescription = "Creating the target table"
+
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -109,6 +120,7 @@ class stage(object):
 		elif stage == 1013: stageShortName = "sqoop"
 		elif stage == 1014: stageShortName = "validate_sqoop_import"
 		elif stage == 1049: stageShortName = "skip"
+
 		elif stage == 1050: stageShortName = "connect_to_hive"
 		elif stage == 1051: stageShortName = "create_import_table"
 		elif stage == 1052: stageShortName = "get_import_rowcount"
@@ -127,6 +139,7 @@ class stage(object):
 		elif stage == 1113: stageShortName = "get_source_rowcount"
 		elif stage == 1114: stageShortName = "validate_sqoop_import"
 		elif stage == 1149: stageShortName = "skip"
+
 		elif stage == 1150: stageShortName = "connect_to_hive"
 		elif stage == 1151: stageShortName = "create_import_table"
 		elif stage == 1152: stageShortName = "get_import_rowcount"
@@ -138,6 +151,14 @@ class stage(object):
 		elif stage == 1158: stageShortName = "get_target_rowcount"
 		elif stage == 1159: stageShortName = "validate_target_table"
 		elif stage == 1160: stageShortName = "skip"
+
+		# Full - History Audit
+		elif stage == 1200: stageShortName = "connect_to_hive"
+		elif stage == 1201: stageShortName = "create_import_table"
+		elif stage == 1202: stageShortName = "get_import_rowcount"
+		elif stage == 1203: stageShortName = "validate_import_table"
+		elif stage == 1204: stageShortName = "clear_hive_locks"
+		elif stage == 1205: stageShortName = "create_target_table"
 
 		elif stage == 9999: stageShortName = "skip"
 

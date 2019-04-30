@@ -22,8 +22,7 @@ import json
 import math
 from ConfigReader import configuration
 import mysql.connector
-from DBImportConfig import common_definitions
-from DBImportConfig import constants as constant
+from common import constants as constant
 from mysql.connector import errorcode
 from datetime import datetime
 import pandas as pd
@@ -202,7 +201,9 @@ class source(object):
 			query += "   c.data_type, "
 			query += "   c.character_maximum_length, "
 			query += "   c.column_comment, "
-			query += "   c.is_nullable " 
+			query += "   c.is_nullable, " 
+			query += "   c.numeric_precision, " 
+			query += "   c.numeric_scale " 
 			query += "from information_schema.columns c "
 			query += "left join information_schema.tables t " 
 			query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
@@ -222,11 +223,13 @@ class source(object):
 				else:
 					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
-				if row[5] == None:
+				if row[4] == "decimal":
+					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(self.removeNewLine(row[4]), row[8], row[9])
+				elif row[5] == None:
 					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
-				if row[6] == "" or row[6] == None:
+				if row[6] == None or row[6] == "":
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
