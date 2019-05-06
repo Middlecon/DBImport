@@ -14,6 +14,9 @@ Committers
 Versions
 --------
 
+  - v0.30. Support for Merge in ETL Phase
+  - v0.21. Import statistics in SQL Tables
+  - v0.20. Incremental Imports
   - v0.12. Import creates JSON data about statistics and post to REST interface
   - v0.11. Support for more column changes and logging of column changes
   - v0.10. Initial release with support for Full import only
@@ -21,7 +24,7 @@ Versions
 RoadMap
 -------
 
-  1. Implement all existing function on 'old' DBImport into the Python version.
-  2. WebGui for administration of DBImport
-  3. Multi cluster ingestion of data
-  4. Custom queries and delta loads from source
+  1. Implement all existing function on 'old' DBImport into the Python version. - **Ongoing**
+  2. WebGui for administration of DBImport - **Alpha version available**
+  3. Multi cluster ingestion of data - **On planning**
+  4. Custom queries and delta loads from source - **Partially implemented**

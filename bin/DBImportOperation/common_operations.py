@@ -26,6 +26,8 @@ import requests
 from pyhive import hive
 from pyhive import exc
 from common.Singleton import Singleton
+from common.Exceptions import *
+import common.Exceptions
 from TCLIService.ttypes import TOperationState
 from requests_kerberos import HTTPKerberosAuth, REQUIRED
 import kerberos
@@ -115,7 +117,7 @@ class operation(object, metaclass=Singleton):
 		self.Hive_Table = Hive_Table.lower()	 
 
 	def checkHiveMetaStore(self):
-		logging.debug("Executing common_definitions.checkHiveMetaStore()")
+		logging.debug("Executing common_operations.checkHiveMetaStore()")
 
 		# Loop through all Hive webHCat servers from the configuration and checks if one of them works
 		self.hiveMetaStore = None
@@ -135,10 +137,10 @@ class operation(object, metaclass=Singleton):
 			logging.error("Cant find a working Hive webHCat server. Please check configuration and server status")
 			# TODO: Handle the exit here
 
-		logging.debug("Executing common_definitions.checkHiveMetaStore() - Finished")
+		logging.debug("Executing common_operations.checkHiveMetaStore() - Finished")
 
 	def checkTimeWindow(self, connection_alias):
-		logging.debug("Executing common_definitions.checkTimeWindow()")
+		logging.debug("Executing common_operations.checkTimeWindow()")
 		logging.info("Checking if we are allowed to use this jdbc connection at this time")
 
 		query = "select timewindow_start, timewindow_stop from jdbc_connections where dbalias = %s"
@@ -186,24 +188,23 @@ class operation(object, metaclass=Singleton):
 		logging.debug("    currentTime = %s"%(currentTime))
 		logging.debug("    timeWindowStart = %s"%(timeWindowStart))
 		logging.debug("    timeWindowStop = %s"%(timeWindowStop))
-		logging.debug("Executing common_definitions.checkTimeWindow() - Finished")
+		logging.debug("Executing common_operations.checkTimeWindow() - Finished")
 
 	def checkHiveDB(self, hiveDB):
-		logging.debug("Executing common_definitions.checkHiveDB()")
+		logging.debug("Executing common_operations.checkHiveDB()")
 
 		query = "select name from DBS where name = %s"
 		self.mysql_cursor.execute(query, (hiveDB, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		row = self.mysql_cursor.fetchone()
-		if row[0] != hiveDB:
-			logging.error("Can't find database '%s' in Hive"%(hiveDB))
-			raise Exception
+		if row == None: 
+			raise databaseNotFound("Can't find database '%s' in Hive"%(hiveDB))
 	
-		logging.debug("Executing common_definitions.checkHiveDB() - Finished")
+		logging.debug("Executing common_operations.checkHiveDB() - Finished")
 
 	def checkHiveTable(self, hiveDB, hiveTable):
-		logging.debug("Executing common_definitions.checkHiveTable()")
+		logging.debug("Executing common_operations.checkHiveTable()")
 
 		query = "select t.TBL_NAME, t.TBL_TYPE from TBLS t left join DBS d on t.DB_ID = d.DB_ID where d.NAME = %s and t.TBL_NAME = %s"
 		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
@@ -215,7 +216,7 @@ class operation(object, metaclass=Singleton):
 			return False
 	
 	def isHiveTableExternalParquetFormat(self, hiveDB, hiveTable):
-		logging.debug("Executing common_definitions.isExternalHiveTableParquetFormat()")
+		logging.debug("Executing common_operations.isExternalHiveTableParquetFormat()")
 
 		if self.isHiveTableExternal(hiveDB, hiveTable) == False: return False
 
@@ -233,7 +234,7 @@ class operation(object, metaclass=Singleton):
 			return False
 
 	def isHiveTableExternal(self, hiveDB, hiveTable):
-		logging.debug("Executing common_definitions.isHiveTableExternal()")
+		logging.debug("Executing common_operations.isHiveTableExternal()")
 
 		query = "select t.TBL_TYPE from TBLS t left join DBS d on t.DB_ID = d.DB_ID where d.NAME = %s and t.TBL_NAME = %s"
 		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
@@ -247,7 +248,7 @@ class operation(object, metaclass=Singleton):
 
 	def checkFK(self, FKname):
 		""" Checks if the ForeignKey with the specified name exists in Hive """
-		logging.debug("Executing common_definitions.checkFK()")
+		logging.debug("Executing common_operations.checkFK()")
 
 		query = "select count(CONSTRAINT_NAME) from KEY_CONSTRAINTS where CONSTRAINT_TYPE = 1 and CONSTRAINT_NAME = %s"
 		self.mysql_cursor.execute(query, (FKname.lower(), ))
@@ -260,7 +261,7 @@ class operation(object, metaclass=Singleton):
 			return False
 	
 	def connectToHive(self, forceSkipTest=False):
-		logging.debug("Executing common_definitions.connectToHive()")
+		logging.debug("Executing common_operations.connectToHive()")
 
 		# Make sure we only connect if we havent done so before. Reason is that this function can be called from many different places
 		# due to the retry functionallity
@@ -275,10 +276,10 @@ class operation(object, metaclass=Singleton):
 			self.hive_cursor = self.hive_conn.cursor()
 			if self.test_hive_execution == True and forceSkipTest == False:
 				self.testHiveQueryExecution()
-		logging.debug("Executing common_definitions.connectToHive() - Finished")
+		logging.debug("Executing common_operations.connectToHive() - Finished")
 	
 	def testHiveQueryExecution(self,):
-		logging.debug("Executing common_definitions.testHiveQueryExecution()")
+		logging.debug("Executing common_operations.testHiveQueryExecution()")
 		logging.info("Checking Hive functionality by querying the reference table")
 
 		result_df = self.executeHiveQuery("select id, value, count(value) as counter from hadoop.dbimport_check_hive group by value, id")
@@ -288,11 +289,11 @@ class operation(object, metaclass=Singleton):
 			logging.debug("Hive Query Result:\n%s"%(result_df))
 			logging.debug("Reference table:\n%s"%(reference_df))
 			raise ValueError("The Hive Query Execution test failed. That means that the result from the reference table did not return the exact same result as it should")
-		logging.debug("Executing common_definitions.testHiveQueryExecution() - Finished")
+		logging.debug("Executing common_operations.testHiveQueryExecution() - Finished")
 
 
 	def executeHiveQuery(self, query):
-		logging.debug("Executing common_definitions.executeHiveQuery()")
+		logging.debug("Executing common_operations.executeHiveQuery()")
 		# This function executes a Hive query and check that the result is correct. It works agains a pre-defined table
 
 		# Sets the start time. We use this to determine elapsed time for the query
@@ -389,11 +390,11 @@ class operation(object, metaclass=Singleton):
 		except exc.ProgrammingError:
 			logging.debug("An error was raised during hive_cursor.fetchall(). This happens during SQL operations that dont return any rows like 'create table'")
 				
-		logging.debug("Executing common_definitions.executeHiveQuery() - Finished")
+		logging.debug("Executing common_operations.executeHiveQuery() - Finished")
 		return result_df
 
 	def getHiveTableRowCount(self, hiveDB, hiveTable, whereStatement=None):
-		logging.debug("Executing common_definitions.getHiveTableRowCount()")
+		logging.debug("Executing common_operations.getHiveTableRowCount()")
 		logging.info("Reading the number of rows from %s.%s"%(hiveDB, hiveTable))
 		rowCount = 0
 
@@ -405,20 +406,20 @@ class operation(object, metaclass=Singleton):
 		rowCount = int(result_df['rowcount'].iloc[0])
 		logging.debug("Rowcount from %s.%s: %s"%(hiveDB, hiveTable, rowCount))
 
-		logging.debug("Executing common_definitions.getHiveTableRowCount() - Finished")
+		logging.debug("Executing common_operations.getHiveTableRowCount() - Finished")
 		return rowCount
 
 	def dropHiveTable(self, hiveDB, hiveTable):
-		logging.debug("Executing common_definitions.dropHiveTable()")
+		logging.debug("Executing common_operations.dropHiveTable()")
 		logging.info("Dropping table %s.%s"%(hiveDB, hiveTable))
 
 		self.executeHiveQuery("drop table if exists `%s`.`%s`"%(hiveDB, hiveTable))
 
-		logging.debug("Executing common_definitions.dropHiveTable() - Finished")
+		logging.debug("Executing common_operations.dropHiveTable() - Finished")
 
-	def getPKfromTable(self, hiveDB, hiveTable):
+	def getPKfromTable(self, hiveDB, hiveTable, quotedColumns=False):
 		""" Reads the PK from the Hive Metadatabase and return a comma separated string with the information """
-		logging.debug("Executing common_definitions.getPKfromTable()")
+		logging.debug("Executing common_operations.getPKfromTable()")
 		result = ""
 
 		query  = "select c.COLUMN_NAME as column_name "
@@ -441,16 +442,19 @@ class operation(object, metaclass=Singleton):
 			if row[0] == None:
 				PKerrorFound = True
 				break
-			result += row[0]
+			if quotedColumns == False:
+				result += row[0]
+			else:
+				result += "`%s`"%(row[0])
 
 		if PKerrorFound == True: result = ""
 
-		logging.debug("Executing common_definitions.getPKfromTable() - Finished")
+		logging.debug("Executing common_operations.getPKfromTable() - Finished")
 		return result
 
 	def getPKname(self, hiveDB, hiveTable):
 		""" Returns the name of the Primary Key that exists on the table. Returns None if it doesnt exist """
-		logging.debug("Executing common_definitions.getPKname()")
+		logging.debug("Executing common_operations.getPKname()")
 
 		query  = "select k.CONSTRAINT_NAME "
 		query += "from KEY_CONSTRAINTS k "
@@ -465,16 +469,16 @@ class operation(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		if self.mysql_cursor.rowcount == 0:
-			logging.debug("Executing common_definitions.getPKname() - Finished")
+			logging.debug("Executing common_operations.getPKname() - Finished")
 			return None
 		else:
 			row = self.mysql_cursor.fetchone()
-			logging.debug("Executing common_definitions.getPKname() - Finished")
+			logging.debug("Executing common_operations.getPKname() - Finished")
 			return row[0]
 
 	def getForeignKeysFromHive(self, hiveDB, hiveTable):
 		""" Reads the ForeignKeys from the Hive Metastore tables and return the result in a Pandas DF """
-		logging.debug("Executing common_definitions.getForeignKeysFromHive()")
+		logging.debug("Executing common_operations.getForeignKeysFromHive()")
 		result_df = None
 
 		query  = "select " 
@@ -550,7 +554,8 @@ class operation(object, metaclass=Singleton):
 		query += "   left join SDS s on c.CD_ID = s.CD_ID "
 		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
 		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-		query += "where d.NAME = %s and t.TBL_NAME = %s"
+		query += "where d.NAME = %s and t.TBL_NAME = %s "
+		query += "order by integer_idx"
 
 		self.mysql_cursor.execute(query, (hiveDB, hiveTable ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
@@ -622,7 +627,7 @@ class operation(object, metaclass=Singleton):
 
 	def calculateNumberOfBuckets(self, hiveDB, hiveTable):
 		""" Calculating number of buckets based on Hive table size on HDFS """
-		logging.debug("Executing common_definitions.calculateNumberOfBuckets()")
+		logging.debug("Executing common_operations.calculateNumberOfBuckets()")
 
 		query  = "select s.LOCATION "
 		query += "from TBLS t "
@@ -646,17 +651,17 @@ class operation(object, metaclass=Singleton):
 		if buckets < self.hive_min_buckets: buckets = self.hive_min_buckets
 		if buckets > self.hive_max_buckets: buckets = self.hive_max_buckets
 
-		logging.debug("Executing common_definitions.calculateNumberOfBuckets() - Finished")
+		logging.debug("Executing common_operations.calculateNumberOfBuckets() - Finished")
 		return buckets
 
-	def convertHiveTableToACID(self, hiveDB, hiveTable, createDeleteColumn=False):
+	def convertHiveTableToACID(self, hiveDB, hiveTable, createDeleteColumn=False, createMergeColumns=False):
 		""" Checks if a table is ACID or not, and it it isn't, it converts the table to an ACID table """
 		# TODO: HDP3 shouldnt run this
 		logging.debug("Executing common_operations.convertHiveTableToACID()")
 		logging.info("Converting table to an ACID & Transactional enabled table")
 
 #		buckets = self.calculateNumberOfBuckets(hiveDB, hiveTable)
-		buckets = 8
+		buckets = 1
 		hiveTableBucketed = "%s_hive_bucketed"%(hiveTable)
 		logging.info("The new table will use %s buckets"%(buckets))
 
@@ -665,38 +670,86 @@ class operation(object, metaclass=Singleton):
 			self.executeHiveQuery("drop table `%s`.`%s` "%(hiveDB, hiveTableBucketed))
 
 		columnDF = self.getHiveColumns(hiveDB=hiveDB, hiveTable=hiveTable, includeType=True, includeComment=True)
-		hiveColumns = []
+		hiveColumnsCreate = []
+		hiveColumnsInsert = []
+		hiveColumnsCreateAdding = []
+		hiveColumnsInsertAdding = []
+		datalakeImportExists = False
+
+		PKColumns = self.getPKfromTable(hiveDB=hiveDB, hiveTable=hiveTable, quotedColumns=True)
+		if PKColumns == None or PKColumns == "":
+			logging.error("There are no PrimaryKey defined on the table. Please create one first before converting to ACID (PK is needed for bucket columns)")
+			self.common_config.remove_temporary_files()
+			sys.exit(1)
 
 		for index, row in columnDF.iterrows():
 			columnName = row['name']
 			columnType = row['type']
 			columnComment = row['comment']
 
-			if columnName in ["datalake_import"]:
+			if columnName in ["datalake_import"] and createMergeColumns == True:
+				datalakeImportExists = True
 				continue
 
 			if columnComment != None and columnComment != "":
-				hiveColumns.append("%s %s COMMENT \"%s\""%(columnName, columnType, columnComment))
+				hiveColumnsCreate.append("%s %s COMMENT \"%s\""%(columnName, columnType, columnComment))
 			else:
-				hiveColumns.append("%s %s"%(columnName, columnType))
+				hiveColumnsCreate.append("%s %s"%(columnName, columnType))
+			hiveColumnsInsert.append(columnName)
 
-		hiveColumns.append("datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\"")
-		hiveColumns.append("datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\"")
-		hiveColumns.append("datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\"")
+		if createMergeColumns == True:
+			hiveColumnsCreateAdding.append("datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\"")
+			hiveColumnsCreateAdding.append("datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\"")
+			hiveColumnsCreateAdding.append("datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\"")
+			hiveColumnsInsertAdding.append("datalake_iud")
+			hiveColumnsInsertAdding.append("datalake_insert")
+			hiveColumnsInsertAdding.append("datalake_update")
 
-		if createDeleteColumn == True:
-			hiveColumns.append("datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\"")
+			if createDeleteColumn == True:
+				hiveColumnsCreateAdding.append("datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\"")
+				hiveColumnsInsertAdding.append("datalake_delete")
 
+		# Create the Bucketed table
 		query  = "create table `%s`.`%s` "%(hiveDB, hiveTableBucketed)
-		query += "( %s ) "%(", ".join(hiveColumns))	
-		query += "clustered by (%s) into %s buckets stored as orc tblproperties ('orc.compress'='ZLIB', 'transactional'='true')"%(self.getPKfromTable(hiveDB=hiveDB, hiveTable=hiveTable), buckets)
-
+		query += "( %s"%(", ".join(hiveColumnsCreate))	
+		if createMergeColumns == True:
+			query += ", %s"%(", ".join(hiveColumnsCreateAdding))	
+		query += ") clustered by (%s) into %s buckets stored as orc tblproperties ('orc.compress'='ZLIB', 'transactional'='true')"%(PKColumns, buckets)
 		self.executeHiveQuery(query)
+
+		# Insert data into the Bucketed table
+		query  = "insert into `%s`.`%s` "%(hiveDB, hiveTableBucketed)
+		query += "( %s"%(", ".join(hiveColumnsInsert))	
+		if createMergeColumns == True:
+			query += ", %s"%(", ".join(hiveColumnsInsertAdding))	
+		query += ") "
+		query += "select "	
+		query += "%s"%(", ".join(hiveColumnsInsert))
+		if createMergeColumns == True:
+			if datalakeImportExists == True:
+				query += ", 'I', datalake_import, datalake_import"
+			else:
+				query += ", 'I', timestamp(\"1900-01-01 00:00:00.000\"), timestamp(\"1900-01-01 00:00:00.000\")"
+
+			if createDeleteColumn == True:
+				query += ", NULL"
+		query += " from `%s`.`%s` "%(hiveDB, hiveTable)
+		self.executeHiveQuery(query)
+
+		# Drop Target table
+		query = "drop table `%s`.`%s` "%(hiveDB, hiveTable)
+		self.executeHiveQuery(query)
+
+		# Rename bucketed table to Target table
+		query = "alter table `%s`.`%s` rename to `%s`.`%s`"%(hiveDB, hiveTableBucketed, hiveDB, hiveTable)
+		self.executeHiveQuery(query)
+
+		self.reconnectHiveMetaStore()
 
 		logging.debug("Executing common_operations.convertHiveTableToACID() - Finished")
 
 	def isHiveTableTransactional(self, hiveDB, hiveTable):
-		logging.debug("Executing common_definitions.isHiveTableTransactional()")
+		logging.debug("Executing common_operations.isHiveTableTransactional()")
 
 		query  = "select tp.PARAM_VALUE "
 		query += "from TABLE_PARAMS tp "
@@ -717,6 +770,34 @@ class operation(object, metaclass=Singleton):
 			if row[0].lower() == "true":
 				returnValue = True
 
-		logging.debug("Executing common_definitions.isHiveTableTransactional() - Finished")
+		logging.debug("Executing common_operations.isHiveTableTransactional() - Finished")
 		return returnValue
 
+	def getHiveColumnNameDiff(self, sourceDB, sourceTable, targetDB, targetTable, sourceIsImportTable=False):
+		""" Returns a dataframe that includes the diff between the source and target table. If sourceIsImportTable=True, then there is additional columns that contains the correct name for the import table columns """
+		logging.debug("Executing common_operations.getHiveColumnNameDiff()")
+
+		sourceColumns = self.getHiveColumns(hiveDB=sourceDB, hiveTable=sourceTable, includeType=False, includeComment=False)
+		targetColumns = self.getHiveColumns(hiveDB=targetDB, hiveTable=targetTable, includeType=False, includeComment=False)
+
+		if sourceIsImportTable == True:
+			# Logic here is to create a new column in both DF and call them sourceName vs targetName. These are the original names. Then we replace the values in targetColumn DF column col
+			# with the name that the column should be called in the source system. This is needed to handle characters that is not supported in Parquet files, like SPACE
+			sourceColumns['sourceName'] = sourceColumns['name']
+			targetColumns['targetName'] = targetColumns['name']
+
+			# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
+			targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
+
+		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
+		logging.debug("\n%s"%(columnMerge))
+
+		logging.debug("Executing common_operations.getHiveColumnNameDiff() - Finished")
+		return columnMerge

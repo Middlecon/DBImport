@@ -41,15 +41,6 @@ class operation(object, metaclass=Singleton):
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.startDate = None
-		self.import_config = None
-		self.sqlGeneratedHiveColumnDefinition = None
-		self.sqlGeneratedSqoopQuery = None
-		self.sqoopStartTimestamp = None
-		self.sqoopStartUTS = None
-		self.sqoopSize = None
-		self.sqoopRows = None
-		self.sqoopIncrMaxValuePending = None
-		self.sqoopIncrNoNewRows = None
 
 		self.common_operations = common_operations.operation(Hive_DB, Hive_Table)
 		self.import_config = import_config.config(Hive_DB, Hive_Table)
@@ -83,418 +74,8 @@ class operation(object, metaclass=Singleton):
 	def remove_temporary_files(self):
 		self.import_config.remove_temporary_files()
 
-	def checkTimeWindow(self):
-		self.import_config.checkTimeWindow()
-	
-	def setStage(self, stage, force=False):
-		self.import_config.setStage(stage, force=force)
-	
-	def getStage(self):
-		return self.import_config.getStage()
-	
-	def clearStage(self):
-		self.import_config.clearStage()
-	
-	def saveRetryAttempt(self, stage):
-		self.import_config.saveRetryAttempt(stage)
-	
-	def setStageOnlyInMemory(self):
-		self.import_config.setStageOnlyInMemory()
-	
-	def saveIncrPendingValues(self):
-		self.import_config.saveIncrPendingValues()
-
-	def saveIncrMinValue(self):
-		self.import_config.saveIncrMinValue()
-
-	def convertStageStatisticsToJSON(self):
-		self.import_config.convertStageStatisticsToJSON()
-	
-	def saveStageStatistics(self):
-		self.import_config.saveStageStatistics()
-	
-	def checkHiveDB(self, hiveDB):
-		try:
-			self.common_operations.checkHiveDB(hiveDB)
-		except:
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def getJDBCTableRowCount(self):
-		try:
-			self.import_config.getJDBCTableRowCount()
-		except:
-			logging.exception("Fatal error when reading source table row count")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def getImportTableRowCount(self):
-		try:
-			importTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-			self.import_config.saveHiveTableRowCount(importTableRowCount)
-		except:
-			logging.exception("Fatal error when reading Hive table row count")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def getTargetTableRowCount(self):
-		try:
-			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True)
-			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table, whereStatement=whereStatement)
-			self.import_config.saveHiveTableRowCount(targetTableRowCount)
-		except:
-			logging.exception("Fatal error when reading Hive table row count")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def clearTableRowCount(self):
-		try:
-			self.import_config.clearTableRowCount()
-		except:
-			logging.exception("Fatal error when clearing row counts from previous imports")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def validateRowCount(self):
-		try:
-			validateResult = self.import_config.validateRowCount() 
-		except:
-			logging.exception("Fatal error when validating imported rows")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-		if validateResult == False:
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def validateSqoopRowCount(self):
-		try:
-			validateResult = self.import_config.validateRowCount(validateSqoop=True) 
-		except:
-			logging.exception("Fatal error when validating imported rows by sqoop")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-		if validateResult == False:
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def validateIncrRowCount(self):
-		try:
-			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=True) 
-		except:
-			logging.exception("Fatal error when validating imported incremental rows")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-		if validateResult == False:
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def getSourceTableSchema(self):
-		try:
-			self.import_config.getJDBCTableDefinition()
-			self.import_config.updateLastUpdateFromSource()
-			self.import_config.removeFKforTable()
-			self.import_config.saveColumnData()
-			self.import_config.setPrimaryKeyColumn()
-			self.import_config.saveKeyData()
-			self.import_config.saveGeneratedData()
-		except:
-			logging.exception("Fatal error when reading and/or processing source table schema")
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-
-	def runSqoop(self, PKOnlyImport):
-		logging.debug("Executing import_operations.runSqoop()")
-
-		self.sqoopStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-		self.sqoopStartUTS = int(time.time())
-
-		# Fetch the number of mappers that should be used
-		self.import_config.calculateJobMappers()
-
-		# As sqoop dont allow us to use the --delete-target-dir when doing incremental loads, we need to remove
-		# the HDFS dir first for those imports. Reason for not doing this here for full imports is because the
-		# --delete-target-dir is ore efficient and take less resources
-#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-#			hdfsCommandList = ['hdfs', 'dfs', '-rm', '-r', '-skipTrash', self.import_config.sqoop_hdfs_location]
-#			hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#			stdOut, stdErr = hdfsProc.communicate()
-#			stdOut = stdOut.decode('utf-8').rstrip()
-#			stdErr = stdErr.decode('utf-8').rstrip()
-#
-#			refStdOutText = "Deleted %s"%(self.import_config.sqoop_hdfs_location)
-#			refStdErrText = "No such file or directory"
-#
-#			if refStdOutText not in stdOut and refStdErrText not in stdErr:
-#				logging.error("There was an error deleting the target HDFS directory (%s)"%(self.import_config.sqoop_hdfs_location))
-#				logging.error("Please check the status of that directory and try again")
-#				logging.debug("StdOut: %s"%(stdOut))
-#				logging.debug("StdErr: %s"%(stdErr))
-#				self.import_config.remove_temporary_files()
-#				sys.exit(1)
-##		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-##			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, whereForSourceTable=True)
-
-		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
-		sqoopQuery = ""
-		sqoopSourceSchema = [] 
-		sqoopSourceTable = ""
-		sqoopDirectOption = ""
-		if self.import_config.common_config.db_mssql == True: 
-			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
-			sqoopSourceTable = self.import_config.source_table
-			sqoopDirectOption = "--direct"
-		if self.import_config.common_config.db_oracle == True: 
-			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema.upper(), self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
-		if self.import_config.common_config.db_postgresql == True: 
-#			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
-			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
-			sqoopSourceTable = self.import_config.source_table
-		if self.import_config.common_config.db_progress == True: 
-			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
-			sqoopDirectOption = "--direct"
-		if self.import_config.common_config.db_mysql == True: 
-			sqoopSourceTable = self.import_config.source_table
-		if self.import_config.common_config.db_db2udb == True: 
-			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
-		if self.import_config.common_config.db_db2as400 == True: 
-			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
-
-		if self.import_config.sqoop_use_generated_sql == True:
-			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
-
-		# Handle mappers, split-by with custom query
-		if sqoopQuery != "":
-			if "split-by" not in self.import_config.sqoop_options.lower():
-				self.import_config.generateSqoopSplitBy()
-#				if self.import_config.sqoop_options != "": self.import_config.sqoop_options += " " 
-#				self.import_config.sqoop_options += "--split-by %s"%(self.import_config.generateSqoopSplitBy())
-
-			self.import_config.generateSqoopBoundaryQuery()
-
-		# Handle the situation where the source dont have a PK and there is no split-by (force mappers to 1)
-		if self.import_config.generatedPKcolumns == None and "split-by" not in self.import_config.sqoop_options.lower():
-			logging.warning("There is no PrimaryKey in source system and no--split-by in the sqoop_options columns. This will force the import to use only 1 mapper")
-			self.import_config.sqlSessions = 1	
-	
-
-		# From here and forward we are building the sqoop command with all options
-		# You must specify two {space} between each argument
-
-		sqoopCommand = []
-		sqoopCommand.extend(["sqoop", "import", "-D", "mapreduce.job.user.classpath.first=true"])
-		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])
-		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
-		sqoopCommand.extend(["-D", "org.apache.sqoop.splitter.allow_text_splitter=%s"%(self.import_config.sqoop_allow_text_splitter)])
-
-		if "split-by" not in self.import_config.sqoop_options.lower():
-			sqoopCommand.append("--autoreset-to-one-mapper")
-
-		# Progress and DB2 AS400 imports needs to know the class name for the JDBC driver. 
-		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
-			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
-
-		sqoopCommand.extend(["--class-name", "dbimport"]) 
-
-#		if self.import_config.sqoop_import_type == "hive":
-#			if PKOnlyImport == True:
-#				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_PKonly_DB)
-#				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_PKonly_Table)
-#			else:
-#				sqoopCommand += "--hcatalog-database  %s  "%(self.import_config.Hive_Import_DB)
-#				sqoopCommand += "--hcatalog-table  %s  "%(self.import_config.Hive_Import_Table)
-#			sqoopCommand += "--hive-drop-import-delims  "
-
-#		if self.import_config.sqoop_import_type == "hdfs":
-
-		sqoopCommand.append("--as-parquetfile") 
-		sqoopCommand.append("--compress")
-		sqoopCommand.extend(["--compression-codec", "snappy"])
-
-		if PKOnlyImport == True:
-			sqoopCommand.extend(["--target-dir", self.import_config.sqoop_hdfs_location_pkonly])
-		else:
-			sqoopCommand.extend(["--target-dir", self.import_config.sqoop_hdfs_location])
-
-		sqoopCommand.extend(["--outdir", self.import_config.common_config.tempdir])
-		sqoopCommand.extend(["--connect", "\"%s\""%(self.import_config.common_config.jdbc_url)])
-		sqoopCommand.extend(["--username", self.import_config.common_config.jdbc_username])
-		sqoopCommand.extend(["--password-file", "file://%s"%(self.import_config.common_config.jdbc_password_file)])
-		if sqoopDirectOption != "":
-			sqoopCommand.append(sqoopDirectOption)
-
-		sqoopCommand.extend(["--num-mappers", str(self.import_config.sqlSessions)])
-
-		# If we dont have a SQL query to use for sqoop, then we need to specify the table instead
-		if sqoopQuery == "":
-			sqoopCommand.extend(["--table", sqoopSourceTable])
-
-#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
-#			self.sqoopIncrNoNewRows = False
-#
-#			sqoopCommand += "--incremental  %s  "%(self.import_config.sqoop_incr_mode)
-#			sqoopCommand += "--check-column  %s  "%(self.import_config.sqoop_incr_column)
-#			if self.import_config.sqoop_incr_lastvalue != None: 
-#				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
-#		else:
-#			sqoopCommand += "--delete-target-dir  " 
-		sqoopCommand.append("--delete-target-dir")
-
-		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
-			sqoopCommand.extend(shlex.split(self.import_config.generatedSqoopOptions))
-
-		if self.import_config.sqoop_options.strip() != "" and self.import_config.sqoop_options != None:
-			sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
-
-		if self.import_config.sqoopBoundaryQuery.strip() != "" and self.import_config.sqlSessions > 1:
-			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
-
-		if sqoopQuery == "":
-			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-				sqoopCommand.extend(["--where", self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')])
-			else:
-				if self.import_config.sqoop_sql_where_addition != None:
-					sqoopCommand.extend(["--where", self.import_config.sqoop_sql_where_addition.replace('"', '\'')])
-#			sqoopCommand += "%s  "%(sqoopSourceSchema)
-			sqoopCommand.extend(sqoopSourceSchema)
-		else:
-# TODO: Handle the same stuff here
-			if self.import_config.sqoop_sql_where_addition != None:
-				sqoopCommand.extend(["--query", "%s where $CONDITION and %s"%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))])
-			else:
-				sqoopCommand.extend(["--query", "%s where $CONDITIONS"%(sqoopQuery)])
-
-#		print(sqoopQuery)
-
-#		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand.strip()))
-		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand))
-#		sqoopCommandList = sqoopCommand.strip().split("  ")
-#		sqoopCommandList.append("--query")
-#		sqoopCommandList.append("\"%s where $CONDITIONS\""%(sqoopQuery))
-		sqoopOutput = ""
-
-		print(" _____________________ ")
-		print("|                     |")
-		print("| Sqoop Import starts |")
-		print("|_____________________|")
-		print("")
-
-		# Start Sqoop
-#		sh_session = subprocess.Popen(sqoopCommandList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		sh_session = subprocess.Popen(sqoopCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-		# Print Stdout and stderr while sqoop is running
-		while sh_session.poll() == None:
-			row = sh_session.stdout.readline().decode('utf-8').rstrip()
-			if row != "": 
-				print(row)
-				sys.stdout.flush()
-				sqoopOutput += row + "\n"
-				self.parseSqoopOutput(row)
-
-		# Print what is left in output after sqoop finished
-		for row in sh_session.stdout.readlines():
-			row = row.decode('utf-8').rstrip()
-			if row != "": 
-				print(row)
-				sys.stdout.flush()
-				sqoopOutput += row + "\n"
-				self.parseSqoopOutput(row)
-
-		print(" ________________________ ")
-		print("|                        |")
-		print("| Sqoop Import completed |")
-		print("|________________________|")
-		print("")
-
-		# At this stage, the entire sqoop job is run and we fetched all data from the output. Lets parse and store it
-		if self.sqoopSize == None: self.sqoopSize = 0
-		if self.sqoopRows == None: self.sqoopRows = 0
-		
-		# Check for errors in output
-		sqoopWarning = False
-		if " ERROR " in sqoopOutput:
-			for row in sqoopOutput.split("\n"):
-				if "Arithmetic overflow error converting expression to data type int" in row:
-					# This is not really an error, but we cant verify the table.
-					logging.warning("Unable to verify the import due to errors from MsSQL server. Will continue regardless of this")
-					sqoopWarning = True
-		
-				if "Not authorized to access topics: [" in row:
-					# This is not really an error, but we cant verify the table.
-					logging.warning("Problem sending data to Atlas")
-					sqoopWarning = True
-		
-				if "ERROR hook.AtlasHook" in row:
-					# This is not really an error, but we cant send to Atlas
-					logging.warning("Problem sending data to Atlas")
-					sqoopWarning = True
-		
-				if "clients.NetworkClient: [Producer clientId" in row:
-					# Unknown Kafka error
-					sqoopWarning = True
-
-				# The following two tests is just to ensure that we dont mark the import as failed just because there is a column called error
-				if " ERROR " in row and "Precision" in row and "Scale" in row:
-					sqoopWarning = True
-
-				if " ERROR " in row and "The HCatalog field" in row:
-					sqoopWarning = True
-
-				if sqoopWarning == False:
-					# We detected the string ERROR in the output but we havent found a vaild reason for it in the IF statements above.
-					# We need to mark the sqoop command as error and exit the program
-					logging.error("Unknown error in sqoop import. Please check the output for errors and try again")
-					self.remove_temporary_files()
-					sys.exit(1)
-
-		# No errors detected in the output and we are ready to store the result
-		logging.info("Sqoop executed successfully")			
-		
-		if self.sqoopIncrNoNewRows == True:
-			# If there is no new rows, we cant get the MaxValue from the output. 
-			# So we need to set it to what we used to launch sqoop
-			self.sqoopIncrMaxValuePending = self.import_config.sqoop_incr_lastvalue 
-			self.sqoopSize = 0
-			self.sqoopRows = 0
-			logging.warning("There are no new rows in the source table.")
-
-		if PKOnlyImport == False:
-			try:
-				self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=self.sqoopSize, sqoopRows=self.sqoopRows, sqoopMappers=self.import_config.sqlSessions)
-			except:
-				logging.exception("Fatal error when saving sqoop statistics")
-				self.import_config.remove_temporary_files()
-				sys.exit(1)
-
-		logging.debug("Executing import_operations.runSqoop() - Finished")
-
-
-	def parseSqoopOutput(self, row ):
-		# 19/03/28 05:15:44 HDFS: Number of bytes written=17
-		if "HDFS: Number of bytes written" in row:
-			self.sqoopSize = int(row.split("=")[1])
-		
-		# 19/03/28 05:15:44 INFO mapreduce.ImportJobBase: Retrieved 2 records.
-		if "mapreduce.ImportJobBase: Retrieved" in row:
-			self.sqoopRows = int(row.split(" ")[5])
-
-		# 19/04/23 17:19:58 INFO tool.ImportTool:   --last-value 34
-		if "tool.ImportTool:   --last-value" in row:
-#			self.sqoopIncrMaxValuePending = int(row.split("-")[3].split(" ")[1])
-			self.sqoopIncrMaxValuePending = row.split("last-value ")[1].strip()
-
-		# 19/04/24 07:13:00 INFO tool.ImportTool: No new rows detected since last import.
-		if "No new rows detected since last import" in row:
-			self.sqoopIncrNoNewRows = True
-
 	def connectToHive(self,):
-		logging.debug("Executing import_operations.connectToHive()")
+		logging.debug("Executing etl_operations.connectToHive()")
 
 		try:
 			self.common_operations.connectToHive()
@@ -503,7 +84,296 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-		logging.debug("Executing import_operations.connectToHive() - Finished")
+		logging.debug("Executing etl_operations.connectToHive() - Finished")
+
+	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None):
+		""" Merge source table into Target table. Also populate a History Audit table if selected """
+		logging.debug("Executing etl_operations.mergeHiveTables()")
+
+		targetColumns = self.common_operations.getHiveColumns(hiveDB=targetDB, hiveTable=targetTable, includeType=False, includeComment=False)
+		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, sourceIsImportTable=True)
+		if PKColumns == None:
+			PKColumns = self.common_operations.getPKfromTable(hiveDB=targetDB, hiveTable=targetTable, quotedColumns=False)
+
+		datalakeIUDExists = False
+		datalakeInsertExists = False
+		datalakeUpdateExists = False
+		datalakeDeleteExists = False
+		datalakeSourceExists = False
+
+		for index, row in targetColumns.iterrows():
+			if row['name'] == "datalake_iud":    datalakeIUDExists = True 
+			if row['name'] == "datalake_insert": datalakeInsertExists = True 
+			if row['name'] == "datalake_update": datalakeUpdateExists = True 
+			if row['name'] == "datalake_delete": datalakeDeleteExists = True 
+			if row['name'] == "datalake_source": datalakeSourceExists = True 
+
+		if hiveMergeJavaHeap != None:
+			query = "set hive.tez.container.size=%s"%(hiveMergeJavaHeap)
+			self.common_operations.executeHiveQuery(query)
+
+
+		query  = "merge into `%s`.`%s` as T \n"%(targetDB, targetTable)
+		query += "using `%s`.`%s` as S \n"%(sourceDB, sourceTable)
+		query += "on \n"
+
+		for i, column in enumerate(PKColumns.split(",")):
+			if i == 0: 
+				query += "   T.`%s` = S.`%s` "%(column, column)
+			else:
+				query += "and\n   T.`%s` = S.`%s` "%(column, column)
+		query += "\n"
+
+		query += "when matched "
+		if sourceIsIncremental == False:
+			# If the source is not incremental, it means that we need to check all the values in 
+			# all columns as we dont know if the row have changed or not
+			query += "and (\n"
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					query += "   "
+					firstIteration = False
+				else:
+					query += "   or "
+				query += "T.`%s` != S.`%s` "%(row['targetName'], row['sourceName'])
+				query += "or ( T.`%s` is null and S.`%s` is not null ) "%(row['targetName'], row['sourceName'])
+				query += "or ( T.`%s` is not null and S.`%s` is null ) "%(row['targetName'], row['sourceName'])
+				query += "\n"
+
+			if softDelete == True and datalakeIUDExists == True:
+				# If a row is deleted and then inserted again with the same values in all fields, this will still trigger an update
+				query += "   or T.datalake_iud = 'D' \n"
+
+			query += ") \n"
+
+		query += "then update set "
+		firstIteration = True
+		for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+			foundPKcolumn = False
+			for column in PKColumns.split(","):
+				if row['targetName'] == column:
+					foundPKcolumn = True
+			if foundPKcolumn == False:
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s` = S.`%s`"%(row['targetName'], row['sourceName'])
+
+		if datalakeIUDExists == True:    query += ", \n   `datalake_iud` = 'U'"
+		if datalakeUpdateExists == True: query += ", \n   `datalake_update` = '%s'"%(mergeTime)
+		if datalakeSourceExists == True and datalakeSource != None: query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
+		query += " \n"
+
+		query += "when not matched then insert values ( "
+		firstIteration = True
+		for index, row in targetColumns.iterrows():
+			ColumnName = row['name']
+			sourceColumnName = columnMerge.loc[columnMerge['targetName'] == ColumnName]['sourceName'].fillna('').iloc[0]
+			if firstIteration == True:
+				firstIteration = False
+				query += " \n"
+			else:
+				query += ", \n"
+			if sourceColumnName != "":
+				query += "   S.`%s`"%(sourceColumnName)
+			elif ColumnName == "datalake_iud": 
+				query += "   'I'"
+			elif ColumnName == "datalake_insert": 
+				query += "   '%s'"%(mergeTime)
+			elif ColumnName == "datalake_update": 
+				query += "   '%s'"%(mergeTime)
+			elif ColumnName == "datalake_source": 
+				query += "   '%s'"%(datalakeSource)
+			else:
+				query += "   NULL"
+
+		query += " \n) \n"
+
+#		print("==============================================================")
+#		print(query)
+#		query = query.replace('\n', '')
+		self.common_operations.executeHiveQuery(query)
+
+		# If a row was previously deleted and now inserted again and we are using Soft Delete, 
+		# then the information in the datalake_iud, datalake_insert and datalake_delete is wrong. 
+
+		if softDelete == True:
+			query  = "update `%s`.`%s` set "%(targetDB, targetTable)
+			query += "   datalake_iud = 'I', "
+			query += "   datalake_insert = datalake_update, "
+			query += "   datalake_delete = null "
+			query += "where " 
+			query += "   datalake_iud = 'U' and "
+			query += "   datalake_delete is not null"
+
+#			print("==============================================================")
+#			print(query)
+#			query = query.replace('\n', '')
+			self.common_operations.executeHiveQuery(query)
+
+		# Statement to select all rows that was changed in the Target table and insert them to the History table
+
+		if createHistoryAudit == True and historyDB != None and historyTable != None:
+			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
+			query += "( "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   `datalake_source`"
+			query += ",\n   `datalake_iud`"
+			query += ",\n   `datalake_timestamp`"
+			query += "\n) \n"
+
+			query += "select "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   '%s'"%(datalakeSource)
+			query += ",\n   `datalake_iud`"
+			query += ",\n   `datalake_update`"
+			query += "\nfrom `%s`.`%s` \n"%(targetDB, targetTable)
+			query += "where datalake_update = '%s'"%(mergeTime)
+
+#			print("==============================================================")
+#			print(query)
+#			query = query.replace('\n', '')
+			self.common_operations.executeHiveQuery(query)
+
+#		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
+		if sourceIsIncremental == False and targetDeleteDB != None and targetDeleteTable != None:
+			# Start with truncating the History Delete table as we need to rebuild this one from scratch to determine what rows are deleted
+			query  = "truncate table `%s`.`%s`"%(targetDeleteDB, targetDeleteTable)
+			self.common_operations.executeHiveQuery(query)
+
+			# Insert all rows (PK columns only) that exists in the Target Table but dont exists in the Import table (the ones that was deleted)
+			query  = "insert into table `%s`.`%s` \n(`"%(targetDeleteDB, targetDeleteTable)
+			query += "`, `".join(PKColumns.split(","))
+			query += "`) \nselect T.`"
+			query += "`, T.`".join(PKColumns.split(","))
+			query += "` \nfrom `%s`.`%s` as T \n"%(targetDB, targetTable)
+			query += "left outer join `%s`.`%s` as S \n"%(sourceDB, sourceTable)
+			query += "on \n"
+			for i, column in enumerate(PKColumns.split(",")):
+				if i == 0: 
+					query += "   T.`%s` = S.`%s` "%(column, column)
+				else:
+					query += "and\n   T.`%s` = S.`%s` "%(column, column)
+			query += "\nwhere \n"
+			for i, column in enumerate(PKColumns.split(",")):
+				if i == 0: 
+					query += "   S.`%s` is null "%(column)
+				else:
+					query += "and\n   S.`%s` is null "%(column)
+
+#			print("==============================================================")
+#			print(query)
+#			query = query.replace('\n', '')
+			self.common_operations.executeHiveQuery(query)
+
+			# Insert the deleted rows into the History table. Without this, it's impossible to see what values the column had before the delete
+		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
+			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
+			query += "( "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   `datalake_source`"
+			query += ",\n   `datalake_iud`"
+			query += ",\n   `datalake_timestamp`"
+			query += "\n) \n"
+
+			query += "select "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   T.`%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
+			query += ",\n   'D' as `datalake_iud`"
+			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += "\nfrom `%s`.`%s` as D \n"%(targetDeleteDB, targetDeleteTable)
+			query += "left join `%s`.`%s` as T \n"%(targetDB, targetTable)
+			query += "on \n"
+			for i, column in enumerate(PKColumns.split(",")):
+				if i == 0: 
+					query += "   T.`%s` = D.`%s` "%(column, column)
+				else:
+					query += "and\n   T.`%s` = D.`%s` "%(column, column)
+
+#			print("==============================================================")
+#			print(query)
+#			query = query.replace('\n', '')
+			self.common_operations.executeHiveQuery(query)
+
+		if sourceIsIncremental == False and targetDeleteDB != None and targetDeleteTable != None:
+			# Use the merge command to delete found rows between the Delete Table and the History Table
+			query  = "merge into `%s`.`%s` as T \n"%(targetDB, targetTable)
+			query += "using `%s`.`%s` as D \n"%(targetDeleteDB, targetDeleteTable)
+			query += "on \n"
+	
+			for i, column in enumerate(PKColumns.split(",")):
+				if i == 0: 
+					query += "   T.`%s` = D.`%s` "%(column, column)
+				else:
+					query += "and\n   T.`%s` = D.`%s` "%(column, column)
+			if softDelete == True:
+				query += "and\n   T.`datalake_delete` != 'D' "
+			query += "\n"
+
+			if softDelete == False:
+				query += "when matched then delete \n"
+			else:
+				query += "when matched then update set \n" 
+				query += "datalake_iud  = 'D', \n" 
+				query += "datalake_update = timestamp('%s'), \n"%(mergeTime)
+				query += "datalake_delete = timestamp('%s') "%(mergeTime)
+
+#			print("==============================================================")
+#			print(query)
+#			query = query.replace('\n', '')
+			self.common_operations.executeHiveQuery(query)
+
+#		query  = "alter table `%s`.`%s` compact 'major'"%(targetDB, targetTable)
+#		self.common_operations.executeHiveQuery(query)
+
+		logging.debug("Executing etl_operations.mergeHiveTables() - Finished")
+
+
+
+
+
+
+
+
+
+
+
+
 
 	def createExternalImportTable(self,):
 		logging.debug("Executing import_operations.createExternalTable()")
