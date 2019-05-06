@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.21"
+VERSION = "0.30"
 
 # Database types
 MYSQL = "mysql"
@@ -16,7 +16,11 @@ PRIMARY_KEY = "P"
 FOREIGN_KEY = "F"
 
 # Phase defintions
-PHASE1_FULL = "Full"
-PHASE1_INCR = "Incremental"
-PHASE2_COPY = "Copy"
-PHASE2_HISTORYAUDIT = "History Audit"
+IMPORT_PHASE_FULL = "full"
+IMPORT_PHASE_INCR = "incr"
+COPY_PHASE_NONE = "none"
+ETL_PHASE_NONE = "none"
+ETL_PHASE_INSERT = "insert"
+ETL_PHASE_TRUNCATEINSERT = "truncate_insert"
+ETL_PHASE_MERGEHISTORYAUDIT = "merge_history_audit"
+ETL_PHASE_MERGEONLY = "merge"

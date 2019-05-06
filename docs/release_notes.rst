@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+v0.30
+-----
+
+**Fixed issues**
+
+  - Issue #10: MySQL decimal columns gets created without precision
+
+**New Features**
+
+  - Support for Merge operation during ETL Phase, including History Audit tables
+  - Import supports command options -I, -C and -E for running only Import, Copy or ETL Phase
+
+**Changed behavior**
+
+  - *Stage 1* is renamed to *Import Phase*. -1 command option still works against *import* for compability
+  - *Stage 2* is renamed to *ETL Phase*. -2 command option still works against *import* for compability
+  - The values in the column *sqoop_options* in *import_tables* will be converted to lowercase before added to sqoop
+
 v0.21
 -----
 

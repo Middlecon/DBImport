@@ -19,10 +19,10 @@
 import sys
 import getopt
 import logging
-from common import common_config
-from DBImportOperation import import_operations
-from DBImportConfig import constants as constant
+from common import constants as constant
+from DBImportConfig import common_config
 from DBImportConfig import rest
+from DBImportOperation import import_operations
 
 def printHelp():
 	print ("Options:")

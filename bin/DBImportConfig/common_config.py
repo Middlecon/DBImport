@@ -931,8 +931,8 @@ class config(object, metaclass=Singleton):
 		if whereStatement != None and whereStatement != "":
 			query = query + " where " + whereStatement
 
-		self.JDBCCursor.execute(query)
 		logging.debug("SQL Statement executed: %s" % (query) )
+		self.JDBCCursor.execute(query)
 		row = self.JDBCCursor.fetchone()
 
 		return int(row[0])

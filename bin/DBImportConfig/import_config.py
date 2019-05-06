@@ -33,7 +33,7 @@ import pandas as pd
 
 class config(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
-		logging.debug("Executing import_definitions.__init__()")
+		logging.debug("Executing import_config.__init__()")
 		self.Hive_DB = Hive_DB
 		self.Hive_Table = Hive_Table
 		self.mysql_conn = None
@@ -72,7 +72,6 @@ class config(object, metaclass=Singleton):
 		self.sqoop_incr_column = None
 		self.sqoop_incr_lastvalue = None
 		self.sqoop_incr_validation_method = None
-		self.sqoop_import_type = None
 		self.import_is_incremental = None
 		self.create_table_with_acid = None
 		self.import_with_merge = None
@@ -94,9 +93,15 @@ class config(object, metaclass=Singleton):
 		self.incr_validation_method = None
 		self.sqoopSplitByColumn = ""	
 		self.sqoopBoundaryQuery = ""	
+		self.pk_column_override_mergeonly = None
 
-		self.phaseOne = None
-		self.phaseTwo = None
+		self.importPhase = None
+		self.importPhaseDescription = None
+		self.copyPhase = None
+		self.copyPhaseDescription = None
+		self.etlPhase = None
+		self.etlPhaseDescription = None
+
 		self.phaseThree = None
 
 		self.sqlSessions = None
@@ -112,7 +117,7 @@ class config(object, metaclass=Singleton):
 		# Initialize the stage class that will handle all stage operations for us
 		self.stage = stage.stage(self.mysql_conn, self.Hive_DB, self.Hive_Table)
 		
-		logging.debug("Executing import_definitions.__init__() - Finished")
+		logging.debug("Executing import_config.__init__() - Finished")
 
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
@@ -153,7 +158,9 @@ class config(object, metaclass=Singleton):
 		self.stage.saveStageStatistics(
 			hive_db=self.Hive_DB, 
 			hive_table=self.Hive_Table, 
-			importtype=self.import_type, 
+			import_phase=self.importPhase, 
+			copy_phase=self.copyPhase, 
+			etl_phase=self.etlPhase, 
 			incremental=self.import_is_incremental,
 			dbalias=self.connection_alias,
 			source_database=self.common_config.jdbc_database,
@@ -168,7 +175,9 @@ class config(object, metaclass=Singleton):
 		self.stage.convertStageStatisticsToJSON(
 			hive_db=self.Hive_DB, 
 			hive_table=self.Hive_Table, 
-			importtype=self.import_type, 
+			import_phase=self.importPhase, 
+			copy_phase=self.copyPhase, 
+			etl_phase=self.etlPhase, 
 			incremental=self.import_is_incremental,
 			source_database=self.common_config.jdbc_database,
 			source_schema=self.source_schema,
@@ -188,7 +197,7 @@ class config(object, metaclass=Singleton):
 		self.common_config.getJDBCTableDefinition(self.source_schema, self.source_table)
 
 	def getImportConfig(self):
-		logging.debug("Executing import_definitions.getImportConfig()")
+		logging.debug("Executing import_config.getImportConfig()")
 	
 		query = ("select "
 				"    dbalias,"
@@ -285,6 +294,7 @@ class config(object, metaclass=Singleton):
 		self.incr_validation_method = row[26]
 		self.sqoop_last_mappers = row[27]
 
+
 		if self.sqoop_options == None: self.sqoop_options = ""	# This is needed as we check if this contains a --split-by and it needs to be string for that
 
 		# If the self.sqoop_last_execution contains an unix time stamp, we convert it so it's usuable by sqoop
@@ -330,39 +340,67 @@ class config(object, metaclass=Singleton):
 			self.import_type = "full_merge_direct_history"
 
 
-		# Check to see that we have a valid import type
-		if self.import_type not in ("full", "incr", "full_direct", "full_merge_direct_history"):
-			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
-			raise Exception
+# IMPORT_PHASE_FULL = "Full"
+# IMPORT_PHASE_INCR = "Incremental"
+# ETL_PHASE_INSERT = "Insert"
+# ETL_PHASE_MERGEHISTORYAUDIT = "Merge History Audit"
 
-		if self.import_type == "full_direct":
-			self.import_type_description = "Full import of table to Hive with Parquet files on HDFS (overrides Hive direct import)"
-			self.phaseOne = constant.PHASE1_FULL
-			self.phaseTwo = constant.PHASE2_COPY
+		if self.import_type in ("full", "full_direct"):
+			self.import_type_description = "Full import of table to Hive"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_TRUNCATEINSERT
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Truncate and insert"
 
-		if self.import_type == "full_hbase":
-			self.import_type_description = "Full import of table directly to HBase"
+#		if self.import_type == "full_hbase":
+#			self.import_type_description = "Full import of table directly to HBase"
 
 		if self.import_type == "full_merge_direct":
-			self.import_type_description = "Full import and merge of table directly to Hive"
+			self.import_type_description = "Full import and merge of Hive table"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEONLY
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge"
 
 		if self.import_type == "full_merge_direct_history":
-			self.import_type_description = "Full import and merge of table directly to Hive. Will also create a History table"
-			self.phaseOne = constant.PHASE1_FULL
-			self.phaseTwo = constant.PHASE2_HISTORYAUDIT
+			self.import_type_description = "Full import and merge of Hive table. Will also create a History table"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEHISTORYAUDIT
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge History Audit"
 
 		if self.import_type == "incr_merge_direct":
-			self.import_type_description = "Incremental & merge import of table directly to Hive"
+			self.import_type_description = "Incremental & merge import of Hive table"
+			self.importPhase             = constant.IMPORT_PHASE_INCR
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEONLY
+			self.importPhaseDescription  = "Incremental"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge"
 
-		if self.import_type == "full":
-			self.import_type_description = "Full import of table to Hive with Parquet files on HDFS"
-			self.phaseOne = constant.PHASE1_FULL
-			self.phaseTwo = constant.PHASE2_COPY
+		if self.import_type == "incr_merge_direct_history":
+			self.import_type_description = "Incremental & merge import of Hive table. Will also create a History table"
+			self.importPhase             = constant.IMPORT_PHASE_INCR
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEHISTORYAUDIT
+			self.importPhaseDescription  = "Incremental"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge History Audit"
 
 		if self.import_type == "incr":
-			self.import_type_description = "Incremental import of table to Hive with Parquet files on HDFS"
-			self.phaseOne = constant.PHASE1_INCR
-			self.phaseTwo = constant.PHASE2_COPY
+			self.import_type_description = "Incremental import of Hive table"
+			self.importPhase             = constant.IMPORT_PHASE_INCR
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_INSERT
+			self.importPhaseDescription  = "Incremental"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Insert"
 
 		if self.import_type == "incr_merge_delete":
 			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
@@ -370,28 +408,26 @@ class config(object, metaclass=Singleton):
 		if self.import_type == "incr_merge_delete_history":
 			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system and will also create a History table."
 
-		# Determine the import_type for sqoop
-#		if self.import_type == "full" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
-#			self.sqoop_import_type = "hdfs"
-#		elif self.import_type == "full_hbase":
-# As we only support Parquet files and not directly to Hive anymore (due to Hive 3 and ACID), we force all imports to be on HDFS
-		if self.import_type == "full_hbase":
-			self.sqoop_import_type = "hbase"
-		else:
-			self.sqoop_import_type = "hdfs"
+		# Check to see that we have a valid import type
+#		if self.import_type not in ("full", "incr", "full_direct", "full_merge_direct_history"):
+		if self.importPhase == None or self.etlPhase == None:
+			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
+			raise Exception
 
 		# Determine if it's an incremental import based on the import_type
-		if self.import_type == "incr_merge_direct" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
+#		if self.import_type == "incr_merge_direct" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
+		if self.importPhase == constant.IMPORT_PHASE_INCR:
 			self.import_is_incremental = True
 		else:
 			self.import_is_incremental = False
 
 		# incr_merge_direct import_type does not support validation, so we turn it of if that is the import_type
-		if self.import_type == "incr_merge_direct":
-			self.validate_import = False
+#		if self.import_type == "incr_merge_direct":
+#			self.validate_import = False
 
 		# Determine if it's an merge and need ACID tables
-		if self.import_type == "full_merge_direct" or self.import_type == "incr_merge_direct" or self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
+#		if self.import_type == "full_merge_direct" or self.import_type == "incr_merge_direct" or self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
+		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY): 
 			self.create_table_with_acid = True
 			self.import_with_merge = True
 		else:
@@ -399,18 +435,16 @@ class config(object, metaclass=Singleton):
 			self.import_with_merge = False
 
 		# Determine if a history table should be created
-		if self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete_history":
+#		if self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete_history":
+		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT): 
 			self.import_with_history_table = True
 		else:
 			self.import_with_history_table = False
 
 		# Determine if we are doing a full table compare
-		if self.import_type == "full_merge_direct" or self.import_type == "full_merge_direct_history":
+#		if self.import_type == "full_merge_direct" or self.import_type == "full_merge_direct_history":
+		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY): 
 			self.full_table_compare = True
-#	THESE ROWS ARE UNDER COMMENTS AS WE NEED TO SUPPORT THIS
-#			if self.soft_delete_during_merge == True:
-#				# If we use SOFT DELETE, we cant verify the rows as they will never be correct
-#				self.validate_import = False
 		else:
 			self.full_table_compare = False
 
@@ -456,10 +490,10 @@ class config(object, metaclass=Singleton):
 		self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
 		self.Hive_Import_PKonly_DB = "etl_import_staging"
 		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
-		self.Hive_Import_Delete_DB = "etl_import_staging"
-		self.Hive_Import_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
+		self.Hive_Delete_DB = "etl_import_staging"
+		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
 
-		logging.debug("Settings from import_definitions.getImportConfig()")
+		logging.debug("Settings from import_config.getImportConfig()")
 		logging.debug("    connection_alias = %s"%(self.connection_alias))
 		logging.debug("    source_schema = %s"%(self.source_schema))
 		logging.debug("    source_table = %s"%(self.source_table))
@@ -488,7 +522,6 @@ class config(object, metaclass=Singleton):
 		logging.debug("    sqoop_incr_mode = %s"%(self.sqoop_incr_mode))
 		logging.debug("    sqoop_incr_column = %s"%(self.sqoop_incr_column))
 		logging.debug("    sqoop_incr_lastvalue = %s"%(self.sqoop_incr_lastvalue))
-		logging.debug("    sqoop_import_type = %s"%(self.sqoop_import_type))
 		logging.debug("    sqoop_options = %s"%(self.sqoop_options))
 		logging.debug("    import_is_incremental = %s"%(self.import_is_incremental))
 		logging.debug("    create_table_with_acid = %s"%(self.create_table_with_acid)) 
@@ -505,16 +538,16 @@ class config(object, metaclass=Singleton):
 		logging.debug("    Hive_HistoryTemp_Table = %s"%(self.Hive_HistoryTemp_Table))
 		logging.debug("    Hive_Import_PKonly_DB = %s"%(self.Hive_Import_PKonly_DB))
 		logging.debug("    Hive_Import_PKonly_Table = %s"%(self.Hive_Import_PKonly_Table))
-		logging.debug("    Hive_Import_Delete_DB = %s"%(self.Hive_Import_Delete_DB))
-		logging.debug("    Hive_Import_Delete_Table = %s"%(self.Hive_Import_Delete_Table))
-		logging.debug("Executing import_definitions.getImportConfig() - Finished")
+		logging.debug("    Hive_Delete_DB = %s"%(self.Hive_Delete_DB))
+		logging.debug("    Hive_Delete_Table = %s"%(self.Hive_Delete_Table))
+		logging.debug("Executing import_config.getImportConfig() - Finished")
 
 	def updateLastUpdateFromSource(self):
 		# This function will update the import_tables.last_update_from_source to the startDate from the common class. This will later
 		# be used to determine if all the columns exists in the source system as we set the same datatime on all columns
 		# that we read from the source system
 		logging.debug("")
-		logging.debug("Executing import_definitions.updateLastUpdateFromSource()")
+		logging.debug("Executing import_config.updateLastUpdateFromSource()")
 
         # Update the import_tables.last_update_from_source with the current date
 		query = "update import_tables set last_update_from_source = %s where hive_db = %s and hive_table = %s "
@@ -524,11 +557,11 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.updateLastUpdateFromSource() - Finished")
+		logging.debug("Executing import_config.updateLastUpdateFromSource() - Finished")
 
 	def saveIncrMinValue(self):
 		""" Save the min value in the pendings column """
-		logging.debug("Executing import_definitions.savePendingIncrValues()")
+		logging.debug("Executing import_config.savePendingIncrValues()")
 
 		query  = "update import_tables set " 
 		query += "	incr_minvalue_pending = incr_maxvalue "
@@ -538,11 +571,11 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.savePendingIncrValues() - Finished")
+		logging.debug("Executing import_config.savePendingIncrValues() - Finished")
 
 	def saveIncrPendingValues(self):
 		""" After the incremental import is completed, we save the pending values so the next import starts from the correct spot"""
-		logging.debug("Executing import_definitions.savePendingIncrValues()")
+		logging.debug("Executing import_config.savePendingIncrValues()")
 
 		query  = "update import_tables set " 
 		query += "	incr_minvalue = incr_minvalue_pending, "
@@ -562,12 +595,12 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.savePendingIncrValues() - Finished")
+		logging.debug("Executing import_config.savePendingIncrValues() - Finished")
 
 	def removeFKforTable(self):
 		# This function will remove all ForeignKey definitions for the current table.
 		logging.debug("")
-		logging.debug("Executing import_definitions.removeFKforTable()")
+		logging.debug("Executing import_config.removeFKforTable()")
 
 		# Update the import_tables.last_update_from_source with the current date
 		query = "delete from import_foreign_keys where table_id = %s"
@@ -577,7 +610,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.removeFKforTable() - Finished")
+		logging.debug("Executing import_config.removeFKforTable() - Finished")
 
 	def stripUnwantedCharComment(self, work_string):
 		if work_string == None: return
@@ -587,6 +620,7 @@ class config(object, metaclass=Singleton):
 		work_string = work_string.replace('\n', '')
 		work_string = work_string.replace('\\', '')
 		work_string = work_string.replace('’', '')
+		work_string = work_string.replace('"', '')
 		return work_string.strip()
 
 	def stripUnwantedCharColumnName(self, work_string):
@@ -604,7 +638,7 @@ class config(object, metaclass=Singleton):
 		return work_string.strip()
 
 	def getColumnForceString(self, column_name):
-		logging.debug("Executing import_definitions.getColumnForceString()")	
+		logging.debug("Executing import_config.getColumnForceString()")	
 		# Used to determine if char/varchar fields should be forced to string in Hive
 
 		query = ("select "
@@ -615,7 +649,7 @@ class config(object, metaclass=Singleton):
 				"left join jdbc_connections jc "
 				"	on t.dbalias = jc.dbalias "
 				"left join import_columns c "
-				"	on c.hive_db = t.hive_db and c.hive_table = t.hive_table and c.column_name = %s "
+				"	on c.hive_db = t.hive_db and c.hive_table = t.hive_table and c.last_update_from_source = t.last_update_from_source and c.column_name = %s "
 				"where "
 				"	t.hive_db = %s "
 				"	and t.hive_table = %s ")
@@ -649,14 +683,20 @@ class config(object, metaclass=Singleton):
 		else:
 			forceString = True
 		
-		logging.debug("Executing import_definitions.getColumnForceString() - Finished")	
+		logging.debug("Executing import_config.getColumnForceString() - Finished")	
 		return forceString
+
+	def convertHiveColumnNameReservedWords(self, columnName):
+		if columnName.lower() in ("synchronized", "date", "interval"):
+			columnName = "%s_hive"%(columnName)
+
+		return columnName
 
 	def saveColumnData(self, ):
 		# This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
 		# and insert/update the data in the import_columns table. This also takes care of column type conversions if it's needed
 		logging.debug("")
-		logging.debug("Executing import_definitions.saveColumnData()")
+		logging.debug("Executing import_config.saveColumnData()")
 		logging.info("Saving column data to MySQL table - import_columns")
 
 		# IS_NULLABLE
@@ -673,6 +713,7 @@ class config(object, metaclass=Singleton):
 		self.sqoop_use_generated_sql = False
 
 		for index, row in self.common_config.source_columns_df.iterrows():
+#			column_name = self.stripUnwantedCharColumnName(row['SOURCE_COLUMN_NAME']).lower()
 			column_name = self.stripUnwantedCharColumnName(row['SOURCE_COLUMN_NAME'])
 			column_type = row['SOURCE_COLUMN_TYPE'].lower()
 			source_column_type = column_type
@@ -681,8 +722,22 @@ class config(object, metaclass=Singleton):
 			self.table_comment = self.stripUnwantedCharComment(row['TABLE_COMMENT'])
 
 			# Handle reserved column names in Hive
-			if column_name == "date": column_name = column_name + "_HIVE"
-			if column_name == "interval": column_name = column_name + "_HIVE"
+#			if column_name == "date": column_name = column_name + "_HIVE"
+#			if column_name == "interval": column_name = column_name + "_HIVE"
+			column_name = self.convertHiveColumnNameReservedWords(column_name)
+
+			# TODO: Get the maximum column comment size from Hive Metastore and use that instead
+			if source_column_comment != None and len(source_column_comment) > 256:
+				source_column_comment = source_column_comment[:256]
+
+#			# Handle reserved column named in Sqoop
+			
+#			if column_name == "synchronized": column_name = "_synchronized"
+#			if column_name.lower() == "synchronized": 
+#			if column_name.lower() in ("synchronized", ):
+#				column_name = column_name + "_HIVE"
+#				source_column_name = "_%s"%(source_column_name)
+#				column = column + "_HIVE"
 
 			columnOrder += 1
 
@@ -766,6 +821,10 @@ class config(object, metaclass=Singleton):
 					sqoop_column_type = "String"
 					column_type = "string"
 
+				if source_column_type.startswith("float"): 
+					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
+					sqoop_column_type = "Float"
+			
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
 				column_type = re.sub(' char\)$', ')', column_type)
 				column_type = re.sub(' byte\)$', ')', column_type)
@@ -802,15 +861,16 @@ class config(object, metaclass=Singleton):
 					column_type = re.sub('\)$', ',0)', column_type)
 					
 			if self.common_config.db_mysql == True:
-#				if source_column_type in ("bit", "tinyint", "smallint", "mediumint", "int"): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
-#					sqoop_column_type = "Integer"
 				if source_column_type == "bit": 
 					column_type = "tinyint"
 					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
+
+				if source_column_type in ("smallint", "mediumint"): 
+					column_type = "int"
+					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
+					sqoop_column_type = "Integer"
 			
-#				column_type = re.sub('^bit$', 'tinyint', column_type)
 				column_type = re.sub('^character varying\(', 'varchar(', column_type)
 				column_type = re.sub('^mediumtext\([0-9]*\)', 'string', column_type)
 				column_type = re.sub('^tinytext\([0-9]*\)', 'varchar(255)', column_type)
@@ -1042,10 +1102,10 @@ class config(object, metaclass=Singleton):
 		# Add ( and ) to the Hive column definition so it contains a valid string for later use in the solution
 		self.sqlGeneratedHiveColumnDefinition = "( " + self.sqlGeneratedHiveColumnDefinition + " )"
 
-		logging.debug("Settings from import_definitions.saveColumnData()")
+		logging.debug("Settings from import_config.saveColumnData()")
 		logging.debug("    sqlGeneratedSqoopQuery = %s"%(self.sqlGeneratedSqoopQuery))
 		logging.debug("    sqlGeneratedHiveColumnDefinition = %s"%(self.sqlGeneratedHiveColumnDefinition))
-		logging.debug("Executing import_definitions.saveColumnData() - Finished")
+		logging.debug("Executing import_config.saveColumnData() - Finished")
 
 	def getParquetColumnName(self, column_name):
 		
@@ -1075,7 +1135,7 @@ class config(object, metaclass=Singleton):
 		# This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
 		# and update the source_primary_key column in the import_columns table with the information on what key is part of the PK
 		logging.debug("")
-		logging.debug("Executing import_definitions.setPrimaryKeyColumn()")
+		logging.debug("Executing import_config.setPrimaryKeyColumn()")
 		logging.info("Setting PrimaryKey information in MySQL table - import_columns")
 
 		# COL_DATA_TYPE
@@ -1132,13 +1192,13 @@ class config(object, metaclass=Singleton):
 		# Commit all the changes to the import_column column
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.setPrimaryKeyColumn() - Finished")
+		logging.debug("Executing import_config.setPrimaryKeyColumn() - Finished")
 
 	def saveKeyData(self, ):
 		# This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
 		# and update the import_foreign_keys table with the information on what FK's are available for the table
 		logging.debug("")
-		logging.debug("Executing import_definitions.saveKeyData()")
+		logging.debug("Executing import_config.saveKeyData()")
 		logging.info("Setting ForeignKey information in MySQL table - import_foreign_keys")
 
 		# COL_DATA_TYPE
@@ -1259,12 +1319,12 @@ class config(object, metaclass=Singleton):
 							self.mysql_conn.commit()
 							logging.debug("SQL Statement executed: %s" % (self.mysql_cursor02.statement) )
 
-		logging.debug("Executing import_definitions.saveKeyData() - Finished")
+		logging.debug("Executing import_config.saveKeyData() - Finished")
 
 	def saveGeneratedData(self):
 		# This will save data to the generated* columns in import_table
 		logging.debug("")
-		logging.debug("Executing import_definitions.saveGeneratedData()")
+		logging.debug("Executing import_config.saveGeneratedData()")
 		logging.info("Saving generated data to MySQL table - import_table")
 
 		# Create a valid self.generatedSqoopOptions value
@@ -1273,8 +1333,11 @@ class config(object, metaclass=Singleton):
 			self.generatedSqoopOptions = "--map-column-java "
 			for column_map in self.sqoop_mapcolumnjava:
 				column, value=column_map.split("=")
-#				column_name_parquet_supported = getParquetColumnName(column_name)
-#				self.generatedSqoopOptions += ("%s=%s,"%(column.lower().replace(' ', '_').replace('%', 'pct').replace('(', '_').replace(')', '_'), value)) 
+
+				column = self.convertHiveColumnNameReservedWords(column)
+#				if column.lower() in ("synchronized"):
+#					column = column + "_HIVE"
+
 				self.generatedSqoopOptions += ("%s=%s,"%(self.getParquetColumnName(column), value)) 
 			# Remove the last ","
 			self.generatedSqoopOptions = self.generatedSqoopOptions[:-1]
@@ -1300,12 +1363,12 @@ class config(object, metaclass=Singleton):
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 				
-		logging.debug("Executing import_definitions.saveGeneratedData() - Finished")
+		logging.debug("Executing import_config.saveGeneratedData() - Finished")
 
 	def calculateJobMappers(self):
 		""" Based on previous sqoop size, the number of mappers for sqoop will be calculated. Formula is sqoop_size / 128MB. """
 
-		logging.debug("Executing import_definitions.calculateJobMappers()")
+		logging.debug("Executing import_config.calculateJobMappers()")
 		logging.info("Calculating the number of SQL sessions in the source system that the import will use")
 
 		sqlSessionsMin = 1
@@ -1367,10 +1430,10 @@ class config(object, metaclass=Singleton):
 
 			logging.info("The import will use %s parallell SQL sessions in the source system."%(self.sqlSessions)) 
 
-		logging.debug("Executing import_definitions.calculateJobMappers() - Finished")
+		logging.debug("Executing import_config.calculateJobMappers() - Finished")
 
 	def clearTableRowCount(self):
-		logging.debug("Executing import_definitions.clearTableRowCount()")
+		logging.debug("Executing import_config.clearTableRowCount()")
 		logging.info("Clearing rowcounts from previous imports")
 
 		query = ("update import_tables set source_rowcount = NULL, source_rowcount_incr = NULL, hive_rowcount = NULL where table_id = %s")
@@ -1378,11 +1441,11 @@ class config(object, metaclass=Singleton):
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		logging.debug("Executing import_definitions.clearTableRowCount() - Finished")
+		logging.debug("Executing import_config.clearTableRowCount() - Finished")
 
 	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False):
 		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
-		logging.debug("Executing import_definitions.getIncrWhereStatement()")
+		logging.debug("Executing import_config.getIncrWhereStatement()")
 
 		whereStatement = None
 
@@ -1398,7 +1461,6 @@ class config(object, metaclass=Singleton):
 					else:
 						self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S')
 
-					print(self.sqoopIncrMaxvaluePending)
 					if self.common_config.jdbc_servertype == constant.MSSQL:
 						#MSSQL gets and error if there are microseconds in the timestamp
 						(dt, micro) = self.sqoopIncrMaxvaluePending.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
@@ -1455,11 +1517,11 @@ class config(object, metaclass=Singleton):
 				whereStatement = None
 
 		logging.debug("whereStatement: %s"%(whereStatement))
-		logging.debug("Executing import_definitions.getIncrWhereStatement() - Finished")
+		logging.debug("Executing import_config.getIncrWhereStatement() - Finished")
 		return whereStatement
 
 	def getJDBCTableRowCount(self):
-		logging.debug("Executing import_definitions.getJDBCtableRowCount()")
+		logging.debug("Executing import_config.getJDBCTableRowCount()")
 		logging.info("Reading number of rows in source table. This will later be used for validating the import")
 
 		JDBCRowsFull = None
@@ -1503,10 +1565,10 @@ class config(object, metaclass=Singleton):
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		logging.debug("Executing import_definitions.getJDBCtableRowCount() - Finished")
+		logging.debug("Executing import_config.getJDBCTableRowCount() - Finished")
 
 	def saveHiveTableRowCount(self, rowCount):
-		logging.debug("Executing import_definitions.saveHiveTableRowCount()")
+		logging.debug("Executing import_config.saveHiveTableRowCount()")
 		logging.info("Saving the number of rows in the Hive Table to the configuration database")
 
 		# Save the value to the database
@@ -1515,10 +1577,10 @@ class config(object, metaclass=Singleton):
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		logging.debug("Executing import_definitions.saveHiveTableRowCount() - Finished")
+		logging.debug("Executing import_config.saveHiveTableRowCount() - Finished")
 
 	def resetSqoopStatistics(self, maxValue):
-		logging.debug("Executing import_definitions.resetSqoopStatistics()")
+		logging.debug("Executing import_config.resetSqoopStatistics()")
 		logging.info("Reseting incremental values for sqoop imports. New max value is: %s"%(maxValue))
 
 		query =  "update import_tables set "
@@ -1532,10 +1594,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.resetSqoopStatistics() - Finished")
+		logging.debug("Executing import_config.resetSqoopStatistics() - Finished")
 
 	def saveSqoopStatistics(self, sqoopStartUTS, sqoopSize=None, sqoopRows=None, sqoopIncrMaxvaluePending=None, sqoopMappers=None):
-		logging.debug("Executing import_definitions.saveSqoopStatistics()")
+		logging.debug("Executing import_config.saveSqoopStatistics()")
 		logging.info("Saving sqoop statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
@@ -1569,24 +1631,31 @@ class config(object, metaclass=Singleton):
 		query += "where table_id = %s "
 		queryParam.append(self.table_id)
 
-		print(query)
-
-#		self.mysql_cursor01.execute(query, (sqoopStartUTS, sqoopSize, sqoopRows, sqoopIncrMaxvaluePending, self.table_id))
 		self.mysql_cursor01.execute(query, queryParam)
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
-		logging.debug("Executing import_definitions.saveSqoopStatistics() - Finished")
+		logging.debug("Executing import_config.saveSqoopStatistics() - Finished")
 
-	def getColumnsFromConfigDatabase(self,):
+	def getColumnsFromConfigDatabase(self, restrictColumns=None):
 		""" Reads the columns from the configuration database and returns the information in a Pandas DF with the columns name, type and comment """
-		logging.debug("Executing import_definitions.getColumnsFromConfigDatabase()")
+		logging.debug("Executing import_config.getColumnsFromConfigDatabase()")
 		hiveColumnDefinition = ""
+
+		restrictColumnsList = []
+		if restrictColumns != None:
+			restrictColumnsList = restrictColumns.split(",")
 
 		query  = "select c.column_name as name, c.column_type as type, c.comment "
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
+
+		if restrictColumnsList != []:
+			query += " and c.column_name in ('"
+			query += "', '".join(restrictColumnsList)
+			query += "') "
+
 		query += "order by c.column_order"
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
@@ -1604,12 +1673,12 @@ class config(object, metaclass=Singleton):
 			result_df_columns.append(columns[0])    # Name of the column is in the first position
 		result_df.columns = result_df_columns
 
-		logging.debug("Executing import_definitions.getColumnsFromConfigDatabase() - Finished")
+		logging.debug("Executing import_config.getColumnsFromConfigDatabase() - Finished")
 		return result_df
 
 	def getHiveTableComment(self,):
 		""" Returns the table comment stored in import_tables.comment """
-		logging.debug("Executing import_definitions.getHiveTableComment()")
+		logging.debug("Executing import_config.getHiveTableComment()")
 		hiveColumnDefinition = ""
 
 		query  = "select comment from import_tables where table_id = %s "
@@ -1623,7 +1692,7 @@ class config(object, metaclass=Singleton):
 
 		row = self.mysql_cursor01.fetchone()
 				
-		logging.debug("Executing import_definitions.getHiveTableComment() - Finished")
+		logging.debug("Executing import_config.getHiveTableComment() - Finished")
 		return row[0]
 
 	def validateRowCount(self, validateSqoop=False, incremental=False):
@@ -1631,7 +1700,7 @@ class config(object, metaclass=Singleton):
 		# incremental=True is used for normal validations but on ly on incremented rows, regardless if we are going to validate full or incr.
 		# This is used to validate the Import table if the validation method is full for incremental import
 
-		logging.debug("Executing import_definitions.validateRowCount()")
+		logging.debug("Executing import_config.validateRowCount()")
 		returnValue = None
 
 		if self.validate_import == True:
@@ -1720,28 +1789,34 @@ class config(object, metaclass=Singleton):
 		else:
 			returnValue = True
 
-		logging.debug("Executing import_definitions.validateRowCount() - Finished")
+		logging.debug("Executing import_config.validateRowCount() - Finished")
 		return returnValue
 		
-	def getPKcolumns(self,):
+	def getPKcolumns(self, PKforMerge=False):
 		""" Returns a comma seperated list of columns that is part of the PK """
-		logging.debug("Executing import_definitions.getPKcolumns()")
+		logging.debug("Executing import_config.getPKcolumns()")
 		returnValue = None
 
 		# First fetch the override if it exists
-		query  = "select pk_column_override from import_tables where table_id = %s "
+		query  = "select pk_column_override, pk_column_override_mergeonly from import_tables where table_id = %s "
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		if self.mysql_cursor01.rowcount == 0:
-			logging.error("Error: Zero rows returned from query on 'import_table'")
-			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor01.statement) )
-			raise Exception
-
 		row = self.mysql_cursor01.fetchone()
-		if row[0] != None and row[0].strip() != "":
-			logging.debug("Executing import_definitions.getPKcolumns() - Finished")
-			return row[0]
+		self.pk_column_override = row[0]
+		self.pk_column_override_mergeonly = row[1]
+
+		if self.pk_column_override != None and self.pk_column_override.strip() != "" and PKforMerge == False:
+			logging.debug("Executing import_config.getPKcolumns() - Finished")
+			self.pk_column_override = re.sub(', *', ',', self.pk_column_override.strip())
+			self.pk_column_override = re.sub(' *,', ',', self.pk_column_override)
+			return self.pk_column_override
+
+		if self.pk_column_override_mergeonly != None and self.pk_column_override_mergeonly.strip() != "" and PKforMerge == True:
+			logging.debug("Executing import_config.getPKcolumns() - Finished")
+			self.pk_column_override_mergeonly = re.sub(', *', ',', self.pk_column_override_mergeonly.strip())
+			self.pk_column_override_mergeonly = re.sub(' *,', ',', self.pk_column_override_mergeonly)
+			return self.pk_column_override_mergeonly
 
 		# If we reach this part, it means that we didnt override the PK. So lets fetch the real one	
 		query  = "select c.source_column_name "
@@ -1759,12 +1834,12 @@ class config(object, metaclass=Singleton):
 			else:
 				returnValue += "," + str(row[0].lower()) 
 
-		logging.debug("Executing import_definitions.getPKcolumns() - Finished")
+		logging.debug("Executing import_config.getPKcolumns() - Finished")
 		return returnValue
 
 	def getForeignKeysFromConfig(self,):
 		""" Reads the ForeignKeys from the configuration tables and return the result in a Pandas DF """
-		logging.debug("Executing import_definitions.getForeignKeysFromConfig()")
+		logging.debug("Executing import_config.getForeignKeysFromConfig()")
 		result_df = None
 
 		query  = "select "
@@ -1810,12 +1885,12 @@ class config(object, metaclass=Singleton):
 
 		result_df['fk_name'] = (result_df['source_hive_db'] + "__" + result_df['source_hive_table'] + "__fk__" + result_df['ref_hive_table'] + "__" + result_df['source_column_name'].str.replace(',', '_'))
 
-		logging.debug("Executing import_definitions.getForeignKeysFromConfig() - Finished")
+		logging.debug("Executing import_config.getForeignKeysFromConfig() - Finished")
 		return result_df.sort_values(by=['fk_name'], ascending=True)
 
 	def getAllActiveIncrImports(self):
 		""" Return all rows from import_stage that uses an incremental import_type """
-		logging.debug("Executing import_definitions.getAllActiveIncrImports()")
+		logging.debug("Executing import_config.getAllActiveIncrImports()")
 		result_df = None
 
 		query  = "select "
@@ -1842,29 +1917,29 @@ class config(object, metaclass=Singleton):
 			result_df_columns.append(columns[0])    # Name of the column is in the first position
 		result_df.columns = result_df_columns
 
-		logging.debug("Executing import_definitions.getAllActiveIncrImports() - Finished")
+		logging.debug("Executing import_config.getAllActiveIncrImports() - Finished")
 		return result_df
 
 	def generateSqoopSplitBy(self):
 		""" This function will try to generate a split-by """
-		logging.debug("Executing import_definitions.generateSqoopSplitBy()")
+		logging.debug("Executing import_config.generateSqoopSplitBy()")
 
 		self.sqoopSplitByColumn = ""	
 
 		if self.generatedPKcolumns != None and self.generatedPKcolumns != "":
-			self.sqoopSplitByColumn = self.generatedPKcolumns.split(",")[0]	
+			self.sqoopSplitByColumn = self.generatedPKcolumns.split(",")[0]
 
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
 				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)
 
-		logging.debug("Executing import_definitions.generateSqoopSplitBy() - Finished")
+		logging.debug("Executing import_config.generateSqoopSplitBy() - Finished")
 
 	def generateSqoopBoundaryQuery(self):
-		logging.debug("Executing import_definitions.generateSqoopBoundaryQuery()")
+		logging.debug("Executing import_config.generateSqoopBoundaryQuery()")
 		self.generateSqoopSplitBy()
 
-		if self.sqoopSplitByColumn == "" and "split-by" in self.sqoop_options.lower():
+		if self.sqoopSplitByColumn != "" and "split-by" in self.sqoop_options.lower():
 			for id, value in enumerate(self.sqoop_options.lower().split(" ")):
 				if value == "--split-by":
 					self.sqoopSplitByColumn = self.sqoop_options.lower().split(" ")[id + 1]
@@ -1874,9 +1949,8 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("SplitByColumn = %s"%(self.sqoopSplitByColumn))	
 		logging.debug("sqoopBoundaryQuery = %s"%(self.sqoopBoundaryQuery))	
-		logging.debug("Executing import_definitions.generateSqoopBoundaryQuery() - Finished")
+		logging.debug("Executing import_config.generateSqoopBoundaryQuery() - Finished")
 
-	
 #	def getQuoteAroundColumn(self):
 #		quoteAroundColumn = ""
 #		if self.common_config.jdbc_servertype == constant.MSSQL:		quoteAroundColumn = "\""
@@ -1890,7 +1964,7 @@ class config(object, metaclass=Singleton):
 #		return quoteAroundColumn
 
 #	def getJDBCsqlFromTable(self):
-#		logging.debug("Executing import_definitions.getJDBCsqlFromTable()")
+#		logging.debug("Executing import_config.getJDBCsqlFromTable()")
 #
 #		fromTable = "" 
 #		if self.common_config.jdbc_servertype == constant.MSSQL:		fromTable = "[%s].[%s].[%s]"%(self.common_config.jdbc_database, self.source_schema, self.source_table)
@@ -1901,6 +1975,6 @@ class config(object, metaclass=Singleton):
 #		if self.common_config.jdbc_servertype == constant.DB2_UDB:		fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
 #		if self.common_config.jdbc_servertype == constant.DB2_AS400:	fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
 #
-#		logging.debug("Executing import_definitions.getJDBCsqlFromTable() - Finished")
+#		logging.debug("Executing import_config.getJDBCsqlFromTable() - Finished")
 #		return fromTable
 
