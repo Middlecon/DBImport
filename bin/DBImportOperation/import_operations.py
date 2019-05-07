@@ -77,6 +77,10 @@ class operation(object, metaclass=Singleton):
 			self.import_config.getImportConfig()
 			self.startDate = self.import_config.startDate
 			self.import_config.lookupConnectionAlias()
+		except invalidConfiguration as errMsg:
+			logging.error(errMsg)
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
 		except:
 			self.import_config.remove_temporary_files()
 			raise
@@ -216,6 +220,10 @@ class operation(object, metaclass=Singleton):
 			self.import_config.setPrimaryKeyColumn()
 			self.import_config.saveKeyData()
 			self.import_config.saveGeneratedData()
+		except invalidConfiguration as errMsg:
+			logging.error(errMsg)
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
 		except:
 			logging.exception("Fatal error when reading and/or processing source table schema")
 			self.import_config.remove_temporary_files()
@@ -281,17 +289,18 @@ class operation(object, metaclass=Singleton):
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"
 
-		if self.import_config.sqoop_use_generated_sql == True:
+		if self.import_config.sqoop_use_generated_sql == True and self.import_config.sqoop_query == None:
 			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
+
+		if self.import_config.sqoop_query != None:
+			sqoopQuery = self.import_config.sqoop_query
 
 		# Handle mappers, split-by with custom query
 		if sqoopQuery != "":
 			if "split-by" not in self.import_config.sqoop_options.lower():
 				self.import_config.generateSqoopSplitBy()
-#				if self.import_config.sqoop_options != "": self.import_config.sqoop_options += " " 
-#				self.import_config.sqoop_options += "--split-by %s"%(self.import_config.generateSqoopSplitBy())
 
-			self.import_config.generateSqoopBoundaryQuery()
+		self.import_config.generateSqoopBoundaryQuery()
 
 		# Handle the situation where the source dont have a PK and there is no split-by (force mappers to 1)
 		if self.import_config.generatedPKcolumns == None and "split-by" not in self.import_config.sqoop_options.lower():
@@ -355,7 +364,12 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.extend(shlex.split(self.import_config.generatedSqoopOptions))
 
 		if self.import_config.sqoop_options.strip() != "" and self.import_config.sqoop_options != None:
-			sqoopCommand.extend(shlex.split(self.import_config.sqoop_options.lower()))
+			if self.import_config.common_config.jdbc_force_column_lowercase == True:
+				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options.lower()))
+			else:
+				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
+#				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options.lower()))
+#			sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
 
 		if self.import_config.sqoopBoundaryQuery.strip() != "" and self.import_config.sqlSessions > 1:
 			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
@@ -790,6 +804,7 @@ class operation(object, metaclass=Singleton):
 		columnsDF["type"].replace(["date"], "string", inplace=True)
 		columnsDF["type"].replace(["timestamp"], "string", inplace=True)
 		columnsDF["type"].replace(["decimal(.*)"], "string", regex=True, inplace=True)
+		columnsDF["type"].replace(["bigint"], "string", regex=True, inplace=True)
 
 		# If you change any of the name replace rows, you also need to change the same data in function self.copyHiveTable() and import_definitions.saveColumnData()
 		columnsDF["name"].replace([" "], "_", regex=True, inplace=True)

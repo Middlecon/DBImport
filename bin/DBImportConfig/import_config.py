@@ -24,6 +24,7 @@ from ConfigReader import configuration
 import mysql.connector
 from common.Singleton import Singleton 
 from common import constants as constant
+from common.Exceptions import *
 from DBImportConfig import common_config
 from DBImportConfig import rest 
 from DBImportConfig import stage as stage
@@ -85,6 +86,7 @@ class config(object, metaclass=Singleton):
 		self.table_comment = None
 		self.sqlGeneratedHiveColumnDefinition = None
 		self.sqlGeneratedSqoopQuery = None
+		self.sqoop_query = None
 		self.generatedSqoopOptions = None
 		self.generatedPKcolumns = None
 		self.sqoop_mapcolumnjava = []
@@ -94,6 +96,7 @@ class config(object, metaclass=Singleton):
 		self.sqoopSplitByColumn = ""	
 		self.sqoopBoundaryQuery = ""	
 		self.pk_column_override_mergeonly = None
+		self.validate_source = None
 
 		self.importPhase = None
 		self.importPhaseDescription = None
@@ -227,7 +230,9 @@ class config(object, metaclass=Singleton):
 				"    generated_sqoop_query, "
 				"    generated_pk_columns, "
 				"    incr_validation_method, "
-				"    sqoop_last_mappers "
+				"    sqoop_last_mappers, "
+				"    sqoop_query, "
+				"    validate_source "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -293,7 +298,13 @@ class config(object, metaclass=Singleton):
 		self.generatedPKcolumns = row[25]
 		self.incr_validation_method = row[26]
 		self.sqoop_last_mappers = row[27]
+		self.sqoop_query = row[28]
+		self.validate_source = row[29]
 
+		if self.validate_source  != "query" and self.validate_source !=  "sqoop":
+			raise invalidConfiguration("Only the values 'query' or 'sqoop' is valid for column validate_source in import_tables.")
+
+		if self.sqoop_query != None and self.sqoop_query.strip() == "": self.sqoop_query = None
 
 		if self.sqoop_options == None: self.sqoop_options = ""	# This is needed as we check if this contains a --split-by and it needs to be string for that
 
@@ -721,33 +732,39 @@ class config(object, metaclass=Singleton):
 			source_column_comment = self.stripUnwantedCharComment(row['SOURCE_COLUMN_COMMENT'])
 			self.table_comment = self.stripUnwantedCharComment(row['TABLE_COMMENT'])
 
+			# Get the settings for this specific column
+			query  = "select "
+			query += "	column_id, "
+			query += "	include_in_import, "
+			query += "	column_name_override, "
+			query += "	column_type_override "
+			query += "from import_columns where table_id = %s and source_column_name = %s "
+			self.mysql_cursor01.execute(query, (self.table_id, source_column_name))
+			logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
+
+			includeColumnInImport = True
+			columnID = None
+			columnTypeOverride = None
+
+			columnRow = self.mysql_cursor01.fetchone()
+			if columnRow != None:
+				columnID = columnRow[0]
+				if columnRow[1] == 0:
+					includeColumnInImport = False
+				if columnRow[2] != None and columnRow[2].strip() != "":
+					column_name = columnRow[2].strip().lower()
+				if columnRow[3] != None and columnRow[3].strip() != "":
+					columnTypeOverride = columnRow[3].strip().lower()
+
 			# Handle reserved column names in Hive
-#			if column_name == "date": column_name = column_name + "_HIVE"
-#			if column_name == "interval": column_name = column_name + "_HIVE"
 			column_name = self.convertHiveColumnNameReservedWords(column_name)
 
 			# TODO: Get the maximum column comment size from Hive Metastore and use that instead
 			if source_column_comment != None and len(source_column_comment) > 256:
 				source_column_comment = source_column_comment[:256]
 
-#			# Handle reserved column named in Sqoop
-			
-#			if column_name == "synchronized": column_name = "_synchronized"
-#			if column_name.lower() == "synchronized": 
-#			if column_name.lower() in ("synchronized", ):
-#				column_name = column_name + "_HIVE"
-#				source_column_name = "_%s"%(source_column_name)
-#				column = column + "_HIVE"
-
 			columnOrder += 1
 
-			# Add , between column names in the list
-			if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
-			if len(self.sqlGeneratedSqoopQuery) == 0: 
-				self.sqlGeneratedSqoopQuery = "select "
-			else:
-				self.sqlGeneratedSqoopQuery += ", "
-				
 			# sqoop_column_type is just an information that will be stored in import_columns. We might be able to remove this. TODO. Verify
 			sqoop_column_type = None
 
@@ -840,8 +857,8 @@ class config(object, metaclass=Singleton):
 					sqoop_column_type = "Integer"
 				if re.search('^number\(1[0-8]\)', column_type):
 					column_type = "bigint"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
-					sqoop_column_type = "Integer"
+					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+					sqoop_column_type = "String"
 				column_type = re.sub('^number\(', 'decimal(', column_type)
 				column_type = re.sub('^date$', 'timestamp', column_type)
 				column_type = re.sub('^timestamp\([0-9]*\) with time zone', 'timestamp', column_type)
@@ -870,7 +887,7 @@ class config(object, metaclass=Singleton):
 					column_type = "int"
 					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
-			
+		
 				column_type = re.sub('^character varying\(', 'varchar(', column_type)
 				column_type = re.sub('^mediumtext\([0-9]*\)', 'string', column_type)
 				column_type = re.sub('^tinytext\([0-9]*\)', 'varchar(255)', column_type)
@@ -935,54 +952,42 @@ class config(object, metaclass=Singleton):
 			column_type = re.sub('^bigint\([0-9]*\)', 'bigint', column_type)
 			column_type = re.sub('^int\([0-9]*\)', 'int', column_type)
 				
+			if columnTypeOverride != None:
+				column_type = columnTypeOverride
+
 			# As Parquet imports some column types wrong, we need to map them all to string
-			if column_type == "timestamp":
-				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
-				sqoop_column_type = "String"
-			if column_type == "date":
+			if column_type in ("timestamp", "date", "bigint"): 
 				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 			if re.search('^decimal\(', column_type):
 				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 
+			if includeColumnInImport == True:
+				# Add , between column names in the list
+				if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
 			# Add the column to the sqlGeneratedHiveColumnDefinition variable. This will be the base for the auto generated SQL
-			self.sqlGeneratedHiveColumnDefinition += "`" + column_name + "` " + column_type 
-			if source_column_comment != None:
-				self.sqlGeneratedHiveColumnDefinition += " COMMENT '" + source_column_comment + "'"
+				self.sqlGeneratedHiveColumnDefinition += "`" + column_name + "` " + column_type 
+				if source_column_comment != None:
+					self.sqlGeneratedHiveColumnDefinition += " COMMENT '" + source_column_comment + "'"
 
 			# Add the column to the SQL query that can be used by sqoop
-			# If you change any of the name replace rows, you also need to change the same data in function import_operations.updateColumnsForImportTable() and import_operations.saveColumnData()
-			column_name_parquet_supported = self.getParquetColumnName(column_name)
-#			column_name_parquet_supported = (column_name.lower()
-#				.replace(' ', '_')
-#				.replace('%', 'pct')
-#				.replace('(', '_')
-#				.replace(')', '_')
-#				.replace('ü', 'u')
-#				.replace('å', 'a')
-#				.replace('ä', 'a')
-#				.replace('ö', 'o')
-#				)
+				column_name_parquet_supported = self.getParquetColumnName(column_name)
+				quote = self.common_config.getQuoteAroundColumn()
 
-			quote = self.common_config.getQuoteAroundColumn()
-
-			if source_column_name != column_name_parquet_supported:
-				if re.search('"', source_column_name):
-					self.sqlGeneratedSqoopQuery += "'" + source_column_name + "' as \"" + column_name_parquet_supported + "\""
+				if len(self.sqlGeneratedSqoopQuery) == 0: 
+					self.sqlGeneratedSqoopQuery = "select "
 				else:
-#					if self.getQuoteAroundColumn() == True:
-#						self.sqlGeneratedSqoopQuery += "\"" + source_column_name + "\" as \"" + column_name_parquet_supported + "\""
-#					else:
-#						self.sqlGeneratedSqoopQuery += source_column_name + " as " + column_name_parquet_supported 
-					self.sqlGeneratedSqoopQuery += quote + source_column_name + quote + " as " + quote + column_name_parquet_supported + quote
-				self.sqoop_use_generated_sql = True
-			else:
-#				if self.getQuoteAroundColumn() == True:
-#					self.sqlGeneratedSqoopQuery += "\"" + source_column_name + "\""
-#				else:
-#					self.sqlGeneratedSqoopQuery += source_column_name
-				self.sqlGeneratedSqoopQuery += quote + source_column_name + quote
+					self.sqlGeneratedSqoopQuery += ", "
+				
+				if source_column_name != column_name_parquet_supported:
+					if re.search('"', source_column_name):
+						self.sqlGeneratedSqoopQuery += "'" + source_column_name + "' as \"" + column_name_parquet_supported + "\""
+					else:
+						self.sqlGeneratedSqoopQuery += quote + source_column_name + quote + " as " + quote + column_name_parquet_supported + quote
+					self.sqoop_use_generated_sql = True
+				else:
+					self.sqlGeneratedSqoopQuery += quote + source_column_name + quote
 
 			# Fetch if we should force this column to 'string' in Hive
 			columnForceString = self.getColumnForceString(column_name)
@@ -991,11 +996,12 @@ class config(object, metaclass=Singleton):
 					column_type = "string"
 
 			# Run a query to see if the column already exists. Will be used to determine if we do an insert or update
-			query = "select column_id from import_columns where table_id = %s and source_column_name = %s "
-			self.mysql_cursor01.execute(query, (self.table_id, source_column_name))
-			logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
+#			query = "select column_id from import_columns where table_id = %s and source_column_name = %s "
+#			self.mysql_cursor01.execute(query, (self.table_id, source_column_name))
+#			logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
 
-			if self.mysql_cursor01.rowcount == 0:
+#			if self.mysql_cursor01.rowcount == 0:
+			if columnID == None:
 				query = ("insert into import_columns "
 						"("
 						"    table_id,"
@@ -1063,41 +1069,6 @@ class config(object, metaclass=Singleton):
 
 		# Add the source the to the generated sql query
 		self.sqlGeneratedSqoopQuery += " from %s"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
-#		if self.common_config.jdbc_servertype == constant.MSSQL:		self.sqlGeneratedSqoopQuery += (" from [%s].[%s].[%s]"%(self.common_config.jdbc_database, self.source_schema, self.source_table))
-#		if self.common_config.jdbc_servertype == constant.ORACLE:		self.sqlGeneratedSqoopQuery += (" from \"%s\".\"%s\""%(self.source_schema.upper(), self.source_table.upper()))
-#		if self.common_config.jdbc_servertype == constant.MYSQL:		self.sqlGeneratedSqoopQuery += (" from %s"%(self.source_table))
-#		if self.common_config.jdbc_servertype == constant.POSTGRESQL:	self.sqlGeneratedSqoopQuery += (" from \"%s\".\"%s\""%(self.source_schema, self.source_table))
-#		if self.common_config.jdbc_servertype == constant.PROGRESS:		self.sqlGeneratedSqoopQuery += (" from \"%s\".\"%s\""%(self.source_schema, self.source_table))
-#		if self.common_config.jdbc_servertype == constant.DB2_UDB:		self.sqlGeneratedSqoopQuery += (" from \"%s\".\"%s\""%(self.source_schema, self.source_table))
-#		if self.common_config.jdbc_servertype == constant.DB2_AS400:	self.sqlGeneratedSqoopQuery += (" from \"%s\".\"%s\""%(self.source_schema, self.source_table))
-
-#		if self.source_schema == "-":
-#			self.sqlGeneratedSqoopQuery += " from " + self.source_table
-#		else:
-#			self.sqlGeneratedSqoopQuery += " from " + self.source_schema + "." + self.source_table
-#
-#	       if self.db_mssql == True:
-#            query = "select max(%s) from [%s].[%s].[%s]"%(column, self.jdbc_database, source_schema, source_table)
-#
-#        if self.db_oracle == True:
-#            query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema.upper(), source_table.upper())
-#
-#        if self.db_mysql == True:
-#            query = "select max(%s) from %s"%(column, source_table)
-#
-#        if self.db_postgresql == True:
-#            query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
-#
-#        if self.db_progress == True:
-#            query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
-#
-#        if self.db_db2udb == True:
-#            query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
-#
-#        if self.db_db2as400 == True:
-#            query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
-
-
 		
 		# Add ( and ) to the Hive column definition so it contains a valid string for later use in the solution
 		self.sqlGeneratedHiveColumnDefinition = "( " + self.sqlGeneratedHiveColumnDefinition + " )"
@@ -1522,6 +1493,11 @@ class config(object, metaclass=Singleton):
 
 	def getJDBCTableRowCount(self):
 		logging.debug("Executing import_config.getJDBCTableRowCount()")
+
+		if self.validate_source == "sqoop":
+			logging.debug("Executing import_config.getJDBCTableRowCount() - Finished (because self.validate_source == sqoop)")
+			return
+
 		logging.info("Reading number of rows in source table. This will later be used for validating the import")
 
 		JDBCRowsFull = None
@@ -1627,6 +1603,16 @@ class config(object, metaclass=Singleton):
 			query += "  ,sqoop_last_mappers = %s "
 			self.sqoop_last_mappers = sqoopMappers
 			queryParam.append(sqoopMappers)
+
+		if self.validate_source == "sqoop":
+			logging.info("Saving the imported row count as the number of rows in the source system.")
+			if self.import_is_incremental == True:
+				query += "  ,source_rowcount = NULL "
+				query += "  ,source_rowcount_incr = %s "
+			else:
+				query += "  ,source_rowcount = %s "
+				query += "  ,source_rowcount_incr = NULL "
+			queryParam.append(sqoopRows)
 
 		query += "where table_id = %s "
 		queryParam.append(self.table_id)
@@ -1931,7 +1917,8 @@ class config(object, metaclass=Singleton):
 
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
-				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)
+#				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)
+				self.sqoop_options += "--split-by %s"%(self.sqoopSplitByColumn)
 
 		logging.debug("Executing import_config.generateSqoopSplitBy() - Finished")
 
@@ -1939,11 +1926,18 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.generateSqoopBoundaryQuery()")
 		self.generateSqoopSplitBy()
 
-		if self.sqoopSplitByColumn != "" and "split-by" in self.sqoop_options.lower():
-			for id, value in enumerate(self.sqoop_options.lower().split(" ")):
+#		print("self.sqoopSplitByColumn: %s"%(self.sqoopSplitByColumn))
+#		print("self.sqoop_options: %s"%(self.sqoop_options))
+
+#		if self.sqoopSplitByColumn != "" and "split-by" in self.sqoop_options.lower():
+		if "split-by" in self.sqoop_options.lower():
+#			for id, value in enumerate(self.sqoop_options.lower().split(" ")):
+			for id, value in enumerate(self.sqoop_options.split(" ")):
 				if value == "--split-by":
-					self.sqoopSplitByColumn = self.sqoop_options.lower().split(" ")[id + 1]
+					self.sqoopSplitByColumn = self.sqoop_options.split(" ")[id + 1]
 		
+#		print("self.sqoopSplitByColumn: %s"%(self.sqoopSplitByColumn))
+
 		if self.sqoopSplitByColumn != "":
 			self.sqoopBoundaryQuery = "select min(%s), max(%s) from %s"%(self.sqoopSplitByColumn, self.sqoopSplitByColumn, self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
 

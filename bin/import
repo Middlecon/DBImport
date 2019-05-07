@@ -322,6 +322,7 @@ def main(argv):
 			if import_operation.getStage() == 1014: 
 				import_operation.validateSqoopRowCount()
 
+		if runOnlyFunction == None:
 			import_operation.setStage(1049)
 
 
@@ -330,6 +331,7 @@ def main(argv):
 	# ******************************************
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_TRUNCATEINSERT and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1049:
 			import_operation.saveRetryAttempt(stage)
 
@@ -429,6 +431,7 @@ def main(argv):
 	# ******************************************
 
 	if importPhase == constant.IMPORT_PHASE_INCR and runImportPhase == True:
+		stage = import_operation.getStage()
 		if stage >= 1100 and stage < 1149:
 			import_operation.saveRetryAttempt(stage)
 
@@ -476,6 +479,7 @@ def main(argv):
 			if import_operation.getStage() == 1114: 
 				import_operation.validateSqoopRowCount()
 
+		if runOnlyFunction == None:
 			import_operation.setStage(1149)
 
 	# ******************************************
@@ -483,6 +487,7 @@ def main(argv):
 	# ******************************************
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_INSERT and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1149:
 			import_operation.saveRetryAttempt(stage)
 
@@ -584,6 +589,7 @@ def main(argv):
 	# ******************************************
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_MERGEHISTORYAUDIT and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1049:
 			import_operation.saveRetryAttempt(stage)
 
@@ -713,6 +719,7 @@ def main(argv):
 	# ******************************************
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1049:
 			import_operation.saveRetryAttempt(stage)
 
@@ -829,6 +836,7 @@ def main(argv):
 	# ******************************************
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1149:
 			import_operation.saveRetryAttempt(stage)
 
@@ -937,6 +945,7 @@ def main(argv):
 	# ******************************************
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_MERGEHISTORYAUDIT and runETLPhase == True:
+		stage = import_operation.getStage()
 		if stage > 0 and stage != 1149:
 			import_operation.saveRetryAttempt(stage)
 

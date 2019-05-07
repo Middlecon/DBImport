@@ -17,3 +17,4 @@
 
 class databaseNotFound(Exception): pass
 class tableNotFound(Exception): pass
+class invalidConfiguration(Exception): pass
