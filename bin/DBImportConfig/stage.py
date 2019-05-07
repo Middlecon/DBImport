@@ -59,13 +59,22 @@ class stage(object):
 	def getStageDescription(self, stage):
 		stageDescription = ""
 
+		# RULES FOR STAGE NUMBERS
+		# 1. Take a series of even 50 numbers to a specific method
+		# 2. Never use a number between 0 - 999
+		# 3. 0, 1000 and 9999 is reserved
+		# 4. IMPORT PHASE numbers must end with ??49 and the descripton "Import Phase Completed"
+		# 5. 1001 -> 1999 is reserved for IMPORT PHASE
+		# 6. 2000 -> 2999 is reserved for COPY PHASE
+		# 7. 3000 -> 3999 is reserved for ETL PHASE
+
 		# Import_Phase_FULL 
 		if   stage == 1010: stageDescription = "Getting source tableschema"
 		elif stage == 1011: stageDescription = "Clear table rowcount"
 		elif stage == 1012: stageDescription = "Get source table rowcount"
 		elif stage == 1013: stageDescription = "Sqoop import"
 		elif stage == 1014: stageDescription = "Validate sqoop import"
-		elif stage == 1049: stageDescription = "Stage1 Completed"
+		elif stage == 1049: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_INCR 
 		elif stage == 1110: stageDescription = "Getting source tableschema"
@@ -73,7 +82,7 @@ class stage(object):
 		elif stage == 1112: stageDescription = "Sqoop import"
 		elif stage == 1113: stageDescription = "Get source table rowcount"
 		elif stage == 1114: stageDescription = "Validate sqoop import"
-		elif stage == 1149: stageDescription = "Stage1 Completed"
+		elif stage == 1149: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageDescription = "Connecting to Hive"
@@ -163,6 +172,15 @@ class stage(object):
 
 		stageShortName = ""
 		if   stage == 0:    stageShortName = "skip"
+
+		# RULES FOR STAGE NUMBERS
+		# 1. Take a series of even 50 numbers to a specific method
+		# 2. Never use a number between 0 - 999
+		# 3. 0, 1000 and 9999 is reserved
+		# 4. IMPORT PHASE numbers must end with ??49 and the descripton "Import Phase Completed"
+		# 5. 1001 -> 1999 is reserved for IMPORT PHASE
+		# 6. 2000 -> 2999 is reserved for COPY PHASE
+		# 7. 3000 -> 3999 is reserved for ETL PHASE
 
 		# Import_Phase_FULL 
 		elif stage == 1010: stageShortName = "get_source_tableschema"

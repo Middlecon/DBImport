@@ -77,6 +77,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_servertype = None
 		self.jdbc_oracle_sid = None
 		self.jdbc_oracle_servicename = None
+		self.jdbc_force_column_lowercase = None
 
 		self.sourceSchema = None
 
@@ -369,6 +370,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:jtds:sqlserver:'): 
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
+			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver = "net.sourceforge.jtds.jdbc.Driver"
 			self.jdbc_classpath = "/usr/hdp/current/sqoop-client/lib/jtds.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -395,6 +397,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:oracle:'): 
 			self.db_oracle = True
 			self.jdbc_servertype = constant.ORACLE
+			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver = "oracle.jdbc.driver.OracleDriver"
 			self.jdbc_classpath = "/usr/share/java/ojdbc8.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -430,6 +433,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:mysql:'): 
 			self.db_mysql = True
 			self.jdbc_servertype = constant.MYSQL
+			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver = "com.mysql.jdbc.Driver"
 			self.jdbc_classpath = "/usr/share/java/mysql-connector-java.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -451,6 +455,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:postgresql:'): 
 			self.db_postgresql = True
 			self.jdbc_servertype = constant.POSTGRESQL
+			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver = "org.postgresql.Driver"
 			self.jdbc_classpath = "/usr/share/java/postgresql-jdbc.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -472,6 +477,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:datadirect:openedge:'): 
 			self.db_progress = True
 			self.jdbc_servertype = constant.PROGRESS
+			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver = "com.ddtek.jdbc.openedge.OpenEdgeDriver"
 			self.jdbc_classpath = "/usr/share/java/progress/openedge.jar:/usr/share/java/progress/pool.jar"
 			self.jdbc_classpath_for_python = "/usr/share/java/progress/openedge.jar"
@@ -493,6 +499,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:db2://'): 
 			self.db_db2udb = True
 			self.jdbc_servertype = constant.DB2_UDB
+			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver = "com.ibm.db2.jcc.DB2Driver"
 			self.jdbc_classpath = "/usr/share/java/db2jcc4.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -530,6 +537,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_url.startswith( 'jdbc:as400://'): 
 			self.db_db2as400 = True
 			self.jdbc_servertype = constant.DB2_AS400
+			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver = "com.ibm.as400.access.AS400JDBCDriver"
 			self.jdbc_classpath = "/usr/share/java/db2_jt400.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
@@ -599,55 +607,6 @@ class config(object, metaclass=Singleton):
 		if exit_after_function == True:
 			raise Exception
 
-#	def connectToSourceDatabase(self):
-#		if self.sourceSchema == None:
-#			self.connectToJDBC()
-#
-#			self.sourceSchema.db_mssql = self.db_mssql
-#			self.sourceSchema.db_oracle = self.db_oracle
-#			self.sourceSchema.db_mysql = self.db_mysql
-#			self.sourceSchema.db_postgresql = self.db_postgresql
-#			self.sourceSchema.db_progress = self.db_progress
-#			self.sourceSchema.db_db2udb = self.db_db2udb
-#			self.sourceSchema.db_db2as400 = self.db_db2as400
-#			self.sourceSchema.db_mongodb = self.db_mongodb
-#			self.sourceSchema.jdbc_servertype = self.jdbc_servertype
-#			self.sourceSchema.jdbc_url = self.jdbc_url
-#			self.sourceSchema.jdbc_username = self.jdbc_username
-#			self.sourceSchema.jdbc_password = self.jdbc_password
-#			self.sourceSchema.jdbc_hostname = self.jdbc_hostname
-#			self.sourceSchema.jdbc_port = self.jdbc_port
-#			self.sourceSchema.jdbc_database = self.jdbc_database
-#			self.sourceSchema.jdbc_classpath = self.jdbc_classpath
-#			self.sourceSchema.jdbc_classpath_for_python = self.jdbc_classpath_for_python
-#			self.sourceSchema.jdbc_driver = self.jdbc_driver
-#			self.sourceSchema.jdbc_driver_for_python = self.jdbc_driver_for_python
-#			self.sourceSchema.jdbc_ad_domain = self.jdbc_ad_domain
-#			self.sourceSchema.jdbc_encrypt = self.jdbc_encrypt
-#			self.sourceSchema.jdbc_encrypt_string = self.jdbc_encrypt_string
-#			self.sourceSchema.jdbc_trustedservercert = self.jdbc_trustedservercert
-#			self.sourceSchema.jdbc_trustedservercert_password = self.jdbc_trustedservercert_password
-#			self.sourceSchema.jdbc_hostincert = self.jdbc_hostincert
-#			self.sourceSchema.jdbc_logintimeout = self.jdbc_logintimeout
-#			self.sourceSchema.jdbc_password_file = self.jdbc_password_file
-#			self.sourceSchema.jdbc_oracle_sid = self.jdbc_oracle_sid
-#			self.sourceSchema.jdbc_oracle_servicename = self.jdbc_oracle_servicename
-#
-#			sourceTable = self.sourceSchema.readTable(
-#							serverType = self.jdbc_servertype,
-#							host = self.jdbc_hostname,
-#							port = self.jdbc_port,
-#							database = self.jdbc_database,
-#							table = self.source_table,
-#							user = self.jdbc_username,
-#							password = self.jdbc_password,
-#							driver = self.jdbc_classpath_for_python)
-#
-#			print(type(self.JDBCCursor))
-#			sourceTable = self.sourceSchema.readTable(self.JDBCCursor, serverType = self.jdbc_servertype, table = self.source_table)
-#
-#			print(sourceTable)
-
 	def getJDBCTableDefinition(self, source_schema, source_table):
 		logging.debug("Executing common_config.getJDBCTableDefinition()")
 		logging.info("Reading SQL table definitions from source database")
@@ -657,68 +616,6 @@ class config(object, metaclass=Singleton):
 		# Connect to the source database
 		self.connectToJDBC()
 
-#		# Create config file for the Schema Python Program 
-#		if len(self.tempdir) < 13 or self.tempdir.startswith( '/tmp/' ) == False:
-#			logging.error("tempdir is not based on /tmp")
-#			raise Exception
-#
-#		connect_file = self.tempdir + "/connect"
-#		f = open(connect_file, "a")
-#		f.write("HOST = " + self.jdbc_hostname + "\n")
-#		f.write("PORT = " + self.jdbc_port + "\n")
-#		f.write("user = " + self.jdbc_username + "\n")
-#		f.write("password = " + self.jdbc_password + "\n")
-#		f.write("driver_location=" + self.jdbc_classpath_for_python + "\n")
-#
-#		# Temporary until other Python Code is gone
-#		if self.jdbc_servertype == constant.MYSQL:      f.write("DB_TYPE = MYSQL\n")
-#		if self.jdbc_servertype == constant.ORACLE:     f.write("DB_TYPE = ORACLE\n")
-#		if self.jdbc_servertype == constant.MSSQL:      f.write("DB_TYPE = SQL_SERVER\n")
-#		if self.jdbc_servertype == constant.POSTGRESQL: f.write("DB_TYPE = POSTGRESQL\n")
-#		if self.jdbc_servertype == constant.PROGRESS:   f.write("DB_TYPE = PROGRESS_DB\n")
-#		if self.jdbc_servertype == constant.DB2_UDB:    f.write("DB_TYPE = DB2_UDB\n")
-#		if self.jdbc_servertype == constant.DB2_AS400:  f.write("DB_TYPE = DB2_AS400\n")
-#		if self.jdbc_servertype == constant.MONGO:      f.write("DB_TYPE = MONGO\n")
-#
-#		if self.db_mssql == True and self.jdbc_ad_domain != None:
-#			f.write("DOMAIN = " + self.jdbc_ad_domain + "\n")
-#		
-#		if self.db_mssql == True and self.jdbc_encrypt == True:
-#			f.write("additional_properties = " + self.jdbc_encrypt_string + "\n")
-#		
-#		if self.db_oracle == True:
-#			if self.jdbc_oracle_sid != None:
-#				f.write("SID = " + self.jdbc_oracle_sid + "\n") 
-#			else:
-#				f.write("SERVICE_NAME = " + self.jdbc_oracle_servicename + "\n") 
-#
-##		if self.db_progress == True:
-##			f.write("driver_location=" + self.self.jdbc_classpath_for_python + "\n")
-#
-#		if self.db_db2udb == True:
-#			f.write("database=" + self.jdbc_database + "\n")
-#			if self.jdbc_encrypt == True:
-#				f.write("sslTrustStoreLocation = " + self.jdbc_trustedservercert + "\n")
-##				f.write("sslTrustStorePassword=" + self.jdbc_trustedservercert_password + "\n")
-#				
-#		if self.db_db2as400 == True:
-#			f.write("database=" + self.jdbc_database + "\n")
-#
-#		f.close()
-#		os.chmod(connect_file, 0o400)
-#
-#		# Debug output of Connect file
-#		f = open(connect_file, "r")
-#		logging.debug("Connect file for Python Schema Program: \n%s"%(f.read()))
-#		f.close()
-
-		# Decrypt and get the username and password for the JDBC Connection
-
-#		temp_column_df = pd.DataFrame()
-#		temp_key_df = pd.DataFrame()
-
-		# All that is converted to not use external Python code
-#		if self.db_mssql == True or self.db_oracle == True or self.db_mysql == True or self.db_postgresql == True or self.db_db2udb == True or self.db_db2as400 == True: 
 		self.source_columns_df = self.sourceSchema.readTableColumns(  self.JDBCCursor, 
 														serverType = self.jdbc_servertype, 
 														database = self.jdbc_database,
@@ -731,129 +628,9 @@ class config(object, metaclass=Singleton):
 														schema = self.source_schema,
 														table = self.source_table)
 
-#		if self.db_db2as400 == True:		
-#			self.source_columns_df = self.sourceSchema.readTableColumns(  self.JDBCCursor, 
-#			temp_column_df = self.sourceSchema.readTableColumns(  self.JDBCCursor, 
-#														serverType = self.jdbc_servertype, 
-#														database = self.jdbc_database,
-#														schema = self.source_schema,
-#														table = self.source_table)
-
-#			temp_key_df = self.sourceSchema.readTableKeys(	self.JDBCCursor,
-#														serverType = self.jdbc_servertype, 
-#														database = self.jdbc_database,
-#														schema = self.source_schema,
-#														table = self.source_table)
-#			column_session = subprocess.Popen(["python", "/usr/local/db_import/read_schema/TableMetadataGenerator.py", "column", connect_file, self.jdbc_database, self.source_schema, self.source_table], stdout=PIPE, stderr=PIPE)
-#			column_stdout, column_stderr = column_session.communicate()
-
-#			key_session = subprocess.Popen(["python", "/usr/local/db_import/read_schema/TableMetadataGenerator.py", "key", connect_file, self.jdbc_database, self.source_schema, self.source_table], stdout=PIPE, stderr=PIPE)
-#			key_stdout, key_stderr = key_session.communicate()
-
-
-#		if self.db_progress == True:
-#			temp_column_df = self.sourceSchema.readTableColumns(  self.JDBCCursor, 
-#														serverType = self.jdbc_servertype, 
-#														database = self.jdbc_database,
-#														schema = self.source_schema,
-#														table = self.source_table)
-
-#			column_session = subprocess.Popen(["python", "/usr/local/db_import/read_schema/TableMetadataGenerator.py", "column", connect_file, self.jdbc_database, self.source_schema, self.source_table], stdout=PIPE, stderr=PIPE)
-#			column_stdout, column_stderr = column_session.communicate()
-#		key_session = subprocess.Popen(["python", "/usr/local/db_import/read_schema/TableMetadataGenerator.py", "key", connect_file, self.jdbc_database, self.source_schema, self.source_table], stdout=PIPE, stderr=PIPE)
-#		key_stdout, key_stderr = key_session.communicate()
-
-		# TODO: Add Mongo support here
-
-#		if self.source_columns_df.empty == True and 1 == 0:
-#			if column_session.returncode != 0:
-#				logging.error("Error running Python Schema Program - Column Data")
-#				print ("StdOut: %s"%(column_stdout))
-#				print ("StdErr: %s"%(column_stderr))
-#				raise Exception
-#
-#			rows_list = []
-#			for line in column_stdout.decode('utf-8').strip().split("\n"):
-#				if line.startswith('#'): continue
-#				line_dict = {}
-##				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-##				line_dict["TABLE_NAME"] = line.split('|')[1]
-#				line_dict["TABLE_COMMENT"] = line.split('|')[2]
-#				line_dict["SOURCE_COLUMN_NAME"] = line.split('|')[3]
-#				line_dict["SOURCE_COLUMN_TYPE"] = line.split('|')[4]
-#				line_dict["SOURCE_COLUMN_COMMENT"] = line.split('|')[5]
-#				line_dict["IS_NULLABLE"] = line.split('|')[6]
-#
-#				if line_dict["TABLE_COMMENT"].lower() in ("none", "null"): line_dict["TABLE_COMMENT"] = None
-#				if line_dict["SOURCE_COLUMN_COMMENT"].lower() in ("none", "null"): line_dict["SOURCE_COLUMN_COMMENT"] = None
-#
-#				rows_list.append(line_dict)
-#			self.source_columns_df = pd.DataFrame(rows_list)
-#			logging.debug("")
-#			logging.debug("Columns data from Python Schema Program: \n%s"%(self.source_columns_df))
-#
-#		if self.source_keys_df.empty == True:
-##		if self.source_keys_df.empty == True and 1 == 0:
-#			if key_session.returncode != 0:
-#				logging.error("Error running Python Schema Program - Key Data")
-#				print ("StdOut: %s"%(key_stdout))
-#				print ("StdErr: %s"%(key_stderr))
-#				raise Exception
-#
-#			rows_list = []
-#			for line in key_stdout.decode('utf-8').strip().split("\n"):
-#				if line.startswith('#'): continue
-#				line_dict = {}
-##				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-##				line_dict["TABLE_NAME"] = line.split('|')[1]
-#				line_dict["CONSTRAINT_NAME"] = line.split('|')[2]
-#				line_dict["CONSTRAINT_TYPE"] = line.split('|')[3]
-#				line_dict["COL_NAME"] = line.split('|')[4]
-##				line_dict["COL_DATA_TYPE"] = line.split('|')[5]
-#				if line.split('|')[6] == "None":
-#					line_dict["REFERENCE_SCHEMA_NAME"] = None
-#				else:
-#					line_dict["REFERENCE_SCHEMA_NAME"] = line.split('|')[6]
-#				if line.split('|')[7] == "None":
-#					line_dict["REFERENCE_TABLE_NAME"] = None
-#				else:
-#					line_dict["REFERENCE_TABLE_NAME"] = line.split('|')[7]
-#				if line.split('|')[8] == "None":
-#					line_dict["REFERENCE_COL_NAME"] = None
-#				else:
-#					line_dict["REFERENCE_COL_NAME"] = line.split('|')[8]
-#				line_dict["COL_KEY_POSITION"] = int(line.split('|')[9])
-#				rows_list.append(line_dict)
-#			self.source_keys_df = pd.DataFrame(rows_list)
-#			logging.debug("")
-#			logging.debug("Key data from Python Schema Program: \n%s"%(self.source_keys_df))
-#	
-#		if temp_column_df.empty == False:
-#			print(temp_column_df)
-#			print(self.source_columns_df)
-#			print("________________________________________________________\n\n")
-#
-#			merge_df = pd.merge(temp_column_df, self.source_columns_df, on=None, how='outer', indicator='Exist')
-#			nomatch_df = merge_df[merge_df['Exist'] != "both"]
-#			print(nomatch_df)
-#
-#		if temp_key_df.empty == False:
-#			print(temp_key_df)
-#			print(self.source_keys_df)
-#			print("________________________________________________________\n\n")
-#
-#			merge_df = pd.merge(temp_key_df, self.source_keys_df, on=None, how='outer', indicator='Exist')
-#			nomatch_df = merge_df[merge_df['Exist'] != "both"]
-#			print(nomatch_df)
-#
-#		logging.debug("")
-#		logging.debug("Key data from Python Schema Program: \n%s"%(self.source_keys_df))
-
 		logging.debug("Executing common_config.getSourceTableDefinition() - Finished")
 
 	def connectToJDBC(self,):
-#		self.JDBCConn = None
-#		self.JDBCCursor = None
 
 		if self.JDBCCursor == None:
 			logging.debug("Connecting to database over JDBC")
@@ -901,6 +678,7 @@ class config(object, metaclass=Singleton):
 		return row[0]
 
 		logging.debug("Executing common_config.getJDBCcolumnMaxValue() - Finished")
+
 	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement):
 		logging.debug("Executing common_config.getJDBCTableRowCount()")
 
