@@ -6,10 +6,15 @@ v0.30
 
 **Fixed issues**
 
+  - Issue #13: sqoop_query not respected
+  - Issue #12: Include_in_import not respected
+  - Issue #11: Oracle Number(>10) column having java_column_type = Integer
   - Issue #10: MySQL decimal columns gets created without precision
 
 **New Features**
 
+  - Ability to override the name and type of the column in Hive
+  - It's now possible to select where to get the number of rows from for the validation. sqoop or query
   - Support for Merge operation during ETL Phase, including History Audit tables
   - Import supports command options -I, -C and -E for running only Import, Copy or ETL Phase
 
