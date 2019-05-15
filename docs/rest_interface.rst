@@ -1,8 +1,21 @@
 Statistics
 ==========
 
-DBImport have the option to send JSON data to a REST interface with statistic and configuration data. The endpoint together with the option of what to send is controlled from the dbimport.cfg file.
+There are two different ways to get statistics out of DBImport. One is with JSON data that can be sent to a REST interface and the other is from statistics tables insode the configuration database. The JSON data is created only if configured in the dbimport.cfg file. The statistics in the database tables are always created as DBImport is using that internally aswell.
 
+Database Tables
+^^^^^^^^^^^^^^^
+
+There are statistical information in four different tables
+  - import_statistics
+  - import_statistics_last
+  - export_statistics
+  - export_statistics_last
+
+The reason to keep the _last tables is because many time you only want to see data for the last export/import for a specific table. So instead of having to go through alot of data, you can just get the last information from these tables. This will reduce the load on the MySQL database server for the cost of a little storage. 
+
+JSON
+^^^^
 
 JSON Example
 ------------
