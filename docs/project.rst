@@ -1,11 +1,6 @@
 Project
 =======
 
-History
--------
-
-History information will come later...
-
 Committers
 ----------
 
@@ -14,6 +9,7 @@ Committers
 Versions
 --------
 
+  - v0.40. Exports to MsSQL, Oracle, MySQL and DB2 is fully supported
   - v0.30. Support for Merge in ETL Phase
   - v0.21. Import statistics in SQL Tables
   - v0.20. Incremental Imports
@@ -28,3 +24,4 @@ RoadMap
   2. WebGui for administration of DBImport - **Alpha version available**
   3. Multi cluster ingestion of data - **On planning**
   4. Custom queries and delta loads from source - **Partially implemented**
+  5. Support for more JDBC sources such as Netezza, TeraData, ExaData

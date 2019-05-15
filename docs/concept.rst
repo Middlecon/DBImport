@@ -11,6 +11,16 @@ Incremental import
 
 An incremental import reads just the changed values from the previous import and add them to the target table. This can be done in two different ways. You can look at an integer based column and read all values that is larger than the previous value you read. This is usually for log/change tables where the Primary Key is an auto incremented column. The other way is to use a *timestamp*. When using the *timestamp* alternative, you specify a column in the source system that contains a column with information about when the row was last changed. DBImport then imports only those rows that was changed from the last import execution. Most common way is to use this alternative together with a *merge* import that apply the changes to a table that already have the rows and update the values in the columns.
 
+Full export
+-----------
+
+Full export makes a complete copy of the Hive table to the Target table. The data in the Target table will be truncated before the export is started.
+
+Incremental export
+------------------
+
+An incremental export reads just the changed values from the previous export and add them to the target table. 
+
 History Audit Table
 -------------------
 
@@ -34,13 +44,20 @@ DBImport uses different tables in Hive depending on the operation it's performin
   | History information based on the changes in the *Target table*. The table exists in the same Hive database as the *Target table* and have the prefix '_history' at the end of the table name.
 - | *Delete table*
   | To handle deletes and log them into the *History table*, we need to save the rows that are being deleted into a separate table. This table only contains the columns that is part of the Primary Key. This table exists in the same database as the *Import table* and is usually not accessable for the end users.
+- | *Temporary Export table*
+  | Sqoop export is very limited compared to the imports. To overcome some of these limitation, it's sometimes required to create a staging table that we load from the real Hive table and then the sqoop export will export the data from the *Temporary Export table* instead. This is also the way incremental exports are handled. We load the *Temporary Export table* with the changed rows and then make a full export from there to the *Target table*
 
-Validation
-----------
+Import Validation
+-----------------
 
 During import, both *full* and *incremental*, there will be three validations for each imported table. Validation in this context is basically a rowcount and comparing the number of rows between the two tables. There is no validation of the actual values inside the columns.
 
   1. The first validation happens in *Stage1* and is done after sqoop is executed. It compares the number of rows in the source system against the number of rows that sqoop reported that it read. If this is an incremental import, then only the incremental values are compared. This means that the select statement against the source system includes the min and max values in a where statement
   2. Second validation is done after the target table is created. This validates the number of rows in the Parquet files against the source system. If it is an incremental import, then only the imported rows are validates. Same way as the first validation.
   3. The last validation occurs after the target table is loaded. This might be a full or incremental validation based on the configuration for that specific table. Incremental validation works the same way as the other two validations and the Full validation is comparing the total amount of rows between source and target table regardless of how many rows was imported.
+
+Export Validation
+-----------------
+
+For exports, there will be only one validation and that is at the end of the export. The number or rows in the Hive table is compared to the rows in the target table. If it's an incremental export, there is the possibility to only validate the exported rows and not the entire table.
 

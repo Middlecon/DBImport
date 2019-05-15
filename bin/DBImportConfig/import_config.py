@@ -27,7 +27,7 @@ from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
 from DBImportConfig import rest 
-from DBImportConfig import stage as stage
+from DBImportConfig import import_stage as stage
 from mysql.connector import errorcode
 from datetime import datetime
 import pandas as pd
@@ -130,14 +130,14 @@ class config(object, metaclass=Singleton):
 		self.common_config.setHiveTable(Hive_DB, Hive_Table)
 		self.stage.setHiveTable(Hive_DB, Hive_Table)
 
-	def logColumnAdd(self, column, columnType, description=None, hiveDB=None, hiveTable=None):
-		self.common_config.logColumnAdd(column=column, columnType=columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable) 
+	def logHiveColumnAdd(self, column, columnType, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logHiveColumnAdd(column=column, columnType=columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable) 
 
-	def logColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
-		self.common_config.logColumnTypeChange(column, columnType, previous_columnType=previous_columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
+	def logHiveColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logHiveColumnTypeChange(column, columnType, previous_columnType=previous_columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
 
-	def logColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
-		self.common_config.logColumnRename(columnName, previous_columnName, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
+	def logHiveColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
+		self.common_config.logHiveColumnRename(columnName, previous_columnName, description=description, hiveDB=hiveDB, hiveTable=hiveTable)
 
 	def remove_temporary_files(self):
 		self.common_config.remove_temporary_files()
@@ -652,24 +652,26 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.getColumnForceString()")	
 		# Used to determine if char/varchar fields should be forced to string in Hive
 
-		query = ("select "
-				"	jc.force_string, "
-				"	t.force_string, "
-				"	c.force_string "
-				"from import_tables t "
-				"left join jdbc_connections jc "
-				"	on t.dbalias = jc.dbalias "
-				"left join import_columns c "
-				"	on c.hive_db = t.hive_db and c.hive_table = t.hive_table and c.last_update_from_source = t.last_update_from_source and c.column_name = %s "
-				"where "
-				"	t.hive_db = %s "
-				"	and t.hive_table = %s ")
+		query  = "select "
+		query += "	jc.force_string, "
+		query += "	t.force_string, "
+		query += "	c.force_string "
+		query += "from import_tables t "
+		query += "left join jdbc_connections jc "
+		query += "	on t.dbalias = jc.dbalias "
+		query += "left join import_columns c "
+		query += "	on c.hive_db = t.hive_db "
+		query += "	and c.hive_table = t.hive_table "
+		query += "	and c.column_name = %s "
+		query += "where "
+		query += "	t.hive_db = %s "
+		query += "	and t.hive_table = %s "
 
-		self.mysql_cursor01.execute(query, (column_name, self.Hive_DB, self.Hive_Table))
+		self.mysql_cursor01.execute(query, (column_name.lower(), self.Hive_DB, self.Hive_Table))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		if self.mysql_cursor01.rowcount != 1:
-			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
+			logging.error("Error: Number of rows returned from query on 'import_tables' was not one.")
 			logging.error("Rows returned: %d" % (self.mysql_cursor01.rowcount) )
 			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor01.statement) )
 			raise Exception
@@ -694,6 +696,10 @@ class config(object, metaclass=Singleton):
 		else:
 			forceString = True
 		
+		logging.debug("force_string_connection: %s"%(force_string_connection))
+		logging.debug("force_string_table: %s"%(force_string_table))
+		logging.debug("force_string_column: %s"%(force_string_column))
+		logging.debug("forceString: %s"%(forceString))
 		logging.debug("Executing import_config.getColumnForceString() - Finished")	
 		return forceString
 
@@ -963,6 +969,12 @@ class config(object, metaclass=Singleton):
 				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 
+			# Fetch if we should force this column to 'string' in Hive
+			if column_type.startswith("char(") == True or column_type.startswith("varchar("):
+				columnForceString = self.getColumnForceString(column_name)
+				if columnForceString == True:
+					column_type = "string"
+
 			if includeColumnInImport == True:
 				# Add , between column names in the list
 				if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
@@ -988,12 +1000,6 @@ class config(object, metaclass=Singleton):
 					self.sqoop_use_generated_sql = True
 				else:
 					self.sqlGeneratedSqoopQuery += quote + source_column_name + quote
-
-			# Fetch if we should force this column to 'string' in Hive
-			columnForceString = self.getColumnForceString(column_name)
-			if columnForceString == True:
-				if column_type.startswith("char(") == True or column_type.startswith("varchar("):
-					column_type = "string"
 
 			# Run a query to see if the column already exists. Will be used to determine if we do an insert or update
 #			query = "select column_id from import_columns where table_id = %s and source_column_name = %s "
@@ -1917,8 +1923,7 @@ class config(object, metaclass=Singleton):
 
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
-#				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)
-				self.sqoop_options += "--split-by %s"%(self.sqoopSplitByColumn)
+				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)		# This is needed, otherwise PK with space in them fail
 
 		logging.debug("Executing import_config.generateSqoopSplitBy() - Finished")
 

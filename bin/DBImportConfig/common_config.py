@@ -36,6 +36,7 @@ from sourceSchemaReader import schemaReader
 from common.Singleton import Singleton
 from common import constants as constant
 from DBImportConfig import decryption as decryption
+from common.Exceptions import *
 
 class config(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
@@ -607,9 +608,10 @@ class config(object, metaclass=Singleton):
 		if exit_after_function == True:
 			raise Exception
 
-	def getJDBCTableDefinition(self, source_schema, source_table):
+	def getJDBCTableDefinition(self, source_schema, source_table, printInfo=True):
 		logging.debug("Executing common_config.getJDBCTableDefinition()")
-		logging.info("Reading SQL table definitions from source database")
+		if printInfo == True:
+			logging.info("Reading SQL table definitions from source database")
 		self.source_schema = source_schema
 		self.source_table = source_table
 
@@ -679,6 +681,92 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getJDBCcolumnMaxValue() - Finished")
 
+	def truncateJDBCTable(self, schema, table):
+		""" Truncates a table on the JDBC connection """
+		logging.debug("Executing common_config.truncateJDBCTable()")
+		self.connectToJDBC()
+		query = None
+
+		if self.db_oracle == True:
+			query = "truncate table \"%s\".\"%s\""%(schema.upper(), table.upper())
+
+		if self.db_mssql == True:
+			query = "truncate table %s.%s"%(schema, table)
+
+		if self.db_db2udb == True:
+			query = "truncate table \"%s\".\"%s\" immediate"%(schema.upper(), table.upper())
+
+		if self.db_mysql == True:
+			query = "truncate table %s"%(table)
+
+		if query == None:
+			raise undevelopedFeature("There is no support for this database type in common_config.checkJDBCTable()") 
+		
+		logging.debug("SQL Statement executed: %s" % (query) )
+		self.JDBCCursor.execute(query)
+
+		logging.debug("Executing common_config.truncateJDBCTable() - Finished")
+
+	def checkJDBCTable(self, schema, table):
+		""" Checks if a table exists on the JDBC connections. Return True or False """ 
+		logging.debug("Executing common_config.checkJDBCTable()")
+		self.connectToJDBC()
+		query = None
+	
+		if self.db_oracle == True:
+			query = "select count(owner) from all_tables where owner = '%s' and table_name = '%s'"%(schema.upper(), table.upper())
+
+		if self.db_mssql == True:
+			query = "select count(table_name) from INFORMATION_SCHEMA.COLUMNS where table_schema = '%s' and table_name = '%s'"%(schema, table)
+
+		if self.db_db2udb == True:
+			query = "select count(name) from SYSIBM.SYSTABLES where upper(creator) = '%s' and upper(name) = '%s'"%(schema.upper(), table.upper())
+		if self.db_mysql == True:
+			query = "select count(table_name) from information_schema.tables where table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, table)
+
+		if query == None:
+			raise undevelopedFeature("There is no support for this database type in common_config.checkJDBCTable()") 
+
+
+		logging.debug("SQL Statement executed: %s" % (query) )
+		self.JDBCCursor.execute(query)
+		row = self.JDBCCursor.fetchone()
+
+		tableExists = False
+
+		if int(row[0]) > 0:
+			tableExists = True
+
+		logging.debug("Executing common_config.checkJDBCTable() - Finished")
+		return tableExists
+
+	def executeJDBCquery(self, query):
+		""" Executes a query against the JDBC database and return the values in a Pandas DF """
+		logging.debug("Executing common_config.executeJDBCquery()")
+
+		logging.debug("Query to execute: %s"%(query))
+		try:
+			self.connectToJDBC()
+			self.JDBCCursor.execute(query)
+		except jaydebeapi.DatabaseError as errMsg:
+			raise SQLerror(errMsg)	
+
+		result_df = None
+		try:
+			result_df = pd.DataFrame(self.JDBCCursor.fetchall())
+			result_df_columns = []
+			for columns in self.JDBCCursor.description:
+				result_df_columns.append(columns[0])    # Name of the column is in the first position
+			result_df.columns = result_df_columns
+		except jaydebeapi.Error:
+			logging.debug("An error was raised during JDBCCursor.fetchall(). This happens during SQL operations that dont return any rows like 'create table'")
+			
+		# Set the correct column namnes in the DataFrame
+
+		logging.debug("Executing common_config.executeJDBCquery() - Finished")
+		return result_df
+
+
 	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement):
 		logging.debug("Executing common_config.getJDBCTableRowCount()")
 
@@ -717,13 +805,14 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getJDBCTableRowCount() - Finished")
 
-	def logColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
+	def logHiveColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
 		if description == None:
 			description = "Column '%s' added to table with type '%s'"%(column, columnType)
 
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
+#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, value, description ) "
 		query += "values "
@@ -733,7 +822,7 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor.execute(query, (hiveDB, hiveTable, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), columnType, description))
 		self.mysql_conn.commit()
 
-	def logColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
+	def logHiveColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, hiveDB=None, hiveTable=None):
 
 		if description == None:
 			if previous_columnType == None:
@@ -744,6 +833,7 @@ class config(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
+#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
 		query += "values "
@@ -753,7 +843,7 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor.execute(query, (hiveDB, hiveTable, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnType, columnType, description))
 		self.mysql_conn.commit()
 
-	def logColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
+	def logHiveColumnRename(self, columnName, previous_columnName, description=None, hiveDB=None, hiveTable=None):
 
 		if description == None:
 			description = "Column '%s' renamed to %s"%(previous_columnName, columnName)
@@ -761,6 +851,7 @@ class config(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
+#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
 		query += "values "
@@ -768,6 +859,50 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("SQL Statement executed: %s" % (query))
 		self.mysql_cursor.execute(query, (hiveDB, hiveTable, columnName, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnName, columnName, description))
+		self.mysql_conn.commit()
+
+	def logJDBCColumnAdd(self, column, columnType=None, description=None, dbAlias=None, database=None, schema=None, table=None):
+		if description == None:
+			description = "Column '%s' added to table with type '%s'"%(column, columnType)
+
+		query  = "insert into jdbc_table_change_history "
+		query += "( dbalias, db_name, schema_name, table_name, column_name, eventtime, event, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, %s, %s, 'column_added', %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (dbAlias, database, schema, table, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), columnType, description))
+		self.mysql_conn.commit()
+
+	def logJDBCColumnTypeChange(self, column, columnType, previous_columnType=None, description=None, dbAlias=None, database=None, schema=None, table=None):
+
+		if description == None:
+			if previous_columnType == None:
+				description = "Column '%s' type changed to %s"%(column, columnType)
+			else:
+				description = "Column '%s' type changed from %s to %s"%(column, previous_columnType, columnType)
+
+		query  = "insert into jdbc_table_change_history "
+		query += "( dbalias, db_name, schema_name, table_name, column_name, eventtime, event, previous_value, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, %s, %s, 'column_type_change', %s, %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (dbAlias, database, schema, table, column, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnType, columnType, description))
+		self.mysql_conn.commit()
+
+	def logJDBCColumnRename(self, columnName, previous_columnName, description=None, dbAlias=None, database=None, schema=None, table=None):
+
+		if description == None:
+			description = "Column '%s' renamed to %s"%(previous_columnName, columnName)
+
+		query  = "insert into jdbc_table_change_history "
+		query += "( dbalias, db_name, schema_name, table_name, column_name, eventtime, event, previous_value, value, description ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, %s, %s, 'column_rename', %s, %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (dbAlias, database, schema, table, columnName, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), previous_columnName, columnName, description))
 		self.mysql_conn.commit()
 
 	def getQuoteAroundColumn(self):
@@ -781,6 +916,13 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.DB2_AS400:    quoteAroundColumn = "\""
 
 		return quoteAroundColumn
+
+	def getJDBCUpperCase(self):
+		upperCase = False
+		if self.jdbc_servertype == constant.ORACLE:       upperCase = True
+		if self.jdbc_servertype == constant.DB2_UDB:      upperCase = True
+
+		return upperCase
 
 	def getJDBCsqlFromTable(self, schema, table):
 		logging.debug("Executing common_config.getJDBCsqlFromTable()")

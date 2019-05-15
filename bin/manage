@@ -23,24 +23,36 @@ from common import constants as constant
 from DBImportConfig import common_config
 from DBImportConfig import rest
 from DBImportOperation import import_operations
+from DBImportOperation import export_operations
 
 def printHelp():
 	print ("Options:")
-	print ("  --clearImportStage Clear the Import stage. Requires Hive Database and Hive Table paramaters")
+	print ("  --clearImportStage Clear the Import stage. Requires [Hive Database] and [Hive Table] paramaters")
+	print ("  --clearExportStage Clear the Export stage. Requires [Connection], [Schema] and [Table]")
 	print ("  --encryptCredentials")
 	print ("                     Encrypt username and password for a Database Connection. ")
 	print ("  --sendJSONstatistics")
 	print ("                     Posts the JSON data in the 'json_to_rest' table to the configured REST endpoints")
 	print ("  --repairIncrementalImport")
-	print ("                     Resets an incremental import by getting the max value for incremental column and set that")
-	print ("                     as a starting point for the next import. Requires Hive Database and Hive Table paramaters")
+	print ("                     Repairs an incremental import by getting the max value for incremental column and set that")
+	print ("                     as a starting point for the next import. Requires [Hive Database] and [Hive Table] paramaters")
 	print ("  --repairAllIncrementalImports")
-	print ("                     Resets all incremental import that have an active stage.")
+	print ("                     Repairs all incremental import that have an active stage.")
+	print ("  --repairIncrementalExport")
+	print ("                     Tries to repair an incremental import by reading the max value for the incremental column from the ")
+	print ("                     Target Table and use that as the max value for the next export. Requires [Connection], [Schema] and [Table]")
+	print ("  --resetIncrementalExport")
+	print ("                     Resets an incremental export. This will truncate the Target table and force the next export")
+	print ("                     to start from the begining with a full export. Requires [Connection], [Schema] and [Table]")
 	print ("")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
 	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
 	print ("                     Hive table")
+	print ("")
+	print ("  -a [Connection]    The alias of the JDBC connection")
+	print ("  -S [Schema]        Schema name of the table to export")
+	print ("  -T [Table]         Table to export")
 	print ("")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
@@ -49,7 +61,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:", ["help", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug"])
+		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug", "repairIncrementalExport", "clearExportStage"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -57,6 +69,9 @@ def main(argv):
 	Hive_Table = None
 	operation = None
 	loggingLevel = logging.INFO
+	connectionAlias = None
+	targetSchema = None
+	targetTable = None
 
 	if  len(opts) == 0:
 		printHelp()
@@ -70,8 +85,16 @@ def main(argv):
 			loggingLevel = logging.DEBUG
 		elif opt == "--help":
 			printHelp()
+		elif opt == "-a":
+			connectionAlias = arg
+		elif opt == "-S":
+			targetSchema = arg
+		elif opt == "-T":
+			targetTable = arg
 		elif opt == "--clearImportStage":
 			operation = "clearImportStage"
+		elif opt == "--clearExportStage":
+			operation = "clearExportStage"
 		elif opt == "--encryptCredentials":
 			operation = "encryptCredentials"
 		elif opt == "--sendJSONstatistics":
@@ -80,6 +103,10 @@ def main(argv):
 			operation = "repairIncrementalImport"
 		elif opt == "--repairAllIncrementalImports":
 			operation = "repairAllIncrementalImports"
+		elif opt == "--resetIncrementalExport":
+			operation = "resetIncrementalExport"
+		elif opt == "--repairIncrementalExport":
+			operation = "repairIncrementalExport"
 
 
 	if operation == None:
@@ -89,6 +116,15 @@ def main(argv):
 		printHelp()
 
 	if operation == "repairIncrementalImport" and (Hive_DB == None or Hive_Table == None):
+		printHelp()
+
+	if operation == "clearExportStage" and (connectionAlias == None or targetSchema == None or targetTable == None):
+		printHelp()
+
+	if operation == "resetIncrementalExport" and (connectionAlias == None or targetSchema == None or targetTable == None):
+		printHelp()
+
+	if operation == "repairIncrementalExport" and (connectionAlias == None or targetSchema == None or targetTable == None):
 		printHelp()
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
@@ -128,14 +164,15 @@ def main(argv):
 		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
 		connectionAlias = input("DataBase Connection (dbalias): ")
 
-		common_config = common_config.config()
-		if common_config.checkConnectionAlias(connectionAlias) == False:
+		commonConfig = common_config.config()
+		if commonConfig.checkConnectionAlias(connectionAlias) == False:
 			logging.error("The specified database connection does not exist.")
 			sys.exit(1)
 
 		username = input("Username: ")
 		password = input("Password: ")
-		common_config.encryptUserPassword(connectionAlias, username, password)
+		commonConfig.encryptUserPassword(connectionAlias, username, password)
+		commonConfig.remove_temporary_files()
 
 	if operation == "sendJSONstatistics":
 		rest.postSQLDataToREST()
@@ -151,6 +188,7 @@ def main(argv):
 		if answer.lower() == "y":
 			import_operation = import_operations.operation()
 			import_operation.repairAllIncrementalImports()
+			import_operation.remove_temporary_files()
 
 
 	if operation == "repairIncrementalImport":
@@ -164,7 +202,38 @@ def main(argv):
 		if answer.lower() == "y":
 			import_operation = import_operations.operation(Hive_DB, Hive_Table)
 			import_operation.resetIncrMaxValue()
+			import_operation.remove_temporary_files()
 
+	if operation == "resetIncrementalExport":
+		print("This command will truncate the Target Table and force the next export to be a full export.")
+		print("")
+		answer = input("Are you sure you want to do this? (y/N): ")
+#		answer = "y"
+
+		if answer.lower() == "y":
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation.truncateJDBCTable()
+			export_operation.resetIncrMinMaxValues(maxValue=None)
+			export_operation.clearStage()
+			export_operation.remove_temporary_files()
+
+	if operation == "repairIncrementalExport":
+		print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
+		print ("Target Table and use that as the max value for the next export.")
+		answer = input("Are you sure you want to do this? (y/N): ")
+#		answer = "y"
+
+		if answer.lower() == "y":
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation.resetMaxValueFromTarget()
+			export_operation.remove_temporary_files()
+
+	if operation == "clearExportStage":
+		export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+		export_operation.clearStage()
+		logging.info("Stage information cleared")
+
+		export_operation.remove_temporary_files()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
