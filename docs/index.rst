@@ -32,6 +32,7 @@ Content
     import_methods
     export_methods
     database
-    rest_interface
+    statistics
+
 
 
