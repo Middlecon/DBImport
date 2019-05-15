@@ -1,6 +1,18 @@
 Release Notes
 =============
 
+v0.40
+-----
+
+**Fixed issues**
+
+  - Issue #14: force_string settings in import_columns was not used
+
+**New Features**
+
+  - Exports to MsSQL, Oracle, MySQL and DB2 is fully supported
+
+
 v0.30
 -----
 

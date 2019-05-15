@@ -234,9 +234,8 @@ def main(argv):
 
 		import_operation.setStageOnlyInMemory()
 
-		# Check if the configured Hive database exists
-		import_operation.checkHiveDB(Hive_DB.lower())
-		
+	# Check if the configured Hive database exists
+	import_operation.checkHiveDB(Hive_DB.lower())
 
 	if ignoreTime == False:
 #		# Checking if we are allowed to use the configued JDBC connection at this time
@@ -274,6 +273,8 @@ def main(argv):
 		import_operation.remove_temporary_files()
 		sys.exit(0)
 
+	sys.stdout.flush()
+
 	# ******************************************
 	# * IMPORT_PHASE_FULL 
 	# ******************************************
@@ -295,6 +296,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 
 		# Fetch the source table schema. This is mandatory for all imports
@@ -349,6 +351,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 
 		if runImportPhase == False and stage < 1049:
@@ -449,6 +452,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		# Fetch the source table schema. This is mandatory for all imports
 		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
@@ -505,6 +509,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		if runImportPhase == False and stage < 1149:
 			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
@@ -606,6 +611,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		if runImportPhase == False and stage < 1049:
 			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
@@ -736,6 +742,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		if runImportPhase == False and stage < 1049:
 			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
@@ -854,6 +861,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		if runImportPhase == False and stage < 1149:
 			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
@@ -963,6 +971,7 @@ def main(argv):
 			print("|________________________________________________________|")
 			print("")
 			print("")
+			sys.stdout.flush()
 
 		if runImportPhase == False and stage < 1149:
 			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")

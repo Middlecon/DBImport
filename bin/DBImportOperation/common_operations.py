@@ -215,6 +215,33 @@ class operation(object, metaclass=Singleton):
 		else:
 			return False
 	
+	def isHiveColumnQuotationNeeded(self, hiveDB, hiveTable, column):
+		""" Returns True or False if column quotation is needed for this column """
+		logging.debug("Executing common_operations.isHiveColumnQuotationNeeded()")
+		quotationNeeded = True
+
+		query  = "select c.TYPE_NAME "
+		query += "from COLUMNS_V2 c "
+		query += "   left join SDS s on c.CD_ID = s.CD_ID "
+		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
+		query += "   left join DBS d on t.DB_ID = d.DB_ID "
+		query += "where "
+		query += "   c.COLUMN_NAME = %s "
+		query += "   and d.NAME = %s "
+		query += "   and t.TBL_NAME = %s"
+		self.mysql_cursor.execute(query, (column.lower(), hiveDB.lower(), hiveTable.lower() ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		row = self.mysql_cursor.fetchone()
+		columnType = row[0]
+
+		if columnType in ("int", "integer", "bigint", "tinyint", "smallint", "decimal", "double", "float", "boolean"):
+			quotationNeeded = False
+
+		logging.debug("Quotation needed: %s"%(quotationNeeded))
+		logging.debug("Executing common_operations.isHiveColumnQuotationNeeded() - Finished")
+		return quotationNeeded
+
 	def isHiveTableExternalParquetFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing common_operations.isExternalHiveTableParquetFormat()")
 
@@ -540,16 +567,21 @@ class operation(object, metaclass=Singleton):
 		self.executeHiveQuery("truncate table `%s`.`%s`"%(hiveDB, hiveTable))
 		logging.debug("Executing common_operations.truncateHiveTable() - Finished")
 
-	def getHiveColumns(self, hiveDB, hiveTable, includeType=False, includeComment=False):
+	def getHiveColumns(self, hiveDB, hiveTable, includeType=False, includeComment=False, includeIdx=False, forceColumnUppercase=False):
 		""" Returns a pandas DataFrame with all columns in the specified Hive table """		
 		logging.debug("Executing common_operations.getHiveColumns()")
 
 		query  = "select "
-		query += "	c.COLUMN_NAME as name "
+		if forceColumnUppercase == False:
+			query += "	c.COLUMN_NAME as name "
+		else:
+			query += "	upper(c.COLUMN_NAME) as name "
 		if includeType == True:
 			query += "	, c.TYPE_NAME as type "
 		if includeComment == True:
 			query += "	, c.COMMENT as comment "
+		if includeIdx == True:
+			query += "	, c.INTEGER_IDX as idx "
 		query += "from COLUMNS_V2 c "
 		query += "   left join SDS s on c.CD_ID = s.CD_ID "
 		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
@@ -770,7 +802,31 @@ class operation(object, metaclass=Singleton):
 			if row[0].lower() == "true":
 				returnValue = True
 
+		logging.debug("isHiveTableTransactional = %s"%(returnValue))
 		logging.debug("Executing common_operations.isHiveTableTransactional() - Finished")
+		return returnValue
+
+	def isHiveTableView(self, hiveDB, hiveTable):
+		logging.debug("Executing common_operations.isHiveTableView()")
+
+		query  = "select t.TBL_TYPE "
+		query += "from TBLS t "
+		query += "	left join DBS d on t.DB_ID = d.DB_ID "
+		query += "where "
+		query += "	d.NAME = %s "
+		query += "	and t.TBL_NAME = %s "
+
+		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+		
+		returnValue = False
+
+		row = self.mysql_cursor.fetchone()
+		if row[0] == "VIRTUAL_VIEW":
+			returnValue = True
+
+		logging.debug("isHiveTableView = %s"%(returnValue))
+		logging.debug("Executing common_operations.isHiveTableView() - Finished")
 		return returnValue
 
 	def getHiveColumnNameDiff(self, sourceDB, sourceTable, targetDB, targetTable, sourceIsImportTable=False):

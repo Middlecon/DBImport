@@ -560,10 +560,10 @@ class operation(object, metaclass=Singleton):
 					query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInConfig['type'])
 					self.common_operations.executeHiveQuery(query)
 
-					self.import_config.logColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
+					self.import_config.logHiveColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
 				
 					if rowInConfig["type"] != rowInHive["type"]:
-						self.import_config.logColumnTypeChange(rowInConfig['name'], rowInConfig['type'], previous_columnType=rowInHive["type"], hiveDB=hiveDB, hiveTable=hiveTable) 
+						self.import_config.logHiveColumnTypeChange(rowInConfig['name'], rowInConfig['type'], previous_columnType=rowInHive["type"], hiveDB=hiveDB, hiveTable=hiveTable) 
 				else:
 					if columnsMergeLeftOnlyCount == 1 and columnsMergeRightOnlyCount == 1:
 						# So the columns are not in the same position, but it's only one column that changed. In that case, we just rename that one column
@@ -580,7 +580,7 @@ class operation(object, metaclass=Singleton):
 						query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInHive['type'])
 						self.common_operations.executeHiveQuery(query)
 
-						self.import_config.logColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
+						self.import_config.logHiveColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
 
 			self.common_operations.reconnectHiveMetaStore()
 			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
@@ -597,7 +597,7 @@ class operation(object, metaclass=Singleton):
 
 			self.common_operations.executeHiveQuery(query)
 
-			self.import_config.logColumnAdd(fullRow['name'], columnType=fullRow['type'], hiveDB=hiveDB, hiveTable=hiveTable) 
+			self.import_config.logHiveColumnAdd(fullRow['name'], columnType=fullRow['type'], hiveDB=hiveDB, hiveTable=hiveTable) 
 
 		# Check for changed column types
 		self.common_operations.reconnectHiveMetaStore()
@@ -628,7 +628,7 @@ class operation(object, metaclass=Singleton):
 				(columnsMergeOnlyNameType['Exist'] == 'right_only')]
 				).reset_index().at[0, 'type']
 
-			self.import_config.logColumnTypeChange(row['name'], columnType=row['type'], previous_columnType=previous_columnType, hiveDB=hiveDB, hiveTable=hiveTable) 
+			self.import_config.logHiveColumnTypeChange(row['name'], columnType=row['type'], previous_columnType=previous_columnType, hiveDB=hiveDB, hiveTable=hiveTable) 
 
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()

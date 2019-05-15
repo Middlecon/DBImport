@@ -22,7 +22,7 @@ project = 'DBImport'
 author = 'Berry Österlund'
 
 # The full version, including alpha/beta/rc tags
-release = '0.30'
+release = '0.40'
 
 
 # -- General configuration ---------------------------------------------------
