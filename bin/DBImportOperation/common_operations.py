@@ -156,7 +156,7 @@ class operation(object, metaclass=Singleton):
 		if row[1] != None: timeWindowStop = str(row[1])
 
 		if timeWindowStart == None and timeWindowStop == None:
-			logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
+			logging.info("SUCCESSFUL: This JDBC connection is allowed to be accessed at any time during the day.")
 			return
 		elif timeWindowStart == None or timeWindowStop == None: 
 			logging.error("Atleast one of the TimeWindow settings are NULL in the database. Only way to disable the Time Window")
@@ -176,7 +176,7 @@ class operation(object, metaclass=Singleton):
 			self.remove_temporary_files()
 			sys.exit(1)
 		elif currentTime < timeWindowStart or currentTime > timeWindowStop:
-			logging.error("We are not allowed to run this import outside the configured Time Window")
+			logging.error("We are not allowed to access this JDBC Connection outside the configured Time Window")
 			logging.info("    Current time:     %s"%(currentTime))
 			logging.info("    TimeWindow Start: %s"%(timeWindowStart))
 			logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))

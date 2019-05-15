@@ -186,6 +186,7 @@ def main(argv):
 
 			newStage = 0
 			if stage == 107: newStage = 106
+			if stage == 108: newStage = 100
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous export failed and this execution |")
