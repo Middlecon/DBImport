@@ -557,8 +557,9 @@ class config(object, metaclass=Singleton):
 #					columnType = re.sub('\)$', ' char)', columnType)
 
 			if columnType == "string":
-				columnType = "clob"
-				mapColumnJava = "String"
+				raise invalidConfiguration("Error: Exports of column '%s' with type 'string' to Oracle is not supported. Please set another columntype in 'target_column_type' or ignore this column in the export."%(columnName))
+#				columnType = "clob"
+#				mapColumnJava = "String"
 
 		if self.common_config.db_mysql == True:
 			columnType = re.sub('^string$', 'text', columnType)
@@ -863,6 +864,36 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing export_config.updateTargetTable() - Finished")
 
+	def getSqoopMapColumnJava(self):
+		""" Returns the generated mapColumnJava settngs for all columns """
+		logging.debug("Executing export_config.getSqoopMapColumnJava()")
+
+		columnsDF = self.getColumnsFromConfigDatabase(excludeColumns=True)
+		self.sqoop_mapcolumnjava=[]
+		forceColumnUppercase = False
+
+		if self.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
+			forceColumnUppercase = True
+
+		for index, row in columnsDF.iterrows():
+			columnType = row['columnType']
+			targetColumnName = row['targetColumnName']
+			hiveColumnName = row['hiveColumnName']
+			if targetColumnName != None and targetColumnName.strip() != "":
+				columnName = targetColumnName
+			else:
+				columnName = hiveColumnName
+
+			if forceColumnUppercase == True:
+				columnName = columnName.upper()
+
+			columnType, mapColumnJava = self.convertColumnTypeForTargetTable(hiveColumnName, columnType)
+			if mapColumnJava != None:
+				self.sqoop_mapcolumnjava.append(columnName + "=" + mapColumnJava)
+
+		logging.debug("Executing export_config.getSqoopMapColumnJava() - Finished")
+		return self.sqoop_mapcolumnjava
+
 	def createTargetTable(self):
 		""" Creates the target table on the JDBC connection. This is the table we will export to """
 		logging.debug("Executing export_config.createTargetTable()")
@@ -907,9 +938,9 @@ class config(object, metaclass=Singleton):
 			else:
 				firstLoop = False
 
-			columnType, mapcolumnjava = self.convertColumnTypeForTargetTable(hiveColumnName, columnType)
-			if mapcolumnjava != None:
-				self.sqoop_mapcolumnjava.append(columnName + "=" + mapcolumnjava)
+			columnType, mapColumnJava = self.convertColumnTypeForTargetTable(hiveColumnName, columnType)
+			if mapColumnJava != None:
+				self.sqoop_mapcolumnjava.append(columnName + "=" + mapColumnJava)
 
 			query += "%s%s%s %s NULL "%(columnQuote, columnName, columnQuote, columnType)
 			if self.common_config.jdbc_servertype not in (constant.ORACLE, constant.MSSQL):

@@ -132,6 +132,20 @@ class operation(object, metaclass=Singleton):
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
+	def dropJDBCTable(self):
+		try:
+			if self.export_config.truncateTargetTable == True:
+				logging.info("Dropping Target Table")
+				self.export_config.common_config.dropJDBCTable(schema=self.targetSchema, table=self.targetTable)
+		except invalidConfiguration as errMsg:
+			logging.error(errMsg)
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
+		except:
+			logging.exception("Fatal error when truncating target table")
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
+
 	def truncateJDBCTable(self):
 		try:
 			if self.export_config.truncateTargetTable == True:
@@ -164,6 +178,31 @@ class operation(object, metaclass=Singleton):
 		try:
 			self.export_config.updateTargetTable()
 		except SQLerror as errMsg:
+			if "ORA-22859: invalid modification of columns" in str(errMsg):
+				# We get this message from Oracle when we try to change a column type that is not supported
+				if self.export_config.exportIsIncremental == False:
+					try:
+						logging.info("There is a column type change that is not supported by Oracle. But because this export is a full export, we will drop the Target table and recreate it automatically")
+						self.dropJDBCTable()
+						self.createTargetTable()
+						self.export_config.updateTargetTable()
+					except invalidConfiguration as errMsg:
+						logging.error(errMsg)
+						self.export_config.remove_temporary_files()
+						sys.exit(1)
+					except:
+						logging.exception("Fatal error when updating the target table")
+						self.export_config.remove_temporary_files()
+						sys.exit(1)
+				else:
+					logging.error("There is a column type change required on the target table but Oracle doesnt support that change. Drop the table or disable the column is the only option. As this is an incremental export, we cant do that automatically as it might result in loss of data")
+					self.export_config.remove_temporary_files()
+					sys.exit(1)
+			else:
+				logging.error(errMsg)
+				self.export_config.remove_temporary_files()
+				sys.exit(1)
+		except invalidConfiguration as errMsg:
 			logging.error(errMsg)
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
@@ -515,6 +554,7 @@ class operation(object, metaclass=Singleton):
 			targetTable = self.targetTable
 
 		self.export_config.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable)
+#		print(self.export_config.common_config.source_columns_df)
 		columnsTarget = self.export_config.common_config.source_columns_df
 		columnsTarget.rename(columns={'SOURCE_COLUMN_NAME':'name'}, inplace=True) 
 		columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
@@ -614,6 +654,10 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand.extend(["--password-file", "file://%s"%(self.export_config.common_config.jdbc_password_file)])
 		if sqoopDirectOption != "":
 			sqoopCommand.append(sqoopDirectOption)
+
+		mapColumnJava = self.export_config.getSqoopMapColumnJava()
+		if len(mapColumnJava) > 0: 
+			sqoopCommand.extend(["--map-column-java", ",".join(mapColumnJava)])
 
 		sqoopCommand.extend(["--num-mappers", str(self.export_config.sqlSessions)])
 
