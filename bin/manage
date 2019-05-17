@@ -44,6 +44,8 @@ def printHelp():
 	print ("  --resetIncrementalExport")
 	print ("                     Resets an incremental export. This will truncate the Target table and force the next export")
 	print ("                     to start from the begining with a full export. Requires [Connection], [Schema] and [Table]")
+	print ("  --dropExportTable")
+	print ("                     Drops an Export table and forces an incremental import to start from a full export. Requires [Connection], [Schema] and [Table]")
 	print ("")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
@@ -61,7 +63,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug", "repairIncrementalExport", "clearExportStage"])
+		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -107,6 +109,8 @@ def main(argv):
 			operation = "resetIncrementalExport"
 		elif opt == "--repairIncrementalExport":
 			operation = "repairIncrementalExport"
+		elif opt == "--dropExportTable":
+			operation = "dropExportTable"
 
 
 	if operation == None:
@@ -125,6 +129,9 @@ def main(argv):
 		printHelp()
 
 	if operation == "repairIncrementalExport" and (connectionAlias == None or targetSchema == None or targetTable == None):
+		printHelp()
+
+	if operation == "dropExportTable" and (connectionAlias == None or targetSchema == None or targetTable == None):
 		printHelp()
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
@@ -226,6 +233,19 @@ def main(argv):
 		if answer.lower() == "y":
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
 			export_operation.resetMaxValueFromTarget()
+			export_operation.remove_temporary_files()
+
+	if operation == "dropExportTable":
+		print("This command will drop the Target Table and if it's an incremental export, force the next export to be a full export.")
+		print("")
+		answer = input("Are you sure you want to do this? (y/N): ")
+#		answer = "y"
+
+		if answer.lower() == "y":
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation.dropJDBCTable()
+			export_operation.resetIncrMinMaxValues(maxValue=None)
+			export_operation.clearStage()
 			export_operation.remove_temporary_files()
 
 	if operation == "clearExportStage":

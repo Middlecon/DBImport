@@ -805,6 +805,15 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getJDBCTableRowCount() - Finished")
 
+	def dropJDBCTable(self, schema, table):
+		logging.debug("Executing common_config.dropJDBCTable()")
+
+		self.connectToJDBC()
+		query = "drop table %s"%(self.getJDBCsqlFromTable(schema=schema, table=table))
+		self.JDBCCursor.execute(query)
+
+		logging.debug("Executing common_config.dropJDBCTable() - Finished")
+
 	def logHiveColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
 		if description == None:
 			description = "Column '%s' added to table with type '%s'"%(column, columnType)
