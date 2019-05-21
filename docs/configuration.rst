@@ -11,36 +11,36 @@ Database Connections
 All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table. Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type.
 
 
-**DB2 AS400**
+**DB2 AS400**::
 
-jdbc:as400://<HOSTNAME>:<PORT>/<DATABASE>
+    jdbc:as400://<HOSTNAME>:<PORT>/<DATABASE>
 
-**DB2 UDB**
+**DB2 UDB**::
 
-jdbc:db2://<HOSTNAME>:<PORT>/<DATABASE>
+    jdbc:db2://<HOSTNAME>:<PORT>/<DATABASE>
 
-**Microsoft SQL Server**
+**Microsoft SQL Server**::
 
-There are two different ways to enter the JDBC URL for MSSQL. Default Microsoft JDBC or jTDS JDBC. jTDS is used when you are autenticating with a user that is in AD and the standard Microsoft JDBC is used when the SQL Server have local users that you connect with
+There are two different ways to enter the JDBC URL for MSSQL. Default Microsoft JDBC or jTDS JDBC. jTDS is used when you are autenticating with a user that is in AD and the standard Microsoft JDBC is used when the SQL Server have local users that you connect with::
 
-jdbc:sqlserver://<HOSTNAME>:<PORT>;database=<DATBASE NAME>
-jdbc:jtds:sqlserver://<HOSTNAME>:<PORT>;useNTLMv2=true;domain=<DOMAIN>;databaseName=<DATBASE NAME>
+    jdbc:sqlserver://<HOSTNAME>:<PORT>;database=<DATBASE NAME>
+    jdbc:jtds:sqlserver://<HOSTNAME>:<PORT>;useNTLMv2=true;domain=<DOMAIN>;databaseName=<DATBASE NAME>
 
-**MySQL**
+**MySQL**::
 
-jdbc:mysql://<HOSTNAME>:<PORT>/<DATABASE>
+    jdbc:mysql://<HOSTNAME>:<PORT>/<DATABASE>
 
-**Oracle**
+**Oracle**::
 
-jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=<HOSTNAME>)(PORT=<PORT>)))(CONNECT_DATA=(SERVICE_NAME=<SERVICE NAME>)))
+    jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=<HOSTNAME>)(PORT=<PORT>)))(CONNECT_DATA=(SERVICE_NAME=<SERVICE NAME>)))
 
-**PostgreSQL**
+**PostgreSQL**::
 
-jdbc:postgresql://<HOSTNAME>:<PORT>/<DATABASE>
+    jdbc:postgresql://<HOSTNAME>:<PORT>/<DATABASE>
 
-**Progress**
+**Progress**::
 
-jdbc:datadirect:openedge://<HOSTNAME>:<PORT>;databaseName=<DATABASE>
+    jdbc:datadirect:openedge://<HOSTNAME>:<PORT>;databaseName=<DATABASE>
 
 
 Adding tables to Import
