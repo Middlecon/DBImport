@@ -254,7 +254,8 @@ class config(object, metaclass=Singleton):
 		self.datalakeSourceConnection = row[0]
 
 #		# Set the name of the history tables, temporary tables and such
-		self.hiveExportTempDB = "etl_export_staging"
+#		self.hiveExportTempDB = "etl_export_staging"
+		self.hiveExportTempDB = self.common_config.getConfigValue(key = "export_staging_database")
 		if self.targetSchema == "-":
 			self.hiveExportTempTable = self.connectionAlias.replace('-', '_') + "__" + self.targetTable + "__exporttemptable"
 		else:
@@ -1383,6 +1384,54 @@ class config(object, metaclass=Singleton):
 		return whereStatement
 
 
+	def getExportTables(self, dbalias, schema):
+		""" Return all tables that are exported to a specific connection and schema """
+		logging.debug("Executing export_config.getExportTables()")
+
+		query = "select hive_db as hiveDB, hive_table as hiveTable from export_tables where dbalias = %s and target_schema = %s "
+		self.mysql_cursor01.execute(query, (dbalias, schema))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+
+		# Set the correct column namnes in the DataFrame
+		result_df_columns = []
+		for columns in self.mysql_cursor01.description:
+			result_df_columns.append(columns[0])    # Name of the column is in the first position
+		result_df.columns = result_df_columns
+
+		logging.debug("Executing export_config.getExportTables() - Finished")
+		return result_df
+
+	def addExportTable(self, hiveDB, hiveTable, dbalias, schema, table):
+		""" Add source table to export_tables """
+		logging.debug("Executing export_config.addImportTable()")
+		returnValue = True
+
+		query = ("insert into export_tables "
+				"("
+				"    hive_db, "
+				"    hive_table, "
+				"    dbalias, "
+				"    target_schema, "
+				"    target_table "
+				") values ( %s, %s, %s, %s, %s )")
+
+		logging.debug("hiveDB:    %s"%(hiveDB))
+		logging.debug("hiveTable: %s"%(hiveTable))
+		logging.debug("dbalias:   %s"%(dbalias))
+		logging.debug("schema:    %s"%(schema))
+		logging.debug("table:     %s"%(table))
+
+		try:
+			self.mysql_cursor01.execute(query, (hiveDB, hiveTable, dbalias, schema, table ))
+			self.mysql_conn.commit()
+		except mysql.connector.errors.IntegrityError:
+			logging.warning("Hive table %s.%s cant be added. The Connection name, Schema and Table already exists"%(hiveDB, hiveTable))
+			returnValue = False
+
+		logging.debug("Executing export_config.addImportTable() - Finished")
+		return returnValue
 
 # =====================================================================================================================================
 # DELETE ALL AFTER THIS

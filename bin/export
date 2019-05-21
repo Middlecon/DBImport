@@ -175,6 +175,12 @@ def main(argv):
 		export_operation.setStage(0, force=True)
 		stage = 0
 
+	if export_operation.export_config.common_config.getConfigValue(key = "export_start_disable") == True:
+		logging.error("Export execution has been disabled from DBImport configuration")
+		export_operation.remove_temporary_files()
+		sys.exit(1)
+
+
 
 	# ******************************************
 	# * EXPORT_PHASE_FULL

@@ -3,8 +3,6 @@ Import methods
 
 When specifying a table to import, one of the most important setting is to select an import method. It basically defines if it’s a full import or an incremental import together with what will happen afterwards. Maybe a history table should be created or rows in the Hive table should be deleted even if it’s an incremental import. This mayor settings are what we call an *import method*.
 
-.. note:: Some of these import methods are not available in the latest version of DBImport. Even if they dont exists, these are still used by an early version of DBImport that was not Python based and not opensource. Thats why we keep the documentation for those. Once the unavailable import methods are implemented, they will work in the same way.
- 
 .. note:: The stage number seen in the documentation are the internal stage id that is used by DBImport. This number is also used in the *import_stage* and the *import_retries_log* table.
  
  
