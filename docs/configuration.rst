@@ -55,17 +55,17 @@ This will add all tables and view that the tool can discover in Hive as exports 
 In most cases, you dont want to export all tables in Hive to a specific database. To handle that, you can add filters for the Hive database and/or table. The is done by adding the following to the **manage** command.
 
 == ======================================================
-``-h`` Filter the Hive Database. * as wildcard is supported
-``-t`` Filter the Hive Table. * as wildcard is supported
+-h Filter the Hive Database. * as wildcard is supported
+-t Filter the Hive Table. * as wildcard is supported
 == ======================================================
 
 You also have the ability to controll what the table in the remote database should be called. The following options are available for you to change the table name
 
 =======================  ===============================================================================================================
-``--addCounterToTable``      Adds a number to the table name. Starts from 1 if not --counterStart is supplied
-``--counterStart=<NUMBER>``  Forces --addCounterToTable to start from a specific number. Both with or without 0 in the beginning is supported
-``--addDBToTable``           Adds the schema from the source system to the Hive table
-``--addCustomText``          Adds a custom text to the Hive table
+\\-\\-addCounterToTable      Adds a number to the table name. Starts from 1 if not \\-\\-counterStart is supplied
+\\-\\-counterStart=<NUMBER>  Forces \\-\\-addCounterToTable to start from a specific number. Both with or without 0 in the beginning is supported
+\\-\\-addDBToTable           Adds the schema from the source system to the Hive table
+\\-\\-addCustomText          Adds a custom text to the Hive table
 =======================  ===============================================================================================================
 
 
