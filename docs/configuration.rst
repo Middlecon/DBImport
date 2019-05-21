@@ -6,11 +6,39 @@ Configuration
 Database Connections
 --------------------
 
-All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table.
-
-*JDBC String formats*
+All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table. Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type.
 
 
+**DB2 AS400**
+
+jdbc:as400://<HOSTNAME>:<PORT>/<DATABASE>
+
+**DB2 UDB**
+
+jdbc:db2://<HOSTNAME>:<PORT>/<DATABASE>
+
+**Microsoft SQL Server**
+
+There are two different ways to enter the JDBC URL for MSSQL. Default Microsoft JDBC or jTDS JDBC. jTDS is used when you are autenticating with a user that is in AD and the standard Microsoft JDBC is used when the SQL Server have local users that you connect with
+
+jdbc:sqlserver://<HOSTNAME>:<PORT>;database=<DATBASE NAME>
+jdbc:jtds:sqlserver://<HOSTNAME>:<PORT>;useNTLMv2=true;domain=<DOMAIN>;databaseName=<DATBASE NAME>
+
+**MySQL**
+
+jdbc:mysql://<HOSTNAME>:<PORT>/<DATABASE>
+
+**Oracle**
+
+jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=<HOSTNAME>)(PORT=<PORT>)))(CONNECT_DATA=(SERVICE_NAME=<SERVICE NAME>)))
+
+**PostgreSQL**
+
+jdbc:postgresql://<HOSTNAME>:<PORT>/<DATABASE>
+
+**Progress**
+
+jdbc:datadirect:openedge://<HOSTNAME>:<PORT>;databaseName=<DATABASE>
 
 
 Adding tables to Import
@@ -33,12 +61,12 @@ In some cases, you dont want to add all the tables that the tool discovers. Mayb
 
 You also have the ability to controll what the table in Hive should be called. The following options are available for you to change the table name
 
-=======================  ===============================================================================================================
---addCounterToTable      Adds a number to the table name. Starts from 1 if not --counterStart is supplied
---counterStart=<NUMBER>  Forces --addCounterToTable to start from a specific number. Both with or without 0 in the beginning is supported
---addSchemaToTable       Adds the schema from the source system to the Hive table
---addCustomText          Adds a custom text to the Hive table
-=======================  ===============================================================================================================
+===========================  ===================================================================================================================
+\\-\\-addCounterToTable      Adds a number to the table name. Starts from 1 if not \\-\\-counterStart is supplied
+\\-\\-counterStart=<NUMBER>  Forces \\-\\-addCounterToTable to start from a specific number. Both with or without 0 in the beginning is supported
+\\-\\-addSchemaToTable       Adds the schema from the source system to the Hive table
+\\-\\-addCustomText          Adds a custom text to the Hive table
+===========================  ===================================================================================================================
 
 
 Adding tables to Export
