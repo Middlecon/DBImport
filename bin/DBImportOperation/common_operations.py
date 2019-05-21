@@ -857,3 +857,44 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing common_operations.getHiveColumnNameDiff() - Finished")
 		return columnMerge
+
+	def getHiveTables(self, dbFilter=None, tableFilter=None):
+		""" Return all tables from specific Hive DB """
+		logging.debug("Executing common_operations.getHiveTables()")
+		result_df = None
+
+		if dbFilter != None:
+			dbFilter = dbFilter.replace('*', '%')
+
+		if tableFilter != None:
+			tableFilter = tableFilter.replace('*', '%')
+
+		query  = "select d.NAME as hiveDB, t.TBL_NAME as hiveTable "
+		query += "from TBLS t "
+		query += "	left join DBS d on t.DB_ID = d.DB_ID "
+
+		if dbFilter != None:
+			query += "where d.NAME like '%s' "%(dbFilter)
+		if tableFilter != None:
+			if dbFilter != None:
+				query += "and t.TBL_NAME like '%s' "%(tableFilter)
+			else:
+				query += "where t.TBL_NAME like '%s' "%(tableFilter)
+		query += "order by d.NAME, t.TBL_NAME"
+
+
+		self.mysql_cursor.execute(query)
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		if self.mysql_cursor.rowcount == 0:
+			return pd.DataFrame()
+
+		result_df = pd.DataFrame(self.mysql_cursor.fetchall())
+
+		if len(result_df) > 0:
+			result_df.columns = ['hiveDB', 'hiveTable']
+
+		logging.debug("Executing common_operations.getHiveTables() - Finished")
+		return result_df
+
+

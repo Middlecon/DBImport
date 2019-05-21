@@ -29,6 +29,7 @@ def printHelp():
 	print ("Options:")
 	print ("  --clearImportStage Clear the Import stage. Requires [Hive Database] and [Hive Table] paramaters")
 	print ("  --clearExportStage Clear the Export stage. Requires [Connection], [Schema] and [Table]")
+	print ("  --testConnection   Connect to the [Connection] and verifies if we can connect successfully")
 	print ("  --encryptCredentials")
 	print ("                     Encrypt username and password for a Database Connection. ")
 	print ("  --sendJSONstatistics")
@@ -45,16 +46,40 @@ def printHelp():
 	print ("                     Resets an incremental export. This will truncate the Target table and force the next export")
 	print ("                     to start from the begining with a full export. Requires [Connection], [Schema] and [Table]")
 	print ("  --dropExportTable")
-	print ("                     Drops an Export table and forces an incremental import to start from a full export. Requires [Connection], [Schema] and [Table]")
+	print ("                     Drops an Export table and forces an incremental import to start from a full export.")
+	print ("                     Requires [Connection], [Schema] and [Table]")
 	print ("")
-	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
+	print ("  --addImportTable")
+	print ("                     Connects to the source database and reads all tables and view, or a selection if [Schema] or [Table]")
+	print ("                     is specified and insert those tables/views to import_tables. Requires [Hive Database] and [Connection].")
+	print ("                     [Schema] and [Table] supports wildcard here ")
+	print ("  --addSchemaToTable If this is specified, the schema on the source database is added to the Hive Table name")
+	print ("")
+	print ("  --addExportTable")
+	print ("                     Add export definitions for all tables in Hive, or just specific tables if filters for ")
+	print ("                     [Hive Database] or [Hive Table] was specfied. Requires [Connection] and [Schema].")
+	print ("                     [Hive Database] and [Hive Table] supports wildcard here ")
+	print ("  --addDBToTable     If this is specified, the Hive database is added to the Target Table name")
+	print ("")
+	print ("  --counterStart=[Start]")
+	print ("  --addCounterToTable If this is specified, a counter starting from [Start] is added to begining of the Hive/Target Table name")
+	print ("  --addCustomText=[Custom Text]")
+	print ("                     Add the custom text to the Hive Table or to the Target Table for imports and exports")
+	print ("")
+	print ("  -h [Hive Database], --hiveDB=[Hive Database]")
 	print ("                     Hive database")
-	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
+	print ("")
+	print ("  -t [Hive Table], --hiveTable=[Hive Table]")
 	print ("                     Hive table")
 	print ("")
-	print ("  -a [Connection]    The alias of the JDBC connection")
-	print ("  -S [Schema]        Schema name of the table to export")
-	print ("  -T [Table]         Table to export")
+	print ("  -a [Connection], --dbAlias=[Connection]")
+	print ("                     The alias of the JDBC connection")
+	print ("")
+	print ("  -S [Schema], --schema=[Schema]")
+	print ("                     Schema name of the table to export")
+	print ("")
+	print ("  -T [Table], --table=[Table]")
+	print ("                     Table to export")
 	print ("")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
@@ -63,7 +88,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "Hive_Table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable"])
+		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -72,27 +97,42 @@ def main(argv):
 	operation = None
 	loggingLevel = logging.INFO
 	connectionAlias = None
-	targetSchema = None
-	targetTable = None
+	jdbcSchema = None
+	jdbcTable = None
+	addSchemaToTable = False
+	addCounterToTable = False
+	addDBToTable = False
+	addCustomText = None
+	counterStart = None
 
 	if  len(opts) == 0:
 		printHelp()
 
 	for opt, arg in opts:
-		if opt in ("-h", "--Hive_DB"):
-			Hive_DB = arg
-		elif opt in ("-t", "--Hive_Table"):
-			Hive_Table = arg
+		if opt == "--help":
+			printHelp()
 		elif opt in ("-v", "--debug"):
 			loggingLevel = logging.DEBUG
-		elif opt == "--help":
-			printHelp()
-		elif opt == "-a":
+		elif opt in ("-h", "--hiveDB", "--Hive_DB"):
+			Hive_DB = arg
+		elif opt in ("-t", "--hiveTable", "--Hive_Table"):
+			Hive_Table = arg
+		elif opt in ("-a", "--dbAlias"):
 			connectionAlias = arg
-		elif opt == "-S":
-			targetSchema = arg
-		elif opt == "-T":
-			targetTable = arg
+		elif opt in ("-S", "--schema"):
+			jdbcSchema = arg
+		elif opt in ("-T", "--table"):
+			jdbcTable = arg
+		elif opt == "--addSchemaToTable":
+			addSchemaToTable = True
+		elif opt == "--addCounterToTable":
+			addCounterToTable = True
+		elif opt == "--addDBToTable":
+			addDBToTable = True
+		elif opt == "--addCustomText":
+			addCustomText = arg
+		elif opt == "--counterStart":
+			counterStart = str(arg)
 		elif opt == "--clearImportStage":
 			operation = "clearImportStage"
 		elif opt == "--clearExportStage":
@@ -111,6 +151,12 @@ def main(argv):
 			operation = "repairIncrementalExport"
 		elif opt == "--dropExportTable":
 			operation = "dropExportTable"
+		elif opt == "--addImportTable":
+			operation = "addImportTable"
+		elif opt == "--addExportTable":
+			operation = "addExportTable"
+		elif opt == "--testConnection":
+			operation = "testConnection"
 
 
 	if operation == None:
@@ -122,18 +168,26 @@ def main(argv):
 	if operation == "repairIncrementalImport" and (Hive_DB == None or Hive_Table == None):
 		printHelp()
 
-	if operation == "clearExportStage" and (connectionAlias == None or targetSchema == None or targetTable == None):
+	if operation == "clearExportStage" and (connectionAlias == None or jdbcSchema == None or jdbcTable == None):
 		printHelp()
 
-	if operation == "resetIncrementalExport" and (connectionAlias == None or targetSchema == None or targetTable == None):
+	if operation == "resetIncrementalExport" and (connectionAlias == None or jdbcSchema == None or jdbcTable == None):
 		printHelp()
 
-	if operation == "repairIncrementalExport" and (connectionAlias == None or targetSchema == None or targetTable == None):
+	if operation == "repairIncrementalExport" and (connectionAlias == None or jdbcSchema == None or jdbcTable == None):
 		printHelp()
 
-	if operation == "dropExportTable" and (connectionAlias == None or targetSchema == None or targetTable == None):
+	if operation == "dropExportTable" and (connectionAlias == None or jdbcSchema == None or jdbcTable == None):
 		printHelp()
 
+	if operation == "addImportTable" and (Hive_DB == None or connectionAlias == None):
+		printHelp()
+
+	if operation == "addExportTable" and (connectionAlias == None or jdbcSchema == None):
+		printHelp()
+
+	if operation == "testConnection" and connectionAlias == None:
+		printHelp()
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20setup
 	sys.stdout.write(u"\u001b[35m")  # Magenta
 	sys.stdout.flush()
@@ -218,7 +272,7 @@ def main(argv):
 #		answer = "y"
 
 		if answer.lower() == "y":
-			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
 			export_operation.truncateJDBCTable()
 			export_operation.resetIncrMinMaxValues(maxValue=None)
 			export_operation.clearStage()
@@ -231,7 +285,7 @@ def main(argv):
 #		answer = "y"
 
 		if answer.lower() == "y":
-			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
 			export_operation.resetMaxValueFromTarget()
 			export_operation.remove_temporary_files()
 
@@ -242,18 +296,52 @@ def main(argv):
 #		answer = "y"
 
 		if answer.lower() == "y":
-			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
 			export_operation.dropJDBCTable()
 			export_operation.resetIncrMinMaxValues(maxValue=None)
 			export_operation.clearStage()
 			export_operation.remove_temporary_files()
 
 	if operation == "clearExportStage":
-		export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema,targetTable=targetTable)
+		export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
 		export_operation.clearStage()
 		logging.info("Stage information cleared")
 
 		export_operation.remove_temporary_files()
+
+	if operation == "addImportTable":
+		import_operation = import_operations.operation()
+		import_operation.discoverAndAddTablesFromSource(
+			dbalias=connectionAlias, 
+			hiveDB=Hive_DB, 
+			schemaFilter=jdbcSchema, 
+			tableFilter=jdbcTable,
+			addSchemaToTable=addSchemaToTable,
+			addCustomText=addCustomText,
+			addCounterToTable=addCounterToTable,
+			counterStart=counterStart)
+		
+	if operation == "addExportTable":
+		export_operation = export_operations.operation()
+		export_operation.discoverAndAddTablesFromHive(
+			dbFilter=Hive_DB, 
+			tableFilter=Hive_Table,
+			dbalias=connectionAlias, 
+			schema=jdbcSchema, 
+			addDBToTable=addDBToTable,
+			addCustomText=addCustomText,
+			addCounterToTable=addCounterToTable,
+			counterStart=counterStart)
+		
+	if operation == "testConnection":
+		commonConfig = common_config.config()
+		if commonConfig.checkConnectionAlias(connectionAlias) == False:
+			logging.error("The specified database connection does not exist.")
+			sys.exit(1)
+		commonConfig.lookupConnectionAlias(connectionAlias)
+		commonConfig.connectToJDBC()
+		print("Connected successfully")
+
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

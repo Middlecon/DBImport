@@ -94,6 +94,12 @@ class operation(object, metaclass=Singleton):
 	
 	def runStage(self, stage):
 		self.import_config.setStage(stage)
+
+		if self.import_config.common_config.getConfigValue(key = "import_stage_disable") == True:
+			logging.error("Stage execution disabled from DBImport configuration")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
 		tempStage = self.import_config.getStage()
 		if stage == tempStage:
 			return True
@@ -229,6 +235,111 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
+	def discoverAndAddTablesFromSource(self, dbalias, hiveDB, schemaFilter=None, tableFilter=None, addSchemaToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None):
+		""" This is the main function to search for tables/view on source database and add them to import_tables """
+		logging.debug("Executing import_operations.discoverAndAddTablesFromSource()")
+		errorDuringAdd = False
+
+		self.import_config.common_config.lookupConnectionAlias(connection_alias=dbalias)
+		sourceDF = self.import_config.common_config.getJDBCtablesAndViews(schemaFilter=schemaFilter, tableFilter=tableFilter )
+
+		if len(sourceDF) == 0:
+			print("There are no tables in the source database that we dont already have in DBImport")
+			self.import_config.remove_temporary_files()
+			sys.exit(0)
+
+		importDF = self.import_config.getImportTables(hiveDB = hiveDB)
+		importDF = importDF.loc[importDF['dbalias'] == dbalias].filter(['source_schema', 'source_table'])
+		importDF.rename(columns={'source_schema':'schema', 'source_table':'table'}, inplace=True)
+
+		mergeDF = pd.merge(sourceDF, importDF, on=None, how='outer', indicator='Exist')
+		mergeDF['hiveTable'] = mergeDF['table']
+		discoveredTables = len(mergeDF.loc[mergeDF['Exist'] == 'left_only'])
+
+		if addCounterToTable == True or addSchemaToTable == True or addCustomText != None:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'hiveTable'] = "_%s"%(mergeDF.loc[index, 'hiveTable'].strip())
+
+		if addCounterToTable == True:
+			if counterStart == None:
+				counterStart = "1"
+			numberLength=len(counterStart)
+			try:
+				startValue = int(counterStart)
+			except ValueError:
+				logging.error("The value specified for --counterStart must be a number")
+				self.export_config.remove_temporary_files()
+				sys.exit(1)
+
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					zeroToAdd = ""
+					while len(zeroToAdd) < (numberLength - len(str(startValue))):
+						zeroToAdd += "0"
+
+					mergeDF.loc[index, 'hiveTable'] = "%s%s%s"%(zeroToAdd, startValue, mergeDF.loc[index, 'hiveTable'])
+					startValue += 1
+
+		if addSchemaToTable == True:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'hiveTable'] = "%s%s"%(mergeDF.loc[index, 'schema'].lower().strip(), mergeDF.loc[index, 'hiveTable'])
+
+		if addCustomText != None:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'hiveTable'] = "%s%s"%(addCustomText.lower().strip(), mergeDF.loc[index, 'hiveTable'])
+
+
+		if discoveredTables == 0:
+			print("There are no tables in the source database that we dont already have in DBImport")
+			self.import_config.remove_temporary_files()
+			sys.exit(0)
+
+		# At this stage, we have discovered tables in the source system that we dont know about in DBImport
+		print("The following tables and/or views have been discovered in the source database and not found in DBImport")
+		print("")
+		print("%-20s%-40s%-30s%-20s%s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
+		print("=============================================================================================================================")
+
+		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+#			if addSchemaToTable == True: 
+#				hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
+#			else:
+#				hiveTable = row['table'].lower()
+			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'], dbalias, row['schema'], row['table']))
+
+		answer = input("Do you want to add these imports to DBImport? (y/N): ")
+		if answer == "y":
+			print("")
+			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+#				if addSchemaToTable == True: 
+#					hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
+#				else:
+#					hiveTable = row['table'].lower()
+				addResult = self.import_config.addImportTable(
+					hiveDB=hiveDB, 
+					hiveTable=row['hiveTable'],
+					dbalias=dbalias,
+					schema=row['schema'].strip(),
+					table=row['table'].strip())
+
+				if addResult == False:
+					errorDuringAdd = True
+
+			if errorDuringAdd == False:
+				print("All tables saved successfully in DBImport")
+			else:
+				print("")
+				print("Not all tables was saved to DBImport. Please check log and output")
+		else:
+			print("")
+			print("Aborting")
+
+
+		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
+
 	def runSqoop(self, PKOnlyImport):
 		logging.debug("Executing import_operations.runSqoop()")
 
@@ -327,6 +438,12 @@ class operation(object, metaclass=Singleton):
 		# Progress and DB2 AS400 imports needs to know the class name for the JDBC driver. 
 		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
 			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
+
+#		sqoopCommand.extend(["--jar-file", self.import_config.common_config.jdbc_classpath])
+#		sqoopCommand.extend(["--class-name", self.import_config.common_config.jdbc_driver])
+
+#		sqoopCommand.extend(["--driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver"])
+#		sqoopCommand.extend(["--class-name", "com.microsoft.sqlserver.jdbc.SQLServerDriver"])
 
 		sqoopCommand.extend(["--class-name", "dbimport"]) 
 		sqoopCommand.append("--fetch-size=10000") 

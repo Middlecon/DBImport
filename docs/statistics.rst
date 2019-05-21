@@ -7,6 +7,7 @@ Database Tables
 ^^^^^^^^^^^^^^^
 
 There are statistical information in four different tables
+
   - import_statistics
   - import_statistics_last
   - export_statistics

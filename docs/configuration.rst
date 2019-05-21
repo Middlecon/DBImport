@@ -17,13 +17,13 @@ The username and password is encrypted and stored in the jdbc_connection table t
 
     manage --encryptCredentials
 
-You will first get a question about what Database Connection that the usernam and password should be used on, and the the username and password itself. Once all three items are entered, the username and password will be encrypted and saved in the *credentials* column in *jdbc_connections* table. 
+You will first get a question about what Database Connection that the username and password should be used on, and then the username and password itself. Once all three items are entered, the username and password will be encrypted and saved in the *credentials* column in *jdbc_connections* table. 
 
 
 JDBC Connection String
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type.
+The JDBC string needs to be entered manually into the *jdbc_url* column in the *jdbc_connections* table. Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type. 
 
 
 **DB2 AS400**::

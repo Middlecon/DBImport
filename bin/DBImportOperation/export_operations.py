@@ -53,36 +53,46 @@ class operation(object, metaclass=Singleton):
 		self.sqoopRows = None
 		self.sqoopMappers = None
 
-		try:
-			self.export_config = export_config.config(connectionAlias=connectionAlias, targetSchema=targetSchema, targetTable=targetTable)
+		if connectionAlias == None and targetSchema == None and targetTable == None:
+			self.export_config = export_config.config()
 			self.common_operations = common_operations.operation()
-
-			self.export_config.getExportConfig()
-			self.export_config.common_config.lookupConnectionAlias(connection_alias=self.connectionAlias)
-
-			self.hiveDB = self.export_config.hiveDB
-			self.hiveTable = self.export_config.hiveTable
-			self.hiveExportTempDB = self.export_config.hiveExportTempDB
-			self.hiveExportTempTable = self.export_config.hiveExportTempTable
-
-#			self.export_config.setHiveTable(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
-			self.common_operations.setHiveTable(Hive_DB=self.hiveDB, Hive_Table=self.hiveTable)
-			self.hiveTableIsTransactional = self.common_operations.isHiveTableTransactional(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
-			self.hiveTableIsView = self.common_operations.isHiveTableView(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
-
-		except invalidConfiguration as errMsg:
-			logging.error(errMsg)
-			self.export_config.remove_temporary_files()
-			sys.exit(1)
-		except:
-			self.export_config.remove_temporary_files()
-			raise
-			sys.exit(1)
+		else:
+			try:
+				self.export_config = export_config.config(connectionAlias=connectionAlias, targetSchema=targetSchema, targetTable=targetTable)
+				self.common_operations = common_operations.operation()
+	
+				self.export_config.getExportConfig()
+				self.export_config.common_config.lookupConnectionAlias(connection_alias=self.connectionAlias)
+	
+				self.hiveDB = self.export_config.hiveDB
+				self.hiveTable = self.export_config.hiveTable
+				self.hiveExportTempDB = self.export_config.hiveExportTempDB
+				self.hiveExportTempTable = self.export_config.hiveExportTempTable
+	
+#				self.export_config.setHiveTable(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
+				self.common_operations.setHiveTable(Hive_DB=self.hiveDB, Hive_Table=self.hiveTable)
+				self.hiveTableIsTransactional = self.common_operations.isHiveTableTransactional(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
+				self.hiveTableIsView = self.common_operations.isHiveTableView(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
+	
+			except invalidConfiguration as errMsg:
+				logging.error(errMsg)
+				self.export_config.remove_temporary_files()
+				sys.exit(1)
+			except:
+				self.export_config.remove_temporary_files()
+				raise
+				sys.exit(1)
 
 		logging.debug("Executing export_operations.__init__() - Finished")
 
 	def runStage(self, stage):
 		self.export_config.setStage(stage)
+
+		if self.export_config.common_config.getConfigValue(key = "export_stage_disable") == True:
+			logging.error("Stage execution disabled from DBImport configuration")
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
+
 		tempStage = self.export_config.getStage()
 		if stage == tempStage:
 			return True
@@ -231,6 +241,109 @@ class operation(object, metaclass=Singleton):
 #			logging.exception("Fatal error when reading Hive table row count")
 #			self.export_config.remove_temporary_files()
 #			sys.exit(1)
+
+	def discoverAndAddTablesFromHive(self, dbalias, schema, dbFilter=None, tableFilter=None, addDBToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None):
+		""" This is the main function to search for tables/view in Hive and add them to export_tables """
+		logging.debug("Executing export_operations.discoverAndAddTablesFromHive()")
+		errorDuringAdd = False
+
+		sourceDF = self.common_operations.getHiveTables(dbFilter=dbFilter, tableFilter=tableFilter)
+
+		if len(sourceDF) == 0:
+			print("There are no tables in the source database that we dont already have in DBImport")
+			self.export_config.remove_temporary_files()
+			sys.exit(0)
+
+		exportDF = self.export_config.getExportTables(dbalias=dbalias, schema=schema)
+
+		mergeDF = pd.merge(sourceDF, exportDF, on=None, how='outer', indicator='Exist')
+		mergeDF['targetTable'] = mergeDF['hiveTable']
+		discoveredTables = len(mergeDF.loc[mergeDF['Exist'] == 'left_only'])
+
+		if addCounterToTable == True or addDBToTable == True or addCustomText != None:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'targetTable'] = "_%s"%(mergeDF.loc[index, 'targetTable'])
+
+		if addCounterToTable == True:
+			if counterStart == None:
+				counterStart = "1"
+			numberLength=len(counterStart)
+			try:
+				startValue = int(counterStart)
+			except ValueError:
+				logging.error("The value specified for --counterStart must be a number")
+				self.export_config.remove_temporary_files()
+				sys.exit(1)
+
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					zeroToAdd = ""
+					while len(zeroToAdd) < (numberLength - len(str(startValue))):
+						zeroToAdd += "0"
+
+					mergeDF.loc[index, 'targetTable'] = "%s%s%s"%(zeroToAdd, startValue, mergeDF.loc[index, 'targetTable'])
+					startValue += 1
+
+		if addDBToTable == True:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'targetTable'] = "%s%s"%(mergeDF.loc[index, 'hiveDB'], mergeDF.loc[index, 'targetTable'])
+
+		if addCustomText != None:
+			for index, row in mergeDF.iterrows():
+				if mergeDF.loc[index, 'Exist'] == 'left_only':
+					mergeDF.loc[index, 'targetTable'] = "%s%s"%(addCustomText.lower().strip(), mergeDF.loc[index, 'targetTable'])
+
+		if discoveredTables == 0:
+			print("There are no tables in the source database that we dont already have in DBImport")
+			self.export_config.remove_temporary_files()
+			sys.exit(0)
+
+		# At this stage, we have discovered tables in the source system that we dont know about in DBImport
+		print("The following tables and/or views have been discovered in Hive and not found as export tables in DBImport")
+		print("")
+		print("%-20s %-40s %-30s %-20s %s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
+		print("=============================================================================================================================")
+
+		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+#			if addSchemaToTable == True:
+#				hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
+#			else:
+#				hiveTable = row['table'].lower()
+#			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, hiveTable, dbalias, row['schema'], row['table']))
+			print("%-20s %-40s %-30s %-20s %s"%(row['hiveDB'], row['hiveTable'], dbalias, schema, row['targetTable']))
+
+		answer = input("Do you want to add these exports to DBImport? (y/N): ")
+		if answer == "y":
+			print("")
+			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+#			for index, row in mergeDFLeftOnly.iterrows():
+#				if addSchemaToTable == True:
+#					hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
+#				else:
+#					hiveTable = row['table'].lower()
+				addResult = self.export_config.addExportTable(
+					dbalias=dbalias,
+					schema=schema,
+					table=row['targetTable'],
+					hiveDB=row['hiveDB'],
+					hiveTable=row['hiveTable'])
+
+				if addResult == False:
+					errorDuringAdd = True
+
+			if errorDuringAdd == False:
+				print("All tables saved successfully in DBImport")
+			else:
+				print("")
+				print("Not all tables was saved to DBImport. Please check log and output")
+		else:
+			print("")
+			print("Aborting")
+
+		logging.debug("Executing export_operations.discoverAndAddTablesFromHive() - Finished")
+
 
 	def clearTableRowCount(self):
 		try:
@@ -643,6 +756,7 @@ class operation(object, metaclass=Singleton):
 #		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
 #			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
 
+#		sqoopCommand.extend(["--jar-file", "%s"%(self.import_config.common_config.jdbc_driver)])
 		sqoopCommand.extend(["--class-name", "dbimport"]) 
 
 		sqoopCommand.extend(["--hcatalog-database", hiveDB])

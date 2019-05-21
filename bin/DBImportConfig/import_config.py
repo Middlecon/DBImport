@@ -82,7 +82,6 @@ class config(object, metaclass=Singleton):
 		self.nomerge_ingestion_sql_addition = None
 		self.sqoop_sql_where_addition = None
 		self.sqoop_options = None
-		self.import_to_raw_database = None
 		self.table_comment = None
 		self.sqlGeneratedHiveColumnDefinition = None
 		self.sqlGeneratedSqoopQuery = None
@@ -485,23 +484,22 @@ class config(object, metaclass=Singleton):
 		elif self.datalake_source_connection != None and self.datalake_source_connection.strip() != '':
 			self.datalake_source = self.datalake_source_connection
 
-		if self.Hive_DB == "raw_import":
-			self.import_to_raw_database = True
-			self.Hive_Import_DB = self.Hive_DB
-			self.Hive_Import_Table = self.Hive_Table
-		else:
-			self.import_to_raw_database = False
-			self.Hive_Import_DB = "etl_import_staging"
-			self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
-
 		# Set the name of the history tables, temporary tables and such
+		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database")
+
+#		self.Hive_Import_DB = "etl_import_staging"
+		self.Hive_Import_DB = importStagingDB
+		self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
 		self.Hive_History_DB = self.Hive_DB
 		self.Hive_History_Table = self.Hive_Table + "_history"
-		self.Hive_HistoryTemp_DB = "etl_import_staging"
+#		self.Hive_HistoryTemp_DB = "etl_import_staging"
+		self.Hive_HistoryTemp_DB = importStagingDB
 		self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
-		self.Hive_Import_PKonly_DB = "etl_import_staging"
+#		self.Hive_Import_PKonly_DB = "etl_import_staging"
+		self.Hive_Import_PKonly_DB = importStagingDB
 		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
-		self.Hive_Delete_DB = "etl_import_staging"
+#		self.Hive_Delete_DB = "etl_import_staging"
+		self.Hive_Delete_DB = importStagingDB
 		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
 
 		logging.debug("Settings from import_config.getImportConfig()")
@@ -542,7 +540,6 @@ class config(object, metaclass=Singleton):
 		logging.debug("    create_datalake_import_column = %s"%(self.create_datalake_import_column)) 
 		logging.debug("    nomerge_ingestion_sql_addition = %s"%(self.nomerge_ingestion_sql_addition))
 		logging.debug("    sqoop_sql_where_addition = %s"%(self.sqoop_sql_where_addition))
-		logging.debug("    import_to_raw_database = %s"%(self.import_to_raw_database))
 		logging.debug("    Hive_History_DB = %s"%(self.Hive_History_DB))
 		logging.debug("    Hive_History_Table = %s"%(self.Hive_History_Table))
 		logging.debug("    Hive_HistoryTemp_DB = %s"%(self.Hive_HistoryTemp_DB))
@@ -771,21 +768,22 @@ class config(object, metaclass=Singleton):
 
 			columnOrder += 1
 
-			# sqoop_column_type is just an information that will be stored in import_columns. We might be able to remove this. TODO. Verify
+			# sqoop_column_type is just an information that will be stored in import_columns. 
+			# But it's also used to create the --map-column-java 
 			sqoop_column_type = None
 
 			if self.common_config.db_mssql == True:
 				# If source type is BIT, we convert them to INTEGER
 				if source_column_type == "bit": 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 			
 				if source_column_type == "float": 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
 				if source_column_type in ("uniqueidentifier", "ntext", "xml", "text", "nvarchar(-1)"): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
 
@@ -811,41 +809,41 @@ class config(object, metaclass=Singleton):
 			if self.common_config.db_oracle == True:
 				# If source type is BIT, we convert them to INTEGER
 				if source_column_type.startswith("rowid("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 			
 				if source_column_type.startswith("sdo_geometry("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("jtf_pf_page_object("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("wf_event_t("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("ih_bulk_type("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("anydata("): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type in ("clob", "nclob", "nlob", "long raw"): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
 
 				if source_column_type.startswith("float"): 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
@@ -859,11 +857,11 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^number$', 'decimal(38,19)', column_type)
 				if re.search('^number\([0-9]\)', column_type):
 					column_type = "int"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 				if re.search('^number\(1[0-8]\)', column_type):
 					column_type = "bigint"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 				column_type = re.sub('^number\(', 'decimal(', column_type)
 				column_type = re.sub('^date$', 'timestamp', column_type)
@@ -886,12 +884,12 @@ class config(object, metaclass=Singleton):
 			if self.common_config.db_mysql == True:
 				if source_column_type == "bit": 
 					column_type = "tinyint"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 
 				if source_column_type in ("smallint", "mediumint"): 
 					column_type = "int"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 		
 				column_type = re.sub('^character varying\(', 'varchar(', column_type)
@@ -902,7 +900,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
 				if column_type == "time": 
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					column_type = "string"
 					sqoop_column_type = "String"
 
@@ -940,7 +938,7 @@ class config(object, metaclass=Singleton):
 					column_type = re.sub('\)$', ',0)', column_type)
 				if re.search('^clob', column_type):
 					column_type = "string"
-					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 
 			if self.common_config.db_mongodb == True:
@@ -963,10 +961,10 @@ class config(object, metaclass=Singleton):
 
 			# As Parquet imports some column types wrong, we need to map them all to string
 			if column_type in ("timestamp", "date", "bigint"): 
-				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 			if re.search('^decimal\(', column_type):
-				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+#				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 
 			# Fetch if we should force this column to 'string' in Hive
@@ -976,6 +974,9 @@ class config(object, metaclass=Singleton):
 					column_type = "string"
 
 			if includeColumnInImport == True:
+				if sqoop_column_type != None:
+					self.sqoop_mapcolumnjava.append(source_column_name + "=" + sqoop_column_type)
+
 				# Add , between column names in the list
 				if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
 			# Add the column to the sqlGeneratedHiveColumnDefinition variable. This will be the base for the auto generated SQL
@@ -1950,30 +1951,64 @@ class config(object, metaclass=Singleton):
 		logging.debug("sqoopBoundaryQuery = %s"%(self.sqoopBoundaryQuery))	
 		logging.debug("Executing import_config.generateSqoopBoundaryQuery() - Finished")
 
-#	def getQuoteAroundColumn(self):
-#		quoteAroundColumn = ""
-#		if self.common_config.jdbc_servertype == constant.MSSQL:		quoteAroundColumn = "\""
-#		if self.common_config.jdbc_servertype == constant.ORACLE:		quoteAroundColumn = "\""
-#		if self.common_config.jdbc_servertype == constant.MYSQL:		quoteAroundColumn = "`"
-#		if self.common_config.jdbc_servertype == constant.POSTGRESQL:	quoteAroundColumn = "\""
-#		if self.common_config.jdbc_servertype == constant.PROGRESS:		quoteAroundColumn = "\""
-#		if self.common_config.jdbc_servertype == constant.DB2_UDB:		quoteAroundColumn = "\""
-#		if self.common_config.jdbc_servertype == constant.DB2_AS400:	quoteAroundColumn = "\""
-#
-#		return quoteAroundColumn
 
-#	def getJDBCsqlFromTable(self):
-#		logging.debug("Executing import_config.getJDBCsqlFromTable()")
-#
-#		fromTable = "" 
-#		if self.common_config.jdbc_servertype == constant.MSSQL:		fromTable = "[%s].[%s].[%s]"%(self.common_config.jdbc_database, self.source_schema, self.source_table)
-#		if self.common_config.jdbc_servertype == constant.ORACLE:		fromTable = "\"%s\".\"%s\""%(self.source_schema.upper(), self.source_table.upper())
-#		if self.common_config.jdbc_servertype == constant.MYSQL:		fromTable = "%s"%(self.source_table)
-#		if self.common_config.jdbc_servertype == constant.POSTGRESQL:	fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
-#		if self.common_config.jdbc_servertype == constant.PROGRESS:		fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
-#		if self.common_config.jdbc_servertype == constant.DB2_UDB:		fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
-#		if self.common_config.jdbc_servertype == constant.DB2_AS400:	fromTable = "\"%s\".\"%s\""%(self.source_schema, self.source_table)
-#
-#		logging.debug("Executing import_config.getJDBCsqlFromTable() - Finished")
-#		return fromTable
+	def getImportTables(self, hiveDB):
+		""" Return all tables that we import to a specific Hive DB """
+		logging.debug("Executing import_config.getImportTables()")
+		result_df = None
 
+		query  = "select "
+		query += "	hive_db, "	
+		query += "	hive_table, "	
+		query += "	dbalias, "	
+		query += "	source_schema, "	
+		query += "	source_table "	
+		query += "from import_tables "	
+		query += "where hive_db = %s"
+
+		self.mysql_cursor01.execute(query, (hiveDB, ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		if self.mysql_cursor01.rowcount == 0:
+			return pd.DataFrame()
+
+		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+
+		# Set the correct column namnes in the DataFrame
+		result_df_columns = []
+		for columns in self.mysql_cursor01.description:
+			result_df_columns.append(columns[0])    # Name of the column is in the first position
+		result_df.columns = result_df_columns
+
+		logging.debug("Executing import_config.getImportTables() - Finished")
+		return result_df
+
+	def addImportTable(self, hiveDB, hiveTable, dbalias, schema, table):
+		""" Add source table to import_tables """
+		logging.debug("Executing import_config.addImportTable()")
+		returnValue = True
+
+		query = ("insert into import_tables "
+				"("
+				"    hive_db, "
+				"    hive_table, "
+				"    dbalias, "
+				"    source_schema, "
+				"    source_table "
+				") values ( %s, %s, %s, %s, %s )")
+
+		logging.debug("hiveDB:    %s"%(hiveDB))
+		logging.debug("hiveTable: %s"%(hiveTable))
+		logging.debug("dbalias:   %s"%(dbalias))
+		logging.debug("schema:    %s"%(schema))
+		logging.debug("table:     %s"%(table))
+
+		try:
+			self.mysql_cursor01.execute(query, (hiveDB, hiveTable, dbalias, schema, table ))
+			self.mysql_conn.commit()
+		except mysql.connector.errors.IntegrityError:
+			logging.warning("Hive table %s.%s cant be added as it's not unique in the configuration database"%(hiveDB, hiveTable))
+			returnValue = False
+
+		logging.debug("Executing import_config.addImportTable() - Finished")
+		return returnValue

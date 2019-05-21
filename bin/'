@@ -670,15 +670,14 @@ class config(object, metaclass=Singleton):
 			logging.debug("	self.jdbc_url = %s"%(self.jdbc_url))
 			logging.debug("	self.jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
 
+			self.jdbc_username = "sdfsdf"
 			JDBCCredentials = [ self.jdbc_username, self.jdbc_password ]
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
 #			except jpype._jexception as errMsg:
-#			except JavaException as errMsg:
-			except jpype.JavaException as exception:
-				print("Connection to database over JDBC failed with the following error:")
-				print(exception.message())
+			except Exception as errMsg:
+				print("error")
 				self.remove_temporary_files()
 				sys.exit(1)
 

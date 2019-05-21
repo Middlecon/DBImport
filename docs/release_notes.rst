@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+v0.41
+-----
+
+**Fixed issues**
+
+  - Issue #16: include_in_import for map-column-java is not affected
+
+**Changed behavior**
+
+**Improvments**
+
+  - Issue #15: Move JDBC Driver config to database
+
+**New Features**
+
+  - Functions to add import tables by searching for tables in source that we dont already have
+  - Functions to add export tables by searching for tables in hive that we dont already have
+
 v0.40
 -----
 
