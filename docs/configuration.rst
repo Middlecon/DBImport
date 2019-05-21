@@ -26,10 +26,15 @@ This will add all tables and view that the tool can discover on the source datab
 
 In some cases, you dont want to add all the tables that the tool discovers. Maybe the tool discovers system tables, temp tables or other unwanted stuff that is not needed. To handle that, you can add filters for the schema and the table on the source system. The is done by adding the following to the **manage** command.
 
+== ===================================================
 -S Filter the schema name. * as wildcard is supported
 -T Filter the table name. * as wildcard is supported
+== ===================================================
 
+You also have the ability to controll what the table in Hive should be called. The following options are available for you to change the table name
 
+--addCounterToTable ( --counterStart=<NUMBER )
+    
 
 ./manage --addImportTable -a v10 -h user_boszkk -T pur* --addCounterToTable --counterStart=002 --addSchemaToTable --addCustomText=TEST
 
