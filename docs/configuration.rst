@@ -1,7 +1,9 @@
 Configuration
 =============
 
-.. note:: The current version of DBImport dont have the webUI available. That means that the most of the configuration that needs to be done have to be directly in the MySQL database. Current users of DBImport use `HeidiSQL < https://www.heidisql.com/>`_ as the client tool to change the configuration in the database
+.. note:: The current version of DBImport dont have the webUI available. That means that the most of the configuration that needs to be done have to be directly in the MySQL database. Current users of DBImport use HeidiSQL_ as the client tool to change the configuration in the database
+
+.. _HeidiSQL: https://www.heidisql.com/
 
 Database Connections
 --------------------
