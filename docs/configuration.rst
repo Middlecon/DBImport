@@ -33,21 +33,11 @@ In some cases, you dont want to add all the tables that the tool discovers. Mayb
 
 You also have the ability to controll what the table in Hive should be called. The following options are available for you to change the table name
 
---addCounterToTable ( --counterStart=<NUMBER )
-    
-
-./manage --addImportTable -a v10 -h user_boszkk -T pur* --addCounterToTable --counterStart=002 --addSchemaToTable --addCustomText=TEST
-
-
-
-
-
-
-
-
-
-
-
-
+=======================  ===============================================================================================================
+--addCounterToTable      Adds a number to the table name. Starts from 1 if not --counterStart is supplied
+--counterStart=<NUMBER>  Forces --addCounterToTable to start from a specific number. Both with or without 0 in the begingin is supported
+--addSchemaToTable       Adds the schema from the source system to the Hive table
+--addCustomText          Adds a custom text to the Hive table
+=======================  ===============================================================================================================
 
 
