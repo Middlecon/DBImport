@@ -8,7 +8,22 @@ Configuration
 Database Connections
 --------------------
 
-All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table. Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type.
+All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table. 
+
+Username and Password
+^^^^^^^^^^^^^^^^^^^^^
+
+The username and password is encrypted and stored in the jdbc_connection table together with JDBC connection string and other information. To encrypt and save the username and password, you need to run the *manage* command tool::
+
+    manage --encryptCredentials
+
+You will first get a question about what Database Connection that the usernam and password should be used on, and the the username and password itself. Once all three items are entered, the username and password will be encrypted and saved in the *credentials* column in *jdbc_connections* table. 
+
+
+JDBC Connection String
+^^^^^^^^^^^^^^^^^^^^^^
+
+Common for all JDBC connection strings is that you can add additional settings that is separated by a ; after the JDBC string that is documentat at each database type.
 
 
 **DB2 AS400**::
@@ -41,6 +56,14 @@ There are two different ways to enter the JDBC URL for MSSQL. Default Microsoft 
 **Progress**::
 
     jdbc:datadirect:openedge://<HOSTNAME>:<PORT>;databaseName=<DATABASE>
+
+
+Testing connection
+^^^^^^^^^^^^^^^^^^
+
+After the Database Connection is created, JDBC string is entered and username/password is encrypted and saved, you are ready to test the connection to make sure that DBImport can connect to the remote database.:: 
+
+    ./manage --testConnection -a <DATABASE CONNECTION>
 
 
 Adding tables to Import
