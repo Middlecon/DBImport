@@ -29,6 +29,7 @@ Content
     concept
     install
     quickstart
+    configuration
     import_methods
     export_methods
     database
