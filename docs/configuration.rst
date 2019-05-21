@@ -3,6 +3,16 @@ Configuration
 
 .. note:: The current version of DBImport dont have the webUI available. That means that the most of the configuration that needs to be done have to be directly in the MySQL database. Current users of DBImport use `HeidiSQL < https://www.heidisql.com/>`_ as the client tool to change the configuration in the database
 
+Database Connections
+--------------------
+
+All communications against a source or target system goes against a Database Connection. This connection is configured in the jdbc_connections table.
+
+*JDBC String formats*
+
+
+
+
 Adding tables to Import
 -----------------------
 
@@ -10,4 +20,29 @@ There are two ways to add tables from sources that we are going to import. Manua
 
 The most simple way to search for tables to import is by running the following::
 
+./manage --addImportTable -a <DATABASE CONNECTION> -h <HIVE DB>
+
+This will add all tables and view that the tool can discover on the source database specified by <DATABASE CONNECTION> and add them to the <HIVE DB>.
+
+In some cases, you dont want to add all the tables that the tool discovers. Maybe the tool discovers system tables, temp tables or other unwanted stuff that is not needed. To handle that, you can add filters for the schema and the table on the source system. The is done by adding the following to the **manage** command.
+
+-S Filter the schema name. * as wildcard is supported
+-T Filter the table name. * as wildcard is supported
+
+
+
 ./manage --addImportTable -a v10 -h user_boszkk -T pur* --addCounterToTable --counterStart=002 --addSchemaToTable --addCustomText=TEST
+
+
+
+
+
+
+
+
+
+
+
+
+
+
