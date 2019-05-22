@@ -11,6 +11,7 @@ High Level Functionality
 ------------------------
 
 So DBImport brings the following to the table
+
 -   Full support for importing and exporting data to Oracle, MsSQL, MySQL, DB2-UDB, DB2-AS400, Progress and PostgreSQL databases
 -   Auto discovery of tables and views from all supported source systems
 -   Supports both Full and Incremental imports and exports
@@ -25,6 +26,7 @@ So DBImport brings the following to the table
 Ease of use
 -----------
 Let’s say that you have a source system with 1000 tables and you need to import these into Hive. With DBImport, these are thee steps you would have to do
+
 1.  Create a connection to the source system. (enter hostname, port, username, password, database name and such)
 2.  Run one command that will connect to the source system and search for tables and views that you can import. You then get a list of the found items and a question if these are the tables you want to add to DBImport. Answer ‘Yes’ and the tables/views are now configured for import.
 3.  Create an Airflow Import Dag configuration. With the filter you specify all tables you just identified
