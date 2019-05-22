@@ -37,4 +37,4 @@ Let’s say that you have a source system with 1000 tables and you need to impor
 Links
 -----
 
-- [Documentation](https://dbimport.readthedocs.io/)
+- `Documentation <https://dbimport.readthedocs.io/>`_
