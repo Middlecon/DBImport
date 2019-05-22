@@ -1,8 +1,9 @@
 
-.. image:: docs/img/dbimport_logo_100px.png
+|logo| DBImport
+===============
 
-DBImport
-========
+.. |logo| image:: docs/img/dbimport_logo_100px.png
+
 
 Ingestion of data into Hive in a Hadoop cluster is both easy and hard. The first initial load, usually with sqoop, is fairly easy. Connect to the source system and start to fetch. And with the right version of Hive, you can get the table auto created for you with the data. That’s great and simple. But once that first couple of tables are delivered to the users, the usually want more. And they want to load it every day or hour. 
 
