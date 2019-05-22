@@ -18,11 +18,10 @@
 # -- Project information -----------------------------------------------------
 
 project = 'DBImport'
-# copyright = '2019, Berry Österlund'
-author = 'Berry Österlund'
+author = 'Middlecon AB'
 
 # The full version, including alpha/beta/rc tags
-release = '0.40'
+release = '0.41'
 
 
 # -- General configuration ---------------------------------------------------

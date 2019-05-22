@@ -34,4 +34,7 @@ Let’s say that you have a source system with 1000 tables and you need to impor
 5.  The DAG is now visible in Airflow and when started, all tables will be imported into Hive. 
 6.  This DAG can be scheduled to run at an interval, lets say every day. If you do that, and there are changes in the tables you are importing, DBImport will detect this automatically and redo the same changes on the tables in Hive.
 
+Links
+-----
 
+- [Documentation](https://dbimport.readthedocs.io/)
