@@ -1,5 +1,7 @@
+
 .. image:: docs/img/dbimport_logo.png
-          :width: 100
+    :width: 100px
+    :height: 100px
 
 DBImport
 ========
