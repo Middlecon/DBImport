@@ -1,14 +1,27 @@
 Release Notes
 =============
 
+v0.42
+-----
+
+**Fixed issues**
+
+  - Issue #17: Oracle Primary Key got columns from Unique key
+  - Issue #18: Error if Merge run on table with only PK columns
+  - Issue #19: Hive Merge implicit cast wont work with X number of columns
+
+**Changed behavior**
+
+**Improvments**
+
+**New Features**
+
 v0.41
 -----
 
 **Fixed issues**
 
   - Issue #16: include_in_import for map-column-java is not affected
-  - Issue #17: Oracle Primary Key got columns from Unique key
-  - Issue #18: Error if Merge run on table with only PK columns
 
 **Changed behavior**
 

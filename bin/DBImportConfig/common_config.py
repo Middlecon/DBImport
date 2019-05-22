@@ -803,7 +803,7 @@ class config(object, metaclass=Singleton):
 		return result_df
 
 
-	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement):
+	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement=None):
 		logging.debug("Executing common_config.getJDBCTableRowCount()")
 
 		self.connectToJDBC()
