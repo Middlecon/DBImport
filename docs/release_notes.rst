@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v0.42
+v0.42 (working version)
 -----
 
 **Fixed issues**
