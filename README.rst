@@ -3,6 +3,8 @@
     :width: 100px
     :height: 100px
 
+![](docs/img/dbimport_logo.png | width=100)
+
 DBImport
 ========
 
