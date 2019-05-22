@@ -370,6 +370,8 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
+#				import_operation.createExternalImportView()
+#				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3052) == True: 
@@ -602,6 +604,8 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
+				import_operation.createExternalImportView()
+				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3202) == True: 
@@ -641,9 +645,12 @@ def main(argv):
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3208) == True: 
 				import_operation.connectToHive()
+				importTableOrView = import_operation.import_config.Hive_Import_Table
+				if import_operation.import_config.isExternalViewRequired() == True:
+					importTableOrView = import_operation.import_config.Hive_Import_View
 				etl_operation.mergeHiveTables(
 					sourceDB = import_operation.import_config.Hive_Import_DB, 
-					sourceTable = import_operation.import_config.Hive_Import_Table, 
+					sourceTable = importTableOrView,
 					targetDB = import_operation.import_config.Hive_DB, 
 					targetTable = import_operation.import_config.Hive_Table, 
 					historyDB = import_operation.import_config.Hive_History_DB, 
@@ -716,6 +723,8 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
+				import_operation.createExternalImportView()
+				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3252) == True: 
@@ -749,9 +758,12 @@ def main(argv):
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3257) == True: 
 				import_operation.connectToHive()
+				importTableOrView = import_operation.import_config.Hive_Import_Table
+				if import_operation.import_config.isExternalViewRequired() == True:
+					importTableOrView = import_operation.import_config.Hive_Import_View
 				etl_operation.mergeHiveTables(
 					sourceDB = import_operation.import_config.Hive_Import_DB, 
-					sourceTable = import_operation.import_config.Hive_Import_Table, 
+					sourceTable = importTableOrView,
 					targetDB = import_operation.import_config.Hive_DB, 
 					targetTable = import_operation.import_config.Hive_Table, 
 #					historyDB = import_operation.import_config.Hive_History_DB, 
@@ -829,6 +841,8 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
+				import_operation.createExternalImportView()
+				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3302) == True: 
@@ -854,9 +868,12 @@ def main(argv):
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3306) == True: 
 				import_operation.connectToHive()
+				importTableOrView = import_operation.import_config.Hive_Import_Table
+				if import_operation.import_config.isExternalViewRequired() == True:
+					importTableOrView = import_operation.import_config.Hive_Import_View
 				etl_operation.mergeHiveTables(
 					sourceDB = import_operation.import_config.Hive_Import_DB, 
-					sourceTable = import_operation.import_config.Hive_Import_Table, 
+					sourceTable = importTableOrView,
 					targetDB = import_operation.import_config.Hive_DB, 
 					targetTable = import_operation.import_config.Hive_Table, 
 #					historyDB = import_operation.import_config.Hive_History_DB, 
@@ -939,6 +956,8 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
+				import_operation.createExternalImportView()
+				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3352) == True: 
@@ -970,9 +989,12 @@ def main(argv):
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3357) == True: 
 				import_operation.connectToHive()
+				importTableOrView = import_operation.import_config.Hive_Import_Table
+				if import_operation.import_config.isExternalViewRequired() == True:
+					importTableOrView = import_operation.import_config.Hive_Import_View
 				etl_operation.mergeHiveTables(
 					sourceDB = import_operation.import_config.Hive_Import_DB, 
-					sourceTable = import_operation.import_config.Hive_Import_Table, 
+					sourceTable = importTableOrView,
 					targetDB = import_operation.import_config.Hive_DB, 
 					targetTable = import_operation.import_config.Hive_Table, 
 					historyDB = import_operation.import_config.Hive_History_DB, 

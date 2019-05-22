@@ -495,9 +495,29 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.sqoopBoundaryQuery.strip() != "" and self.import_config.sqlSessions > 1:
 			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
 
+		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+			if incrWhereStatement == "":
+				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
+				rowCount = self.import_config.common_config.getJDBCTableRowCount(self.import_config.source_schema, self.import_config.source_table)
+				if rowCount == 0:
+					self.sqoopIncrNoNewRows = True
+					try:
+						logging.warning("There are no rows in the source table. As this is an incremental import, sqoop will not run")
+						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
+					except:
+						logging.exception("Fatal error when saving sqoop statistics")
+						self.import_config.remove_temporary_files()
+						sys.exit(1)
+					return
+				else:
+					logging.error("DBImport is unable to find the max value for the configured incremental column.")
+					self.import_config.remove_temporary_files()
+					sys.exit(1)
+
 		if sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-				sqoopCommand.extend(["--where", self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')])
+				sqoopCommand.extend(["--where", incrWhereStatement])
 			else:
 				if self.import_config.sqoop_sql_where_addition != None:
 					sqoopCommand.extend(["--where", self.import_config.sqoop_sql_where_addition.replace('"', '\'')])
@@ -505,7 +525,7 @@ class operation(object, metaclass=Singleton):
 		else:
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
 #			if self.import_config.sqoop_sql_where_addition != None:
-				sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\''))])
+				sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, incrWhereStatement)])
 			else:
 				if self.import_config.sqoop_sql_where_addition != None:
 					sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))])
@@ -514,11 +534,7 @@ class operation(object, metaclass=Singleton):
 
 #		print(sqoopQuery)
 
-#		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand.strip()))
 		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand))
-#		sqoopCommandList = sqoopCommand.strip().split("  ")
-#		sqoopCommandList.append("--query")
-#		sqoopCommandList.append("\"%s where $CONDITIONS\""%(sqoopQuery))
 		sqoopOutput = ""
 
 		print(" _____________________ ")
@@ -528,7 +544,6 @@ class operation(object, metaclass=Singleton):
 		print("")
 
 		# Start Sqoop
-#		sh_session = subprocess.Popen(sqoopCommandList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		sh_session = subprocess.Popen(sqoopCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 		# Print Stdout and stderr while sqoop is running
@@ -648,8 +663,49 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.connectToHive() - Finished")
 
-	def createExternalImportTable(self,):
-		logging.debug("Executing import_operations.createExternalTable()")
+	def createExternalImportView(self):
+		logging.debug("Executing import_operations.createExternalImportView()")
+
+		if self.import_config.isExternalViewRequired() == True:
+			if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View) == False:
+				logging.info("Creating External Import View")
+
+				query = "create view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
+				query += "%s "%(self.import_config.getSelectForImportView())
+				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+
+
+		logging.debug("Executing import_operations.createExternalImportView() - Finished")
+
+	def updateExternalImportView(self):
+		logging.debug("Executing import_operations.updateExternalImportView()")
+
+		if self.import_config.isExternalViewRequired() == True:
+			columnsConfig = self.import_config.getColumnsFromConfigDatabase() 
+
+			hiveDB = self.import_config.Hive_Import_DB
+			hiveView = self.import_config.Hive_Import_View
+			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveView, excludeDataLakeColumns=True) 
+			columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
+			columnsDiffCount  = len(columnsMerge.loc[columnsMerge['Exist'] != 'both'])
+
+			if columnsDiffCount > 0:
+				# There is a diff between the configuration and the view. Lets update it
+				logging.info("Updating Import View as columns in Hive is not the same as in the configuration")
+				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
+				query += "%s "%(self.import_config.getSelectForImportView())
+				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+
+		logging.debug("Executing import_operations.updateExternalImportView() - Finished")
+
+	def createExternalImportTable(self):
+		logging.debug("Executing import_operations.createExternalImportTable()")
 
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
@@ -660,6 +716,7 @@ class operation(object, metaclass=Singleton):
 
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
 			# Import table does not exist. We just create it in that case
+			logging.info("Creating External Import Table")
 			query  = "create external table `%s`.`%s` ("%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 			columnsDF = self.import_config.getColumnsFromConfigDatabase() 
 			columnsDF = self.updateColumnsForImportTable(columnsDF)
@@ -694,7 +751,7 @@ class operation(object, metaclass=Singleton):
 			self.common_operations.executeHiveQuery(query)
 			self.common_operations.reconnectHiveMetaStore()
 
-		logging.debug("Executing import_operations.createExternalTable() - Finished")
+		logging.debug("Executing import_operations.createExternalImportTable() - Finished")
 
 	def convertHiveTableToACID(self):
 		if self.common_operations.isHiveTableTransactional(self.Hive_DB, self.Hive_Table) == False:

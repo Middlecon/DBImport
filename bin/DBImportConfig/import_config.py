@@ -490,6 +490,7 @@ class config(object, metaclass=Singleton):
 #		self.Hive_Import_DB = "etl_import_staging"
 		self.Hive_Import_DB = importStagingDB
 		self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
+		self.Hive_Import_View = self.Hive_DB + "__" + self.Hive_Table + "__staging_view"
 		self.Hive_History_DB = self.Hive_DB
 		self.Hive_History_Table = self.Hive_Table + "_history"
 #		self.Hive_HistoryTemp_DB = "etl_import_staging"
@@ -1431,6 +1432,9 @@ class config(object, metaclass=Singleton):
 			if whereForSqoop == True:
 				# If it is the where for sqoop, we need to get the max value for the configured column and save that into the config database
 				maxValue = self.common_config.getJDBCcolumnMaxValue(self.source_schema, self.source_table, self.sqoop_incr_column)
+				if maxValue == None:
+					# If there is no MaxValue, it means that there is no data. And by that, there is no need for a where statement
+					return ""
 				if self.sqoop_incr_mode == "append":
 					self.sqoopIncrMaxvaluePending = maxValue
 				if self.sqoop_incr_mode == "lastmodified":
@@ -1639,7 +1643,10 @@ class config(object, metaclass=Singleton):
 		if restrictColumns != None:
 			restrictColumnsList = restrictColumns.split(",")
 
-		query  = "select c.column_name as name, c.column_type as type, c.comment "
+		query  = "select "
+		query += "   COALESCE(c.column_name_override, c.column_name) as name, "
+		query += "   c.column_type as type, "
+		query += "   c.comment "
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
@@ -2012,3 +2019,49 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.addImportTable() - Finished")
 		return returnValue
+
+	def isExternalViewRequired(self):
+		logging.debug("Executing import_config.isExternalViewRequired()")
+		returnValue = False
+
+		if self.generatedSqoopOptions != None:
+			returnValue = True
+
+		logging.debug("Executing import_config.isExternalViewRequired() - Finished")
+		return returnValue
+		
+	def getSelectForImportView(self):
+		logging.debug("Executing import_config.getSelectForImportView()")
+
+		query  = "select c.column_name as name, c.column_name_override, c.column_type as type, c.sqoop_column_type "
+		query += "from import_tables t " 
+		query += "join import_columns c on t.table_id = c.table_id "
+		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
+		query += "order by c.column_order"
+
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
+
+		selectQuery = ""
+
+		for row in self.mysql_cursor01.fetchall():
+			columnName = row[0]
+			columnNameOverride = row[1]
+			columnType = row[2]
+			sqoopColumnType = row[3]
+
+			if columnNameOverride != None: columnName = columnNameOverride
+			columnName = self.convertHiveColumnNameReservedWords(columnName)
+	
+			if selectQuery != "": selectQuery += ", "
+
+			if sqoopColumnType == None:
+				selectQuery += columnName
+			else:
+				selectQuery += "cast(%s as %s)"%(columnName, columnType)
+
+			# Handle reserved column names in Hive
+
+			# TODO: Get the maximum column comment size from Hive Metastore and use that instead
+		logging.debug("Executing import_config.getSelectForImportView() - Finished")
+		return selectQuery
