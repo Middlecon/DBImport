@@ -553,7 +553,7 @@ class source(object):
 			query += "  ON ac.owner = atc.owner "
 			query += "  AND ac.table_name = atc.TABLE_NAME "
 			query += "  AND acc.COLUMN_NAME = atc.COLUMN_NAME "
-			query += "WHERE ac.CONSTRAINT_TYPE in ('P','U') "
+			query += "WHERE ac.CONSTRAINT_TYPE = 'P' "
 			query += "  AND acc.OWNER = '%s' "%(schema)
 			query += "  AND acc.TABLE_NAME = '%s' "%(table)
 			query += "UNION ALL " 
@@ -608,8 +608,6 @@ class source(object):
 				line_dict["COL_KEY_POSITION"] = int(row[10])
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
-
-
 
 		if serverType == constant.MYSQL:
 			query  = "SELECT kcu.CONSTRAINT_SCHEMA AS SCHEMA_NAME, "

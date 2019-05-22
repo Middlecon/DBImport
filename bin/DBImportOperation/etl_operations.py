@@ -131,15 +131,20 @@ class operation(object, metaclass=Singleton):
 			query += "and (\n"
 			firstIteration = True
 			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
-				if firstIteration == True:
-					query += "   "
-					firstIteration = False
-				else:
-					query += "   or "
-				query += "T.`%s` != S.`%s` "%(row['targetName'], row['sourceName'])
-				query += "or ( T.`%s` is null and S.`%s` is not null ) "%(row['targetName'], row['sourceName'])
-				query += "or ( T.`%s` is not null and S.`%s` is null ) "%(row['targetName'], row['sourceName'])
-				query += "\n"
+				foundPKcolumn = False
+				for column in PKColumns.split(","):
+					if row['targetName'] == column:
+						foundPKcolumn = True
+				if foundPKcolumn == False:
+					if firstIteration == True:
+						query += "   "
+						firstIteration = False
+					else:
+						query += "   or "
+					query += "T.`%s` != S.`%s` "%(row['targetName'], row['sourceName'])
+					query += "or ( T.`%s` is null and S.`%s` is not null ) "%(row['targetName'], row['sourceName'])
+					query += "or ( T.`%s` is not null and S.`%s` is null ) "%(row['targetName'], row['sourceName'])
+					query += "\n"
 
 			if softDelete == True and datalakeIUDExists == True:
 				# If a row is deleted and then inserted again with the same values in all fields, this will still trigger an update
@@ -149,6 +154,7 @@ class operation(object, metaclass=Singleton):
 
 		query += "then update set "
 		firstIteration = True
+		nonPKcolumnFound = False
 		for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
 			foundPKcolumn = False
 			for column in PKColumns.split(","):
@@ -161,6 +167,14 @@ class operation(object, metaclass=Singleton):
 				else:
 					query += ", \n"
 				query += "   `%s` = S.`%s`"%(row['targetName'], row['sourceName'])
+				nonPKcolumnFound = True
+
+		if nonPKcolumnFound == False:
+			# This will happen if there are only columns that is part of the PK in the table. Impossible to merge it with full history
+			logging.error("This table only have columns that is part of the PrimaryKey. Merge operations cant be used")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
 
 		if datalakeIUDExists == True:    query += ", \n   `datalake_iud` = 'U'"
 		if datalakeUpdateExists == True: query += ", \n   `datalake_update` = '%s'"%(mergeTime)
