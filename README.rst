@@ -1,3 +1,6 @@
+.. image:: docs/img/dbimport_logo.png
+          :width: 100
+
 DBImport
 ========
 
