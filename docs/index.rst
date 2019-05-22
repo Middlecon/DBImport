@@ -15,6 +15,8 @@
     specific language governing permissions and limitations
     under the License.
 
+.. image:: img/dbimport_logo.png
+       :width: 100
 
 DBImport
 ========

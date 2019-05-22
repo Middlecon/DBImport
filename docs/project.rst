@@ -9,6 +9,7 @@ Committers
 Versions
 --------
 
+  - v0.41. Adding imports and exports by searcing for tables and views
   - v0.40. Exports to MsSQL, Oracle, MySQL and DB2 is fully supported
   - v0.30. Support for Merge in ETL Phase
   - v0.21. Import statistics in SQL Tables
@@ -22,6 +23,6 @@ RoadMap
 
   1. Implement all existing function on 'old' DBImport into the Python version. - **Ongoing**
   2. WebGui for administration of DBImport - **Alpha version available**
-  3. Multi cluster ingestion of data - **On planning**
+  3. Multi cluster ingestion of data - **Ongoing**
   4. Custom queries and delta loads from source - **Partially implemented**
   5. Support for more JDBC sources such as Netezza, TeraData, ExaData
