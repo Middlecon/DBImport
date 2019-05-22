@@ -1,6 +1,5 @@
 
-.. raw:: html
-   <img src="docs/img/dbimport_logo.png" height="100px">
+.. image:: docs/img/dbimport_logo_100px.png
 
 DBImport
 ========
