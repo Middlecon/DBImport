@@ -1393,6 +1393,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+		if len(result_df) == 0:
+			print("Error: No data returned when searching for tables that are exported to dbalias '%s' and schema '%s'"%(dbalias, schema))
+			self.remove_temporary_files()
+			sys.exit(1)
 
 		# Set the correct column namnes in the DataFrame
 		result_df_columns = []

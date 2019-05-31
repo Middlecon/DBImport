@@ -976,7 +976,9 @@ class config(object, metaclass=Singleton):
 
 			if includeColumnInImport == True:
 				if sqoop_column_type != None:
-					self.sqoop_mapcolumnjava.append(source_column_name + "=" + sqoop_column_type)
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=" + sqoop_column_type)
+#					Changed 20190524-0637
+					self.sqoop_mapcolumnjava.append(column_name + "=" + sqoop_column_type)
 
 				# Add , between column names in the list
 				if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
@@ -1108,6 +1110,10 @@ class config(object, metaclass=Singleton):
 			.replace('.', '')
 			.replace('"', '')
 			)
+
+		if column_name.startswith('_') == True:
+			column_name = column_name[1:] 
+
 		return column_name
 
 	def setPrimaryKeyColumn(self, ):
@@ -1314,10 +1320,12 @@ class config(object, metaclass=Singleton):
 				column, value=column_map.split("=")
 
 				column = self.convertHiveColumnNameReservedWords(column)
-#				if column.lower() in ("synchronized"):
-#					column = column + "_HIVE"
+#				column = self.getParquetColumnName(column)
+#				if column.startswith('_') == True:
+#					raise invalidConfiguration("A column that needs to be in the '--map-column-java' option to sqoop cant start with a '_'. Please change the name of the column '%s' and restart the import"%(column))
 
 				self.generatedSqoopOptions += ("%s=%s,"%(self.getParquetColumnName(column), value)) 
+				# self.generatedSqoopOptions += ("%s=%s,"%(column, value)) 
 			# Remove the last ","
 			self.generatedSqoopOptions = self.generatedSqoopOptions[:-1]
 			
@@ -1634,7 +1642,7 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.saveSqoopStatistics() - Finished")
 
-	def getColumnsFromConfigDatabase(self, restrictColumns=None):
+	def getColumnsFromConfigDatabase(self, restrictColumns=None, sourceIsParquetFile=False):
 		""" Reads the columns from the configuration database and returns the information in a Pandas DF with the columns name, type and comment """
 		logging.debug("Executing import_config.getColumnsFromConfigDatabase()")
 		hiveColumnDefinition = ""
@@ -1672,6 +1680,9 @@ class config(object, metaclass=Singleton):
 		for columns in self.mysql_cursor01.description:
 			result_df_columns.append(columns[0])    # Name of the column is in the first position
 		result_df.columns = result_df_columns
+
+		if sourceIsParquetFile == True:
+			result_df['name'] = result_df['name'].apply(lambda x: self.getParquetColumnName(x)) 
 
 		logging.debug("Executing import_config.getColumnsFromConfigDatabase() - Finished")
 		return result_df
@@ -1977,7 +1988,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		if self.mysql_cursor01.rowcount == 0:
-			return pd.DataFrame()
+			return pd.DataFrame(columns=['hive_db', 'hive_table', 'dbalias', 'source_schema', 'source_table'])
 
 		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
 
@@ -2052,13 +2063,14 @@ class config(object, metaclass=Singleton):
 
 			if columnNameOverride != None: columnName = columnNameOverride
 			columnName = self.convertHiveColumnNameReservedWords(columnName)
+			columnName = self.getParquetColumnName(columnName)
 	
 			if selectQuery != "": selectQuery += ", "
 
 			if sqoopColumnType == None:
-				selectQuery += columnName
+				selectQuery += "`%s`"%(columnName)
 			else:
-				selectQuery += "cast(%s as %s)"%(columnName, columnType)
+				selectQuery += "cast(`%s` as %s)"%(columnName, columnType)
 
 			# Handle reserved column names in Hive
 

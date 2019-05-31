@@ -93,10 +93,12 @@ def main(argv):
 		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
 
 	if operation == "createDB":
-		print("createDB - This operation is not developed yet")
+		dbOperations = databaseOperations.initialize()
+		dbOperations.createDB()
 
 	if operation == "upgradeDB":
-		print("upgradeDB - This operation is not developed yet")
+		dbOperations = databaseOperations.initialize()
+		dbOperations.upgradeDB()
 
 	if operation == "createSchemaRst":
 		dbOperations = databaseOperations.initialize()

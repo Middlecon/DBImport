@@ -308,7 +308,7 @@ class operation(object, metaclass=Singleton):
 #				hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
 #			else:
 #				hiveTable = row['table'].lower()
-			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'], dbalias, row['schema'], row['table']))
+			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
 
 		answer = input("Do you want to add these imports to DBImport? (y/N): ")
 		if answer == "y":
@@ -320,7 +320,7 @@ class operation(object, metaclass=Singleton):
 #					hiveTable = row['table'].lower()
 				addResult = self.import_config.addImportTable(
 					hiveDB=hiveDB, 
-					hiveTable=row['hiveTable'],
+					hiveTable=row['hiveTable'].lower(),
 					dbalias=dbalias,
 					schema=row['schema'].strip(),
 					table=row['table'].strip())
@@ -380,7 +380,7 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.common_config.db_mssql == True: 
 			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
-			sqoopDirectOption = "--direct"
+#			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_oracle == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema.upper(), self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"
@@ -818,6 +818,12 @@ class operation(object, metaclass=Singleton):
 			# TODO: HDP3 shouldnt run this
 			query += "CLUSTERED BY ("
 			firstColumn = True
+
+			if self.import_config.getPKcolumns() == None:
+				logging.error("There is no Primary Key for this table. Please add one in source system or in 'pk_column_override'")
+				self.import_config.remove_temporary_files()
+				sys.exit(1)
+
 			for column in self.import_config.getPKcolumns().split(","):
 				if firstColumn == False:
 					query += ", " 
@@ -975,7 +981,7 @@ class operation(object, metaclass=Singleton):
 
 	def updateExternalImportTable(self):
 		logging.info("Updating Import table columns based on source system schema")
-		self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+		self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, sourceIsParquetFile=True)
 
 	def updateColumnsForImportTable(self, columnsDF):
 		""" Parquet import format from sqoop cant handle all datatypes correctly. So for the column definition, we need to change some. We also replace <SPACE> with underscore in the column name """
@@ -996,11 +1002,11 @@ class operation(object, metaclass=Singleton):
 
 		return columnsDF
 
-	def updateHiveTable(self, hiveDB, hiveTable, restrictColumns=None):
+	def updateHiveTable(self, hiveDB, hiveTable, restrictColumns=None, sourceIsParquetFile=False):
 		""" Update the target table based on the column information in the configuration database """
 		# TODO: If there are less columns in the source table together with a rename of a column, then it wont work. Needs to be handled
 		logging.debug("Executing import_operations.updateTargetTable()")
-		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns) 
+		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile) 
 		columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files

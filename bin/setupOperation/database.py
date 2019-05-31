@@ -29,6 +29,14 @@ from mysql.connector import errorcode
 from datetime import date, datetime, time, timedelta
 import pandas as pd
 from common import constants as constant
+import sqlalchemy as sa
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy_utils import create_view
+# from setupOperation.schema import *
+from setupOperation import schema
+from sqlalchemy_views import CreateView, DropView
+from sqlalchemy.sql import text
 
 class initialize(object):
 	def __init__(self):
@@ -38,19 +46,30 @@ class initialize(object):
 		self.mysql_cursor = None
 
 		# Fetch configuration about MySQL database and how to connect to it
-		mysql_hostname = configuration.get("Database", "mysql_hostname")
-		mysql_port =     configuration.get("Database", "mysql_port")
-		mysql_database = configuration.get("Database", "mysql_database")
-		mysql_username = configuration.get("Database", "mysql_username")
-		mysql_password = configuration.get("Database", "mysql_password")
+		self.configHostname = configuration.get("Database", "mysql_hostname")
+		self.configPort =     configuration.get("Database", "mysql_port")
+		self.configDatabase = configuration.get("Database", "mysql_database")
+		self.configUsername = configuration.get("Database", "mysql_username")
+		self.configPassword = configuration.get("Database", "mysql_password")
+
+		# Esablish a SQLAlchemy connection to the DBImport database 
+#		try:
+		# TODO: Error handling in SQLAlchemy
+		connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+			self.configUsername, 
+			self.configPassword, 
+			self.configHostname, 
+			self.configPort, 
+			self.configDatabase)
+		self.configDB = sa.create_engine(connectStr, echo = False)
 
 		# Esablish a connection to the DBImport database in MySQL
 		try:
-			self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
-												 port=mysql_port, 
-												 database=mysql_database, 
-												 user=mysql_username, 
-												 password=mysql_password)
+			self.mysql_conn = mysql.connector.connect(host=self.configHostname, 
+												 port=self.configPort, 
+												 database=self.configDatabase, 
+												 user=self.configUsername, 
+												 password=self.configPassword)
 		except mysql.connector.Error as err:
 			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
 				logging.error("Something is wrong with your user name or password")
@@ -166,4 +185,205 @@ class initialize(object):
 			print(line)
 			print(lineSingle)
 		
+
+	def getListOfConfigTables(self):
+		logging.debug("Executing common_config.getListOfConfigTables()")
+
+		query =  "select "
+		query += "   table_name "
+		query += "from information_schema.tables  "
+		query += "where table_schema = %s "
+		query += "order by table_name "
+
+		logging.debug("SQL Statement executed: %s" % (query) )
+		self.mysql_cursor.execute(query, (self.configDatabase, ))
+
+		tablesDF = pd.DataFrame(self.mysql_cursor.fetchall())
+
+		if len(tablesDF) > 0:
+			tablesDF.columns = ['table']
+
+		logging.debug("Executing common_config.getListOfConfigTables() - Finished")
+		return tablesDF
+
+	def createDB(self, createOnlyTable=None):
+		
+#		schema.dbVersion.__table__.drop(self.configDB)
+#		schema.configuration.__table__.drop(self.configDB)
+
+#		inspector = sa.inspect(self.configDB)		
+#		allTables = inspector.get_table_names()
+#		if "db_version" in allTables:
+#			print("DBImport configuration database is already created. If you are deploying a new version, please run --upgradeDB")
+#			return
+
+#		allViews = inspector.get_view_names()
+#	
+#		if "import_foreign_keys_view" not in allViews:
+#			
+#			query  = "create view `import_foreign_keys_view` as select "
+#			query += "    `s`.`hive_db` AS `hive_db`, "
+#			query += "    `s`.`hive_table` AS `hive_table`, "
+#			query += "    `fk`.`fk_index` AS `fk_index`, "
+#			query += "    `s`.`column_name` AS `column_name`, "
+#			query += "    `ref`.`hive_db` AS `ref_hive_db`, "
+#			query += "    `ref`.`hive_table` AS `ref_hive_table`, "
+#			query += "    `ref`.`column_name` AS `ref_column_name` "
+#			query += "from `import_foreign_keys` `fk` "
+#			query += "join `import_columns` `s` on "
+#			query += "    `s`.`table_id` = `fk`.`table_id` and `s`.`column_id` = `fk`.`column_id` "
+#			query += "join `import_columns` `ref` on "
+#			query += "    `ref`.`table_id` = `fk`.`fk_table_id` and `ref`.`column_id` = `fk`.`fk_column_id` "
+#			query += "order by `fk`.`fk_index`,`fk`.`key_position` "
+#
+#			self.configDB.execute(query)
+
+		# Create all tables with the current schema
+		schema.metadata.create_all(self.configDB, checkfirst=True)
+
+		# Insert the version of the database schema
+#		query = sa.insert(schema.dbVersion).values(version='04201')
+#		self.configDB.execute(query)
+
+		self.updateConfigurationValues()
+
+	def upgradeDB(self):
+
+		inspector = sa.inspect(self.configDB)		
+		allTables = inspector.get_table_names()
+		if "db_version" not in allTables:
+			print("ERROR: Cant find the configured tables in the database. Have you created the database with --createDB?")
+			return
+
+
+		query = sa.select([sa.func.max(schema.dbVersion.version)])
+		result = self.configDB.execute(query).fetchone()
+		deployedVersion = result[0]
+		if deployedVersion == 4201:
+			print("This database is at the latest level. No need to upgrade")
+
+		self.updateConfigurationValues()
+
+	def updateConfigurationValues(self):
+		
+		query = sa.select([schema.jdbcConnectionsDrivers.database_type])
+		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
+
+		if result_df.empty or (result_df[0] == 'DB2 AS400').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='DB2 AS400', 
+				version='default', 
+				driver='com.ibm.as400.access.AS400JDBCDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'DB2 UDB').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='DB2 UDB', 
+				version='default', 
+				driver='com.ibm.db2.jcc.DB2Driver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'MySQL').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='MySQL', 
+				version='default', 
+				driver='com.mysql.jdbc.Driver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'Oracle').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='Oracle', 
+				version='default', 
+				driver='oracle.jdbc.driver.OracleDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'PostgreSQL').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='PostgreSQL', 
+				version='default', 
+				driver='org.postgresql.Driver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'Progress DB').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='Progress DB', 
+				version='default', 
+				driver='com.ddtek.jdbc.openedge.OpenEdgeDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'SQL Server').any() == False:
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='SQL Server', 
+				version='default', 
+				driver='com.microsoft.sqlserver.jdbc.SQLServerDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+				database_type='SQL Server', 
+				version='jTDS', 
+				driver='net.sourceforge.jtds.jdbc.Driver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
+
+#		query = sa.select([schema.dbVersion.version, schema.dbVersion.install_date])
+		query = sa.select([schema.configuration.configKey])
+		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
+
+		if result_df.empty or (result_df[0] == 'airflow_disable').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='airflow_disable', 
+				valueInt='0', 
+				description='Disable All executions from Airflow. This is what the \"start\" Task is looking at')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'export_stage_disable').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='export_stage_disable', 
+				valueInt='0', 
+				description='With 1, you prevent new Export tasks from starting and running tasks will stop after the current stage is completed.')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'export_staging_database').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='export_staging_database', 
+				valueStr='etl_export_staging', 
+				description='Name of staging database to use during Exports')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'export_start_disable').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='export_start_disable', 
+				valueInt='0', 
+				description='With 1, you prevent new Export tasks from starting. Running tasks will be completed')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'import_stage_disable').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='import_stage_disable', 
+				valueInt='0', 
+				description='With 1, you prevent new tasks from starting and running Import tasks will stop after the current stage is completed.')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'import_staging_database').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='import_staging_database', 
+				valueStr='etl_import_staging', 
+				description='Name of staging database to use during Imports')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'import_start_disable').any() == False:
+			query = sa.insert(schema.configuration).values(
+				configKey='import_start_disable', 
+				valueInt='0', 
+				description='With 1, you prevent new Import tasks from starting. Running tasks will be completed')
+			self.configDB.execute(query)
+		return
 
