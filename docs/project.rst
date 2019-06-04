@@ -26,3 +26,5 @@ RoadMap
   3. Multi cluster ingestion of data - **Ongoing**
   4. Custom queries and delta loads from source - **Partially implemented**
   5. Support for more JDBC sources such as Netezza, TeraData, ExaData
+  6. Support for more than MySQL as database for Hive Metastore - **Ongoing**
+  7. Support for more than MySQL as configuration database for DBImport
