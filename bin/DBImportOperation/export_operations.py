@@ -625,19 +625,6 @@ class operation(object, metaclass=Singleton):
 		if self.export_config.exportIsIncremental == True:
 			query += "where "
 			query += self.export_config.getIncrWhereStatement()
-#			maxValue = self.getIncrMaxvalueFromHive()
-#			minValue = self.export_config.incr_maxvalue
-#			self.export_config.saveIncrMinMaxValue(minValue=minValue, maxValue=maxValue)
-#			column = self.export_config.incr_column
-#			quotationNeeded = self.common_operations.isHiveColumnQuotationNeeded(hiveDB=self.hiveDB, hiveTable=self.hiveTable, column=column)
-#
-#			columnQuotation = ""
-#			if quotationNeeded == True: columnQuotation = "'"
-#
-#			if minValue != None:
-#				query += "`%s` > %s%s%s "%(column, columnQuotation, minValue, columnQuotation) 
-#				query += "and "
-#			query += "`%s` <= %s%s%s "%(column, columnQuotation, maxValue, columnQuotation) 
 
 		self.common_operations.executeHiveQuery(query)
 		logging.debug("Executing export_operations.insertDataIntoExportTempTable() - Finished")

@@ -238,10 +238,10 @@ class config(object, metaclass=Singleton):
 				"    and hive_table = %s ")
 	
 		self.mysql_cursor01.execute(query, (self.Hive_DB, self.Hive_Table))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		if self.mysql_cursor01.rowcount != 1:
 			logging.error("Error: The specified Hive Database and Table can't be found in the configuration database. Please check that you specified the correct database and table and that the configuration exists in the configuration database")
 			raise Exception
-		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		row = self.mysql_cursor01.fetchone()
 
@@ -412,6 +412,15 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Insert"
 
+		if self.import_type == "oracle_flashback_merge":
+			self.import_type_description = "Import with the help of Oracle Flashback"
+			self.importPhase             = constant.IMPORT_PHASE_ORACLE_FLASHBACK
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEONLY
+			self.importPhaseDescription  = "Incremental"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Insert"
+
 		if self.import_type == "incr_merge_delete":
 			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
 
@@ -426,7 +435,7 @@ class config(object, metaclass=Singleton):
 
 		# Determine if it's an incremental import based on the import_type
 #		if self.import_type == "incr_merge_direct" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
-		if self.importPhase == constant.IMPORT_PHASE_INCR:
+		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
 			self.import_is_incremental = True
 		else:
 			self.import_is_incremental = False
@@ -437,7 +446,7 @@ class config(object, metaclass=Singleton):
 
 		# Determine if it's an merge and need ACID tables
 #		if self.import_type == "full_merge_direct" or self.import_type == "incr_merge_direct" or self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
-		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY): 
+		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY, constant.IMPORT_PHASE_ORACLE_FLASHBACK): 
 			self.create_table_with_acid = True
 			self.import_with_merge = True
 		else:
@@ -702,7 +711,7 @@ class config(object, metaclass=Singleton):
 		return forceString
 
 	def convertHiveColumnNameReservedWords(self, columnName):
-		if columnName.lower() in ("synchronized", "date", "interval"):
+		if columnName.lower() in ("synchronized", "date", "interval", "int"):
 			columnName = "%s_hive"%(columnName)
 
 		return columnName
@@ -783,7 +792,7 @@ class config(object, metaclass=Singleton):
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
-				if source_column_type in ("uniqueidentifier", "ntext", "xml", "text", "nvarchar(-1)"): 
+				if source_column_type in ("uniqueidentifier", "ntext", "xml", "text", "varchar(-1)", "nvarchar(-1)"): 
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
@@ -1089,6 +1098,8 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.saveColumnData() - Finished")
 
 	def getParquetColumnName(self, column_name):
+
+		# Changing the mapping in here also requires you to change it in DBImportOperation/common_operations.py, funtion getHiveColumnNameDiff
 		
 		column_name = (column_name.lower() 
 			.replace(' ', '_')
@@ -1112,7 +1123,8 @@ class config(object, metaclass=Singleton):
 			)
 
 		if column_name.startswith('_') == True:
-			column_name = column_name[1:] 
+#			column_name = column_name[1:] 
+			column_name = "underscore%s"%(column_name) 
 
 		return column_name
 
@@ -1436,7 +1448,23 @@ class config(object, metaclass=Singleton):
 
 		whereStatement = None
 
-		if self.import_is_incremental == True:
+		if self.import_is_incremental == False:
+			logging.debug("Executing import_config.getIncrWhereStatement() - Exited (Not an incremental import)")
+			return None
+
+		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			# This is where we handle the specific where statement for Oracle FlashBack Imports
+			maxSCN = int(self.common_config.executeJDBCquery("SELECT CURRENT_SCN FROM V$DATABASE").iloc[0]['CURRENT_SCN'])
+			whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(maxSCN)
+			whereStatement += "WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL"
+#			VERSIONS BETWEEN SCN MINVALUE AND 1305823009086
+#			WHERE VERSIONS_OPERATION IS NOT NULL
+#				AND VERSIONS_ENDTIME IS NULL;
+#			print(maxValue)
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
+
+		else:
 			if whereForSqoop == True:
 				# If it is the where for sqoop, we need to get the max value for the configured column and save that into the config database
 				maxValue = self.common_config.getJDBCcolumnMaxValue(self.source_schema, self.source_table, self.sqoop_incr_column)
@@ -1524,16 +1552,19 @@ class config(object, metaclass=Singleton):
 		whereStatement = None
 
 		if self.import_is_incremental == True:
-			whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
-			logging.debug("Where statement for forceIncr = False: %s"%(whereStatement))
-			JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
-			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsFull))
-
-			whereStatement = self.getIncrWhereStatement(forceIncr = True, whereForSourceTable=True)
-			logging.debug("Where statement for forceIncr = True: %s"%(whereStatement))
-			JDBCRowsIncr = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
-			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
-
+			if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#				whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
+				JDBCRowsIncr = 2
+			else:
+				whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
+				logging.debug("Where statement for forceIncr = False: %s"%(whereStatement))
+				JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
+				logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsFull))
+	
+				whereStatement = self.getIncrWhereStatement(forceIncr = True, whereForSourceTable=True)
+				logging.debug("Where statement for forceIncr = True: %s"%(whereStatement))
+				JDBCRowsIncr = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
+				logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
 		else:
 			if self.sqoop_sql_where_addition != None:
 				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
@@ -1718,12 +1749,14 @@ class config(object, metaclass=Singleton):
 			# Reading the saved number from the configurationdatabase
 			if validateSqoop == False:
 				if self.import_is_incremental == False:
+					logging.debug("validateSqoop == False & self.import_is_incremental == False")
 					# Standard full validation
 					query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
 					validateTextTarget = "Hive table"
 					validateTextSource = "Source table"
 					validateText = validateTextTarget
 				elif self.sqoop_incr_validation_method == "full" and incremental == False:
+					logging.debug("validateSqoop == False & self.sqoop_incr_validation_method == 'full' and incremental == False")
 					# We are not validating the sqoop import, but the validation is an incremental import and 
 					# we are going to validate all the data
 					query  = "select source_rowcount, hive_rowcount from import_tables where table_id = %s "
@@ -1731,6 +1764,7 @@ class config(object, metaclass=Singleton):
 					validateTextSource = "Source table"
 					validateText = validateTextTarget
 				else:
+					logging.debug("validateSqoop == False & else")
 					# We are not validating the sqoop import, but the validation is an incremental import and
 					# we are going to validate only the incremental part of the import (what sqoop imported)
 					query  = "select source_rowcount_incr, hive_rowcount from import_tables where table_id = %s "
@@ -1739,12 +1773,14 @@ class config(object, metaclass=Singleton):
 					validateText = "Hive table"
 			else:
 				if self.import_is_incremental == False:
+					logging.debug("validateSqoop == True & self.import_is_incremental == False")
 					# Sqoop validation for full imports
 					query  = "select source_rowcount from import_tables where table_id = %s "
 					validateTextTarget = "Sqoop import"
 					validateTextSource = "Source table"
 					validateText = validateTextTarget
 				else:
+					logging.debug("validateSqoop == True & else")
 					# Sqoop validation for incremental imports
 					query  = "select source_rowcount_incr from import_tables where table_id = %s "
 					validateTextTarget = "Sqoop import (incr)"
@@ -1762,6 +1798,10 @@ class config(object, metaclass=Singleton):
 			diffAllowed = 0
 			logging.debug("source_rowcount: %s"%(source_rowcount))
 			logging.debug("target_rowcount: %s"%(target_rowcount))
+
+			if source_rowcount == None:
+				logging.error("There is no information about rowcount stored in import_tables. Are you running with sqoop validation method and using 'full' validation on an incremental import?")
+				return False	
 
 			if source_rowcount > 0:
 				if self.validate_diff_allowed != None:
@@ -1958,7 +1998,7 @@ class config(object, metaclass=Singleton):
 #			for id, value in enumerate(self.sqoop_options.lower().split(" ")):
 			for id, value in enumerate(self.sqoop_options.split(" ")):
 				if value == "--split-by":
-					self.sqoopSplitByColumn = self.sqoop_options.split(" ")[id + 1]
+					self.sqoopSplitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
 		
 #		print("self.sqoopSplitByColumn: %s"%(self.sqoopSplitByColumn))
 

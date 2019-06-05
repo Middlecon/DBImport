@@ -990,7 +990,7 @@ class config(object, metaclass=Singleton):
 		returnValue = None
 		boolValue = False
 	
-		if key in ("airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable"):
+		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable"):
 			valueColumn = "valueInt"
 			boolValue = True
 		elif key in ("import_staging_database", "export_staging_database"):

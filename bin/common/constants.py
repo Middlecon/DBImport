@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.41.1"
+VERSION = "0.42"
 
 # Database types
 MYSQL = "mysql"
@@ -16,6 +16,7 @@ PRIMARY_KEY = "P"
 FOREIGN_KEY = "F"
 
 # Phase defintions
+IMPORT_PHASE_ORACLE_FLASHBACK = "oracle_flashback"
 IMPORT_PHASE_FULL = "full"
 IMPORT_PHASE_INCR = "incr"
 COPY_PHASE_NONE = "none"

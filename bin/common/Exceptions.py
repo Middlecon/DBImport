@@ -17,6 +17,7 @@
 
 class databaseNotFound(Exception): pass
 class tableNotFound(Exception): pass
+class rowNotFound(Exception): pass
 class invalidConfiguration(Exception): pass
 class undevelopedFeature(Exception): pass
 class SQLerror(Exception): pass

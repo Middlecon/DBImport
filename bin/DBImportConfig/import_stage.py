@@ -84,6 +84,14 @@ class stage(object):
 		elif stage == 1114: stageDescription = "Validate sqoop import"
 		elif stage == 1149: stageDescription = "Import Phase Completed"
 
+		# Import_Phase_ORACLE_FLASHBACK 
+		elif stage == 1210: stageDescription = "Getting source tableschema"
+		elif stage == 1211: stageDescription = "Clear table rowcount"
+		elif stage == 1212: stageDescription = "Sqoop import"
+		elif stage == 1213: stageDescription = "Get source table rowcount"
+		elif stage == 1214: stageDescription = "Validate sqoop import"
+		elif stage == 1249: stageDescription = "Import Phase Completed"
+
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageDescription = "Connecting to Hive"
 		elif stage == 3051: stageDescription = "Creating the import table in the staging database"
@@ -197,6 +205,14 @@ class stage(object):
 		elif stage == 1113: stageShortName = "get_source_rowcount"
 		elif stage == 1114: stageShortName = "validate_sqoop_import"
 		elif stage == 1149: stageShortName = "skip"
+
+		# Import_Phase_ORACLE_FLASHBACK
+		elif stage == 1210: stageShortName = "get_source_tableschema"
+		elif stage == 1211: stageShortName = "clear_table_rowcount"
+		elif stage == 1212: stageShortName = "sqoop"
+		elif stage == 1213: stageShortName = "get_source_rowcount"
+		elif stage == 1214: stageShortName = "validate_sqoop_import"
+		elif stage == 1249: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageShortName = "connect_to_hive"

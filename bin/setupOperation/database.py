@@ -34,7 +34,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy_utils import create_view
 # from setupOperation.schema import *
-from setupOperation import schema
+#from setupOperation import schema
+from DBImportConfig import configSchema
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text
 
@@ -208,14 +209,14 @@ class initialize(object):
 
 	def createDB(self, createOnlyTable=None):
 		
-#		schema.dbVersion.__table__.drop(self.configDB)
-#		schema.configuration.__table__.drop(self.configDB)
+#		configSchema.dbVersion.__table__.drop(self.configDB)
+#		configSchema.configuration.__table__.drop(self.configDB)
 
-#		inspector = sa.inspect(self.configDB)		
-#		allTables = inspector.get_table_names()
-#		if "db_version" in allTables:
-#			print("DBImport configuration database is already created. If you are deploying a new version, please run --upgradeDB")
-#			return
+		inspector = sa.inspect(self.configDB)		
+		allTables = inspector.get_table_names()
+		if "db_version" in allTables:
+			print("DBImport configuration database is already created. If you are deploying a new version, please run --upgradeDB")
+			return
 
 #		allViews = inspector.get_view_names()
 #	
@@ -239,13 +240,17 @@ class initialize(object):
 #			self.configDB.execute(query)
 
 		# Create all tables with the current schema
-		schema.metadata.create_all(self.configDB, checkfirst=True)
+		configSchema.metadata.create_all(self.configDB, checkfirst=True)
 
 		# Insert the version of the database schema
-#		query = sa.insert(schema.dbVersion).values(version='04201')
-#		self.configDB.execute(query)
+		query = sa.insert(configSchema.dbVersion).values(version='04201')
+		self.configDB.execute(query)
 
 		self.updateConfigurationValues()
+
+		print("DBImport configuration database is created successfully")
+		
+
 
 	def upgradeDB(self):
 
@@ -256,7 +261,7 @@ class initialize(object):
 			return
 
 
-		query = sa.select([sa.func.max(schema.dbVersion.version)])
+		query = sa.select([sa.func.max(configSchema.dbVersion.version)])
 		result = self.configDB.execute(query).fetchone()
 		deployedVersion = result[0]
 		if deployedVersion == 4201:
@@ -266,11 +271,11 @@ class initialize(object):
 
 	def updateConfigurationValues(self):
 		
-		query = sa.select([schema.jdbcConnectionsDrivers.database_type])
+		query = sa.select([configSchema.jdbcConnectionsDrivers.database_type])
 		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
 
 		if result_df.empty or (result_df[0] == 'DB2 AS400').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='DB2 AS400', 
 				version='default', 
 				driver='com.ibm.as400.access.AS400JDBCDriver', 
@@ -278,7 +283,7 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'DB2 UDB').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='DB2 UDB', 
 				version='default', 
 				driver='com.ibm.db2.jcc.DB2Driver', 
@@ -286,7 +291,7 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'MySQL').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='MySQL', 
 				version='default', 
 				driver='com.mysql.jdbc.Driver', 
@@ -294,7 +299,7 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'Oracle').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Oracle', 
 				version='default', 
 				driver='oracle.jdbc.driver.OracleDriver', 
@@ -302,7 +307,7 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'PostgreSQL').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='PostgreSQL', 
 				version='default', 
 				driver='org.postgresql.Driver', 
@@ -310,7 +315,7 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'Progress DB').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Progress DB', 
 				version='default', 
 				driver='com.ddtek.jdbc.openedge.OpenEdgeDriver', 
@@ -318,14 +323,14 @@ class initialize(object):
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'SQL Server').any() == False:
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='SQL Server', 
 				version='default', 
 				driver='com.microsoft.sqlserver.jdbc.SQLServerDriver', 
 				classpath='add path to JAR file')
 			self.configDB.execute(query)
 
-			query = sa.insert(schema.jdbcConnectionsDrivers).values(
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='SQL Server', 
 				version='jTDS', 
 				driver='net.sourceforge.jtds.jdbc.Driver', 
@@ -333,57 +338,63 @@ class initialize(object):
 			self.configDB.execute(query)
 
 
-#		query = sa.select([schema.dbVersion.version, schema.dbVersion.install_date])
-		query = sa.select([schema.configuration.configKey])
+#		query = sa.select([configSchema.dbVersion.version, configSchema.dbVersion.install_date])
+		query = sa.select([configSchema.configuration.configKey])
 		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
 
 		if result_df.empty or (result_df[0] == 'airflow_disable').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_disable', 
 				valueInt='0', 
 				description='Disable All executions from Airflow. This is what the \"start\" Task is looking at')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'export_stage_disable').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='export_stage_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Export tasks from starting and running tasks will stop after the current stage is completed.')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'export_staging_database').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='export_staging_database', 
 				valueStr='etl_export_staging', 
 				description='Name of staging database to use during Exports')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'export_start_disable').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='export_start_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Export tasks from starting. Running tasks will be completed')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'import_stage_disable').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='import_stage_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new tasks from starting and running Import tasks will stop after the current stage is completed.')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'import_staging_database').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='import_staging_database', 
 				valueStr='etl_import_staging', 
 				description='Name of staging database to use during Imports')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'import_start_disable').any() == False:
-			query = sa.insert(schema.configuration).values(
+			query = sa.insert(configSchema.configuration).values(
 				configKey='import_start_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Import tasks from starting. Running tasks will be completed')
 			self.configDB.execute(query)
-		return
+			
+		if result_df.empty or (result_df[0] == 'hive_remove_locks_by_force').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_remove_locks_by_force', 
+				valueInt='0', 
+				description='With 1, DBImport will remove Hive locks before import by force')
+			self.configDB.execute(query)
 

@@ -684,11 +684,12 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.updateExternalImportView()")
 
 		if self.import_config.isExternalViewRequired() == True:
-			columnsConfig = self.import_config.getColumnsFromConfigDatabase() 
+			columnsConfig = self.import_config.getColumnsFromConfigDatabase(sourceIsParquetFile=True) 
 
 			hiveDB = self.import_config.Hive_Import_DB
 			hiveView = self.import_config.Hive_Import_View
-			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveView, excludeDataLakeColumns=True) 
+			columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveView, includeType=True, excludeDataLakeColumns=True) 
+#			columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveView, excludeDataLakeColumns=True) 
 			columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 			columnsDiffCount  = len(columnsMerge.loc[columnsMerge['Exist'] != 'both'])
 
@@ -698,6 +699,7 @@ class operation(object, metaclass=Singleton):
 				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
 				query += "%s "%(self.import_config.getSelectForImportView())
 				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+				print(query)
 
 				self.common_operations.executeHiveQuery(query)
 				self.common_operations.reconnectHiveMetaStore()
@@ -707,13 +709,16 @@ class operation(object, metaclass=Singleton):
 	def createExternalImportTable(self):
 		logging.debug("Executing import_operations.createExternalImportTable()")
 
+#		externalTableDeleted = False
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
 			if self.common_operations.isHiveTableExternalParquetFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
 				logging.info("Dropping staging table as it's not an external table based on parquet")
 				self.common_operations.dropHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 				self.common_operations.reconnectHiveMetaStore()
+#				externalTableDeleted = True
 
+#		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False or externalTableDeleted == True:
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
 			# Import table does not exist. We just create it in that case
 			logging.info("Creating External Import Table")
@@ -765,21 +770,27 @@ class operation(object, metaclass=Singleton):
 		if columns[columns['name'] == 'datalake_import'].empty == False:
 			query = "alter table `%s`.`%s` change column datalake_import datalake_insert timestamp"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
+
 		elif columns[columns['name'] == 'datalake_insert'].empty == True:
 			query = "alter table `%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\")"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
 
 		if columns[columns['name'] == 'datalake_iud'].empty == True:
 			query = "alter table `%s`.`%s` add columns ( datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
 
 		if columns[columns['name'] == 'datalake_update'].empty == True:
 			query = "alter table `%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
 
 		if columns[columns['name'] == 'datalake_delete'].empty == True and self.import_config.soft_delete_during_merge == True:
 			query = "alter table `%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
 
 		logging.debug("Executing import_operations.createHiveMergeColumns() - Finished")
 
@@ -1002,12 +1013,26 @@ class operation(object, metaclass=Singleton):
 
 		return columnsDF
 
+	def addDatalakeImportColumn(self):
+		""" Adding datalake_column to Hive Table if it does not exists """
+		logging.debug("Executing import_operations.addDatalakeImportColumn()")
+		columnsHive   = self.common_operations.getHiveColumns(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
+#		columnsHive   = self.common_operations.getColumnsFromHiveTable(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
+		if len(columnsHive.loc[columnsHive['name'] == 'datalake_import']) == 0:
+			query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
+			self.common_operations.executeHiveQuery(query)
+			self.common_operations.reconnectHiveMetaStore()
+
+		logging.debug("Executing import_operations.addDatalakeImportColumn() - Finished")
+
+
 	def updateHiveTable(self, hiveDB, hiveTable, restrictColumns=None, sourceIsParquetFile=False):
 		""" Update the target table based on the column information in the configuration database """
 		# TODO: If there are less columns in the source table together with a rename of a column, then it wont work. Needs to be handled
 		logging.debug("Executing import_operations.updateTargetTable()")
 		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile) 
-		columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
+#		columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files
 		if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:
@@ -1084,7 +1109,8 @@ class operation(object, metaclass=Singleton):
 							self.import_config.logHiveColumnTypeChange(rowInConfig['name'], rowInConfig['type'], previous_columnType=rowInHive["type"], hiveDB=hiveDB, hiveTable=hiveTable) 
 
 			self.common_operations.reconnectHiveMetaStore()
-			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+			columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
+#			columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 			columnsHiveOnlyName = columnsHive.filter(['name'])
 			columnsMergeOnlyName = pd.merge(columnsConfigOnlyName, columnsHiveOnlyName, on=None, how='outer', indicator='Exist')
 
@@ -1102,7 +1128,8 @@ class operation(object, metaclass=Singleton):
 
 		# Check for changed column types
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
+#		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 
 		columnsConfigOnlyNameType = columnsConfig.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsHiveOnlyNameType = columnsHive.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
@@ -1133,7 +1160,8 @@ class operation(object, metaclass=Singleton):
 
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
+		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
+#		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 		columnsHive['comment'].replace('', None, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
 		columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 
@@ -1261,7 +1289,11 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.updateFKonTable()  - Finished")
 
 	def removeHiveLocks(self,):
-		self.common_operations.removeHiveLocksByForce(self.Hive_DB, self.Hive_Table)
+		if self.import_config.common_config.getConfigValue(key = "hive_remove_locks_by_force") == True:
+			self.common_operations.removeHiveLocksByForce(self.Hive_DB, self.Hive_Table)
+			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_PKonly_DB, self.import_config.Hive_Import_PKonly_Table)
+			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table)
 
 	def truncateTargetTable(self,):
 		logging.info("Truncating Target table in Hive")

@@ -9,6 +9,7 @@ Committers
 Versions
 --------
 
+  - v0.42. Support for more than MySQL as Hive Metastore
   - v0.41. Adding imports and exports by searcing for tables and views
   - v0.40. Exports to MsSQL, Oracle, MySQL and DB2 is fully supported
   - v0.30. Support for Merge in ETL Phase
@@ -26,5 +27,5 @@ RoadMap
   3. Multi cluster ingestion of data - **Ongoing**
   4. Custom queries and delta loads from source - **Partially implemented**
   5. Support for more JDBC sources such as Netezza, TeraData, ExaData
-  6. Support for more than MySQL as database for Hive Metastore - **Ongoing**
+  6. Support for more than MySQL as database for Hive Metastore - **Implemented in v0.42**
   7. Support for more than MySQL as configuration database for DBImport

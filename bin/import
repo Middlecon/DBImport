@@ -370,8 +370,6 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
-#				import_operation.createExternalImportView()
-#				import_operation.updateExternalImportView()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3052) == True: 
@@ -391,6 +389,7 @@ def main(argv):
 				import_operation.connectToHive()
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
+				import_operation.addDatalakeImportColumn()
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -622,7 +621,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3205) == True: 
-				import_operation.connectToHive()
+#				import_operation.connectToHive()
 				import_operation.createTargetTable()
 				import_operation.convertHiveTableToACID()
 				import_operation.updateTargetTable()
@@ -1032,6 +1031,67 @@ def main(argv):
 		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
 			import_operation.convertStageStatisticsToJSON()
 			import_operation.saveStageStatistics()
+
+	# ******************************************
+	# * IMPORT_PHASE_ORACLE_FLASHBACK 
+	# ******************************************
+
+	if importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK and runImportPhase == True:
+		if stage >= 1200 and stage < 1249 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			if stage == 1214: newStage = 1211 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if import_operation.runStage(1210) == True: 
+				import_operation.getSourceTableSchema()
+
+		if runOnlyFunction == None: 
+			if import_operation.runStage(1211) == True: 
+				import_operation.clearTableRowCount()
+
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if import_operation.runStage(1212) == True: 
+				import_operation.getJDBCTableRowCount()
+	
+		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			if import_operation.runStage(1213) == True: 
+				import_operation.runSqoop(False)
+
+			if import_operation.runStage(1214) == True: 
+				import_operation.validateSqoopRowCount()
+
+		if runOnlyFunction == None:
+			import_operation.setStage(1249)
+
+	# ******************************************
+	# * ETL_PHASE_NONE
+	# ******************************************
+	
+	if etlPhase == constant.ETL_PHASE_NONE and runETLPhase == True:
+		if runOnlyFunction == None:
+			import_operation.setStage(9999)
+
+		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+			import_operation.convertStageStatisticsToJSON()
+			import_operation.saveStageStatistics()
+
+	# Print Import information
 
 	if import_operation.getStage() == 9999: 
 		if runOnlyFunction == None:

@@ -1,6 +1,30 @@
 Release Notes
 =============
 
+v0.42
+------------------------------
+
+**Fixed issues**
+
+  - Issue #20: Going from Merge to non-merge imports fails because missing datalake_import column
+  - Issue #22: Column starting with _ failed if it's part of Primary Key and merge operation is running
+  - Issue #23: varchar(-1) from MSSQL generates error in Sqoop
+  - Issue #24: Remove locks by force only in target table
+  - Issue #25: column with the name 'int' is not supported
+
+**Improvments**
+
+  - Removing locks by force is configurable in the configuration table
+
+**Changed behavior**
+
+  - Configuration to Hive metastore must be changed to a SQLAlchemy connection string stored in the setting *hive_metastore_alchemy_conn* 
+
+**New Features**
+
+  - Hive Metastore SQL connection now uses SQLAlchemy. This enables more than MySQL as database type for Hive Metastore
+
+
 v0.41.1
 ------------------------------
 
