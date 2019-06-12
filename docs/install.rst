@@ -25,6 +25,7 @@ There is a file inside the *conf* directory called *dbimport.cfg*. This file con
 
   - Section [Database], all settings starting with *mysql*. This is the connection to the DBImport configuration database.
   - Section [REST_statistics]. Put *post_column_data* and *post_column_data* to *false* or configure a valid REST interface on *rest_endpoint*
+  - Section [HDFS]. *hdfs_address* should be a valid URL to HDFS
   - Section [Hive]. *hive_metastore_alchemy_conn* must have a valid Alchemy connection string to the Hive Metastore SQL database
   - Section [Hive]. *hostname*, *port* and *kerberos_service_name* must all be set against a Hive server with binary transport mode.
 
