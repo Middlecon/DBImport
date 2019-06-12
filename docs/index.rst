@@ -35,6 +35,7 @@ So DBImport brings the following to the table
 -   Full support for importing and exporting data to Oracle, MsSQL, MySQL, DB2-UDB, DB2-AS400, Progress and PostgreSQL databases
 -   Auto discovery of tables and views from all supported source systems
 -   Supports both Full and Incremental imports and exports
+-   Supports Oracle Flashback Query for Incremental imports
 -   Handle column definition changes in source systems
 -   Handle column description changes in source systems
 -   Handle Primary and Foreign Keys from source systems
