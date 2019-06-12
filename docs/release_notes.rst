@@ -1,6 +1,27 @@
 Release Notes
 =============
 
+v0.50
+------------------------------
+
+**Fixed issues**
+
+  - Issue #26: Schema changes in configuration database is not handled
+  - Issue #27: String export to MSSQL into varchar gets converted everytime
+  - Issue #28: Update column description on exported MSSQL table failes
+
+**Improvments**
+
+  - resetIncrementalImport is added to 'manage' in order to clear an incremental import and force the next import to start with a initial import 
+
+**Changed behavior**
+
+  - Configuration for Hive validation test and extended messages are move to the configuration table in MySQL
+
+**New Features**
+
+  - New import type called 'oracle_flashback_merge' is availble. Will use the *Oracle Flashback Version Query* to import changed rows into Hive
+
 v0.42
 ------------------------------
 

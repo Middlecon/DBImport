@@ -61,6 +61,7 @@ class config(object, metaclass=Singleton):
 		self.datalakeSourceConnection = None
 		self.exportIsIncremental = None
 		self.validateExport = None
+		self.hiveJavaHeap = None
 
 		self.tempTableNeeded = None
 
@@ -182,7 +183,8 @@ class config(object, metaclass=Singleton):
 		query += "    incr_column, "
 		query += "    incr_maxvalue, "
 		query += "    truncate_target, "
-		query += "    incr_validation_method "
+		query += "    incr_validation_method, "
+		query += "    hive_javaheap "
 		query += "from export_tables "
 		query += "where "
 		query += "    dbalias = %s " 
@@ -209,6 +211,7 @@ class config(object, metaclass=Singleton):
 		self.incr_maxvalue = row[9]
 		truncate_target_table = row[10]
 		self.incr_validation_method = row[11]
+		self.hiveJavaHeap = row[12]
 
 		if self.validateExport == 0:
 			self.validateExport = False
@@ -273,6 +276,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Settings from export_config.getExportConfig()")
 		logging.debug("    tableID = %s"%(self.tableID))
 		logging.debug("    exportType = %s"%(self.exportType))
+		logging.debug("    hiveJavaHeap = %s"%(self.hiveJavaHeap))
 		logging.debug("    hiveDB = %s"%(self.hiveDB))
 		logging.debug("    hiveTable = %s"%(self.hiveTable))
 		logging.debug("    exportIsIncremental = %s"%(self.exportIsIncremental))
@@ -525,7 +529,7 @@ class config(object, metaclass=Singleton):
 		if self.common_config.db_mssql == True:
 			columnType = re.sub('^timestamp', 'datetime', columnType)
 			columnType = re.sub('^double$', 'real', columnType)
-			columnType = re.sub('^string$', 'varchar(max)', columnType)
+			columnType = re.sub('^string$', 'varchar(-1)', columnType)
 			columnType = re.sub('^boolean$', 'tinyint', columnType)
 
 			if sourceDatabaseType == constant.ORACLE:
@@ -847,7 +851,19 @@ class config(object, metaclass=Singleton):
 			if row['comment'] == None: row['comment'] = ""
 
 			if self.common_config.jdbc_servertype == constant.MSSQL:
-				query = "EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'%s' , @level0type=N'SCHEMA',@level0name=N'%s', @level1type=N'TABLE',@level1name=N'%s', @level2type=N'COLUMN',@level2name=N'%s';"%(row["comment"], targetSchema, targetTable, row["name"])
+				query  = "IF NOT EXISTS ("
+				query += "SELECT NULL FROM SYS.EXTENDED_PROPERTIES "
+				query += "WHERE [major_id] = OBJECT_ID('%s')"%(targetTable) 
+				query += "   AND [name] = N'MS_Description' "
+				query += "   AND [minor_id] = ("
+				query += "      SELECT [column_id] FROM SYS.COLUMNS "
+				query += "      WHERE [name] = '%s' "%(row["name"])
+				query += "         AND [object_id] = OBJECT_ID('%s')"%(targetTable)
+				query += "      )"
+				query += "   )"
+				query += "EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'%s' , @level0type=N'SCHEMA',@level0name=N'%s', @level1type=N'TABLE',@level1name=N'%s', @level2type=N'COLUMN',@level2name=N'%s' "%(row["comment"], targetSchema, targetTable, row["name"])
+				query += "ELSE "
+				query += "EXEC sys.sp_updateextendedproperty  @name=N'MS_Description', @value=N'%s' , @level0type=N'SCHEMA',@level0name=N'%s', @level1type=N'TABLE',@level1name=N'%s', @level2type=N'COLUMN',@level2name=N'%s' "%(row["comment"], targetSchema, targetTable, row["name"])
 
 			if self.common_config.jdbc_servertype == constant.ORACLE:
 				query = "comment on column \"%s\".\"%s\".\"%s\" is '%s'"%(targetSchema, targetTable, row["name"], row["comment"])

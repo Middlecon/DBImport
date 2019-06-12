@@ -63,6 +63,7 @@ Content
     project
     license
     release_notes
+    requirements
     concept
     install
     quickstart

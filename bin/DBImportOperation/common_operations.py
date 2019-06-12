@@ -79,14 +79,16 @@ class operation(object, metaclass=Singleton):
 		self.hive_hostname = configuration.get("Hive", "hostname")
 		self.hive_port = configuration.get("Hive", "port")
 		self.hive_kerberos_service_name = configuration.get("Hive", "kerberos_service_name")
-		if configuration.get("Hive", "print_hive_message").lower() == "true":
-			self.hive_print_messages = True
-		else:
-			self.hive_print_messages = False
-		if configuration.get("Hive", "test_hive_execution").lower() == "true":
-			self.test_hive_execution = True
-		else:
-			self.test_hive_execution = False
+		self.hive_print_messages = self.common_config.getConfigValue(key = "hive_print_messages")
+
+#		if configuration.get("Hive", "print_hive_message").lower() == "true":
+#			self.hive_print_messages = True
+#		else:
+#			self.hive_print_messages = False
+#		if configuration.get("Hive", "test_hive_execution").lower() == "true":
+#			self.test_hive_execution = True
+#		else:
+#			self.test_hive_execution = False
 		self.hive_min_buckets = int(configuration.get("Hive", "min_buckets"))
 		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
 
@@ -360,7 +362,7 @@ class operation(object, metaclass=Singleton):
 		# Make sure we only connect if we havent done so before. Reason is that this function can be called from many different places
 		# due to the retry functionallity
 		if self.hive_cursor == None:
-			logging.info("Connecting to Hive LLAP")
+			logging.info("Connecting to Hive")
 			try:
 				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
 				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
@@ -368,15 +370,20 @@ class operation(object, metaclass=Singleton):
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
 
 			self.hive_cursor = self.hive_conn.cursor()
-			if self.test_hive_execution == True and forceSkipTest == False:
+#			if self.test_hive_execution == True and forceSkipTest == False:
+			if self.common_config.getConfigValue(key = "hive_validate_before_execution") == True and forceSkipTest == False:
 				self.testHiveQueryExecution()
+
 		logging.debug("Executing common_operations.connectToHive() - Finished")
 	
 	def testHiveQueryExecution(self,):
 		logging.debug("Executing common_operations.testHiveQueryExecution()")
 		logging.info("Checking Hive functionality by querying the reference table")
 
-		result_df = self.executeHiveQuery("select id, value, count(value) as counter from hadoop.dbimport_check_hive group by value, id")
+		hiveTable = self.common_config.getConfigValue(key = "hive_validate_table")
+
+#		result_df = self.executeHiveQuery("select id, value, count(value) as counter from hadoop.dbimport_check_hive group by value, id")
+		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s group by value, id"%(hiveTable))
 		reference_df = pd.DataFrame({'id':[1,2,3,4,5], 'value':['Hive', 'LLAP', 'is', 'working', 'fine'], 'counter':[1,1,1,1,1]})
 
 		if reference_df.equals(result_df) == False:
@@ -456,12 +463,12 @@ class operation(object, metaclass=Singleton):
 
 		# If the user configured to print the logs, we do it here
 		logs = self.hive_cursor.fetch_logs()
+		errorsFound = False
 		if self.hive_print_messages == True:
 			for message in logs:
 				print(message)
 			print("")
 		else:
-			errorsFound = False
 			for message in logs:
 				if message.lower().startswith("error"):
 					errorsFound = True

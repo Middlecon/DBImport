@@ -86,7 +86,7 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing etl_operations.connectToHive() - Finished")
 
-	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None):
+	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None, oracleFlashbackSource=False, deleteNotUpdatedRows=False):
 		""" Merge source table into Target table. Also populate a History Audit table if selected """
 		logging.debug("Executing etl_operations.mergeHiveTables()")
 
@@ -116,8 +116,6 @@ class operation(object, metaclass=Singleton):
 		query  = "merge into `%s`.`%s` as T \n"%(targetDB, targetTable)
 		query += "using `%s`.`%s` as S \n"%(sourceDB, sourceTable)
 		query += "on \n"
-
-		print(columnMerge)
 
 		for i, targetColumn in enumerate(PKColumns.split(",")):
 			sourceColumn = columnMerge.loc[columnMerge['Exist'] == 'both'].loc[columnMerge['targetName'] == targetColumn].iloc[0]['sourceName']
@@ -160,6 +158,9 @@ class operation(object, metaclass=Singleton):
 
 			query += ") \n"
 
+		if oracleFlashbackSource == True:
+			query += "and ( S.datalake_flashback_operation is null or S.datalake_flashback_operation != 'D' ) \n"
+
 		query += "then update set "
 		firstIteration = True
 		nonPKcolumnFound = False
@@ -189,7 +190,15 @@ class operation(object, metaclass=Singleton):
 		if datalakeSourceExists == True and datalakeSource != None: query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
 		query += " \n"
 
-		query += "when not matched then insert values ( "
+		if oracleFlashbackSource == True:
+			query += "when matched and S.datalake_flashback_operation = 'D' then delete \n"
+
+		query += "when not matched "
+
+		if oracleFlashbackSource == True:
+			query += "and ( S.datalake_flashback_operation is null or S.datalake_flashback_operation != 'D' ) \n"
+
+		query += "then insert values ( "
 		firstIteration = True
 		for index, row in targetColumns.iterrows():
 			ColumnName = row['name']
@@ -216,8 +225,17 @@ class operation(object, metaclass=Singleton):
 
 #		print("==============================================================")
 #		print(query)
-#		query = query.replace('\n', '')
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
+##		query = query.replace('\n', '')
 		self.common_operations.executeHiveQuery(query)
+
+		if deleteNotUpdatedRows == True:
+			# This is used by Oracle Flashback imports when doing a reinitialization of the data and we need to 
+			# remove the rows that was not updated
+			query = "delete from `%s`.`%s` where datalake_update != '%s' "%(targetDB, targetTable, mergeTime)
+			self.common_operations.executeHiveQuery(query)
+
 
 		# If a row was previously deleted and now inserted again and we are using Soft Delete, 
 		# then the information in the datalake_iud, datalake_insert and datalake_delete is wrong. 

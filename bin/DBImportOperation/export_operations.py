@@ -53,6 +53,8 @@ class operation(object, metaclass=Singleton):
 		self.sqoopRows = None
 		self.sqoopMappers = None
 
+		self.globalHiveConfigurationSet = False
+
 		if connectionAlias == None and targetSchema == None and targetTable == None:
 			self.export_config = export_config.config()
 			self.common_operations = common_operations.operation()
@@ -426,6 +428,12 @@ class operation(object, metaclass=Singleton):
 			logging.error(ex)
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
+
+		if self.globalHiveConfigurationSet == False:
+			self.globalHiveConfigurationSet = True
+			if self.export_config.hiveJavaHeap != None:
+				query = "set hive.tez.container.size=%s"%(self.export_config.hiveJavaHeap)
+				self.common_operations.executeHiveQuery(query)
 
 		logging.debug("Executing export_operations.connectToHive() - Finished")
 

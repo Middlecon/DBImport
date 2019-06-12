@@ -39,6 +39,9 @@ def printHelp():
 	print ("                     as a starting point for the next import. Requires [Hive Database] and [Hive Table] paramaters")
 	print ("  --repairAllIncrementalImports")
 	print ("                     Repairs all incremental import that have an active stage.")
+	print ("  --resetIncrementalImport")
+	print ("                     Resets an incremental import. This will truncate the Target table and force the next import")
+	print ("                     to start from the begining with a full import. Requires [Hive Database] and [Hive Table] paramaters")
 	print ("  --repairIncrementalExport")
 	print ("                     Tries to repair an incremental import by reading the max value for the incremental column from the ")
 	print ("                     Target Table and use that as the max value for the next export. Requires [Connection], [Schema] and [Table]")
@@ -81,6 +84,7 @@ def printHelp():
 	print ("  -T [Table], --table=[Table]")
 	print ("                     Table to export")
 	print ("")
+	print ("  -y, --yes          Auto answer 'Yes' to all questions")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
 	sys.exit(1)
@@ -88,7 +92,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vh:t:a:S:T:", ["help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection"])
+		opts, args = getopt.getopt(argv, "yvh:t:a:S:T:", ["yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -104,6 +108,7 @@ def main(argv):
 	addDBToTable = False
 	addCustomText = None
 	counterStart = None
+	autoYesAnswer = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -111,6 +116,8 @@ def main(argv):
 	for opt, arg in opts:
 		if opt == "--help":
 			printHelp()
+		elif opt in ("-y", "--yes"):
+			autoYesAnswer = True
 		elif opt in ("-v", "--debug"):
 			loggingLevel = logging.DEBUG
 		elif opt in ("-h", "--hiveDB", "--Hive_DB"):
@@ -145,6 +152,8 @@ def main(argv):
 			operation = "repairIncrementalImport"
 		elif opt == "--repairAllIncrementalImports":
 			operation = "repairAllIncrementalImports"
+		elif opt == "--resetIncrementalImport":
+			operation = "resetIncrementalImport"
 		elif opt == "--resetIncrementalExport":
 			operation = "resetIncrementalExport"
 		elif opt == "--repairIncrementalExport":
@@ -166,6 +175,9 @@ def main(argv):
 		printHelp()
 
 	if operation == "repairIncrementalImport" and (Hive_DB == None or Hive_Table == None):
+		printHelp()
+
+	if operation == "resetIncrementalImport" and (Hive_DB == None or Hive_Table == None):
 		printHelp()
 
 	if operation == "clearExportStage" and (connectionAlias == None or jdbcSchema == None or jdbcTable == None):
@@ -243,8 +255,10 @@ def main(argv):
 		print("it will fetch the max value from the hive table and update the MySQL database. This value will then be used")
 		print("used as the starting point for the next sqoop import.")
 		print("")
-		answer = input("Are you sure you want to do this? (y/N): ")
-#		answer = "y"
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
 
 		if answer.lower() == "y":
 			import_operation = import_operations.operation()
@@ -257,19 +271,37 @@ def main(argv):
 		print("and the hive table. The tool will connect to the hive database and read the max value for the column")
 		print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
 		print("")
-		answer = input("Are you sure you want to do this? (y/N): ")
-#		answer = "y"
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
 
 		if answer.lower() == "y":
 			import_operation = import_operations.operation(Hive_DB, Hive_Table)
 			import_operation.resetIncrMaxValue()
 			import_operation.remove_temporary_files()
 
+	if operation == "resetIncrementalImport":
+		print("This command will truncate the Target Table and force the next import to be a full import.")
+		print("")
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
+
+		if answer.lower() == "y":
+			import_operation = import_operations.operation(Hive_DB, Hive_Table)
+			import_operation.resetIncrMinMaxValues(maxValue=None)
+			import_operation.truncateTargetTable()
+			import_operation.remove_temporary_files()
+
 	if operation == "resetIncrementalExport":
 		print("This command will truncate the Target Table and force the next export to be a full export.")
 		print("")
-		answer = input("Are you sure you want to do this? (y/N): ")
-#		answer = "y"
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
 
 		if answer.lower() == "y":
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
@@ -281,8 +313,12 @@ def main(argv):
 	if operation == "repairIncrementalExport":
 		print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
 		print ("Target Table and use that as the max value for the next export.")
-		answer = input("Are you sure you want to do this? (y/N): ")
-#		answer = "y"
+		print("")
+
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
 
 		if answer.lower() == "y":
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
@@ -292,8 +328,11 @@ def main(argv):
 	if operation == "dropExportTable":
 		print("This command will drop the Target Table and if it's an incremental export, force the next export to be a full export.")
 		print("")
-		answer = input("Are you sure you want to do this? (y/N): ")
-#		answer = "y"
+
+		if autoYesAnswer == False:
+			answer = input("Are you sure you want to do this? (y/N): ")
+		else:
+			answer = "y"
 
 		if answer.lower() == "y":
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)

@@ -38,6 +38,8 @@ from sqlalchemy_utils import create_view
 from DBImportConfig import configSchema
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text
+from alembic.config import Config
+from alembic import command as alembicCommand
 
 class initialize(object):
 	def __init__(self):
@@ -45,6 +47,18 @@ class initialize(object):
 
 		self.mysql_conn = None
 		self.mysql_cursor = None
+		self.debugLogLevel = False
+
+		if logging.root.level == 10:        # DEBUG
+			self.debugLogLevel = True
+
+		try:
+			DBImport_Home = os.environ['DBIMPORT_HOME']
+		except KeyError:
+			print ("Error: System Environment Variable DBIMPORT_HOME is not set")
+			self.remove_temporary_files()
+			sys.exit(1)
+
 
 		# Fetch configuration about MySQL database and how to connect to it
 		self.configHostname = configuration.get("Database", "mysql_hostname")
@@ -55,14 +69,30 @@ class initialize(object):
 
 		# Esablish a SQLAlchemy connection to the DBImport database 
 #		try:
-		# TODO: Error handling in SQLAlchemy
-		connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			self.configUsername, 
 			self.configPassword, 
 			self.configHostname, 
 			self.configPort, 
 			self.configDatabase)
-		self.configDB = sa.create_engine(connectStr, echo = False)
+
+		try:
+			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
+		except sa.exc.OperationalError as err:
+			logging.error("%s"%err)
+			self.remove_temporary_files()
+			sys.exit(1)
+		except:
+			print("Unexpected error: ")
+			print(sys.exc_info())
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		# Setup configuration for Alembic
+		self.alembicSchemaDir = DBImport_Home + '/bin/SchemaUpgrade'
+		self.alembicConfig = Config()
+		self.alembicConfig.set_main_option('script_location', self.alembicSchemaDir)
+		self.alembicConfig.set_main_option('sqlalchemy.url', self.connectStr)
 
 		# Esablish a connection to the DBImport database in MySQL
 		try:
@@ -209,63 +239,44 @@ class initialize(object):
 
 	def createDB(self, createOnlyTable=None):
 		
-#		configSchema.dbVersion.__table__.drop(self.configDB)
-#		configSchema.configuration.__table__.drop(self.configDB)
-
 		inspector = sa.inspect(self.configDB)		
 		allTables = inspector.get_table_names()
-		if "db_version" in allTables:
+		if "alembic_version" in allTables:
 			print("DBImport configuration database is already created. If you are deploying a new version, please run --upgradeDB")
 			return
-
-#		allViews = inspector.get_view_names()
-#	
-#		if "import_foreign_keys_view" not in allViews:
-#			
-#			query  = "create view `import_foreign_keys_view` as select "
-#			query += "    `s`.`hive_db` AS `hive_db`, "
-#			query += "    `s`.`hive_table` AS `hive_table`, "
-#			query += "    `fk`.`fk_index` AS `fk_index`, "
-#			query += "    `s`.`column_name` AS `column_name`, "
-#			query += "    `ref`.`hive_db` AS `ref_hive_db`, "
-#			query += "    `ref`.`hive_table` AS `ref_hive_table`, "
-#			query += "    `ref`.`column_name` AS `ref_column_name` "
-#			query += "from `import_foreign_keys` `fk` "
-#			query += "join `import_columns` `s` on "
-#			query += "    `s`.`table_id` = `fk`.`table_id` and `s`.`column_id` = `fk`.`column_id` "
-#			query += "join `import_columns` `ref` on "
-#			query += "    `ref`.`table_id` = `fk`.`fk_table_id` and `ref`.`column_id` = `fk`.`fk_column_id` "
-#			query += "order by `fk`.`fk_index`,`fk`.`key_position` "
-#
-#			self.configDB.execute(query)
 
 		# Create all tables with the current schema
 		configSchema.metadata.create_all(self.configDB, checkfirst=True)
 
 		# Insert the version of the database schema
-		query = sa.insert(configSchema.dbVersion).values(version='04201')
-		self.configDB.execute(query)
+#		query = sa.insert(configSchema.dbVersion).values(version='04201')
+#		self.configDB.execute(query)
 
-		self.updateConfigurationValues()
+#		self.updateConfigurationValues()
+		self.upgradeDB()
 
 		print("DBImport configuration database is created successfully")
 		
+	def downgradeDB(self):
 
+		alembicCommand.downgrade(self.alembicConfig, 'base')
 
 	def upgradeDB(self):
 
-		inspector = sa.inspect(self.configDB)		
-		allTables = inspector.get_table_names()
-		if "db_version" not in allTables:
-			print("ERROR: Cant find the configured tables in the database. Have you created the database with --createDB?")
-			return
+#		inspector = sa.inspect(self.configDB)		
+#		allTables = inspector.get_table_names()
+#		if "db_version" not in allTables:
+#			print("ERROR: Cant find the configured tables in the database. Have you created the database with --createDB?")
+#			return
 
+		print("Upgrading database to latest level")
+		alembicCommand.upgrade(self.alembicConfig, 'head')
 
-		query = sa.select([sa.func.max(configSchema.dbVersion.version)])
-		result = self.configDB.execute(query).fetchone()
-		deployedVersion = result[0]
-		if deployedVersion == 4201:
-			print("This database is at the latest level. No need to upgrade")
+#		query = sa.select([sa.func.max(configSchema.dbVersion.version)])
+#		result = self.configDB.execute(query).fetchone()
+#		deployedVersion = result[0]
+#		if deployedVersion == 4201:
+#			print("This database is at the latest level. No need to upgrade")
 
 		self.updateConfigurationValues()
 
@@ -338,7 +349,6 @@ class initialize(object):
 			self.configDB.execute(query)
 
 
-#		query = sa.select([configSchema.dbVersion.version, configSchema.dbVersion.install_date])
 		query = sa.select([configSchema.configuration.configKey])
 		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
 
@@ -396,5 +406,26 @@ class initialize(object):
 				configKey='hive_remove_locks_by_force', 
 				valueInt='0', 
 				description='With 1, DBImport will remove Hive locks before import by force')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_validate_before_execution').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_validate_before_execution', 
+				valueInt='1', 
+				description='With 1, DBImport will run a group by query agains the validate table and verify the result against reference values hardcoded in DBImport')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_validate_table').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_validate_table', 
+				valueStr='dbimport.validate_table', 
+				description='The table to run the validate query against')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_print_messages').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_print_messages', 
+				valueInt='0', 
+				description='With 1, Hive will print additional messages during SQL operations')
 			self.configDB.execute(query)
 

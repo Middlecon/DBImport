@@ -66,7 +66,7 @@ class config(object, metaclass=Singleton):
 		self.datalake_source_connection = None
 		self.sqoop_last_execution = None
 		self.sqoop_last_execution_timestamp = None
-		self.hive_merge_javaheap = None
+		self.hiveJavaHeap = None
 		self.sqoop_hdfs_location = None
 		self.sqoop_hdfs_location_pkonly = None
 		self.sqoop_incr_mode = None
@@ -288,7 +288,7 @@ class config(object, metaclass=Singleton):
 
 		self.datalake_source_table = row[17]
 		self.sqoop_last_execution = row[18]
-		self.hive_merge_javaheap = row[19]
+		self.hiveJavaHeap = row[19]
 		self.nomerge_ingestion_sql_addition = row[20]
 		self.sqoop_sql_where_addition = row[21]
 		self.sqoop_options = row[22]
@@ -417,9 +417,12 @@ class config(object, metaclass=Singleton):
 			self.importPhase             = constant.IMPORT_PHASE_ORACLE_FLASHBACK
 			self.copyPhase               = constant.COPY_PHASE_NONE
 			self.etlPhase                = constant.ETL_PHASE_MERGEONLY
-			self.importPhaseDescription  = "Incremental"
+			self.importPhaseDescription  = "Oracle Flashback"
 			self.copyPhaseDescription    = "No cluster copy"
-			self.etlPhaseDescription     = "Insert"
+			self.etlPhaseDescription     = "Merge"
+
+			if self.soft_delete_during_merge == True: 
+				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
 
 		if self.import_type == "incr_merge_delete":
 			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
@@ -528,7 +531,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    datalake_source = %s"%(self.datalake_source))
 		logging.debug("    datalake_source_table = %s"%(self.datalake_source_table))
 		logging.debug("    datalake_source_connection = %s"%(self.datalake_source_connection))
-		logging.debug("    hive_merge_javaheap = %s"%(self.hive_merge_javaheap))
+		logging.debug("    hiveJavaHeap = %s"%(self.hiveJavaHeap))
 		logging.debug("    sqoop_use_generated_sql = %s"%(self.sqoop_use_generated_sql))
 		logging.debug("    sqoop_mappers = %s"%(self.sqoop_mappers))
 		logging.debug("    sqoop_last_size = %s"%(self.sqoop_last_size))
@@ -1445,6 +1448,10 @@ class config(object, metaclass=Singleton):
 	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False):
 		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
 		logging.debug("Executing import_config.getIncrWhereStatement()")
+		logging.debug("forceIncr = %s"%(forceIncr))
+		logging.debug("ignoreIfOnlyIncrMax = %s"%(ignoreIfOnlyIncrMax))
+		logging.debug("whereForSourceTable = %s"%(whereForSourceTable))
+		logging.debug("whereForSqoop = %s"%(whereForSqoop))
 
 		whereStatement = None
 
@@ -1454,15 +1461,49 @@ class config(object, metaclass=Singleton):
 
 		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# This is where we handle the specific where statement for Oracle FlashBack Imports
-			maxSCN = int(self.common_config.executeJDBCquery("SELECT CURRENT_SCN FROM V$DATABASE").iloc[0]['CURRENT_SCN'])
-			whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(maxSCN)
-			whereStatement += "WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL"
-#			VERSIONS BETWEEN SCN MINVALUE AND 1305823009086
-#			WHERE VERSIONS_OPERATION IS NOT NULL
-#				AND VERSIONS_ENDTIME IS NULL;
-#			print(maxValue)
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
+			if whereForSqoop == True:
+				maxSCN = int(self.common_config.executeJDBCquery("SELECT CURRENT_SCN FROM V$DATABASE").iloc[0]['CURRENT_SCN'])
+				self.sqoopIncrMaxvaluePending = maxSCN
+				self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
+
+				query = ("update import_tables set incr_minvalue_pending = %s, incr_maxvalue_pending = %s where table_id = %s")
+				self.mysql_cursor01.execute(query, (self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending, self.table_id))
+				self.mysql_conn.commit()
+				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+			else:
+				# COALESCE is needed if you are going to call a function that counts source target rows outside the normal import
+				query = ("select COALESCE(incr_minvalue_pending, incr_minvalue), COALESCE(incr_maxvalue_pending, incr_maxvalue) from import_tables where table_id = %s")
+				self.mysql_cursor01.execute(query, (self.table_id, ))
+				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+	
+				row = self.mysql_cursor01.fetchone()
+				self.sqoopIncrMinvaluePending = row[0]
+				self.sqoopIncrMaxvaluePending = row[1]
+
+			if self.incr_maxvalue == None:
+				# There is no MaxValue stored form previous imports. That means we need to do a full import up to SCN number
+				# It also means that this will only be executed by sqoop, as after sqoop there will be a maxvalue present
+				if whereForSourceTable == True or whereForSqoop == True:
+					whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(self.sqoopIncrMaxvaluePending)
+					whereStatement += "WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)"
+			else:
+				if whereForSourceTable == True or whereForSqoop == True:
+					whereStatement  = "VERSIONS BETWEEN SCN %s AND %s "%(self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending)
+					if forceIncr == True or whereForSqoop == True:
+						whereStatement += "WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL "
+					else:
+						whereStatement += "WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)"
+				else:
+					# This will be the where statement for the Target table in Hive
+					if self.sqoop_incr_validation_method == "incr":
+#						whereStatement = "datalake_update = (select max(datalake_update) from `%s`.`%s`) "%(self.Hive_DB, self.Hive_Table) 
+						whereStatement = "datalake_update = '%s' "%(self.sqoop_last_execution_timestamp) 
+
+			if self.sqoop_sql_where_addition != None and self.sqoop_sql_where_addition.strip() != "":
+				if whereStatement != None:
+					whereStatement += "AND %s "%(self.sqoop_sql_where_addition)
+				else:
+					whereStatement = "%s "%(self.sqoop_sql_where_addition)
 
 		else:
 			if whereForSqoop == True:
@@ -1553,8 +1594,16 @@ class config(object, metaclass=Singleton):
 
 		if self.import_is_incremental == True:
 			if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-#				whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
-				JDBCRowsIncr = 2
+				if self.sqoop_incr_validation_method == "full":
+					whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
+					query  = "SELECT COUNT(1) FROM \"%s\".\"%s\" "%(self.source_schema.upper(), self.source_table.upper())
+					query += whereStatement
+					JDBCRowsFull = int(self.common_config.executeJDBCquery(query).iloc[0]['COUNT(1)'])
+
+				whereStatement = self.getIncrWhereStatement(forceIncr = True, whereForSourceTable=True)
+				query  = "SELECT COUNT(1) FROM \"%s\".\"%s\" "%(self.source_schema.upper(), self.source_table.upper())
+				query += whereStatement
+				JDBCRowsIncr = int(self.common_config.executeJDBCquery(query).iloc[0]['COUNT(1)'])
 			else:
 				whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
 				logging.debug("Where statement for forceIncr = False: %s"%(whereStatement))
@@ -2117,3 +2166,24 @@ class config(object, metaclass=Singleton):
 			# TODO: Get the maximum column comment size from Hive Metastore and use that instead
 		logging.debug("Executing import_config.getSelectForImportView() - Finished")
 		return selectQuery
+
+	def resetIncrMinMaxValues(self, maxValue):
+		logging.debug("Executing import_config.resetIncrMinMaxValues()")
+		if maxValue != None:
+			logging.info("Reseting incremental values for import. New max value is: %s"%(maxValue))
+		else:
+			logging.info("Reseting incremental values for import.")
+
+		query =  "update import_tables set "
+		query += "  incr_minvalue = NULL, "
+		query += "  incr_maxvalue = %s, "
+		query += "  incr_minvalue_pending = NULL, "
+		query += "  incr_maxvalue_pending = NULL "
+		query += "where table_id = %s "
+
+		self.mysql_cursor01.execute(query, (maxValue, self.table_id ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		self.mysql_conn.commit()
+
+		logging.debug("Executing import_config.resetIncrMinMaxValues() - Finished")
+

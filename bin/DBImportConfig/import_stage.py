@@ -172,6 +172,19 @@ class stage(object):
 		elif stage == 3360: stageDescription = "Validate target table"
 		elif stage == 3361: stageDescription = "Saving pending incremental values"
 
+		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEONLY
+		elif stage == 3400: stageDescription = "Connecting to Hive"
+		elif stage == 3401: stageDescription = "Creating the import table in the staging database"
+		elif stage == 3402: stageDescription = "Get Import table rowcount"
+		elif stage == 3403: stageDescription = "Validate import table"
+		elif stage == 3404: stageDescription = "Removing Hive locks by force"
+		elif stage == 3405: stageDescription = "Creating the target table"
+		elif stage == 3406: stageDescription = "Merge Import table with Target table"
+		elif stage == 3407: stageDescription = "Update Hive statistics on target table"
+		elif stage == 3408: stageDescription = "Get Target table rowcount"
+		elif stage == 3409: stageDescription = "Validate target table"
+		elif stage == 3410: stageDescription = "Saving pending incremental values"
+
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -293,6 +306,19 @@ class stage(object):
 		elif stage == 3359: stageShortName = "get_target_rowcount"
 		elif stage == 3360: stageShortName = "validate_target_table"
 		elif stage == 3361: stageShortName = "skip"
+
+		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEONLY
+		elif stage == 3400: stageShortName = "connect_to_hive"
+		elif stage == 3401: stageShortName = "create_import_table"
+		elif stage == 3402: stageShortName = "get_import_rowcount"
+		elif stage == 3403: stageShortName = "validate_import_table"
+		elif stage == 3404: stageShortName = "clear_hive_locks"
+		elif stage == 3405: stageShortName = "create_target_table"
+		elif stage == 3406: stageShortName = "merge_table"
+		elif stage == 3407: stageShortName = "update_statistics"
+		elif stage == 3408: stageShortName = "get_target_rowcount"
+		elif stage == 3409: stageShortName = "validate_target_table"
+		elif stage == 3410: stageShortName = "skip"
 
 		elif stage == 9999: stageShortName = "skip"
 

@@ -36,7 +36,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "createSchemaRst", "debug"])
+		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "downgradeDB", "createSchemaRst", "debug"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -59,6 +59,8 @@ def main(argv):
 			operation = "createDB"
 		elif opt == "--upgradeDB":
 			operation = "upgradeDB"
+		elif opt == "--downgradeDB":
+			operation = "downgradeDB"
 		elif opt == "--createSchemaRst":
 			operation = "createSchemaRst"
 			printHeader = False
@@ -99,6 +101,10 @@ def main(argv):
 	if operation == "upgradeDB":
 		dbOperations = databaseOperations.initialize()
 		dbOperations.upgradeDB()
+
+	if operation == "downgradeDB":
+		dbOperations = databaseOperations.initialize()
+		dbOperations.downgradeDB()
 
 	if operation == "createSchemaRst":
 		dbOperations = databaseOperations.initialize()

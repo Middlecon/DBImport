@@ -5,6 +5,8 @@ When specifying a table to import, one of the most important setting is to selec
 
 .. note:: The stage number seen in the documentation are the internal stage id that is used by DBImport. This number is also used in the *import_stage* and the *import_retries_log* table.
  
+.. note:: The default Hive table type is *managed table* using *ORC* if nothing else is specified.
+ 
  
 Full import
 -----------
@@ -359,4 +361,58 @@ The changed data is read from the source and once it's avalable in the Import ta
   3361. | *Saving pending incremental values*
         | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
 
+
+Oracle Flashback
+^^^^^^^^^^^^^^^^
+
+This import method uses the Oracle Flashback Version Query to fetch only the changed rows from the last import. Comparing this to a standard incremental import, the main differences is that we detect *deletes* as well and that we dont require a timestamp or an integer based column with increasing values. The downside is that the table must support Oracle Flashback Version Query and that the undo area is large enough to keep changes between imports. Once the data is avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists, delete the data if that happend in the source system and insert it if it's missing.
+
++---------------------+-----------------------------------------------------+
+| Setting             | Configuration                                       |
++=====================+=====================================================+
+| Import Type (old)   | oracle_flashback_merge                              |
++---------------------+-----------------------------------------------------+
+| Import Phase        | oracle_flashback                                    |
++---------------------+-----------------------------------------------------+
+| ETL Phase           | merge                                               |
++---------------------+-----------------------------------------------------+
+
+  1210. | *Getting source tableschema*
+        | This stage connects to the source database and reads all columns, columntypes, primary keys, foreign keys and comments and saves the to the configuration database.
+  1211. | *Clear table rowcount*
+        | Removes the number of rows that was import in the previous import of the table
+  1212. | *Sqoop import*
+        | Executes the sqoop import and saves the source table in Parquet files. This is where the Oracle Flashback *VERSION BETWEEN* query is executed against the source system.
+  1213. | *Get source table rowcount*
+        | Run a ``select count(1) from ... VERSIONS BETWEEN SCN <min_value> AND <max_value> WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL`` on the source table to get the number of rows. Due to the where statement, it only validates the incremental rows
+        | If the incremental validation method is 'full', then a ``select count(1) from ... VERSIONS BETWEEN SCN <min_value> AND <max_value> WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)`` is also executed against the source table.
+  1214. | *Validate sqoop import*
+        | Validates that sqoop read the same amount of rows that exists in the source system. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 1211
+  1249. | *Stage1 Completed*
+        | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
+  3400. | *Connecting to Hive*
+        | Connects to Hive and runs a test to verify that Hive is working properly
+  3401. | *Creating the import table in the staging database*
+        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3402. | *Get Import table rowcount*
+        | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
+  3403. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3301
+  3404. | *Removing Hive locks by force*
+        | Due to a bug in Hive, we need to remove the locks by force. This connects to the metadatabase and removes them from there
+  3405. | *Creating the Target table*
+        | The target table is created. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3406. | *Merge Import table with Target table*
+        | Merge all data in the Import table into the Target table based on PK. 
+  3407. | *Update Hive statistics on target table*
+        | Updates all the statistcs in Hive for the table
+  3408. | *Get Target table rowcount*
+        | Run a ``select count(1) from ...`` on the Target table in Hive to get the number of rows
+  3409. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3304
+  3410. | *Saving pending incremental values*
+        | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
 

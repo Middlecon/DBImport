@@ -4,7 +4,7 @@ Concept
 Full import
 -----------
 
-There are two different ways to import tables with DBImport. Full import or incremental import. Full import does exactly what is says. It imports an entire table from the source system to Hive. Normal scenario is that a sqoop job starts and reads the source into Parquet files on HDFS. From there, an external table is created over these files and then a *select into* is executed from the external table to the target table. The target table is normally truncated before the insert and there is also validation happening that count the number of rows for both the sqoop job and in the external table to make sure that we have a full copy of the source table before the truncate is executed. To get a better understanding of what exactly is happening for a full import, please check the :doc:`import_method` page.
+There are two different ways to import tables with DBImport. Full import or incremental import. Full import does exactly what is says. It imports an entire table from the source system to Hive. Normal scenario is that a sqoop job starts and reads the source into Parquet files on HDFS. From there, an external table is created over these files and then a *select into* is executed from the external table to the target table. The target table is using ORC format and is a standard managed table in Hive. The import is normally truncating the target table before the insert and there is also validation happening that count the number of rows for both the sqoop job and in the external table to make sure that we have a full copy of the source table before the truncate is executed. To get a better understanding of what exactly is happening for a full import, please check the :doc:`import_method` page.
 
 Incremental import
 ------------------
@@ -39,13 +39,13 @@ DBImport uses different tables in Hive depending on the operation it's performin
 - | *Import table*
   | These tables exists in the ETL database in Hive and are external tables pointing towards the Parquet file sqoop is loading. Usually not accessable for the end users.
 - | *Target table*
-  | The real table that you want the data to end up in.
+  | The real table that you want the data to end up in. It's a managed Hive table based on ORC
 - | *History Audit table*
-  | History information based on the changes in the *Target table*. The table exists in the same Hive database as the *Target table* and have the prefix '_history' at the end of the table name.
+  | History information based on the changes in the *Target table*. The table exists in the same Hive database as the *Target table* and have the prefix '_history' at the end of the table name. It's a managed Hive table based on ORC
 - | *Delete table*
-  | To handle deletes and log them into the *History table*, we need to save the rows that are being deleted into a separate table. This table only contains the columns that is part of the Primary Key. This table exists in the same database as the *Import table* and is usually not accessable for the end users.
+  | To handle deletes and log them into the *History table*, we need to save the rows that are being deleted into a separate table. This table only contains the columns that is part of the Primary Key. This table exists in the same database as the *Import table* and is usually not accessable for the end users. It's a managed Hive table based on ORC
 - | *Temporary Export table*
-  | Sqoop export is very limited compared to the imports. To overcome some of these limitation, it's sometimes required to create a staging table that we load from the real Hive table and then the sqoop export will export the data from the *Temporary Export table* instead. This is also the way incremental exports are handled. We load the *Temporary Export table* with the changed rows and then make a full export from there to the *Target table*
+  | Sqoop export is very limited compared to the imports. To overcome some of these limitation, it's sometimes required to create a staging table that we load from the real Hive table and then the sqoop export will export the data from the *Temporary Export table* instead. This is also the way incremental exports are handled. We load the *Temporary Export table* with the changed rows and then make a full export from there to the *Target table*. It's a managed Hive table based on ORC
 
 Import Validation
 -----------------
@@ -53,7 +53,7 @@ Import Validation
 During import, both *full* and *incremental*, there will be three validations for each imported table. Validation in this context is basically a rowcount and comparing the number of rows between the two tables. There is no validation of the actual values inside the columns.
 
   1. The first validation happens in *Stage1* and is done after sqoop is executed. It compares the number of rows in the source system against the number of rows that sqoop reported that it read. If this is an incremental import, then only the incremental values are compared. This means that the select statement against the source system includes the min and max values in a where statement
-  2. Second validation is done after the target table is created. This validates the number of rows in the Parquet files against the source system. If it is an incremental import, then only the imported rows are validates. Same way as the first validation.
+  2. Second validation is done after the import table is created. This validates the number of rows in the Parquet files against the source system. If it is an incremental import, then only the imported rows are validates. Same way as the first validation.
   3. The last validation occurs after the target table is loaded. This might be a full or incremental validation based on the configuration for that specific table. Incremental validation works the same way as the other two validations and the Full validation is comparing the total amount of rows between source and target table regardless of how many rows was imported.
 
 Export Validation

@@ -44,6 +44,7 @@ class source(object):
 		query = None
 		result_df = pd.DataFrame()
 
+
 		if serverType == constant.MSSQL:
 			query  = "select "
 			query += "	SchemaName = CAST((TBL.TABLE_SCHEMA) AS NVARCHAR(4000)), "

@@ -990,10 +990,10 @@ class config(object, metaclass=Singleton):
 		returnValue = None
 		boolValue = False
 	
-		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable"):
+		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("import_staging_database", "export_staging_database"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))

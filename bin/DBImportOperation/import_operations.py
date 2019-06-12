@@ -27,6 +27,7 @@ import mysql.connector
 from mysql.connector import errorcode
 from common.Singleton import Singleton
 from common.Exceptions import *
+from common import constants as constant
 from DBImportConfig import import_config
 from DBImportOperation import common_operations
 from datetime import datetime, timedelta
@@ -52,6 +53,8 @@ class operation(object, metaclass=Singleton):
 		self.sqoopRows = None
 		self.sqoopIncrMaxValuePending = None
 		self.sqoopIncrNoNewRows = None
+
+		self.globalHiveConfigurationSet = False
 
 #		try:
 			# Initialize the two core classes. import_config will initialize common_config aswell
@@ -403,6 +406,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.sqoop_use_generated_sql == True and self.import_config.sqoop_query == None:
 			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
 
+		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			# Add the specific Oracle FlashBack columns that we need to import
+			sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\",', self.import_config.sqlGeneratedSqoopQuery)
+
 		if self.import_config.sqoop_query != None:
 			sqoopQuery = self.import_config.sqoop_query
 
@@ -467,7 +474,7 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand.extend(["--num-mappers", str(self.import_config.sqlSessions)])
 
 		# If we dont have a SQL query to use for sqoop, then we need to specify the table instead
-		if sqoopQuery == "":
+		if sqoopQuery == "" and self.import_config.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			sqoopCommand.extend(["--table", sqoopSourceTable])
 
 #		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
@@ -515,7 +522,10 @@ class operation(object, metaclass=Singleton):
 					self.import_config.remove_temporary_files()
 					sys.exit(1)
 
-		if sqoopQuery == "":
+		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#			sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, incrWhereStatement)])
+			sqoopCommand.extend(["--query", "%s %s AND $CONDITIONS "%(sqoopQuery, incrWhereStatement)])
+		elif sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
 				sqoopCommand.extend(["--where", incrWhereStatement])
 			else:
@@ -576,6 +586,7 @@ class operation(object, metaclass=Singleton):
 		
 		# Check for errors in output
 		sqoopWarning = False
+
 		if " ERROR " in sqoopOutput:
 			for row in sqoopOutput.split("\n"):
 				if "Arithmetic overflow error converting expression to data type int" in row:
@@ -597,6 +608,12 @@ class operation(object, metaclass=Singleton):
 					# Unknown Kafka error
 					sqoopWarning = True
 
+				if "java.sql.SQLException: ORA-30052:" in row:
+					# java.sql.SQLException: ORA-30052: invalid lower limit snapshot expression 
+					logging.error("The Oracle Flashback import has passed the valid timeframe for undo logging in Oracle. To recover from this failure, you need to do a full import.")
+					self.remove_temporary_files()
+					sys.exit(1)
+
 				# The following two tests is just to ensure that we dont mark the import as failed just because there is a column called error
 				if " ERROR " in row and "Precision" in row and "Scale" in row:
 					sqoopWarning = True
@@ -604,12 +621,12 @@ class operation(object, metaclass=Singleton):
 				if " ERROR " in row and "The HCatalog field" in row:
 					sqoopWarning = True
 
-				if sqoopWarning == False:
-					# We detected the string ERROR in the output but we havent found a vaild reason for it in the IF statements above.
-					# We need to mark the sqoop command as error and exit the program
-					logging.error("Unknown error in sqoop import. Please check the output for errors and try again")
-					self.remove_temporary_files()
-					sys.exit(1)
+			if sqoopWarning == False:
+				# We detected the string ERROR in the output but we havent found a vaild reason for it in the IF statements above.
+				# We need to mark the sqoop command as error and exit the program
+				logging.error("Unknown error in sqoop import. Please check the output for errors and try again")
+				self.remove_temporary_files()
+				sys.exit(1)
 
 		# No errors detected in the output and we are ready to store the result
 		logging.info("Sqoop executed successfully")			
@@ -651,15 +668,21 @@ class operation(object, metaclass=Singleton):
 		if "No new rows detected since last import" in row:
 			self.sqoopIncrNoNewRows = True
 
-	def connectToHive(self,):
+	def connectToHive(self, forceSkipTest=False):
 		logging.debug("Executing import_operations.connectToHive()")
 
 		try:
-			self.common_operations.connectToHive()
+			self.common_operations.connectToHive(forceSkipTest=forceSkipTest)
 		except Exception as ex:
 			logging.error(ex)
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
+
+		if self.globalHiveConfigurationSet == False:
+			self.globalHiveConfigurationSet = True
+			if self.import_config.hiveJavaHeap != None:
+				query = "set hive.tez.container.size=%s"%(self.import_config.hiveJavaHeap)
+				self.common_operations.executeHiveQuery(query)
 
 		logging.debug("Executing import_operations.connectToHive() - Finished")
 
@@ -672,6 +695,9 @@ class operation(object, metaclass=Singleton):
 
 				query = "create view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
 				query += "%s "%(self.import_config.getSelectForImportView())
+				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+					# Add the specific Oracle FlashBack columns that we need to import
+					query += ", `datalake_flashback_operation`"
 				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 
 				self.common_operations.executeHiveQuery(query)
@@ -698,6 +724,9 @@ class operation(object, metaclass=Singleton):
 				logging.info("Updating Import View as columns in Hive is not the same as in the configuration")
 				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
 				query += "%s "%(self.import_config.getSelectForImportView())
+				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+					# Add the specific Oracle FlashBack columns that we need to import
+					query += ", `datalake_flashback_operation`"
 				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 				print(query)
 
@@ -739,6 +768,12 @@ class operation(object, metaclass=Singleton):
 				if row['comment'] != None:
 					query += " COMMENT \"%s\""%(row['comment'])
 				firstLoop = False
+
+
+			if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+				# Add the specific Oracle FlashBack columns that we need to import
+				query += ", `datalake_flashback_operation` varchar(2)"
+
 			query += ") "
 
 			tableComment = self.import_config.getHiveTableComment()
@@ -1297,6 +1332,7 @@ class operation(object, metaclass=Singleton):
 
 	def truncateTargetTable(self,):
 		logging.info("Truncating Target table in Hive")
+		self.common_operations.connectToHive(forceSkipTest=True)
 		self.common_operations.truncateHiveTable(self.Hive_DB, self.Hive_Table)
 
 	def updateStatisticsOnTargetTable(self,):
@@ -1384,12 +1420,20 @@ class operation(object, metaclass=Singleton):
 		self.common_operations.executeHiveQuery(query)
 		logging.debug("Executing import_operations.copyHiveTable() - Finished")
 
+	def resetIncrMinMaxValues(self, maxValue):
+		self.import_config.resetIncrMinMaxValues(maxValue=maxValue)
+
 	def resetIncrMaxValue(self, hiveDB=None, hiveTable=None):
 		""" Will read the Max value from the Hive table and save that into the incr_maxvalue column """
 		logging.debug("Executing import_operations.resetIncrMaxValue()")
 
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
+
+		if self.import_config.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			logging.error("Oracle Flashback imports does not support repairing the table.")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
 
 		if self.import_config.import_is_incremental == True:
 			self.sqoopIncrNoNewRows = False

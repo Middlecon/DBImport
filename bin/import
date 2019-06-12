@@ -84,7 +84,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop", "ignoreTime", "resetStage"])
+		opts, args = getopt.getopt(argv, "vVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -100,6 +100,7 @@ def main(argv):
 	displayVersion = False
 	ignoreTime = False
 	resetStage = False
+	skipHiveTest = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -115,6 +116,8 @@ def main(argv):
 			displayVersion = True
 		elif opt == "--skipSqoop":
 			skipSqoop = True
+		elif opt == "--skipHiveTest":
+			skipHiveTest = True
 		elif opt == "--resetStage":
 			resetStage = True
 		elif opt == "--ignoreTime":
@@ -364,16 +367,16 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3050) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3051) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3052) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3053) == True: 
@@ -381,12 +384,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3054) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3055) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
 				import_operation.addDatalakeImportColumn()
@@ -395,12 +398,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "truncateTargetTable":
 			if import_operation.runStage(3056) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.truncateTargetTable()
 		
 		if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
 			if import_operation.runStage(3057) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.loadDataFromImportToTargetTable()
 
 			if import_operation.runStage(3058) == True: 
@@ -408,7 +411,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3059) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3060) == True: 
@@ -511,16 +514,16 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3150) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3151) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3152) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3153) == True: 
@@ -528,12 +531,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3154) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3155) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
 				import_operation.updatePKonTargetTable()
@@ -541,7 +544,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
 			if import_operation.runStage(3156) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.loadDataFromImportToTargetTable()
 
 			if import_operation.runStage(3157) == True: 
@@ -549,7 +552,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3158) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3159) == True: 
@@ -597,10 +600,10 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3200) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3201) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 				import_operation.createExternalImportView()
@@ -608,7 +611,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3202) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3203) == True: 
@@ -616,12 +619,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3204) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3205) == True: 
-#				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.convertHiveTableToACID()
 				import_operation.updateTargetTable()
@@ -631,19 +634,19 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createHistoryTable":
 			if import_operation.runStage(3206) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createHistoryTable()
 				import_operation.updateHistoryTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "createDeleteTable":
 			if import_operation.runStage(3207) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createDeleteTable()
 				import_operation.updateDeleteTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3208) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				importTableOrView = import_operation.import_config.Hive_Import_Table
 				if import_operation.import_config.isExternalViewRequired() == True:
 					importTableOrView = import_operation.import_config.Hive_Import_View
@@ -662,8 +665,8 @@ def main(argv):
 					softDelete = import_operation.import_config.soft_delete_during_merge, 
 					mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 					datalakeSource = import_operation.import_config.datalake_source,
-					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
+					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True)
+#					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
 				)
 
 			if import_operation.runStage(3209) == True: 
@@ -671,7 +674,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3210) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3211) == True: 
@@ -716,10 +719,10 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3250) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3251) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 				import_operation.createExternalImportView()
@@ -727,7 +730,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3252) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3253) == True: 
@@ -735,12 +738,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3254) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3255) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.convertHiveTableToACID()
 				import_operation.updateTargetTable()
@@ -750,13 +753,13 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createDeleteTable":
 			if import_operation.runStage(3256) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createDeleteTable()
 				import_operation.updateDeleteTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3257) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				importTableOrView = import_operation.import_config.Hive_Import_Table
 				if import_operation.import_config.isExternalViewRequired() == True:
 					importTableOrView = import_operation.import_config.Hive_Import_View
@@ -775,8 +778,8 @@ def main(argv):
 					softDelete = import_operation.import_config.soft_delete_during_merge, 
 					mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 					datalakeSource = import_operation.import_config.datalake_source,
-					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
+					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True)
+#					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
 				)
 
 			if import_operation.runStage(3258) == True: 
@@ -784,7 +787,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3259) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3260) == True: 
@@ -834,10 +837,10 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3300) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3301) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 				import_operation.createExternalImportView()
@@ -845,7 +848,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3302) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3303) == True: 
@@ -853,12 +856,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3304) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3305) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
 				import_operation.updatePKonTargetTable()
@@ -866,7 +869,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3306) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				importTableOrView = import_operation.import_config.Hive_Import_Table
 				if import_operation.import_config.isExternalViewRequired() == True:
 					importTableOrView = import_operation.import_config.Hive_Import_View
@@ -886,8 +889,8 @@ def main(argv):
 #					softDelete = import_operation.import_config.soft_delete_during_merge, 
 					mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 					datalakeSource = import_operation.import_config.datalake_source,
-					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
+					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True)
+#					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
 				)
 
 			if import_operation.runStage(3307) == True: 
@@ -895,7 +898,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3308) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3309) == True: 
@@ -949,10 +952,10 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
 			if import_operation.runStage(3350) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 			if import_operation.runStage(3351) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createExternalImportTable()
 				import_operation.updateExternalImportTable()
 				import_operation.createExternalImportView()
@@ -960,7 +963,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 			if import_operation.runStage(3352) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getImportTableRowCount()
 
 			if import_operation.runStage(3353) == True: 
@@ -968,12 +971,12 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3354) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.removeHiveLocks()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 			if import_operation.runStage(3355) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
 				import_operation.updatePKonTargetTable()
@@ -981,13 +984,13 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "createHistoryTable":
 			if import_operation.runStage(3356) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createHistoryTable()
 				import_operation.updateHistoryTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 			if import_operation.runStage(3357) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				importTableOrView = import_operation.import_config.Hive_Import_Table
 				if import_operation.import_config.isExternalViewRequired() == True:
 					importTableOrView = import_operation.import_config.Hive_Import_View
@@ -1007,8 +1010,8 @@ def main(argv):
 #					softDelete = import_operation.import_config.soft_delete_during_merge, 
 					mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 					datalakeSource = import_operation.import_config.datalake_source,
-					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
+					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True)
+#					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap
 				)
 
 			if import_operation.runStage(3358) == True: 
@@ -1016,7 +1019,7 @@ def main(argv):
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 			if import_operation.runStage(3359) == True: 
-				import_operation.connectToHive()
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.getTargetTableRowCount()
 
 			if import_operation.runStage(3360) == True: 
@@ -1065,19 +1068,148 @@ def main(argv):
 			if import_operation.runStage(1211) == True: 
 				import_operation.clearTableRowCount()
 
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1212) == True: 
-				import_operation.getJDBCTableRowCount()
-	
 		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1213) == True: 
+			if import_operation.runStage(1212) == True: 
 				import_operation.runSqoop(False)
 
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if import_operation.runStage(1213) == True: 
+				import_operation.getJDBCTableRowCount()
+	
 			if import_operation.runStage(1214) == True: 
 				import_operation.validateSqoopRowCount()
 
 		if runOnlyFunction == None:
 			import_operation.setStage(1249)
+
+#		import_operation.remove_temporary_files()
+#		sys.exit(1)
+
+	# *******************************************************
+	# * IMPORT_PHASE_ORACLE_FLASHBACK & ETL_PHASE_MERGEONLY
+	# *******************************************************
+	
+	if importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
+		stage = import_operation.getStage()
+		if stage > 0 and stage != 1249 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			# TODO: Add correct restart points once incremental imports are working
+			if stage == 3409: newStage = 3404 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+		if runImportPhase == False and stage < 1249:
+			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+			logging.error("Please run a import phase first and make sure it completes successfully")
+			import_operation.remove_temporary_files()
+			sys.exit(0)
+
+		if runOnlyFunction == None:
+			if import_operation.import_config.sqoop_last_rows == 0:
+				# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
+				import_operation.setStage(3410)
+
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			if import_operation.runStage(3400) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+			if import_operation.runStage(3401) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
+				import_operation.createExternalImportView()
+				import_operation.updateExternalImportView()
+
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			if import_operation.runStage(3402) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.getImportTableRowCount()
+
+			if import_operation.runStage(3403) == True: 
+				import_operation.validateIncrRowCount()
+
+		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			if import_operation.runStage(3404) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.removeHiveLocks()
+
+		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+			if import_operation.runStage(3405) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.createTargetTable()
+				import_operation.updateTargetTable()
+				import_operation.updatePKonTargetTable()
+				import_operation.updateFKonTargetTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "mergeTable":
+			if import_operation.runStage(3406) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+				if import_operation.import_config.isExternalViewRequired() == True:
+					importTableOrView = import_operation.import_config.Hive_Import_View
+				else:
+					importTableOrView = import_operation.import_config.Hive_Import_Table
+
+				if import_operation.import_config.incr_maxvalue == None: 
+					# If it's an initial or reinitialized load, we need to remove old lines from target table
+					deleteNotUpdatedRows = True
+				else:
+					deleteNotUpdatedRows = False
+
+				etl_operation.mergeHiveTables(
+					sourceDB = import_operation.import_config.Hive_Import_DB, 
+					sourceTable = importTableOrView,
+					targetDB = import_operation.import_config.Hive_DB, 
+					targetTable = import_operation.import_config.Hive_Table, 
+#					historyDB = import_operation.import_config.Hive_History_DB, 
+#					historyTable = import_operation.import_config.Hive_History_Table, 
+#					targetDeleteDB = import_operation.import_config.Hive_Delete_DB, 
+#					targetDeleteTable = import_operation.import_config.Hive_Delete_Table, 
+					createHistoryAudit = False,
+					sourceIsIncremental = True,
+					sourceIsImportTable = True,
+					oracleFlashbackSource = True,
+					softDelete = None,
+#					softDelete = import_operation.import_config.soft_delete_during_merge, 
+					mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
+					datalakeSource = import_operation.import_config.datalake_source,
+					PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
+#					hiveMergeJavaHeap = import_operation.import_config.hive_merge_javaheap,
+					deleteNotUpdatedRows = deleteNotUpdatedRows
+				)
+
+			if import_operation.runStage(3407) == True: 
+				import_operation.updateStatisticsOnTargetTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+			if import_operation.runStage(3408) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.getTargetTableRowCount()
+
+			if import_operation.runStage(3409) == True: 
+				import_operation.validateRowCount()
+
+		if runOnlyFunction == None:
+			if import_operation.runStage(3410) == True: 
+				import_operation.saveIncrPendingValues()
+
+			import_operation.setStage(9999)
+
+		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+			import_operation.convertStageStatisticsToJSON()
+			import_operation.saveStageStatistics()
 
 	# ******************************************
 	# * ETL_PHASE_NONE
