@@ -196,7 +196,9 @@ During import, one of the first thing that will happen is that DBImport will con
 3.  Clear the *????_clearStage*  Tasks in Airflow for the tables with validation errors to force DBImport to start from the begining.
 
 
+Summary
+-------
 
-
+This guide showed you how to do an initial connection to the source system, add the definition of tables to import and then create a DAG in Airflow and import all tables from the source system. Once you are familiar with DBImport, the entire process to ingest a complete SQL database into Hive is just a couple of minutes of work. Good luck with DBImport and keep on ingestion data into Hadoop!
 
 
