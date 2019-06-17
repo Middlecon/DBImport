@@ -10,8 +10,10 @@ Database Connections
 
 The first step for all imports is to create a connection to the source database that we will read the data from. This is done in the jdbc connections table. So create a new row in the *jdbc_connection* table with the following information
 
-dbalias:    dbimport
-jdbc_url:   jdbc:mysql://<HOSTNAME>/DBImport
+========== ============================================================
+dbalias    dbimport
+jdbc_url   jdbc:mysql://<HOSTNAME>/DBImport
+========== ============================================================
 
 Replace <HOSTNAME> with the host that you are using for the DBImport database. Localhost is not valid here, as you dont know what node the sqoop command will be running on in Yarn.
 
