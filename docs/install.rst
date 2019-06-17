@@ -65,4 +65,9 @@ DBImport uses staging databases for creating of Import Tables and Temporary Expo
         create database etl_import_staging
         create database etl_export_staging
 
+JDBC Driver location
+--------------------
+
+In order to connect to a specific database type, the path to the JDBC JAR file must be updated. Inside the *jdbc_connections_drivers* table you will find the supported database types with the JDBC driver name and the classpath data. For a new and fresh installation of DBImport the *classpath* will be 'add path to JAR file'. This is obviously not correct and needs to up update to point to the full path of the jar file that includes the driver specified in the *driver* column. Enter the correct path to your jar file and also make sure that sqoop have these files in its classpath. 
+
 Thats it. DBImport is now installed and ready for usage. If this is your first time working with DBImport, the :doc:`quickstart` guide can help you to get up to speed fast.
