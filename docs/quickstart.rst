@@ -65,7 +65,7 @@ Update import configuration
 
 There are many options to configure for each and every table that we are importing. In order for this quickstart guide to work, we need to change one of the options to handle Primary Keys in the source system that are based on text columns. As this is small tables with just a couple of rows, the simplest way is to force sqoop to only use one mapper. By doing that, there will be no split and it doesnt mather if the Primary Key is a text columns or not. In order to force sqoop to use only one mapper, please update the following rows and columns. Without this, the imports will fail.
 
-.. note:: As this quickstart guide assumes that there is no other data in import_tables than what we just imported, another simple option is to force all *mappers* columns into 1 with "update import_tables set mappers = 1". Doing this on a full production system is very very far from acceptable. But here and now, it's a simple way to get forward without changing every row below individual
+.. note:: As this quickstart guide assumes that there is no other data in import_tables than what we just imported, another simple option is to force all *mappers* columns into 1 with *update import_tables set mappers = 1*. Doing this on a full production system is very very far from acceptable. But here and now, it's a simple way to get forward without changing every row below individual
 
 +---------------------------+-----------+
 | hive_table                | mappers   |
@@ -134,3 +134,69 @@ The command options we use here is the following.
 -h Name of the Hive database 
 -t Name of the Hive table
 == ============================================================
+
+The result when the *import* command is completed is a full copy of the *configuration* table from the DBImport configuration database in Hive under *dbimport.configuration*. Verify this by running a *select * from dbimport.configuration* at any SQL prompt
+
+
+Creating Airflow DAG
+--------------------
+
+As we now know that we can import one table, lets automate the import of all the others. DBImport have a tight integration with Apache Airflow, and will generate the DAG's automatically for you with the correct Tasks needed to import all the tables that you have selected. This will be executed in parallel with the paralallism that Airflow allows. In a production environment, the Airflow DAG folders needs to be available for DBImport to be able to update the DAG's directly, but as this is a Quickstart guide, it's not assumed or required. The important thing is that the DAG file can be copied from the DBImport folder to the Airflow DAG folder.
+Default location for the DAG to be generated is controlled by *airflow_dag_staging_directory* in the *configuration* table. Make sure that DBImport can write to files in that folder. It's preferable if Airflow user can read from the same directory, but it's not required for this guide
+
+The first thing we need to do is to generate the definition for the Airflow DAG, and the selection of tables that the DAG shoould import. Create a row in the table *airflow_import_dags* with the following data.
+
+============= ============================================================
+dag_name      DBImport_dbimport
+filter_hive   dbimport.*                      
+============= ============================================================
+
+After the DAG definition is created in the *airflow_import_dags* table, it's time to actually create the Airflow DAG file. Before you do this, make sure that a variable is created in Airflow called *Email_receiver* with a valid email address. This will be the user receiving mails about DAG execution problems. If the variable doesnt exists, you will get errors in Airflow. To create the Airflow DAG file, run the following::
+
+./manage --airflowGenerate --airflowDAG=DBImport_dbimport
+
+The DAG file will now be created in the *airflow_dag_staging_directory* directory. If you want to wirte to the directory configured under *airflow_dag_directory* instead, just add -w or --airflowWriteDAG to the manage command and the file will end up there aswell.
+
+
+Running Airflow DAG and fixing problems
+---------------------------------------
+
+The DAG is now visable in Airflow, but it's most likely paused. Un-pause it and when ready, trigger the DAG to start (press the play button on the DAG row). The DAG will now start to run and after a while, depning on you cluster and Airflow size, the Tasks will begin to get dark-green indicating that they are successfully completed. But there will be one import that will be red or orange indicating that they failed or that they are up for retries. 
+
+Common problems with the tables we are trying to import
+
++---------------------------+--------------------------------------------+
+| Hive table                | Problem                                    |
++===========================+============================================+
+| jdbc_connections          | Reserved column name 'datalake_source'     |
++---------------------------+--------------------------------------------+
+| import_stage_statistics   | Validation failed                          |
++---------------------------+--------------------------------------------+
+| import_columns            | Validation failed                          |
++---------------------------+--------------------------------------------+
+| import_stage              | Validation failed                          |
++---------------------------+--------------------------------------------+
+| import_tables             | Reserved column name 'datalake_source'     |
++---------------------------+--------------------------------------------+
+
+**Reserved column name**
+
+There are a number of column names that are reserved in DBImport. They all start with *datalake_*, and one of the is *datalake_source*. Problem is that this column is also used in a couple of tables in DBImport. To handle this, we need to rename the columns before the import and in this example we will rename them to *dl_source*.
+
+1.  In HeidiSQL (or other SQL tools) list the rows in the import_columns table and filter for *column_name = 'datalake_source'*
+2.  Set column *column_name_override* to *dl_source* for both tables.
+3.  Clear the *import_tables_clearStage* and *jdbc_connections_clearStage* Tasks in Airflow to force DBImport to start from the begining.
+
+**Validation failed**
+
+During import, one of the first thing that will happen is that DBImport will connect to the source system and read how many rows there are in the table. Then the sqoop import will start and later the tables will be imported into Hive. Problem here is that a number of tables we are trying to import logs stage information, statistics and so on so the number of rows will change. There are a couple of different wayt to handle this, but we will in this guide change to use the number of rows that sqoop read as the truth of how many rows there are in the source system, instead of doing a "*select count(1) from ...*. This will give us a more stable rowcount and validation will pass.
+
+1.  In HeidiSQL (or other SQL tools) list the rows in the import_tables table and filter for the hive tables that failed in validation
+2.  Set column *validate_source* to *sqoop* 
+3.  Clear the *????_clearStage*  Tasks in Airflow for the tables with validation errors to force DBImport to start from the begining.
+
+
+
+
+
+
