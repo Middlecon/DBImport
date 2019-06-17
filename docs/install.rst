@@ -15,7 +15,7 @@ To install DBImport, please follow the steps on this page. That will setup DBImp
 
  #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. Please install these python packages::
 
-        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python jaydebeapi pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql 
+        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python jaydebeapi pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic
 
 
 Base configuration
@@ -28,6 +28,7 @@ There is a file inside the *conf* directory called *dbimport.cfg*. This file con
   - Section [HDFS]. *hdfs_address* should be a valid URL to HDFS
   - Section [Hive]. *hive_metastore_alchemy_conn* must have a valid Alchemy connection string to the Hive Metastore SQL database
   - Section [Hive]. *hostname*, *port* and *kerberos_service_name* must all be set against a Hive server with binary transport mode.
+  - Section [Airflow]. *airflow_alchemy_conn* must have a valid Alchemy connection string to the Airflow SQL database. Only needed if Airflow integrations will be used
 
 .. note:: If the *hive_remove_locks_by_force* setting (in the configuration table) is set to 1, the user configured for the *hive_metastore_alchemy_conn* must have delete permissions to the *HIVE_LOCKS* table. Other than that, the user only requires select permissions. 
 
