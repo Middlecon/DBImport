@@ -24,7 +24,15 @@ The username and password is encrypted and stored in the jdbc_connection table t
 
 ./manage --encryptCredentials
 
-You will first get a question about what Database Connection that the username and password should be used on, and then the username and password itself. Once all three items are entered, the username and password will be encrypted and saved in the *credentials* column in *jdbc_connections* table. You can verify this by refreshing the table in the SQL tool to make sure that you got a cryptic string in the *credentials* column.
+You will first get a question about what Database Connection that the username and password should be used on, and then the username and password itself. Use the following information for the questions
+
+===================== ====================================================
+DataBase Connection   dbimport
+Username              Username to connect to the DBImport config database
+Password              Password to connect to the DBImport config database
+===================== ====================================================
+
+Once all three items are entered, the username and password will be encrypted and saved in the *credentials* column in *jdbc_connections* table. You can verify this by refreshing the table in the SQL tool to make sure that you got a cryptic string in the *credentials* column.
 
 Testing connection
 ^^^^^^^^^^^^^^^^^^
