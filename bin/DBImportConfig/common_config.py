@@ -301,7 +301,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJDBCDriverConfig() - Finished")
 		return driver, classPath
 
-	def lookupConnectionAlias(self, connection_alias):
+	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
@@ -321,20 +321,25 @@ class config(object, metaclass=Singleton):
 
 		self.jdbc_url = row[0]
 
-		credentials = self.crypto.decrypt(row[1])
-		if credentials == None:
-			logging.error("Cant decrypt username and passowrd. Check private/public key in config file")
-			raise Exception
+		if decryptCredentials == True:
+			credentials = self.crypto.decrypt(row[1])
+			if credentials == None:
+				logging.error("Cant decrypt username and password. Check private/public key in config file")
+				raise Exception
 		
-		self.jdbc_username = credentials.split(" ")[0]
-		self.jdbc_password = credentials.split(" ")[1]
+			self.jdbc_username = credentials.split(" ")[0]
+			self.jdbc_password = credentials.split(" ")[1]
 
-		# Sets a creates the password file that is used by sqoop and other tools
-		self.jdbc_password_file = self.tempdir + "/jdbc_passwd"
-		f = open(self.jdbc_password_file, "w")
-		f.write(self.jdbc_password)
-		f.close()
-		os.chmod(self.jdbc_password_file, 0o600)
+			# Sets a creates the password file that is used by sqoop and other tools
+			self.jdbc_password_file = self.tempdir + "/jdbc_passwd"
+			f = open(self.jdbc_password_file, "w")
+			f.write(self.jdbc_password)
+			f.close()
+			os.chmod(self.jdbc_password_file, 0o600)
+		else:
+			self.jdbc_username = None
+			self.jdbc_password = None
+			self.jdbc_password_file = None
 
 		# Lookup Connection details based on JDBC STRING for all different types we support
 		if self.jdbc_url.startswith( 'jdbc:sqlserver:'): 
@@ -674,8 +679,6 @@ class config(object, metaclass=Singleton):
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
-#			except jpype._jexception as errMsg:
-#			except JavaException as errMsg:
 			except jpype.JavaException as exception:
 				print("Connection to database over JDBC failed with the following error:")
 				print(exception.message())
@@ -787,7 +790,8 @@ class config(object, metaclass=Singleton):
 		except jaydebeapi.DatabaseError as errMsg:
 			raise SQLerror(errMsg)	
 
-		result_df = None
+#		result_df = None
+		result_df = pd.DataFrame()
 		try:
 			result_df = pd.DataFrame(self.JDBCCursor.fetchall())
 			result_df_columns = []
@@ -993,7 +997,7 @@ class config(object, metaclass=Singleton):
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))

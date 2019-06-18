@@ -1,6 +1,25 @@
 Release Notes
 =============
 
+v0.51
+------------------------------
+
+**Fixed issues**
+
+  - Issue #29: Duplicate column in statistics when changing import type without reset
+
+**Improvments**
+
+  - Possible to specify Java Heap for Export operations
+
+**Changed behavior**
+
+  - *hive_merge_heap* column in *import_tables* sets Java Heap for the entire Hive session, not just for Merge operations.
+
+**New Features**
+
+  - Airflow integration 
+
 v0.50
 ------------------------------
 

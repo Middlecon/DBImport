@@ -147,6 +147,7 @@ def main(argv):
 	if runImportPhase == False and runETLPhase == False and runCopyPhase == False:
 		# If nothing is specified we run both stages
 		runImportPhase = True
+		runCopyPhase = True
 		runETLPhase = True
 
 	if runOnlyFunction != None:

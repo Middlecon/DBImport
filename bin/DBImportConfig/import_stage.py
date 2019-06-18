@@ -406,6 +406,7 @@ class stage(object):
 		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
+		duplicateColumns = False
 		for row in self.mysql_cursor.fetchall():
 			stage = row[0]
 			stage_start = row[1]
@@ -415,6 +416,8 @@ class stage(object):
 			stageShortName = self.getStageShortName(stage)
 
 			if stageShortName != "" and stageShortName != "skip":
+				if "%s_start"%(stageShortName) in columnsPart:
+					duplicateColumns = True
 				columnsPart.append("%s_start"%(stageShortName))
 				valuesPart.append(str(stage_start))
 
@@ -461,34 +464,38 @@ class stage(object):
 #		print("-------------------------------------------------")
 #		print(insertQuery)
 
-		self.mysql_cursor.execute(query, valuesPart)
-		self.mysql_conn.commit()
-		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+		if duplicateColumns == True:
+			logging.warning("There are duplicate column in the statistics. This usually happens when changing import_method on a ongoing import without reseting the stage in between. As a result, the statistics wont be saved for this import")
+		else:
+			self.mysql_cursor.execute(query, valuesPart)
+			self.mysql_conn.commit()
+			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		query = "delete from import_statistics_last where hive_db = %s and hive_table = %s"
 		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
-		query = "insert into import_statistics_last "
-		query += insertQuery
-		self.mysql_cursor.execute(query, valuesPart)
-		self.mysql_conn.commit()
-		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-
-		logging.debug("Executing stage.saveStageStatistics() - Finished")
-
-	def setStageUnrecoverable(self):
-		""" Removes all stage information from the import_stage table """
-		logging.debug("Executing stage.setStageUnrecoverable()")
-
-		if self.memoryStage == False:
-			query = "update import_stage set unrecoverable_error = 1 where hive_db = %s and hive_table = %s"
-			self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
+		if duplicateColumns == False:
+			query = "insert into import_statistics_last "
+			query += insertQuery
+			self.mysql_cursor.execute(query, valuesPart)
 			self.mysql_conn.commit()
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
-		logging.debug("Executing stage.setStageUnrecoverable() - Finished")
+		logging.debug("Executing stage.saveStageStatistics() - Finished")
+
+#	def setStageUnrecoverable(self):
+#		""" Removes all stage information from the import_stage table """
+#		logging.debug("Executing stage.setStageUnrecoverable()")
+#
+#		if self.memoryStage == False:
+#			query = "update import_stage set unrecoverable_error = 1 where hive_db = %s and hive_table = %s"
+#			self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
+#			self.mysql_conn.commit()
+#			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+#
+#		logging.debug("Executing stage.setStageUnrecoverable() - Finished")
 
 	def setStageOnlyInMemory(self):
 		self.memoryStage = True
@@ -615,8 +622,8 @@ class stage(object):
 			query += "	hive_table, "
 			query += "	stage, "
 			query += "	stage_description, "
-			query += "	stage_time, "
-			query += "	unrecoverable_error "
+			query += "	stage_time "
+#			query += "	unrecoverable_error "
 			query += ") "
 			query += "values "
 			query += "( "
@@ -624,8 +631,8 @@ class stage(object):
 			query += "	'%s', "%(self.Hive_Table)
 			query += "	%s, "%(newStage)
 			query += "	'%s', "%(stageDescription)
-			query += "	'%s', "%(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
-			query += "	0 "
+			query += "	'%s' "%(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
+#			query += "	0 "
 			query += ") "
 		else:
 			query  = "update import_stage set"

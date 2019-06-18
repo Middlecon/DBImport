@@ -79,6 +79,7 @@ class operation(object, metaclass=Singleton):
 		self.hive_hostname = configuration.get("Hive", "hostname")
 		self.hive_port = configuration.get("Hive", "port")
 		self.hive_kerberos_service_name = configuration.get("Hive", "kerberos_service_name")
+		self.hive_kerberos_realm = configuration.get("Hive", "kerberos_realm")
 		self.hive_print_messages = self.common_config.getConfigValue(key = "hive_print_messages")
 
 #		if configuration.get("Hive", "print_hive_message").lower() == "true":
@@ -356,13 +357,13 @@ class operation(object, metaclass=Singleton):
 #		else:
 #			return False
 	
-	def connectToHive(self, forceSkipTest=False):
+	def connectToHive(self, forceSkipTest=False, quiet=False):
 		logging.debug("Executing common_operations.connectToHive()")
 
 		# Make sure we only connect if we havent done so before. Reason is that this function can be called from many different places
 		# due to the retry functionallity
 		if self.hive_cursor == None:
-			logging.info("Connecting to Hive")
+			if quiet == False: logging.info("Connecting to Hive")
 			try:
 				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
 				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
@@ -383,7 +384,8 @@ class operation(object, metaclass=Singleton):
 		hiveTable = self.common_config.getConfigValue(key = "hive_validate_table")
 
 #		result_df = self.executeHiveQuery("select id, value, count(value) as counter from hadoop.dbimport_check_hive group by value, id")
-		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s group by value, id"%(hiveTable))
+		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s group by id, value order by id"%(hiveTable))
+#		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s order by id"%(hiveTable))
 		reference_df = pd.DataFrame({'id':[1,2,3,4,5], 'value':['Hive', 'LLAP', 'is', 'working', 'fine'], 'counter':[1,1,1,1,1]})
 
 		if reference_df.equals(result_df) == False:
@@ -393,7 +395,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.testHiveQueryExecution() - Finished")
 
 
-	def executeHiveQuery(self, query):
+	def executeHiveQuery(self, query, quiet=False):
 		logging.debug("Executing common_operations.executeHiveQuery()")
 		# This function executes a Hive query and check that the result is correct. It works agains a pre-defined table
 
@@ -478,7 +480,7 @@ class operation(object, metaclass=Singleton):
 		if errorsFound == True:
 			raise Exception("Hive Query Error")
 
-		result_df = None
+		result_df = pd.DataFrame()
 		# Retreive the data
 		try:
 			result_df = pd.DataFrame(self.hive_cursor.fetchall())
@@ -493,6 +495,32 @@ class operation(object, metaclass=Singleton):
 				
 		logging.debug("Executing common_operations.executeHiveQuery() - Finished")
 		return result_df
+
+	def executeBeelineScript(self, hiveScriptFile):
+		logging.debug("Executing common_operations.executeBeelineScript()")
+
+		beelineConnectStr = "jdbc:hive2://%s:%s/;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+
+		beelineCommand = ["beeline", "--silent=true", "-u", beelineConnectStr, "-f", hiveScriptFile]
+
+		# Start Beeline
+		sh_session = subprocess.Popen(beelineCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+		# Print Stdout and stderr while sqoop is running
+		while sh_session.poll() == None:
+			row = sh_session.stdout.readline().decode('utf-8').rstrip()
+			if row != "":
+				print(row)
+				sys.stdout.flush()
+
+		# Print what is left in output after sqoop finished
+		for row in sh_session.stdout.readlines():
+			row = row.decode('utf-8').rstrip()
+			if row != "":
+				print(row)
+				sys.stdout.flush()
+
+		logging.debug("Executing common_operations.executeBeelineScript() - Finished")
 
 	def getHiveTableRowCount(self, hiveDB, hiveTable, whereStatement=None):
 		logging.debug("Executing common_operations.getHiveTableRowCount()")

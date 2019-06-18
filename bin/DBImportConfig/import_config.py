@@ -905,6 +905,11 @@ class config(object, metaclass=Singleton):
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 		
+				if re.search('^enum\(', column_type):
+#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
+					column_type = "string"
+					sqoop_column_type = "String"
+
 				column_type = re.sub('^character varying\(', 'varchar(', column_type)
 				column_type = re.sub('^mediumtext\([0-9]*\)', 'string', column_type)
 				column_type = re.sub('^tinytext\([0-9]*\)', 'varchar(255)', column_type)

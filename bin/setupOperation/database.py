@@ -245,39 +245,15 @@ class initialize(object):
 			print("DBImport configuration database is already created. If you are deploying a new version, please run --upgradeDB")
 			return
 
-		# Create all tables with the current schema
-		configSchema.metadata.create_all(self.configDB, checkfirst=True)
-
-		# Insert the version of the database schema
-#		query = sa.insert(configSchema.dbVersion).values(version='04201')
-#		self.configDB.execute(query)
-
-#		self.updateConfigurationValues()
-		self.upgradeDB()
+		alembicCommand.upgrade(self.alembicConfig, 'head')
+		self.updateConfigurationValues()
 
 		print("DBImport configuration database is created successfully")
 		
-	def downgradeDB(self):
-
-		alembicCommand.downgrade(self.alembicConfig, 'base')
-
 	def upgradeDB(self):
-
-#		inspector = sa.inspect(self.configDB)		
-#		allTables = inspector.get_table_names()
-#		if "db_version" not in allTables:
-#			print("ERROR: Cant find the configured tables in the database. Have you created the database with --createDB?")
-#			return
 
 		print("Upgrading database to latest level")
 		alembicCommand.upgrade(self.alembicConfig, 'head')
-
-#		query = sa.select([sa.func.max(configSchema.dbVersion.version)])
-#		result = self.configDB.execute(query).fetchone()
-#		deployedVersion = result[0]
-#		if deployedVersion == 4201:
-#			print("This database is at the latest level. No need to upgrade")
-
 		self.updateConfigurationValues()
 
 	def updateConfigurationValues(self):
@@ -427,5 +403,40 @@ class initialize(object):
 				configKey='hive_print_messages', 
 				valueInt='0', 
 				description='With 1, Hive will print additional messages during SQL operations')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_dbimport_commandpath').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dbimport_commandpath', 
+				valueStr='sudo -iu dbimport /usr/local/dbimport/', 
+				description='This is the path to DBImport. If sudo is required, this can be added here aswell. Must end with a /')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_dag_directory').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dag_directory', 
+				valueStr='/usr/local/airflow/dags', 
+				description='Airflow path to DAG directory')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_dag_staging_directory').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dag_staging_directory', 
+				valueStr='/usr/local/airflow/dags_generated_from_dbimport', 
+				description='Airflow path to staging DAG directory')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_dag_file_group').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dag_file_group', 
+				valueStr='airflow', 
+				description='Group owner of created DAG file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_dag_file_permission').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dag_file_permission', 
+				valueStr='660', 
+				description='File permission of created DAG file')
 			self.configDB.execute(query)
 

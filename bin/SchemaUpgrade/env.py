@@ -1,9 +1,8 @@
-
+import sys
+import os
 from logging.config import fileConfig
-
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -18,7 +17,18 @@ config = context.config
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+#target_metadata = None
+
+try:
+    DBImport_Home = os.environ['DBIMPORT_HOME']
+except KeyError:
+    print ("Error: System Environment Variable DBIMPORT_HOME is not set")
+    sys.exit(1)
+
+sys.path.append("%s/bin"%(DBImport_Home))
+from DBImportConfig.configSchema import Base
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
