@@ -96,6 +96,7 @@ class config(object, metaclass=Singleton):
 		self.sqoopBoundaryQuery = ""	
 		self.pk_column_override_mergeonly = None
 		self.validate_source = None
+		self.copy_slave = None
 
 		self.importPhase = None
 		self.importPhaseDescription = None
@@ -190,7 +191,7 @@ class config(object, metaclass=Singleton):
 		)
 
 	def lookupConnectionAlias(self):
-		self.common_config.lookupConnectionAlias(self.connection_alias)
+		self.common_config.lookupConnectionAlias(self.connection_alias, copySlave=self.copy_slave)
 
 	def checkTimeWindow(self):
 		self.common_config.checkTimeWindow(self.connection_alias)
@@ -231,7 +232,8 @@ class config(object, metaclass=Singleton):
 				"    incr_validation_method, "
 				"    sqoop_last_mappers, "
 				"    sqoop_query, "
-				"    validate_source "
+				"    validate_source, "
+				"    copy_slave "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -300,6 +302,11 @@ class config(object, metaclass=Singleton):
 		self.sqoop_query = row[28]
 		self.validate_source = row[29]
 
+		if row[30] == 1: 
+			self.copy_slave = True
+		else:
+			self.copy_slave = False
+
 		if self.validate_source  != "query" and self.validate_source !=  "sqoop":
 			raise invalidConfiguration("Only the values 'query' or 'sqoop' is valid for column validate_source in import_tables.")
 
@@ -331,9 +338,12 @@ class config(object, metaclass=Singleton):
 		if self.sqoop_last_rows == None:
 			self.sqoop_last_rows = 0
 
+		hdfsBaseDir = self.common_config.getConfigValue(key = "hdfs_basedir")
+
 		# Set various sqoop variables
-		self.sqoop_hdfs_location = ("/data/etl/import/"+ self.Hive_DB + "/" + self.Hive_Table + "/data").replace('$', '').replace(' ', '')
-		self.sqoop_hdfs_location_pkonly = ("/data/etl/import/"+ self.Hive_DB + "/" + self.Hive_Table + "/data_PKonly").replace('$', '').replace(' ', '')
+		# changing the HDFS path also requires you to change it in copy_operation.py under copyDataToDestinations()
+		self.sqoop_hdfs_location = (hdfsBaseDir + "/"+ self.Hive_DB + "/" + self.Hive_Table + "/data").replace('$', '').replace(' ', '')
+		self.sqoop_hdfs_location_pkonly = (hdfsBaseDir + "/"+ self.Hive_DB + "/" + self.Hive_Table + "/data_PKonly").replace('$', '').replace(' ', '')
 		self.sqoop_incr_mode = self.incr_mode
 		self.sqoop_incr_column = self.incr_column
 		self.sqoop_incr_lastvalue = self.incr_maxvalue
@@ -424,6 +434,10 @@ class config(object, metaclass=Singleton):
 			if self.soft_delete_during_merge == True: 
 				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
 
+		# If this is a slave table, we will disable the import phase as thats already done on the Master instance
+		if self.copy_slave == True:
+			self.importPhaseDescription  = "No Import phase (slave table)"
+
 		if self.import_type == "incr_merge_delete":
 			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
 
@@ -435,6 +449,7 @@ class config(object, metaclass=Singleton):
 		if self.importPhase == None or self.etlPhase == None:
 			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 			raise Exception
+
 
 		# Determine if it's an incremental import based on the import_type
 #		if self.import_type == "incr_merge_direct" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
@@ -1332,6 +1347,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.saveGeneratedData()")
 		logging.info("Saving generated data to MySQL table - import_table")
 
+		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			# We need to force one of the Oracle Flashback columns to a map-column-java option. 
+			self.sqoop_mapcolumnjava.append("datalake_flashback_startscn=String")
+
 		# Create a valid self.generatedSqoopOptions value
 		self.generatedSqoopOptions = None
 		if len(self.sqoop_mapcolumnjava) > 0:
@@ -1402,12 +1421,23 @@ class config(object, metaclass=Singleton):
 		if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
 		if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
 
+		hdfsBlocksize = int(self.common_config.getConfigValue(key = "hdfs_blocksize"))
+		if hdfsBlocksize == None or hdfsBlocksize == 0:
+			logging.error("The setting 'hdfs_blocksize' in configuration table is incorrect. Please enter a correct size")
+			raise Exception
+
 		# Execute SQL query that calculates the value
-		query = ("select sqoop_last_size, " 
-				"cast(sqoop_last_size / (1024*1024*128) as unsigned) as calculated_mappers, "
-				"mappers "
-				"from import_tables where "
-				"table_id = %s")
+#				"cast(sqoop_last_size / (1024*1024*128) as unsigned) as calculated_mappers, "
+		query =  "select sqoop_last_size, "
+		query += "cast(sqoop_last_size / %s as unsigned) as calculated_mappers, "%(hdfsBlocksize)
+		query += "mappers "
+		query += "from import_tables where "
+		query += "table_id = %s"
+#		query = ("select sqoop_last_size, " 
+#				"cast(sqoop_last_size / %s as unsigned) as calculated_mappers, "%(hdfsBlocksize)
+#				"mappers "
+#				"from import_tables where "
+#				"table_id = %s")
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1489,6 +1519,7 @@ class config(object, metaclass=Singleton):
 				# There is no MaxValue stored form previous imports. That means we need to do a full import up to SCN number
 				# It also means that this will only be executed by sqoop, as after sqoop there will be a maxvalue present
 				if whereForSourceTable == True or whereForSqoop == True:
+#					whereStatement  = "VERSIONS BETWEEN SCN 1310367330000 AND %s "%(self.sqoopIncrMaxvaluePending)
 					whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(self.sqoopIncrMaxvaluePending)
 					whereStatement += "WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)"
 			else:
@@ -1646,6 +1677,21 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		logging.debug("Executing import_config.getJDBCTableRowCount() - Finished")
+
+	def saveSourceTableRowCount(self, rowCount, incr=False):
+		logging.debug("Executing import_config.saveSourceTableRowCount()")
+		logging.info("Saving the number of rows in the Source Table to the configuration database")
+
+		# Save the value to the database
+		if incr == False:
+			query = ("update import_tables set source_rowcount = %s where table_id = %s")
+		else:
+			query = ("update import_tables set source_rowcount_incr = %s where table_id = %s")
+		self.mysql_cursor01.execute(query, (rowCount, self.table_id))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		logging.debug("Executing import_config.saveSourceTableRowCount() - Finished")
 
 	def saveHiveTableRowCount(self, rowCount):
 		logging.debug("Executing import_config.saveHiveTableRowCount()")
@@ -1915,13 +1961,13 @@ class config(object, metaclass=Singleton):
 			logging.debug("Executing import_config.getPKcolumns() - Finished")
 			self.pk_column_override = re.sub(', *', ',', self.pk_column_override.strip())
 			self.pk_column_override = re.sub(' *,', ',', self.pk_column_override)
-			return self.pk_column_override
+			return self.pk_column_override.lower()
 
 		if self.pk_column_override_mergeonly != None and self.pk_column_override_mergeonly.strip() != "" and PKforMerge == True:
 			logging.debug("Executing import_config.getPKcolumns() - Finished")
 			self.pk_column_override_mergeonly = re.sub(', *', ',', self.pk_column_override_mergeonly.strip())
 			self.pk_column_override_mergeonly = re.sub(' *,', ',', self.pk_column_override_mergeonly)
-			return self.pk_column_override_mergeonly
+			return self.pk_column_override_mergeonly.lower()
 
 		# If we reach this part, it means that we didnt override the PK. So lets fetch the real one	
 		query  = "select c.source_column_name "
@@ -2162,13 +2208,46 @@ class config(object, metaclass=Singleton):
 			if selectQuery != "": selectQuery += ", "
 
 			if sqoopColumnType == None:
-				selectQuery += "`%s`"%(columnName)
+				selectQuery += "S.`%s`"%(columnName)
 			else:
-				selectQuery += "cast(`%s` as %s)"%(columnName, columnType)
+				selectQuery += "cast(S.`%s` as %s) %s"%(columnName, columnType, columnName)
 
 			# Handle reserved column names in Hive
 
 			# TODO: Get the maximum column comment size from Hive Metastore and use that instead
+		selectQuery = "select %s"%(selectQuery)
+
+		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			# Add the specific Oracle FlashBack columns that we need to import
+			selectQuery += ", S.`datalake_flashback_operation`"
+			selectQuery += ", cast(S.`datalake_flashback_startscn` as bigint) datalake_flashback_startscn"
+
+		selectQuery += " from `%s`.`%s` as S "%(self.Hive_Import_DB, self.Hive_Import_Table)
+
+		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			selectQuery += "inner join ("
+			selectQuery += "   select %s, max(datalake_flashback_startscn) as max_startscn "%(self.getPKcolumns())
+			selectQuery += "   from `%s`.`%s` "%(self.Hive_Import_DB, self.Hive_Import_Table)
+			selectQuery += "   group by %s) G "%(self.getPKcolumns())
+			selectQuery += "on "
+
+			firstRow = True
+			for PKcolumn in self.getPKcolumns().split(','):	
+				if firstRow == True:
+					selectQuery += "   S.%s = G.%s"%(PKcolumn, PKcolumn)
+					firstRow = False
+				else:
+					selectQuery += "   and S.%s = G.%s"%(PKcolumn, PKcolumn)
+#			selectQuery += "   and S.datalake_flashback_startscn = G.max_startscn "	
+			selectQuery += "   and ( S.datalake_flashback_startscn = G.max_startscn or G.max_startscn is NULL )"
+
+# query += "%s "%(self.import_config.getSelectForImportView())
+# if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+# # Add the specific Oracle FlashBack columns that we need to import
+# query += ", `datalake_flashback_operation`"
+# query += ", `datalake_flashback_startscn`"
+# query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+
 		logging.debug("Executing import_config.getSelectForImportView() - Finished")
 		return selectQuery
 

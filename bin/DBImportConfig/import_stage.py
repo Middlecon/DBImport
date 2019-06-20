@@ -92,6 +92,11 @@ class stage(object):
 		elif stage == 1214: stageDescription = "Validate sqoop import"
 		elif stage == 1249: stageDescription = "Import Phase Completed"
 
+		# Copy Phase
+		elif stage == 2000: stageDescription = "Copy data to remote DBImport instance (synchronous)"
+		elif stage == 2001: stageDescription = "Copy schema to remote DBImport instance (synchronous)"
+		elif stage == 2099: stageDescription = "Copy Phase Completed"
+
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageDescription = "Connecting to Hive"
 		elif stage == 3051: stageDescription = "Creating the import table in the staging database"
@@ -226,6 +231,11 @@ class stage(object):
 		elif stage == 1213: stageShortName = "get_source_rowcount"
 		elif stage == 1214: stageShortName = "validate_sqoop_import"
 		elif stage == 1249: stageShortName = "skip"
+
+		# Copy Phase
+		elif stage == 2000: stageDescription = "copy_data"
+		elif stage == 2001: stageDescription = "copy_schema"
+		elif stage == 2099: stageDescription = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageShortName = "connect_to_hive"

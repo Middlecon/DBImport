@@ -21,6 +21,7 @@ import getopt
 import logging
 from common import constants as constant
 from DBImportOperation import import_operations
+from DBImportOperation import copy_operations
 from DBImportOperation import etl_operations
 
 def printHelp():
@@ -57,6 +58,8 @@ def printHelp():
 	print ("                     - loadDataFromImportTable")
 	print ("                     - mergeTable")
 	print ("                     - createStatistics")
+	print ("                     - copySchema")
+	print ("                     - copyFiles")
 	sys.exit(1)
 	
 def printBox(messageList):
@@ -151,7 +154,7 @@ def main(argv):
 		runETLPhase = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -181,15 +184,18 @@ def main(argv):
 	
 	# Initiate the master class for all import operations
 	import_operation = import_operations.operation(Hive_DB, Hive_Table)
+	copy_operation = copy_operations.operation()
 	etl_operation = etl_operations.operation()
+
+	copyDestinations = copy_operation.getCopyDestinations(hiveDB = Hive_DB, hiveTable = Hive_Table)
 
 	# Get the name of the different phases we are going to execute
 	importPhase = import_operation.import_config.importPhase 
-	copyPhase   = import_operation.import_config.copyPhase 
 	etlPhase    = import_operation.import_config.etlPhase 
 	importPhaseDescription = import_operation.import_config.importPhaseDescription 
-	copyPhaseDescription   = import_operation.import_config.copyPhaseDescription 
 	etlPhaseDescription    = import_operation.import_config.etlPhaseDescription 
+
+	slaveTable = import_operation.import_config.copy_slave
 
 	print("The following table will be imported")
 	print("______________________________________________________________________________")
@@ -197,7 +203,18 @@ def main(argv):
 	print("Import Type (OLD):        %s"%(import_operation.import_config.import_type))
 	print("Import description (OLD): %s"%(import_operation.import_config.import_type_description))
 	print("Import Phase:             %s"%(importPhaseDescription))
-	print("Copy Phase:               %s"%(copyPhaseDescription))
+
+	if copyDestinations == None:
+		print("Copy destinations:        No cluster copy")
+	else:
+		firstRow = True
+		for dest in copyDestinations:
+			if firstRow == True:
+				print("Copy destinations:        %s"%(dest))
+				firstRow = False
+			else:
+				print("                          %s"%(dest))
+
 	print("ETL Phase:                %s"%(etlPhaseDescription))
 #	print("Export Phase:             %s"%("No Export"))
 	print("Source hostname:          %s"%(import_operation.import_config.common_config.jdbc_hostname))
@@ -212,7 +229,7 @@ def main(argv):
 	print("")
 	sys.stdout.flush()
 
-	if ( runImportPhase == True and runETLPhase == False ) and runOnlyFunction == None:
+	if ( runImportPhase == True and runETLPhase == False and runCopyPhase == False ) and runOnlyFunction == None:
 		print(" _____________________ ")
 		print("|                     |")
 		print("| Import Phase only   |")
@@ -220,7 +237,18 @@ def main(argv):
 		print("")
 		print("")
 
-	if ( runImportPhase == False and runETLPhase == True ) and runOnlyFunction == None:
+	if ( runImportPhase == False and runETLPhase == False  and runCopyPhase == True) and runOnlyFunction == None:
+		print(" ___________________")
+		print("|                   |")
+		print("| Copy Phase only   |")
+		print("|___________________|")
+		print("")
+		print("")
+
+		# As we can run copy phase only, we will just keep the stage info in memories for these imports
+		import_operation.setStageOnlyInMemory()
+
+	if ( runImportPhase == False and runETLPhase == True  and runCopyPhase == False) and runOnlyFunction == None:
 		print(" __________________")
 		print("|                  |")
 		print("| ETL Phase only   |")
@@ -290,7 +318,7 @@ def main(argv):
 	# * IMPORT_PHASE_FULL 
 	# ******************************************
 
-	if importPhase == constant.IMPORT_PHASE_FULL and runImportPhase == True:
+	if slaveTable == False and importPhase == constant.IMPORT_PHASE_FULL and runImportPhase == True:
 		if stage >= 1000 and stage < 1049 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
@@ -335,12 +363,130 @@ def main(argv):
 
 
 	# ******************************************
+	# * IMPORT_PHASE_INCR 
+	# ******************************************
+
+	if slaveTable == False and importPhase == constant.IMPORT_PHASE_INCR and runImportPhase == True:
+		stage = import_operation.getStage()
+		if stage >= 1100 and stage < 1149 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			# TODO: Add correct restart points once incremental imports are working
+			if stage == 1114: newStage = 1111 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if import_operation.runStage(1110) == True: 
+				import_operation.getSourceTableSchema()
+
+		if runOnlyFunction == None: 
+			if import_operation.runStage(1111) == True: 
+				import_operation.clearTableRowCount()
+
+		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			if import_operation.runStage(1112) == True: 
+				import_operation.saveIncrMinValue()
+				import_operation.runSqoop(False)
+				if import_operation.sqoopIncrNoNewRows == True: 
+					import_operation.setStage(1149)
+
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if import_operation.runStage(1113) == True: 
+				import_operation.getJDBCTableRowCount()
+	
+		if runOnlyFunction == None:
+			if import_operation.runStage(1114) == True: 
+				import_operation.validateSqoopRowCount()
+
+		if runOnlyFunction == None:
+			import_operation.setStage(1149)
+
+
+	# ******************************************
+	# * IMPORT_PHASE_ORACLE_FLASHBACK 
+	# ******************************************
+
+	if slaveTable == False and importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK and runImportPhase == True:
+		if stage >= 1200 and stage < 1249 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			if stage == 1214: newStage = 1211 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+
+		# Fetch the source table schema. This is mandatory for all imports
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if import_operation.runStage(1210) == True: 
+				import_operation.getSourceTableSchema()
+
+		if runOnlyFunction == None: 
+			if import_operation.runStage(1211) == True: 
+				import_operation.clearTableRowCount()
+
+		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
+			if import_operation.runStage(1212) == True: 
+				import_operation.runSqoop(False)
+
+		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if import_operation.runStage(1213) == True: 
+				import_operation.getJDBCTableRowCount()
+	
+			if import_operation.runStage(1214) == True: 
+				import_operation.validateSqoopRowCount()
+
+		if runOnlyFunction == None:
+			import_operation.setStage(1249)
+
+	# ******************************************
+	# * Copy Phase                                   
+	# ******************************************
+
+	if slaveTable == False and copyDestinations != None and runCopyPhase == True:
+		# Only run if Import Phase was completed successfully
+		if stage == 1049 or stage == 1149 or stage != 1249:
+			if runOnlyFunction == None or runOnlyFunction == "copyFiles": 
+				if import_operation.runStage(2000) == True: 
+					copy_operation.copyDataToDestinations()
+
+			if runOnlyFunction == None or runOnlyFunction == "copySchema": 
+				if import_operation.runStage(2001) == True: 
+					copy_operation.copySchemaToDestinations()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(2099)
+
+	# ******************************************
 	# * IMPORT_PHASE_FULL & ETL_PHASE_TRUNCATEINSERT
 	# ******************************************
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_TRUNCATEINSERT and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1049 and runOnlyFunction == None:
+		if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -426,64 +572,12 @@ def main(argv):
 			import_operation.saveStageStatistics()
 
 	# ******************************************
-	# * IMPORT_PHASE_INCR 
-	# ******************************************
-
-	if importPhase == constant.IMPORT_PHASE_INCR and runImportPhase == True:
-		stage = import_operation.getStage()
-		if stage >= 1100 and stage < 1149 and runOnlyFunction == None:
-			import_operation.saveRetryAttempt(stage)
-
-			newStage = 0
-			# TODO: Add correct restart points once incremental imports are working
-			if stage == 1114: newStage = 1111 
-			print(" ________________________________________________________ ")
-			print("|                                                        |")
-			print("| WARNING: The previous import failed and this execution |") 	
-			print("|          is recovering from that failure.              |") 	
-			print("| Last execution failed on stage %s                    |"%(stage)) 	
-			if newStage != 0: 
-				print("| Will restart from stage %s                           |"%(newStage)) 	
-				import_operation.setStage(newStage, force=True)
-			print("|________________________________________________________|")
-			print("")
-			print("")
-			sys.stdout.flush()
-
-		# Fetch the source table schema. This is mandatory for all imports
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
-			if import_operation.runStage(1110) == True: 
-				import_operation.getSourceTableSchema()
-
-		if runOnlyFunction == None: 
-			if import_operation.runStage(1111) == True: 
-				import_operation.clearTableRowCount()
-
-		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1112) == True: 
-				import_operation.saveIncrMinValue()
-				import_operation.runSqoop(False)
-				if import_operation.sqoopIncrNoNewRows == True: 
-					import_operation.setStage(1149)
-
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1113) == True: 
-				import_operation.getJDBCTableRowCount()
-	
-		if runOnlyFunction == None:
-			if import_operation.runStage(1114) == True: 
-				import_operation.validateSqoopRowCount()
-
-		if runOnlyFunction == None:
-			import_operation.setStage(1149)
-
-	# ******************************************
 	# * IMPORT_PHASE_INCR & ETL_PHASE_INSERT
 	# ******************************************
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_INSERT and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1149 and runOnlyFunction == None:
+		if stage > 0 and stage != 1149 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -575,10 +669,11 @@ def main(argv):
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_MERGEHISTORYAUDIT and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1049 and runOnlyFunction == None:
+		if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
+			if stage == 3208: newStage = 3200 
 			if stage == 3211: newStage = 3204 
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
@@ -694,7 +789,7 @@ def main(argv):
 
 	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1049 and runOnlyFunction == None:
+		if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -806,7 +901,7 @@ def main(argv):
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1149 and runOnlyFunction == None:
+		if stage > 0 and stage != 1149 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -921,7 +1016,7 @@ def main(argv):
 	
 	if importPhase == constant.IMPORT_PHASE_INCR and etlPhase == constant.ETL_PHASE_MERGEHISTORYAUDIT and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1149 and runOnlyFunction == None:
+		if stage > 0 and stage != 1149 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -1036,63 +1131,13 @@ def main(argv):
 			import_operation.convertStageStatisticsToJSON()
 			import_operation.saveStageStatistics()
 
-	# ******************************************
-	# * IMPORT_PHASE_ORACLE_FLASHBACK 
-	# ******************************************
-
-	if importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK and runImportPhase == True:
-		if stage >= 1200 and stage < 1249 and runOnlyFunction == None:
-			import_operation.saveRetryAttempt(stage)
-
-			newStage = 0
-			if stage == 1214: newStage = 1211 
-			print(" ________________________________________________________ ")
-			print("|                                                        |")
-			print("| WARNING: The previous import failed and this execution |") 	
-			print("|          is recovering from that failure.              |") 	
-			print("| Last execution failed on stage %s                    |"%(stage)) 	
-			if newStage != 0: 
-				print("| Will restart from stage %s                           |"%(newStage)) 	
-				import_operation.setStage(newStage, force=True)
-			print("|________________________________________________________|")
-			print("")
-			print("")
-			sys.stdout.flush()
-
-
-		# Fetch the source table schema. This is mandatory for all imports
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
-			if import_operation.runStage(1210) == True: 
-				import_operation.getSourceTableSchema()
-
-		if runOnlyFunction == None: 
-			if import_operation.runStage(1211) == True: 
-				import_operation.clearTableRowCount()
-
-		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1212) == True: 
-				import_operation.runSqoop(False)
-
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1213) == True: 
-				import_operation.getJDBCTableRowCount()
-	
-			if import_operation.runStage(1214) == True: 
-				import_operation.validateSqoopRowCount()
-
-		if runOnlyFunction == None:
-			import_operation.setStage(1249)
-
-#		import_operation.remove_temporary_files()
-#		sys.exit(1)
-
 	# *******************************************************
 	# * IMPORT_PHASE_ORACLE_FLASHBACK & ETL_PHASE_MERGEONLY
 	# *******************************************************
 	
 	if importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
 		stage = import_operation.getStage()
-		if stage > 0 and stage != 1249 and runOnlyFunction == None:
+		if stage > 0 and stage != 1249 and stage != 2099 and runOnlyFunction == None:
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
@@ -1140,6 +1185,7 @@ def main(argv):
 
 			if import_operation.runStage(3403) == True: 
 				import_operation.validateIncrRowCount()
+				import_operation.getImportViewRowCountAsSource(incr=True)
 
 		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 			if import_operation.runStage(3404) == True: 

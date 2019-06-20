@@ -38,6 +38,13 @@ from common.Singleton import Singleton
 from common import constants as constant
 from DBImportConfig import decryption as decryption
 from common.Exceptions import *
+import sqlalchemy as sa
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy_utils import create_view
+from sqlalchemy_views import CreateView, DropView
+from sqlalchemy.sql import text, alias, select
+from sqlalchemy.orm import aliased, sessionmaker, Query
+
 
 class config(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
@@ -91,6 +98,10 @@ class config(object, metaclass=Singleton):
 
 		self.sourceSchema = schemaReader.source()
 
+		self.debugLogLevel = False
+		if logging.root.level == 10:        # DEBUG
+			self.debugLogLevel = True
+
 		self.crypto = decryption.crypto()
 		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
 		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
@@ -110,8 +121,8 @@ class config(object, metaclass=Singleton):
 			self.remove_temporary_files()
 			sys.exit(1)
 
-		# Fetch configuration about HDFS
-		self.hdfs_address = configuration.get("HDFS", "hdfs_address")
+#		# Fetch configuration about HDFS
+#		self.hdfs_address = configuration.get("HDFS", "hdfs_address")
 
 		# Fetch configuration about MySQL database and how to connect to it
 		mysql_hostname = configuration.get("Database", "mysql_hostname")
@@ -148,6 +159,30 @@ class config(object, metaclass=Singleton):
 		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_config.__init__() - Finished")
 
+	def connectSQLAlchemy(self):
+		""" Connects to the configuration database with SQLAlchemy """
+
+		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+			configuration.get("Database", "mysql_username"),
+			configuration.get("Database", "mysql_password"),
+			configuration.get("Database", "mysql_hostname"),
+			configuration.get("Database", "mysql_port"),
+			configuration.get("Database", "mysql_database"))
+
+		try:
+			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
+			self.configDB.connect()
+			self.configDBSession = sessionmaker(bind=self.configDB)
+
+		except sa.exc.OperationalError as err:
+			logging.error("%s"%err)
+			self.common_config.remove_temporary_files()
+			sys.exit(1)
+		except:
+			print("Unexpected error: ")
+			print(sys.exc_info())
+			self.common_config.remove_temporary_files()
+			sys.exit(1)
 
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
@@ -301,7 +336,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJDBCDriverConfig() - Finished")
 		return driver, classPath
 
-	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True):
+	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
@@ -321,7 +356,10 @@ class config(object, metaclass=Singleton):
 
 		self.jdbc_url = row[0]
 
-		if decryptCredentials == True:
+#		if row[1] == "DBImport Slave Connection":
+#			decryptCredentials = False
+
+		if decryptCredentials == True and copySlave == False:
 			credentials = self.crypto.decrypt(row[1])
 			if credentials == None:
 				logging.error("Cant decrypt username and password. Check private/public key in config file")
@@ -606,6 +644,11 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == "":
 			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
 			exit_after_function = True
+
+		if copySlave == True:
+			self.jdbc_hostname = None
+			self.jdbc_port = None
+			self.jdbc_database = None
 
 		logging.debug("    db_mssql = %s"%(self.db_mssql))
 		logging.debug("    db_oracle = %s"%(self.db_oracle))
@@ -997,7 +1040,7 @@ class config(object, metaclass=Singleton):
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))

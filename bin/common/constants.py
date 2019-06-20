@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.51"
+VERSION = "0.51.1 (pre-release)"
 
 # Database types
 MYSQL = "mysql"
@@ -19,6 +19,7 @@ FOREIGN_KEY = "F"
 IMPORT_PHASE_ORACLE_FLASHBACK = "oracle_flashback"
 IMPORT_PHASE_FULL = "full"
 IMPORT_PHASE_INCR = "incr"
+IMPORT_PHASE_SLAVE = "slave"
 COPY_PHASE_NONE = "none"
 ETL_PHASE_NONE = "none"
 ETL_PHASE_INSERT = "insert"

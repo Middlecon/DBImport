@@ -118,7 +118,13 @@ class operation(object, metaclass=Singleton):
 		query += "on \n"
 
 		for i, targetColumn in enumerate(PKColumns.split(",")):
-			sourceColumn = columnMerge.loc[columnMerge['Exist'] == 'both'].loc[columnMerge['targetName'] == targetColumn].iloc[0]['sourceName']
+			try:
+				sourceColumn = columnMerge.loc[columnMerge['Exist'] == 'both'].loc[columnMerge['targetName'] == targetColumn].iloc[0]['sourceName']
+			except IndexError:
+				logging.error("Primary Key cant be found in the source target table. Please check PK override")
+				self.import_config.remove_temporary_files()
+				sys.exit(1)
+
 			if sourceColumn == None:
 				logging.error("ERROR: Problem determine column name in source table for primary key column '%s'"%(targetColumn))
 				self.import_config.remove_temporary_files()
@@ -129,6 +135,8 @@ class operation(object, metaclass=Singleton):
 			else:
 				query += "and\n   T.`%s` = S.`%s` "%(targetColumn, sourceColumn)
 		query += "\n"
+	
+		print("passed")
 
 		query += "when matched "
 		if sourceIsIncremental == False:

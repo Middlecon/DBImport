@@ -1,7 +1,7 @@
 # coding: utf-8
 # from sqlalchemy import CHAR, Column, DateTime, Enum, ForeignKey, ForeignKeyConstraint, Index, String, Table, Text, Time, text
 from sqlalchemy import *
-from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT
+from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT, SMALLINT
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql import alias, select, func
 from sqlalchemy.ext.declarative import declarative_base
@@ -10,11 +10,29 @@ from sqlalchemy_utils import create_view
 Base = declarative_base()
 metadata = Base.metadata
 
-# class dbVersion(Base):
-#     __tablename__ = 'db_version'
-# 
-#     version = Column(Integer, nullable=False, primary_key=True, comment='Version of deployed DBImport schema')
-#     install_date = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+class dbimportInstances(Base):
+    __tablename__ = 'dbimport_instances'
+    __table_args__ = {'comment': 'This table contains all DBInstance that will receive data from this instance during the copy phase'}
+
+    instance_id = Column(BIGINT(20), primary_key=True, autoincrement=True, comment='Auto Incremented PrimaryKey of the table')
+    name = Column(String(32), nullable=False, unique=True, comment='Name of the DBImport instance')
+    db_hostname = Column(String(64), nullable=False, comment='MySQL Hostname to DBImport database')
+    db_port = Column(SmallInteger, nullable=False, comment='MySQL Port to DBImport database')
+    db_database = Column(String(64), nullable=False, comment='MySQL Database to DBImport database')
+    db_credentials = Column(Text, nullable=True, comment='MySQL Username and Password to DBImport database')
+    hdfs_address = Column(String(64), nullable=False, comment='HDFS address. Example hdfs://hadoopcluster')
+    hdfs_basedir = Column(String(64), nullable=False, comment='The base dir to write data to. Example /apps/dbimport')
+
+class copyTables(Base):
+    __tablename__ = 'copy_tables'
+    __table_args__ = {'comment': 'When the copy phase starts, it will look in this table to understand if its going to copy its data and to what DBImport instances.'}
+
+    copy_id = Column(BIGINT(20), primary_key=True, autoincrement=True, comment='Auto Incremented PrimaryKey of the table')
+    hive_filter = Column(String(256), nullable=False, comment='Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE')
+    destination = Column(String(32), ForeignKey('dbimport_instances.name'), nullable=False, index=True, comment="DBImport instances to copy the imported data to")
+    data_transfer = Column(Enum('Synchronous','Asynchronous'), nullable=False, comment='Synchronous will transfer the data as part of the Import. Asynchronous will transfer the data by a separate process and not part of the Import', server_default=text("'Synchronous'"))
+
+    dbimport_instances = relationship('dbimportInstances')
 
 class airflowCustomDags(Base):
     __tablename__ = 'airflow_custom_dags'
@@ -38,14 +56,6 @@ class airflowDagSensors(Base):
     wait_for_task = Column(String(64), comment="Name of task to wait for.Default is 'stop'")
     timeout_minutes = Column(Integer, comment='Number of minutes to wait for DAG.')
 
-
-# class AirflowDagTriggers(Base):
-#     __tablename__ = 'airflow_dag_triggers'
-# 
-#     dag_name = Column(String(64))
-#     trigger_name = Column(Text)
-#     dag_to_trigger = Column(Text)
-# 
 
 class airflowEtlDags(Base):
     __tablename__ = 'airflow_etl_dags'
@@ -615,9 +625,11 @@ class importTables(Base):
     generated_foreign_keys = Column(Text, comment='<NOT USED>')
     datalake_source = Column(String(256), comment='This value will come in the dbimport_source column if present. Overrides the same setting in jdbc_connections table')
     operator_notes = Column(Text, comment='Free text field to write a note about the import. ')
+    copy_finished = Column(DateTime, comment='Time when last copy from Master DBImport instance was completed. Dont change manually')
+    copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
 
 
-class jdbcConnection(Base):
+class jdbcConnections(Base):
     __tablename__ = 'jdbc_connections'
     __table_args__ = {'comment': 'Database connection definitions'}
 
@@ -739,7 +751,7 @@ class airflowTasks(Base):
     sensor_timeout_minutes = Column(Integer, nullable=True, comment='Timeout for sensors in minutes')
     sensor_connection = Column(String(64), nullable=True, comment='Name of Connection in Airflow')
 
-    jdbc_connection = relationship('jdbcConnection')
+    jdbc_connection = relationship('jdbcConnections')
 
 
 class exportColumns(Base):
@@ -794,10 +806,6 @@ class importColumns(Base):
 
     table = relationship('importTables')
 
-#        ForeignKeyConstraint(['fk_table_id', 'fk_column_id'], ['import_columns.table_id', 'import_columns.column_id'], name='FK_import_foreign_keys_import_columns', ondelete='CASCADE'),
-#        ForeignKeyConstraint(['table_id', 'column_id'], ['import_columns.table_id', 'import_columns.column_id'], name='FK_import_foreign_keys_import_columns_FK', ondelete='CASCADE'),
-
-# Could not locate any relevant foreign key columns for primary join condition 'import_foreign_keys.fk_table_id = import_columns.table_id' on relationship importForeignKeys.fk_table.  Ensure that referencing columns are associated with a ForeignKey or ForeignKeyConstraint, or are annotated in the join condition with the foreign() annotation.
 
 class importForeignKeys(Base):
     __tablename__ = 'import_foreign_keys'
@@ -817,56 +825,3 @@ class importForeignKeys(Base):
 
     fk_column = relationship('importColumns', primaryjoin='importForeignKeys.fk_column_id == importColumns.column_id')
     column = relationship('importColumns', primaryjoin='importForeignKeys.column_id == importColumns.column_id')
-#    fk_table = relationship('importColumns', primaryjoin='importForeignKeys.fk_table_id == importColumns.table_id')
-#    table = relationship('importColumns', primaryjoin='importForeignKeys.table_id == importColumns.table_id')
-
-#airflowDagTriggers_statement = select([
-#    airflowImportDagExecution.dag_name,
-#    airflowImportDagExecution.task_name.label('trigger_name'),
-#    airflowImportDagExecution.task_config.label('dag_to_trigger'),
-#]).select_from(airflowImportDagExecution.__table__)
-#
-#airflowDagTriggers_view = create_view('airflow_dag_triggers', airflowDagTriggers_statement, Base.metadata)
-#
-#class airflowDagTriggers(Base):
-#    __table__ = airflowDagTriggers_view
-#
-#
-#
-#colSource = aliased(importColumns)
-#colRef = aliased(importColumns)
-#
-#importForeignKeysView_statement = select([
-#    colSource.hive_db,
-#    colSource.hive_table,
-#    importForeignKeys.fk_index,
-#    colSource.column_name,
-#    colRef.hive_db.label('ref_hive_Db'),
-#    colRef.hive_table.label('ref_hive_table'),
-#    colRef.column_name.label('ref_column_name')
-#]).select_from(importForeignKeys.__table__
-#	.join(colSource, (importForeignKeys.table_id == colSource.table_id) & (importForeignKeys.column_id == colSource.column_id))
-#	.join(colRef, (importForeignKeys.fk_table_id == colRef.table_id) & (importForeignKeys.fk_column_id == colRef.column_id))
-#	).order_by(importForeignKeys.fk_index, importForeignKeys.key_position)
-##	)
-#
-#importForeignKeysView_view = create_view('import_foreign_keys_VIEW', importForeignKeysView_statement, Base.metadata)
-#
-#class importForeignKeysView(Base):
-#    __table__ = importForeignKeysView_view
-"""
-select 
-	`s`.`hive_db` AS `hive_db`,
-	`s`.`hive_table` AS `hive_table`,
-	`fk`.`fk_index` AS `fk_index`,
-	`s`.`column_name` AS `column_name`,
-	`ref`.`hive_db` AS `ref_hive_Db`,
-	`ref`.`hive_table` AS `ref_hive_table`,
-	`ref`.`column_name` AS `ref_column_name` 
-from `import_foreign_keys` `fk` 
-join `import_columns` `s` on
-	`s`.`table_id` = `fk`.`table_id` and `s`.`column_id` = `fk`.`column_id`
-join `import_columns` `ref` on 
-	`ref`.`table_id` = `fk`.`fk_table_id` and `ref`.`column_id` = `fk`.`fk_column_id`
-order by `fk`.`fk_index`,`fk`.`key_position`
-"""

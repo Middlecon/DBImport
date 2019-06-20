@@ -751,8 +751,19 @@ class initialize(object):
 		allTaskDependencies = tasks.filter(['task_dependency_in_main'])
 
 		for index, row in tasks.iterrows():
-			if row['task_type'] == "DAG Sensor":
+			sensorPokeInterval = row['sensor_poke_interval']
+			if sensorPokeInterval == '':
+				# Default to 5 minutes
+				sensorPokeInterval = 300
 
+			sensorTimeoutSeconds = row['sensor_timeout_minutes']
+			if sensorTimeoutSeconds == '':
+				# Default to 4 hours
+				sensorTimeoutSeconds = "14400"	
+			else:
+				sensorTimeoutSeconds = sensorTimeoutSeconds * 60
+
+			if row['task_type'] == "DAG Sensor":
 				airflowCustomDags = aliased(configSchema.airflowCustomDags)
 				airflowEtlDags    = aliased(configSchema.airflowEtlDags)
 				airflowExportDags = aliased(configSchema.airflowExportDags)
@@ -785,18 +796,6 @@ class initialize(object):
 					self.DAGfile.close()
 					self.common_config.remove_temporary_files()
 					sys.exit(1)
-
-				sensorPokeInterval = row['sensor_poke_interval']
-				if sensorPokeInterval == '':
-					# Default to 5 minutes
-					sensorPokeInterval = 300
-
-				sensorTimeoutSeconds = row['sensor_timeout_minutes']
-				if sensorTimeoutSeconds == '':
-					# Default to 4 hours
-					sensorTimeoutSeconds = "14400"	
-				else:
-					sensorTimeoutSeconds = sensorTimeoutSeconds * 60
 
 				mainDagMatchHourMin = re.search('^[0-2][0-9]:[0-5][0-9]$', mainDagSchedule)
 				waitDagMatchHourMin = re.search('^[0-2][0-9]:[0-5][0-9]$', waitDagSchedule)
@@ -846,12 +845,12 @@ class initialize(object):
 				self.DAGfile.write("    external_dag_id='%s',\n"%(waitForDag))
 				self.DAGfile.write("    external_task_id='%s',\n"%(waitForTask))
 				self.DAGfile.write("    retries=0,\n")
-				self.DAGfile.write("    execution_timeout=timedelta(seconds=%s),\n"%(int(sensorTimeoutSeconds)))
 				self.DAGfile.write("    execution_delta=timedelta(seconds=%s),\n"%(timeDiff))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
 				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
 				self.DAGfile.write("    mode='reschedule',\n")
 				self.DAGfile.write("    dag=dag)\n")
@@ -877,6 +876,7 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
 				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
 				self.DAGfile.write("    mode='reschedule',\n")
 				self.DAGfile.write("    dag=dag)\n")
@@ -1099,8 +1099,9 @@ class initialize(object):
 			self.DAGfile.write("    external_dag_id='%s',\n"%(row['wait_for_dag']))
 			self.DAGfile.write("    external_task_id='%s',\n"%(waitForTask))
 			self.DAGfile.write("    retries=0,\n")
-			self.DAGfile.write("    execution_timeout=timedelta(seconds=%s),\n"%(timeoutSeconds))
+#			self.DAGfile.write("    execution_timeout=timedelta(seconds=%s),\n"%(timeoutSeconds))
 			self.DAGfile.write("    execution_delta=timedelta(seconds=%s),\n"%(timeDiff))
+			self.DAGfile.write("    timeout=%s,\n"%(int(timeoutSeconds)))
 			self.DAGfile.write("    poke_interval=300,\n")
 			self.DAGfile.write("    mode='reschedule',\n")
 			self.DAGfile.write("    dag=dag)\n")

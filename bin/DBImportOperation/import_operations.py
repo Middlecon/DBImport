@@ -155,9 +155,29 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def getImportTableRowCount(self):
+	def getImportViewRowCountAsSource(self, incr=False):
+		whereStatement = None
+		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			# Needed otherwise we will count rows that will be deleted and that will cause the validation to fail
+			whereStatement = "datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
+
 		try:
-			importTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+			importViewRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, whereStatement = whereStatement)
+#			self.import_config.saveHiveTableRowCount(importTableRowCount)
+			self.import_config.saveSourceTableRowCount(importViewRowCount, incr=incr)
+		except:
+			logging.exception("Fatal error when reading Hive view row count")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+	def getImportTableRowCount(self):
+		whereStatement = None
+#		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#			# Needed otherwise we will count rows that will be deleted and that will cause the validation to fail
+#			whereStatement = "datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
+
+		try:
+			importTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, whereStatement = whereStatement)
 			self.import_config.saveHiveTableRowCount(importTableRowCount)
 		except:
 			logging.exception("Fatal error when reading Hive table row count")
@@ -210,7 +230,8 @@ class operation(object, metaclass=Singleton):
 
 	def validateIncrRowCount(self):
 		try:
-			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=True) 
+#			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=True) 
+			validateResult = self.import_config.validateRowCount(validateSqoop=False, incremental=True) 
 		except:
 			logging.exception("Fatal error when validating imported incremental rows")
 			self.import_config.remove_temporary_files()
@@ -408,7 +429,11 @@ class operation(object, metaclass=Singleton):
 
 		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# Add the specific Oracle FlashBack columns that we need to import
-			sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\",', self.import_config.sqlGeneratedSqoopQuery)
+			sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\", \"VERSIONS_STARTSCN\" as \"datalake_flashback_startscn\",', self.import_config.sqlGeneratedSqoopQuery)
+#			print(self.import_config.generatedSqoopOptions)
+#			self.import_config.remove_temporary_files()
+#			sys.exit(1)
+			# sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\",', self.import_config.sqlGeneratedSqoopQuery)
 
 		if self.import_config.sqoop_query != None:
 			sqoopQuery = self.import_config.sqoop_query
@@ -693,12 +718,17 @@ class operation(object, metaclass=Singleton):
 			if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View) == False:
 				logging.info("Creating External Import View")
 
-				query = "create view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
-				query += "%s "%(self.import_config.getSelectForImportView())
-				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-					# Add the specific Oracle FlashBack columns that we need to import
-					query += ", `datalake_flashback_operation`"
-				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+				query = "create view `%s`.`%s` as %s "%(
+					self.import_config.Hive_Import_DB, 
+					self.import_config.Hive_Import_View,
+					self.import_config.getSelectForImportView())
+#				query = "create view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
+#				query += "%s "%(self.import_config.getSelectForImportView())
+#				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#					# Add the specific Oracle FlashBack columns that we need to import
+#					query += ", `datalake_flashback_operation`"
+#					query += ", `datalake_flashback_startscn`"
+#				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 
 				self.common_operations.executeHiveQuery(query)
 				self.common_operations.reconnectHiveMetaStore()
@@ -722,13 +752,18 @@ class operation(object, metaclass=Singleton):
 			if columnsDiffCount > 0:
 				# There is a diff between the configuration and the view. Lets update it
 				logging.info("Updating Import View as columns in Hive is not the same as in the configuration")
-				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
-				query += "%s "%(self.import_config.getSelectForImportView())
-				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-					# Add the specific Oracle FlashBack columns that we need to import
-					query += ", `datalake_flashback_operation`"
-				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-				print(query)
+				query = "alter view `%s`.`%s` as %s "%(
+					self.import_config.Hive_Import_DB, 
+					self.import_config.Hive_Import_View,
+					self.import_config.getSelectForImportView())
+#				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
+#				query += "%s "%(self.import_config.getSelectForImportView())
+#				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#					# Add the specific Oracle FlashBack columns that we need to import
+#					query += ", `datalake_flashback_operation`"
+#					query += ", `datalake_flashback_startscn`"
+#				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+#				print(query)
 
 				self.common_operations.executeHiveQuery(query)
 				self.common_operations.reconnectHiveMetaStore()
@@ -773,6 +808,7 @@ class operation(object, metaclass=Singleton):
 			if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 				# Add the specific Oracle FlashBack columns that we need to import
 				query += ", `datalake_flashback_operation` varchar(2)"
+				query += ", `datalake_flashback_startscn` string"
 
 			query += ") "
 
@@ -783,7 +819,9 @@ class operation(object, metaclass=Singleton):
 			query += "stored as parquet "
 #			query += "ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' "
 #			query += "LINES TERMINATED BY '\002' "
-			query += "LOCATION '%s%s/' "%(self.import_config.common_config.hdfs_address, self.import_config.sqoop_hdfs_location)
+#			query += "LOCATION '%s%s/' "%(self.import_config.common_config.hdfs_address, self.import_config.sqoop_hdfs_location)
+			query += "LOCATION '%s%s/' "%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
+#			query += "LOCATION '%s%s/' "%(self.import_config.common_config.getConfigValue(key = "hdfs_address"), self.import_config.sqoop_hdfs_location)
 			query += "TBLPROPERTIES ('parquet.compress' = 'SNAPPY') "
 #			query += "TBLPROPERTIES('serialization.null.format' = '\\\\N') "
 #			query += "TBLPROPERTIES('serialization.null.format' = '\003') "
@@ -1067,7 +1105,6 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.updateTargetTable()")
 		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile) 
 		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
-#		columnsHive   = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files
 		if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:

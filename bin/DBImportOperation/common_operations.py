@@ -94,7 +94,9 @@ class operation(object, metaclass=Singleton):
 		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
 
 		# HDFS Settings
-		self.hdfs_blocksize = int(configuration.get("HDFS", "hdfs_blocksize"))
+		self.hdfs_address = self.common_config.getConfigValue(key = "hdfs_address")
+		self.hdfs_basedir = self.common_config.getConfigValue(key = "hdfs_basedir")
+		self.hdfs_blocksize = self.common_config.getConfigValue(key = "hdfs_blocksize")
 
 		# Esablish a SQLAlchemy connection to the DBImport database
 		connectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")

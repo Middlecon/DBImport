@@ -25,6 +25,7 @@ from DBImportConfig import rest
 from DBImportOperation import common_operations
 from DBImportOperation import import_operations
 from DBImportOperation import export_operations
+from DBImportOperation import copy_operations
 from Schedule import Airflow
 
 def printHelp():
@@ -35,7 +36,10 @@ def printHelp():
 	print ("  --testConnection   Connect to the [Connection] and verifies if we can connect successfully")
 	print ("")
 	print ("  --encryptCredentials")
-	print ("                     Encrypt username and password for a Database Connection. ")
+	print ("                     Encrypt username and password for a Database Connection ")
+	print ("")
+	print ("  --encryptInstance")
+	print ("                     Encrypt username and password for a DBImport Instance ")
 	print ("")
 	print ("  --sendJSONstatistics")
 	print ("                     Posts the JSON data in the 'json_to_rest' table to the configured REST endpoints")
@@ -114,7 +118,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowDAG=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript="])
+		opts, args = getopt.getopt(argv, "yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowDAG=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptInstance"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -212,6 +216,8 @@ def main(argv):
 			operation = "addExportTable"
 		elif opt == "--testConnection":
 			operation = "testConnection"
+		elif opt == "--encryptInstance":
+			operation = "encryptInstance"
 
 
 	if operation == None:
@@ -339,6 +345,20 @@ def main(argv):
 		airflow.generateDAG(name=airflowDAG, writeDAG=airflowWriteDAG)
 		airflow.common_config.remove_temporary_files()
 
+	if operation == "encryptInstance":
+		print("This function will encrypt a username and password for the specified DBImport Instance. Any previous username/password will be overwritten")
+		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
+		DBImportInstance = input("DBImport Instance: ")
+
+		copyOperation = copy_operations.operation()
+		if copyOperation.checkDBImportInstance(instance = DBImportInstance) == False:
+			logging.error("The specified DBImport instance does not exist.")
+			sys.exit(1)
+
+		username = input("Username: ")
+		password = input("Password: ")
+		copyOperation.encryptUserPassword(instance = DBImportInstance, username = username, password = password)
+		copyOperation.remove_temporary_files()
 
 	if operation == "encryptCredentials":
 		print("This function will encrypt a username and password for the specified Database Connection. Any previous username/password will be overwritten")
@@ -390,6 +410,12 @@ def main(argv):
 			import_operation.remove_temporary_files()
 
 	if operation == "resetIncrementalImport":
+		import_operation = import_operations.operation(Hive_DB, Hive_Table)
+		if import_operation.import_config.common_config.checkKerberosTicket() == False:
+			logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
+			import_operation.remove_temporary_files()
+			sys.exit(1)
+
 		print("This command will truncate the Target Table and force the next import to be a full import.")
 		print("")
 		if autoYesAnswer == False:
@@ -398,7 +424,6 @@ def main(argv):
 			answer = "y"
 
 		if answer.lower() == "y":
-			import_operation = import_operations.operation(Hive_DB, Hive_Table)
 			import_operation.resetIncrMinMaxValues(maxValue=None)
 			import_operation.truncateTargetTable()
 			import_operation.remove_temporary_files()

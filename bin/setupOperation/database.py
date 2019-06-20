@@ -174,9 +174,15 @@ class initialize(object):
 		query += "left join information_schema.tables t "
 		query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
 		query += "where c.table_schema = 'DBImport' "
-		query += "   and c.table_name not like 'airflow%' "
-		query += "   and c.table_name != 'etl_jobs' "
+#		query += "   and c.table_name not like 'airflow%' "
+#		query += "   and c.table_name != 'etl_jobs' "
 		query += "   and c.table_name != 'auto_discovered_tables' "
+		query += "   and c.table_name != 'airflow_dag_triggers' "
+		query += "   and c.table_name != 'airflow_import_dag_execution' "
+		query += "   and c.table_name != 'airflow_import_task_execution' "
+		query += "   and c.table_name != 'airflow_execution_type' "
+		query += "   and c.table_name != 'airflow_dag_sensors' "
+		query += "   and c.table_name != 'alembic_version' "
 		query += "order by c.table_name, c.ordinal_position "
 
 		logging.debug("SQL Statement executed: %s" % (query) )
@@ -438,5 +444,26 @@ class initialize(object):
 				configKey='airflow_dag_file_permission', 
 				valueStr='660', 
 				description='File permission of created DAG file')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hdfs_address').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hdfs_address', 
+				valueStr='hdfs://hadoopcluster:8020', 
+				description='Address to HDFS')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hdfs_blocksize').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hdfs_blocksize', 
+				valueStr='134217728', 
+				description='The HDFS blocksize in bytes. Can usually be found in /etc/hadoop/conf/hdfs-site.xml (search for dfs.blocksize)')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hdfs_basedir').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hdfs_basedir', 
+				valueStr='/apps/dbimport', 
+				description='The HDFS blocksize in bytes. Can usually be found in /etc/hadoop/conf/hdfs-site.xml (search for dfs.blocksize)')
 			self.configDB.execute(query)
 
