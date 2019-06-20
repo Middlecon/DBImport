@@ -24,6 +24,8 @@ def upgrade():
     sa.Column('db_port', sa.SmallInteger(), nullable=False, comment='MySQL Port to DBImport database'),
     sa.Column('db_database', sa.String(length=64), nullable=False, comment='MySQL Database to DBImport database'),
     sa.Column('db_credentials', sa.Text(), nullable=True, comment='MySQL Username and Password to DBImport database'),
+    sa.Column('hdfs_address', sa.String(length=64), nullable=True, comment='HDFS address. Example hdfs://hadoopcluster'),
+    sa.Column('hdfs_basedir', sa.String(length=64), nullable=True, comment='The base dir to write data to. Example /apps/dbimport'),
     sa.PrimaryKeyConstraint('instance_id'),
     sa.UniqueConstraint('name'),
     comment='This table contains all DBInstance that will receive data from this instance during the copy phase'
