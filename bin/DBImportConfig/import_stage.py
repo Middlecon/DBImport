@@ -110,6 +110,18 @@ class stage(object):
 		elif stage == 3059: stageDescription = "Get Target table rowcount"
 		elif stage == 3060: stageDescription = "Validate target table"
 
+		# Import_Phase_FULL & ETL_Phase_APPEND
+		elif stage == 3100: stageDescription = "Connecting to Hive"
+		elif stage == 3101: stageDescription = "Creating the import table in the staging database"
+		elif stage == 3102: stageDescription = "Get Import table rowcount"
+		elif stage == 3103: stageDescription = "Validate import table"
+		elif stage == 3104: stageDescription = "Removing Hive locks by force"
+		elif stage == 3105: stageDescription = "Creating the target table"
+		elif stage == 3106: stageDescription = "Copy rows from import to target table"
+		elif stage == 3107: stageDescription = "Update Hive statistics on target table"
+		elif stage == 3108: stageDescription = "Get Target table rowcount"
+		elif stage == 3109: stageDescription = "Validate target table"
+
 		# Import_Phase_INCR & ETL_Phase_INSERT
 		elif stage == 3150: stageDescription = "Connecting to Hive"
 		elif stage == 3151: stageDescription = "Creating the import table in the staging database"
@@ -190,6 +202,12 @@ class stage(object):
 		elif stage == 3409: stageDescription = "Validate target table"
 		elif stage == 3410: stageDescription = "Saving pending incremental values"
 
+		# Import_Phase_FULL & ETL_Phase_NONE
+		elif stage == 3450: stageDescription = "Connecting to Hive"
+		elif stage == 3451: stageDescription = "Creating the import table in the staging database"
+		elif stage == 3452: stageDescription = "Get Import table rowcount"
+		elif stage == 3453: stageDescription = "Validate import table"
+
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -249,6 +267,18 @@ class stage(object):
 		elif stage == 3058: stageShortName = "update_statistics"
 		elif stage == 3059: stageShortName = "get_target_rowcount"
 		elif stage == 3060: stageShortName = "validate_target_table"
+
+		# Import_Phase_FULL & ETL_Phase_APPEND
+		elif stage == 3100: stageShortName = "connect_to_hive"
+		elif stage == 3101: stageShortName = "create_import_table"
+		elif stage == 3102: stageShortName = "get_import_rowcount"
+		elif stage == 3103: stageShortName = "validate_import_table"
+		elif stage == 3104: stageShortName = "clear_hive_locks"
+		elif stage == 3105: stageShortName = "create_target_table"
+		elif stage == 3106: stageShortName = "hive_import"
+		elif stage == 3107: stageShortName = "update_statistics"
+		elif stage == 3108: stageShortName = "get_target_rowcount"
+		elif stage == 3109: stageShortName = "validate_target_table"
 
 		# Import_Phase_INCR & ETL_Phase_INSERT
 		elif stage == 3150: stageShortName = "connect_to_hive"
@@ -329,6 +359,12 @@ class stage(object):
 		elif stage == 3408: stageShortName = "get_target_rowcount"
 		elif stage == 3409: stageShortName = "validate_target_table"
 		elif stage == 3410: stageShortName = "skip"
+
+		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
+		elif stage == 3450: stageShortName = "connect_to_hive"
+		elif stage == 3451: stageShortName = "create_import_table"
+		elif stage == 3452: stageShortName = "get_import_rowcount"
+		elif stage == 3453: stageShortName = "validate_import_table"
 
 		elif stage == 9999: stageShortName = "skip"
 

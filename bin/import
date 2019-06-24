@@ -572,6 +572,92 @@ def main(argv):
 			import_operation.saveStageStatistics()
 
 	# ******************************************
+	# * IMPORT_PHASE_FULL & ETL_PHASE_APPEND
+	# ******************************************
+
+	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_APPEND and runETLPhase == True:
+		stage = import_operation.getStage()
+		if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			if stage == 3103: newStage = 3100 
+			if stage == 3109: newStage = 3108
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+
+		if runImportPhase == False and stage < 1049:
+			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+			logging.error("Please run a import phase first and make sure it completes successfully")
+			import_operation.remove_temporary_files()
+			sys.exit(0)
+
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			if import_operation.runStage(3100) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+			if import_operation.runStage(3101) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			if import_operation.runStage(3102) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.getImportTableRowCount()
+
+			if import_operation.runStage(3103) == True: 
+				import_operation.validateRowCount()
+
+		if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			if import_operation.runStage(3104) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.removeHiveLocks()
+
+		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+			if import_operation.runStage(3105) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.createTargetTable()
+				import_operation.updateTargetTable()
+				import_operation.addDatalakeImportColumn()
+				import_operation.updatePKonTargetTable()
+				import_operation.updateFKonTargetTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
+			if import_operation.runStage(3106) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.loadDataFromImportToTargetTable()
+
+			if import_operation.runStage(3107) == True: 
+				import_operation.updateStatisticsOnTargetTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+			if import_operation.runStage(3108) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.getTargetTableRowCount()
+
+			if import_operation.runStage(3109) == True: 
+				import_operation.validateRowCount()
+
+		if runOnlyFunction == None:
+			import_operation.setStage(9999)
+
+		if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+			import_operation.convertStageStatisticsToJSON()
+			import_operation.saveStageStatistics()
+
+	# ******************************************
 	# * IMPORT_PHASE_INCR & ETL_PHASE_INSERT
 	# ******************************************
 	
@@ -1259,10 +1345,53 @@ def main(argv):
 			import_operation.saveStageStatistics()
 
 	# ******************************************
-	# * ETL_PHASE_NONE
+	# * IMPORT_PHASE_FULL & ETL_PHASE_NONE
 	# ******************************************
-	
-	if etlPhase == constant.ETL_PHASE_NONE and runETLPhase == True:
+
+	if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_NONE and runETLPhase == True:
+		stage = import_operation.getStage()
+		if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
+			import_operation.saveRetryAttempt(stage)
+
+			newStage = 0
+			if stage == 3453: newStage = 3450 
+			print(" ________________________________________________________ ")
+			print("|                                                        |")
+			print("| WARNING: The previous import failed and this execution |") 	
+			print("|          is recovering from that failure.              |") 	
+			print("| Last execution failed on stage %s                    |"%(stage)) 	
+			if newStage != 0: 
+				print("| Will restart from stage %s                           |"%(newStage)) 	
+				import_operation.setStage(newStage, force=True)
+			print("|________________________________________________________|")
+			print("")
+			print("")
+			sys.stdout.flush()
+
+
+		if runImportPhase == False and stage < 1049:
+			logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+			logging.error("Please run a import phase first and make sure it completes successfully")
+			import_operation.remove_temporary_files()
+			sys.exit(0)
+
+		if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			if import_operation.runStage(3450) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+			if import_operation.runStage(3451) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.createExternalImportTable()
+				import_operation.updateExternalImportTable()
+
+		if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			if import_operation.runStage(3452) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
+				import_operation.getImportTableRowCount()
+
+			if import_operation.runStage(3453) == True: 
+				import_operation.validateRowCount()
+
 		if runOnlyFunction == None:
 			import_operation.setStage(9999)
 
@@ -1270,7 +1399,9 @@ def main(argv):
 			import_operation.convertStageStatisticsToJSON()
 			import_operation.saveStageStatistics()
 
-	# Print Import information
+	# ******************************************
+	# * Print Import information
+	# ******************************************
 
 	if import_operation.getStage() == 9999: 
 		if runOnlyFunction == None:
@@ -1294,10 +1425,6 @@ def main(argv):
 			if runETLPhase == True:
 				# We can only clear the stage at the end of stage 2. 
 				import_operation.clearStage()
-#	else:
-#		logging.error("This import tool only supports 'full' and 'full_direct' so far. Please use bash version for other imports")
-#		import_operation.remove_temporary_files()
-#		sys.exit(1)
 
 	import_operation.remove_temporary_files()
 

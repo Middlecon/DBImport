@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+v0.51.1
+------------------------------
+
+**Fixed issues**
+
+  - Issue #30: manage generates error when no valid Kerberos ticket available
+  - Issue #31: Oracle Flashback imports get Merge cardinality_violation
+  - Issue #32: Airflow sensor never times out
+  - Issue #34: pk_column_override and pk_column_override_mergeonly with uppercase columns failes
+
+**Improvments**
+
+  - HDFS basedir is configurable in the configuration table
+
+**Changed behavior**
+
+  - Configuration for HDFS are move to the configuration table in MySQL
+
 v0.51
 ------------------------------
 

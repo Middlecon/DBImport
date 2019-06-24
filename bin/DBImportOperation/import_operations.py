@@ -189,6 +189,10 @@ class operation(object, metaclass=Singleton):
 			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True)
 			if whereStatement == None and self.import_config.import_with_merge == True and self.import_config.soft_delete_during_merge == True:
 				whereStatement = "datalake_iud != 'D'"
+
+			if whereStatement == None and self.import_config.etlPhase == constant.ETL_PHASE_APPEND:
+				whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
+
 			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table, whereStatement=whereStatement)
 			self.import_config.saveHiveTableRowCount(targetTableRowCount)
 		except:

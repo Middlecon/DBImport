@@ -374,6 +374,24 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Truncate and insert"
 
+		if self.import_type  == "full_append":
+			self.import_type_description = "Full import of table to Hive. Data is appended to target"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_APPEND
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Append"
+
+		if self.import_type  == "full_no_etl":
+			self.import_type_description = "Full import of table to Parquet only"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_NONE
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "No ETL"
+
 #		if self.import_type == "full_hbase":
 #			self.import_type_description = "Full import of table directly to HBase"
 
@@ -502,6 +520,11 @@ class config(object, metaclass=Singleton):
 			self.create_datalake_import_column = True
 		else:
 			self.create_datalake_import_column = False
+
+		if self.etlPhase == constant.ETL_PHASE_APPEND:
+			if self.create_datalake_import_column == False:	
+				logging.error("'full_append' requires 'create_datalake_import' to be set in jdbc_connections table")
+				raise Exception
 
 		self.datalake_source_connection = row[1]
 
