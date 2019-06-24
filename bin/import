@@ -539,7 +539,8 @@ def main(argv):
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
-				import_operation.addDatalakeImportColumn()
+				import_operation.addHiveDBImportColumns(mergeOperation=False)
+#				import_operation.addDatalakeImportColumn()
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -630,7 +631,8 @@ def main(argv):
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
-				import_operation.addDatalakeImportColumn()
+				import_operation.addHiveDBImportColumns(mergeOperation=False)
+#				import_operation.addDatalakeImportColumn()
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -720,6 +722,7 @@ def main(argv):
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
+				import_operation.addHiveDBImportColumns(mergeOperation=False)
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -810,7 +813,7 @@ def main(argv):
 				import_operation.createTargetTable()
 				import_operation.convertHiveTableToACID()
 				import_operation.updateTargetTable()
-				import_operation.addHiveMergeColumns()
+				import_operation.addHiveDBImportColumns(mergeOperation=True)
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -929,7 +932,7 @@ def main(argv):
 				import_operation.createTargetTable()
 				import_operation.convertHiveTableToACID()
 				import_operation.updateTargetTable()
-				import_operation.addHiveMergeColumns()
+				import_operation.addHiveDBImportColumns(mergeOperation=True)
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -1045,6 +1048,7 @@ def main(argv):
 			if import_operation.runStage(3305) == True: 
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
+				import_operation.addHiveDBImportColumns(mergeOperation=True)
 				import_operation.updateTargetTable()
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
@@ -1161,6 +1165,7 @@ def main(argv):
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
+				import_operation.addHiveDBImportColumns(mergeOperation=True)
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 
@@ -1283,6 +1288,7 @@ def main(argv):
 				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.createTargetTable()
 				import_operation.updateTargetTable()
+				import_operation.addHiveDBImportColumns(mergeOperation=True)
 				import_operation.updatePKonTargetTable()
 				import_operation.updateFKonTargetTable()
 

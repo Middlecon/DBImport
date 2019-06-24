@@ -839,35 +839,54 @@ class operation(object, metaclass=Singleton):
 		if self.common_operations.isHiveTableTransactional(self.Hive_DB, self.Hive_Table) == False:
 			self.common_operations.convertHiveTableToACID(self.Hive_DB, self.Hive_Table, createDeleteColumn=self.import_config.soft_delete_during_merge, createMergeColumns=True)
 
-	def addHiveMergeColumns(self):
-		""" Will add the required columns for merge operations in the Hive table """
+	def addHiveDBImportColumns(self, mergeOperation):
+		""" Will add the required DBImport columns in the Hive table """
 		logging.debug("Executing import_operations.createHiveMergeColumns()")
 
 		columns = self.common_operations.getHiveColumns(hiveDB=self.Hive_DB, hiveTable=self.Hive_Table, includeType=False, includeComment=False)
-		if columns[columns['name'] == 'datalake_import'].empty == False:
-			query = "alter table `%s`.`%s` change column datalake_import datalake_insert timestamp"%(self.Hive_DB, self.Hive_Table)
+
+		if columns[columns['name'] == 'datalake_source'].empty == True and self.import_config.datalake_source != None:
+			query = "alter table `%s`.`%s` add columns ( datalake_source varchar(256) )"%(self.Hive_DB, self.Hive_Table)
 			self.common_operations.executeHiveQuery(query)
 			self.common_operations.reconnectHiveMetaStore()
 
-		elif columns[columns['name'] == 'datalake_insert'].empty == True:
-			query = "alter table `%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\")"%(self.Hive_DB, self.Hive_Table)
-			self.common_operations.executeHiveQuery(query)
-			self.common_operations.reconnectHiveMetaStore()
 
-		if columns[columns['name'] == 'datalake_iud'].empty == True:
-			query = "alter table `%s`.`%s` add columns ( datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")"%(self.Hive_DB, self.Hive_Table)
-			self.common_operations.executeHiveQuery(query)
-			self.common_operations.reconnectHiveMetaStore()
+		if mergeOperation == False:
+			if self.import_config.create_datalake_import_column == True:
+				if columns[columns['name'] == 'datalake_insert'].empty == False and columns[columns['name'] == 'datalake_import'].empty == True:
+					query = "alter table `%s`.`%s` change column datalake_insert datalake_import timestamp"%(self.Hive_DB, self.Hive_Table)
+					self.common_operations.executeHiveQuery(query)
+					self.common_operations.reconnectHiveMetaStore()
+				elif columns[columns['name'] == 'datalake_import'].empty == True:
+					query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
+					self.common_operations.executeHiveQuery(query)
+					self.common_operations.reconnectHiveMetaStore()
 
-		if columns[columns['name'] == 'datalake_update'].empty == True:
-			query = "alter table `%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")"%(self.Hive_DB, self.Hive_Table)
-			self.common_operations.executeHiveQuery(query)
-			self.common_operations.reconnectHiveMetaStore()
+		else:
+			if columns[columns['name'] == 'datalake_import'].empty == False:
+				query = "alter table `%s`.`%s` change column datalake_import datalake_insert timestamp"%(self.Hive_DB, self.Hive_Table)
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
 
-		if columns[columns['name'] == 'datalake_delete'].empty == True and self.import_config.soft_delete_during_merge == True:
-			query = "alter table `%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")"%(self.Hive_DB, self.Hive_Table)
-			self.common_operations.executeHiveQuery(query)
-			self.common_operations.reconnectHiveMetaStore()
+			elif columns[columns['name'] == 'datalake_insert'].empty == True:
+				query = "alter table `%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+
+			if columns[columns['name'] == 'datalake_iud'].empty == True:
+				query = "alter table `%s`.`%s` add columns ( datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")"%(self.Hive_DB, self.Hive_Table)
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+
+			if columns[columns['name'] == 'datalake_update'].empty == True:
+				query = "alter table `%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+
+			if columns[columns['name'] == 'datalake_delete'].empty == True and self.import_config.soft_delete_during_merge == True:
+				query = "alter table `%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
 
 		logging.debug("Executing import_operations.createHiveMergeColumns() - Finished")
 
@@ -996,26 +1015,9 @@ class operation(object, metaclass=Singleton):
 				acidTable=self.import_config.create_table_with_acid)
 
 			query = queryList[0]
-#			query += ", datalake_iud char(1) COMMENT \"SQL operation of this record was I=Insert, U=Update or D=Delete\""
-#			query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
-#			query += queryList[1]
-
-#			query  = "create table `%s`.`%s` ("%(self.import_config.Hive_DB, self.import_config.Hive_Table)
-#			columnsDF = self.import_config.getColumnsFromConfigDatabase() 
-
-#			firstLoop = True
-#			for index, row in columnsDF.iterrows():
-#				if firstLoop == False: query += ", "
-#				query += "`%s` %s"%(row['name'], row['type'])
-#				if row['comment'] != None:
-#					query += " COMMENT \"%s\""%(row['comment'])
-#				firstLoop = False
 
 			if self.import_config.datalake_source != None:
 				query += ", datalake_source varchar(256)"
-
-#			self.import_config.import_with_merge = False
-#			self.import_config.create_table_with_acid = False
 
 			if self.import_config.import_with_merge == False:
 				if self.import_config.create_datalake_import_column == True:
@@ -1028,26 +1030,6 @@ class operation(object, metaclass=Singleton):
 				if self.import_config.soft_delete_during_merge == True:
 					query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
 
-#			query += ") "
-#
-#			tableComment = self.import_config.getHiveTableComment()
-#			if tableComment != None:
-#				query += "COMMENT \"%s\" "%(tableComment)
-#
-#			if self.import_config.create_table_with_acid == False:
-#				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB') "
-#			else:
-#				# TODO: HDP3 shouldnt run this
-#				query += "CLUSTERED BY ("
-#				firstColumn = True
-#				for column in self.import_config.getPKcolumns().split(","):
-#					if firstColumn == False:
-#						query += ", " 
-#					query += "`" + column + "`" 
-#					firstColumn = False
-#				#TODO: Smarter calculation of the number of buckets
-#				query += ") into 1 buckets "
-#				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='true') "
 			query += queryList[1]
 
 			self.common_operations.executeHiveQuery(query)
@@ -1090,17 +1072,17 @@ class operation(object, metaclass=Singleton):
 
 		return columnsDF
 
-	def addDatalakeImportColumn(self):
-		""" Adding datalake_column to Hive Table if it does not exists """
-		logging.debug("Executing import_operations.addDatalakeImportColumn()")
-		columnsHive   = self.common_operations.getHiveColumns(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
-#		columnsHive   = self.common_operations.getColumnsFromHiveTable(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
-		if len(columnsHive.loc[columnsHive['name'] == 'datalake_import']) == 0:
-			query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
-			self.common_operations.executeHiveQuery(query)
-			self.common_operations.reconnectHiveMetaStore()
-
-		logging.debug("Executing import_operations.addDatalakeImportColumn() - Finished")
+#	def addDatalakeImportColumn(self):
+#		""" Adding datalake_column to Hive Table if it does not exists """
+#		logging.debug("Executing import_operations.addDatalakeImportColumn()")
+#		columnsHive   = self.common_operations.getHiveColumns(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
+##		columnsHive   = self.common_operations.getColumnsFromHiveTable(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
+#		if len(columnsHive.loc[columnsHive['name'] == 'datalake_import']) == 0:
+#			query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
+#			self.common_operations.executeHiveQuery(query)
+#			self.common_operations.reconnectHiveMetaStore()
+#
+#		logging.debug("Executing import_operations.addDatalakeImportColumn() - Finished")
 
 
 	def updateHiveTable(self, hiveDB, hiveTable, restrictColumns=None, sourceIsParquetFile=False):
@@ -1404,31 +1386,7 @@ class operation(object, metaclass=Singleton):
 		""" Copy one Hive table into another for the columns that have the same name """
 		logging.debug("Executing import_operations.copyHiveTable()")
 
-#		# Logic here is to create a new column in both DF and call them sourceName vs targetName. These are the original names. Then we replace the values in targetColumn DF column col
-#		# with the name that the column should be called in the source system. This is needed to handle characters that is not supported in Parquet files, like SPACE
-#		sourceColumns = self.common_operations.getHiveColumns(hiveDB=sourceDB, hiveTable=sourceTable, includeType=False, includeComment=False)
-#		sourceColumns['sourceName'] = sourceColumns['name']
-#
-#		targetColumns = self.common_operations.getHiveColumns(hiveDB=targetDB, hiveTable=targetTable, includeType=False, includeComment=False)
-#		targetColumns['targetName'] = targetColumns['name']
-#		# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
-#		targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
-#		targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
-#
-#		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
-#		logging.debug("\n%s"%(columnMerge))
-
 		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, sourceIsImportTable=True)
-
-#		print(columnMerge)
-#		self.import_config.remove_temporary_files()
-#		sys.exit(1)
 
 		firstLoop = True
 		columnDefinitionSource = ""
