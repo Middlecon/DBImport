@@ -251,9 +251,9 @@ class stage(object):
 		elif stage == 1249: stageShortName = "skip"
 
 		# Copy Phase
-		elif stage == 2000: stageDescription = "copy_data"
-		elif stage == 2001: stageDescription = "copy_schema"
-		elif stage == 2099: stageDescription = "skip"
+		elif stage == 2000: stageShortName = "copy_data"
+		elif stage == 2001: stageShortName = "copy_schema"
+		elif stage == 2099: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3050: stageShortName = "connect_to_hive"

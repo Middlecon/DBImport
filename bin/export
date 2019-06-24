@@ -191,8 +191,8 @@ def main(argv):
 			export_operation.saveRetryAttempt(stage)
 
 			newStage = 0
-			if stage == 107: newStage = 105
-			if stage == 108: newStage = 100
+			if stage == 108: newStage = 106
+			if stage == 109: newStage = 100
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous export failed and this execution |")
@@ -215,39 +215,44 @@ def main(argv):
 			if export_operation.runStage(101) == True:
 				export_operation.clearTableRowCount()
 
+		if runOnlyFunction == None:
+			if export_operation.runStage(102) == True:
+				export_operation.connectToHive()
+				export_operation.updateStatisticsOnExportedTable()
+
 		if export_operation.isExportTempTableNeeded() == True:
 			if runOnlyFunction == None or runOnlyFunction == "createExportTempTable":
-				if export_operation.runStage(102) == True:
+				if export_operation.runStage(103) == True:
 					export_operation.connectToHive()
 					export_operation.createExportTempTable()
 					export_operation.updateExportTempTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "truncateExportTempTable":
-				if export_operation.runStage(103) == True:
+				if export_operation.runStage(104) == True:
 					export_operation.connectToHive()
 					export_operation.truncateExportTempTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "insertDataIntoExportTempTable":
-				if export_operation.runStage(104) == True:
+				if export_operation.runStage(105) == True:
 					export_operation.connectToHive()
 					export_operation.insertDataIntoExportTempTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
-			if export_operation.runStage(105) == True:
+			if export_operation.runStage(106) == True:
 				# TODO: Handle changes in target table schema
 				export_operation.createTargetTable()
 				export_operation.updateTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "truncateJDBCTable":
-			if export_operation.runStage(106) == True:
+			if export_operation.runStage(107) == True:
 				export_operation.truncateJDBCTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "sqoop":
-			if export_operation.runStage(107) == True:
+			if export_operation.runStage(108) == True:
 				export_operation.runSqoop()
 
 		if runOnlyFunction == None or runOnlyFunction == "validate":
-			if export_operation.runStage(108) == True:
+			if export_operation.runStage(109) == True:
 				export_operation.connectToHive()
 				export_operation.getHiveTableRowCount()
 				export_operation.getTargetTableRowCount()
@@ -292,54 +297,55 @@ def main(argv):
 			if export_operation.runStage(151) == True:
 				export_operation.clearTableRowCount()
 
+		if runOnlyFunction == None:
+			if export_operation.runStage(152) == True:
+				export_operation.connectToHive()
+				export_operation.updateStatisticsOnExportedTable()
+
 		if export_operation.isExportTempTableNeeded() == True:
 			if runOnlyFunction == None or runOnlyFunction == "createExportTempTable":
-				if export_operation.runStage(152) == True:
+				if export_operation.runStage(153) == True:
 					export_operation.connectToHive()
 					export_operation.createExportTempTable()
 					export_operation.updateExportTempTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "truncateExportTempTable":
-				if export_operation.runStage(153) == True:
+				if export_operation.runStage(154) == True:
 					export_operation.connectToHive()
 					export_operation.truncateExportTempTable()
 
 			if runOnlyFunction == None:
-				if export_operation.runStage(154) == True:
+				if export_operation.runStage(155) == True:
 					export_operation.connectToHive()
 					export_operation.fetchIncrMinMaxvalue()
 					if export_operation.isThereIncrDataToExport() == False:
 						logging.info("There is no new data to export in the Hive table")
-						export_operation.setStage(159)
+						export_operation.setStage(160)
 
 			if runOnlyFunction == None or runOnlyFunction == "insertDataIntoExportTempTable":
-				if export_operation.runStage(155) == True:
+				if export_operation.runStage(156) == True:
 					export_operation.connectToHive()
 					export_operation.insertDataIntoExportTempTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
-			if export_operation.runStage(156) == True:
+			if export_operation.runStage(157) == True:
 				# TODO: Handle changes in target table schema
 				export_operation.createTargetTable()
 				export_operation.updateTargetTable()
 
-#		if runOnlyFunction == None or runOnlyFunction == "truncateJDBCTable":
-#			if export_operation.runStage(157) == True:
-#				export_operation.truncateJDBCTable()
-
 		if runOnlyFunction == None or runOnlyFunction == "sqoop":
-			if export_operation.runStage(157) == True:
+			if export_operation.runStage(158) == True:
 				export_operation.runSqoop()
 
 		if runOnlyFunction == None or runOnlyFunction == "validate":
-			if export_operation.runStage(158) == True:
+			if export_operation.runStage(159) == True:
 				export_operation.connectToHive()
 				export_operation.getHiveTableRowCount()
 				export_operation.getTargetTableRowCount()
 				export_operation.validateRowCount()
 
 		if runOnlyFunction == None: 
-			if export_operation.runStage(159) == True:
+			if export_operation.runStage(160) == True:
 				export_operation.saveIncrPendingValues()
 
 		if runOnlyFunction == None:

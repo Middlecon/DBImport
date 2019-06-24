@@ -248,6 +248,9 @@ class exportStatistic(Base):
     validate_duration = Column(Integer)
     validate_start = Column(DateTime)
     validate_stop = Column(DateTime)
+    update_statistics_duration = Column(Integer)
+    update_statistics_start = Column(DateTime)
+    update_statistics_stop = Column(DateTime)
 
 
 class exportStatisticsLast(Base):
@@ -298,6 +301,9 @@ class exportStatisticsLast(Base):
     validate_duration = Column(Integer)
     validate_start = Column(DateTime)
     validate_stop = Column(DateTime)
+    update_statistics_duration = Column(Integer)
+    update_statistics_start = Column(DateTime)
+    update_statistics_stop = Column(DateTime)
 
 
 class exportTables(Base):
@@ -484,6 +490,13 @@ class importStatistic(Base):
     validate_target_table_duration = Column(Integer)
     validate_target_table_start = Column(DateTime)
     validate_target_table_stop = Column(DateTime)
+    copy_data_duration = Column(Integer)
+    copy_data_start = Column(DateTime)
+    copy_data_stop = Column(DateTime)
+    copy_schema_duration = Column(Integer)
+    copy_schema_start = Column(DateTime)
+    copy_schema_stop = Column(DateTime)
+
 
 
 class importStatisticsLast(Base):
@@ -566,6 +579,12 @@ class importStatisticsLast(Base):
     validate_target_table_duration = Column( Integer)
     validate_target_table_start = Column( DateTime)
     validate_target_table_stop = Column( DateTime)
+    copy_data_duration = Column(Integer)
+    copy_data_start = Column(DateTime)
+    copy_data_stop = Column(DateTime)
+    copy_schema_duration = Column(Integer)
+    copy_schema_start = Column(DateTime)
+    copy_schema_stop = Column(DateTime)
 
 
 
@@ -591,7 +610,7 @@ class importTables(Base):
     validate_import = Column(TINYINT(4), nullable=False, comment='Should the import be validated', server_default=text("'1'"))
     validate_source = Column(Enum('query', 'sqoop'), comment="query = Run a 'select count(*) from ...' to get the number of rows in the source table. sqoop = Use the number of rows imported by sqoop as the number of rows in the source table", server_default=text("'query'"))
     validate_diff_allowed = Column(BIGINT(20), nullable=False, comment='-1 = auto calculated diff allowed. If a positiv number, this is the amount of rows that the diff is allowed to have', server_default=text("'-1'"))
-    truncate_hive = Column(TINYINT(4), nullable=False, comment='Truncate Hive table before loading it. ', server_default=text("'1'"))
+    truncate_hive = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'1'"))
     mappers = Column(TINYINT(4), nullable=False, comment="-1 = auto or positiv number for a fixed number of mappers. If Auto, then it's calculated based of last sqoop import size", server_default=text("'-1'"))
     soft_delete_during_merge = Column(TINYINT(4), nullable=False, comment='If 1, then the row will be marked as deleted instead of actually being removed from the table. Only used for Merge imports', server_default=text("'0'"))
     source_rowcount = Column(BIGINT(20), comment='Used for validation. Dont change manually')

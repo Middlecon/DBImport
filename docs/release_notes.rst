@@ -9,8 +9,12 @@ v0.60
   - Issue #30: manage generates error when no valid Kerberos ticket available
   - Issue #31: Oracle Flashback imports get Merge cardinality_violation
   - Issue #32: Airflow sensor never times out
+  - Issue #33: truncate_hive column in import_tables is not used/implemented
   - Issue #34: pk_column_override and pk_column_override_mergeonly with uppercase columns failes
-  - Issue #35: truncate_hive column in import_tables is not used/implemented
+  - Issue #35: datalake_source is only created with a new table, not added to a already existing
+  - Issue #36: sqoop mappers not based on history
+  - Issue #37: changing HDFS_Basedir doesnt trigger an alter of the Import table
+  - Issue #38: Wrong row count on exported tables
 
 **Improvments**
 

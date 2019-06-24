@@ -388,6 +388,10 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing export_operations.getIncrMaxvalueFromHive() - Finished")
 		return maxValue
 
+	def updateStatisticsOnExportedTable(self,):
+		logging.info("Updating the Hive statistics on the exported table")
+		self.common_operations.updateHiveTableStatistics(self.hiveDB, self.hiveTable)
+
 	def createExportTempTable(self):
 		logging.debug("Executing export_operations.createExportTempTable()")
 
