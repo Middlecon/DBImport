@@ -289,6 +289,23 @@ class operation(object, metaclass=Singleton):
 #		logging.debug("Executing common_operations.isHiveColumnQuotationNeeded() - Finished")
 #		return quotationNeeded
 
+	def getTableLocation(self, hiveDB, hiveTable):
+		logging.debug("Executing common_operations.getExternalTableLocation()")
+
+		session = self.hiveMetaSession()
+		TBLS = aliased(hiveSchema.TBLS, name="T")
+		DBS = aliased(hiveSchema.DBS, name="D")
+		SDS = aliased(hiveSchema.SDS, name="S")
+
+		try:
+			row = session.query(SDS.LOCATION).select_from(TBLS).join(SDS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
+		except sa.orm.exc.NoResultFound:
+			raise rowNotFound("Cant get SDS.LOCATION from Hive Meta Database"%(hiveDB))
+
+		return row[0]
+
+		logging.debug("Executing common_operations.getExternalTableLocation() - Finished")
+
 	def isHiveTableExternalParquetFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing common_operations.isExternalHiveTableParquetFormat()")
 

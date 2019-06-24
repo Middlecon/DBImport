@@ -1052,6 +1052,18 @@ class operation(object, metaclass=Singleton):
 	def updateExternalImportTable(self):
 		logging.info("Updating Import table columns based on source system schema")
 		self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, sourceIsParquetFile=True)
+	
+		tableLocation = self.common_operations.getTableLocation(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+		configuredLocation = "%s%s"%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
+
+		if tableLocation != configuredLocation:
+			logging.info("The configured location for the external table have changed. Updating the external table")
+			logging.debug("tableLocation:      %s"%(tableLocation))
+			logging.debug("configuredLocation: %s"%(configuredLocation))
+
+			query = "alter table `%s`.`%s` set location \"%s\""%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, self.import_config.sqoop_hdfs_location)
+			self.common_operations.executeHiveQuery(query)
+		
 
 	def updateColumnsForImportTable(self, columnsDF):
 		""" Parquet import format from sqoop cant handle all datatypes correctly. So for the column definition, we need to change some. We also replace <SPACE> with underscore in the column name """
