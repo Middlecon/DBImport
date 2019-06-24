@@ -1236,8 +1236,10 @@ class config(object, metaclass=Singleton):
 			logging.warning("Unsupported value of 0 in column 'max_export_sessions' in table 'jdbc_connections'")
 
 		# Fetch the configured max and default value from configuration file
-		sqlSessionsMaxFromConfig = int(configuration.get("Export", "max_sql_sessions"))
-		sqlSessionsDefault = int(configuration.get("Export", "default_sql_sessions"))
+#		sqlSessionsMaxFromConfig = int(configuration.get("Export", "max_sql_sessions"))
+#		sqlSessionsDefault = int(configuration.get("Export", "default_sql_sessions"))
+		sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "sqoop_export_max_mappers"))
+		sqlSessionsDefault = int(self.common_config.getConfigValue(key = "sqoop_export_default_mappers"))
 
 		if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
 		if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig

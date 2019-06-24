@@ -1040,6 +1040,8 @@ class config(object, metaclass=Singleton):
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
+		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers"):
+			valueColumn = "valueInt"
 		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:

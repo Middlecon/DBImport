@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v0.51.1
+v0.60
 ------------------------------
 
 **Fixed issues**
@@ -10,6 +10,7 @@ v0.51.1
   - Issue #31: Oracle Flashback imports get Merge cardinality_violation
   - Issue #32: Airflow sensor never times out
   - Issue #34: pk_column_override and pk_column_override_mergeonly with uppercase columns failes
+  - Issue #35: truncate_hive column in import_tables is not used/implemented
 
 **Improvments**
 
@@ -18,6 +19,13 @@ v0.51.1
 **Changed behavior**
 
   - Configuration for HDFS are move to the configuration table in MySQL
+  - Configuration for Sqoop mappers are move to the configuration table in MySQL
+
+**New Features**
+
+  - Multi-cluster imports (synchronous only)
+  - *full_append* import method
+  - *full_no_etl* import method
 
 v0.51
 ------------------------------

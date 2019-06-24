@@ -1437,8 +1437,10 @@ class config(object, metaclass=Singleton):
 			logging.warning("Unsupported value of 0 in column 'max_import_sessions' in table 'jdbc_connections'")
 
 		# Fetch the configured max and default value from configuration file
-		sqlSessionsMaxFromConfig = int(configuration.get("Import", "max_sql_sessions"))
-		sqlSessionsDefault = int(configuration.get("Import", "default_sql_sessions"))
+#		sqlSessionsMaxFromConfig = int(configuration.get("Import", "max_sql_sessions"))
+#		sqlSessionsDefault = int(configuration.get("Import", "default_sql_sessions"))
+		sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "sqoop_import_max_mappers"))
+		sqlSessionsDefault = int(self.common_config.getConfigValue(key = "sqoop_import_default_mappers"))
 
 		if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
 		if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
@@ -1450,17 +1452,14 @@ class config(object, metaclass=Singleton):
 			raise Exception
 
 		# Execute SQL query that calculates the value
-#				"cast(sqoop_last_size / (1024*1024*128) as unsigned) as calculated_mappers, "
-		query =  "select sqoop_last_size, "
-		query += "cast(sqoop_last_size / %s as unsigned) as calculated_mappers, "%(hdfsBlocksize)
-		query += "mappers "
-		query += "from import_tables where "
-		query += "table_id = %s"
-#		query = ("select sqoop_last_size, " 
-#				"cast(sqoop_last_size / %s as unsigned) as calculated_mappers, "%(hdfsBlocksize)
-#				"mappers "
-#				"from import_tables where "
-#				"table_id = %s")
+		query =  "select T.sqoop_last_size, "
+		query += "cast(S.size / %s as unsigned) as calculated_mappers, "%(hdfsBlocksize)
+		query += "T.mappers "
+		query += "from import_tables as T "
+		query += "left join import_statistics_last as S "
+		query += "   on T.hive_db = S.hive_db and T.hive_table = S.hive_table "
+		query += "where table_id = %s "
+
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1475,12 +1474,16 @@ class config(object, metaclass=Singleton):
 		self.sqlSessions = row[1]
 		self.sqoop_mappers = row[2]
 
+		logging.debug("sqlSessionsLast: %s"%(sqlSessionsLast))
+		logging.debug("sqlSessions:     %s"%(self.sqlSessions))
+		logging.debug("sqoop_mappers:   %s"%(self.sqoop_mappers))
+
 		if self.sqoop_mappers > 0: 
 			logging.info("Setting the number of mappers to a fixed value")
 			self.sqlSessions = self.sqoop_mappers
 
 		if self.sqlSessions == None:
-			logging.info("Cant find the previous number of SQL sessions used. Will default to %s"%(sqlSessionsDefault))
+			logging.info("Cant find the previous import size so it's impossible to calculate the correct amount of mappers. Will default to %s"%(sqlSessionsDefault))
 			self.sqlSessions = sqlSessionsDefault
 		else:
 			if self.sqlSessions < sqlSessionsMin:
