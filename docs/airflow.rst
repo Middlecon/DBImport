@@ -104,3 +104,89 @@ As there are many options for a custom Task to integrate into the DBImport DAG, 
 With these custom Tasks the DAG will look something like this (custom Tasks marked in blue for better visualization)
 
 .. image:: img/airflow_with_custom_tasks_blue.jpg
+
+Regarding the placement, these are the options you have
+
+============ ================================================================================================================================
+before main  Tasks will be executed before the real DBImport starts. All these must be successfull in order for the normal imports to start
+in main      Will be executed in parallel together with the import tasks
+after main   Once all imports are completed, these tasks will run
+============ ================================================================================================================================
+
+**Task dependency in main**
+
+For the custom Tasks running with placement *in main*, you have the option to specify dependencies. It means that you can run a task after one or more imports are completed. In the example above, the *in_main_02* task will only run after *tbl_full* and *tbl_incr* import tasks are completed successful.
+
+Custom Task configuration
+-------------------------
+
+Common for all the custom tasks is the following configuration
+
+=================== =============================================================== 
+airflow_pool        Name of the Airflow pool to use. Will be created if not exists 
+airflow_priority    The priority of the task
+include_in_airflow  Enable or disable if this task should be in the configured DAG
+=================== =============================================================== 
+
+shell script
+^^^^^^^^^^^^
+This task will run a Unix command or a shell script. The script to run is configued in the *task_config* column
+
+Hive SQL
+^^^^^^^^
+Executes a Hive query with the help of ``manage --runHiveQuery=<SQL QUERY>``. The <SQL QUERY> is a standard SQL command that is executable in Hive. The SQL Query is configured in the *task_config* column. 
+
+Hive SQL Script
+^^^^^^^^^^^^^^^
+Executes all Hive queries in a file with the help of ``manage --runHiveScript=<FILE``. The <FILE> is a text file containing a one or many SQL Hive commands. The ``manage --runHiveScript`` is actually just a wrapper around beeline who will be the tool that executes the <FILE>. The file to use is configured in the *task_config* column.
+
+JDBC SQL
+^^^^^^^^
+This will create a Task that executes a SQL Query against a JDBC source defined withing the *jdbc_connections* table. For that reason, you need to specify the JDBC connection in the *jdbc_dbalias* column together with the SQL Query in the *task_config* column
+
+Trigger DAG
+^^^^^^^^^^^
+This will trigger an execution of another DAG. The name of the DAG to trigger is specified in the *task_config* column.
+
+DAG Sensor
+^^^^^^^^^^
+A DAG Sensor task is the ability to wait for a task in another DAG to finish and continue once that task is successful. The configuration needed is the name of the DAG and Task. Here you have two options. Give the name of the DAG and the name of the Task or only the name of the DAG. If only the name of the DAG is given, it defaults to the *stop* task that is available in all DBImport DAGs and marks the end of all executed tasks. 
+
+task_config column options
+
+============= =================================================
+<DAG>         Name of the DAG and will default to *stop* task
+<DAG>.<TASK>  Wait for a specific task in a DAG
+============= =================================================
+
+There are two other parameters that controlls how ofter to poll for status and for how long the sensor should be doing that
+
+======================= ======================================================================================================================
+sensor_poke_interval    The time in seconds between pokes. Too low number will create stress on the Airflow Scheduler. Defaults to 5 minutes
+sensor_timeout_minutes  The timeout time in minutes until the sensor gives up and are marked as failed. Defaults to 4 hours.
+======================= ======================================================================================================================
+
+
+SQL Sensor
+^^^^^^^^^^
+The SQL Sensor executes a SQL query against a Airflow connection. The sensor will keep trying as long as the SQL returns 0 rows or while the first column on the first row contains a 0. An example would be ``select count(*) from <A TABLE> where last_update > '<A TIMESTAMP>'``. If the count returns 0 rows, the sensor will keep on retrying. But when it returns rows, it will be marked as successful and the dependent tasks will start.
+
+The following configureation is available for a SQL Sensor
+
+======================= ======================================================================================================================
+sensor_connection       The name of the Airflow connection that will be used to run the SQL. Configured under Admin / Connections in Airflow
+task_config             The SQL query to execute
+sensor_poke_interval    The time in seconds between pokes. Too low number will create stress on the Airflow Scheduler. Defaults to 5 minutes
+sensor_timeout_minutes  The timeout time in minutes until the sensor gives up and are marked as failed. Defaults to 4 hours.
+======================= ======================================================================================================================
+
+*Multi cluster ingestion*
+
+For multi cluster ingestions, this is the sensor that DBImport uses in the background to verify that data is loaded on the slave system beforestarting the import. The *sensor_connection* that is required is called **DBImport** and needs to be configured in Airflow connections with the same connection details as DBImport uses to connect to the configuration database. These are all available in the *dbimport.cfg* configuration file
+
+The actual SQL Query that is executed is
+
+.. code:: sql
+    select count(*) from import_tables where hive_db = '<HIVE DB>' and hive_table = '<HIVE TABLE>' and copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'
+
+
