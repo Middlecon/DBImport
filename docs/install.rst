@@ -46,7 +46,7 @@ Once created, make sure that the unix permission only enabled the correct users 
 Database Setup
 --------------
 
- #. As the configuration is all located in a MariaDB database, you need to create this database and then create the required tables. We assume that you have a working MariaDB server as the setup of that is not part of this documentation.
+As the configuration is all located in a MariaDB database, you need to create this database and then create the required tables. We assume that you have a working MariaDB server as the setup of that is not part of this documentation.
     Create the configuration database running these commands::
 
         bin/manage --createDB
