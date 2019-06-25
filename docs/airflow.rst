@@ -186,6 +186,10 @@ For multi cluster ingestions, this is the sensor that DBImport uses in the backg
 
 The actual SQL Query that is executed is::
 
-    select count(*) from import_tables where hive_db = '<HIVE DB>' and hive_table = '<HIVE TABLE>' and copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'
+    select count(*) from import_tables 
+    where 
+       hive_db = '<HIVE DB>' 
+       and hive_table = '<HIVE TABLE>' 
+       and copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'
 
 
