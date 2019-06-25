@@ -16,7 +16,7 @@ A DAG have also been created in the *airflow_import_dags* table with the followi
 =================== ============================================================
 dag_name            DBImport_DEMO
 schedule_interval   None
-filter_hive         dbimport.*
+filter_hive         demo.*
 =================== ============================================================
 
 Generate a DAG
@@ -39,6 +39,32 @@ Default DAG layout
 With the DAG just specified with default settings like what is described earlier on this page, a DAG will be created in Airflow and it will look something like this. 
 
 .. image:: img/airflow_dag_default.jpg
+
+
+clearStage Tasks
+^^^^^^^^^^^^^^^^
+
+As you can see in the picture above there are a couple of *clearStage* tasks before the actual import Task. They are created for full imports and will reset whatever stage the previous import was in. This will force the Task to start from the beginning. As it's a full import, there is no risk of losing data as we read everything anyway. And that's the reason why there are no *clearStage* task before the incremental imports. If the previous incremental import failed, we might be in a position where we read the data from the source but unable to insert it into Hive. Forcing a restart of the stage in that situation might result in loss of data.
+
+start and stop Tasks
+^^^^^^^^^^^^^^^^^^^^
+
+The *start* and *stop* task is always there. Stop is just a dummy Task that is not doing anything. But it's very useful if another DAG wants a sensor so it continues after this DAG is completed. As stop is always at the end, it's safe (and usually default) to look at the status of the *stop* task.
+
+The *start* task is not a dummy Task. It's actually running the following command at the start of the DAG::
+
+./manage --checkAirflowExecution
+
+This will check if the *airflow_disable* configuration is set to 1 or not. If it's set to 1, the *start* task will fail and the rest of the Tasks will not run. This is one of the options the operators have to temporary disable all DBImport executions. Useful during for example upgrade of DBImport or system components in order to make sure that no imports are starting.
+
+Run Import and ETL separate
+---------------------------
+
+In the *airflow_import_dags* there is a column called *run_import_and_etl_separate*. If this is set to 1 and the DAG is regenerated, the result will look something like this.
+
+.. image:: img/airflow_import_etl_separate.jpg
+
+As you can see, the DBImport task is now split into two. One for the actuall import where the communication with the source system is taking place and one for ETL work where the Hive operations are happening. As the Import and ETL Tasks are running as default in separate pools, this is useful in order to minimize the number of sessions against the source system but at the same time have a larger number of sessions in Hive.
 
 
 
