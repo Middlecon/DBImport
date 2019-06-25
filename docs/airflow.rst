@@ -76,4 +76,31 @@ In the *airflow_import_dags* there is a column called *finish_all_stage1_first*.
 
 .. image:: img/airflow_finish_import_first.jpg
 
+Now a new dummy task is added called *Import_Phase_Finished*. This Task will force all imports to be completed first before the ETl Tasks is started. This is useful to make sure that all tables is read successfully by sqoop before it's imported into Hive and made available to the users.
 
+Customizing the DAG
+-------------------
+
+There are many ways to customize the DAG with additional Tasks. This can be SQL calls to execute after import is completed, sensors to run before the import to make sure that the data is loaded in the source system correctly before the import starts, trigger another DAG after a certain Task is completed or something else that solved each and every ones individual needs. 
+
+As there are many options for a custom Task to integrate into the DBImport DAG, we will first describe the place ment of the Task in the DAG. The best way to describe this is to add a number of Tasks to the Demo DAG that we use as an example on this page. The following Tasks have been created in the *airflow_tasks* table. 
+
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| dag_name      | task_name       | task_type    | placement   | task_dependency_in_main | task_config       |
++===============+=================+==============+=============+=========================+===================+
+| DBImport_DEMO | before_main_01  | shell script | before main |                         | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| DBImport_DEMO | before_main_02  | shell script | before main |                         | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| DBImport_DEMO | in_main_01      | shell script | in main     |                         | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| DBImport_DEMO | in_main_02      | shell script | in main     | tbl_full,tbl_incr       | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| DBImport_DEMO | after_main_01   | shell script | after main  |                         | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+| DBImport_DEMO | after_main_02   | shell script | after main  |                         | /usr/bin/sleep 1  |
++---------------+-----------------+--------------+-------------+-------------------------+-------------------+
+
+With these custom Tasks the DAG will look something like this (custom Tasks marked in blue for better visualization)
+
+.. image:: img/airflow_with_custom_tasks_blue.jpg
