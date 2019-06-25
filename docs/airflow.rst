@@ -138,7 +138,7 @@ Executes a Hive query with the help of ``manage --runHiveQuery=<SQL QUERY>``. Th
 
 Hive SQL Script
 ^^^^^^^^^^^^^^^
-Executes all Hive queries in a file with the help of ``manage --runHiveScript=<FILE``. The <FILE> is a text file containing a one or many SQL Hive commands. The ``manage --runHiveScript`` is actually just a wrapper around beeline who will be the tool that executes the <FILE>. The file to use is configured in the *task_config* column.
+Executes all Hive queries in a file with the help of ``manage --runHiveScript=<FILE>``. The <FILE> is a text file containing one or many SQL Hive commands. The ``manage --runHiveScript`` is actually just a wrapper around *beeline* who will be the tool that executes the <FILE>. The file to use is configured in the *task_config* column.
 
 JDBC SQL
 ^^^^^^^^
@@ -171,7 +171,7 @@ SQL Sensor
 ^^^^^^^^^^
 The SQL Sensor executes a SQL query against a Airflow connection. The sensor will keep trying as long as the SQL returns 0 rows or while the first column on the first row contains a 0. An example would be ``select count(*) from <A TABLE> where last_update > '<A TIMESTAMP>'``. If the count returns 0 rows, the sensor will keep on retrying. But when it returns rows, it will be marked as successful and the dependent tasks will start.
 
-The following configureation is available for a SQL Sensor
+The following configurations is available for a SQL Sensor
 
 ======================= ======================================================================================================================
 sensor_connection       The name of the Airflow connection that will be used to run the SQL. Configured under Admin / Connections in Airflow
@@ -184,9 +184,8 @@ sensor_timeout_minutes  The timeout time in minutes until the sensor gives up an
 
 For multi cluster ingestions, this is the sensor that DBImport uses in the background to verify that data is loaded on the slave system beforestarting the import. The *sensor_connection* that is required is called **DBImport** and needs to be configured in Airflow connections with the same connection details as DBImport uses to connect to the configuration database. These are all available in the *dbimport.cfg* configuration file
 
-The actual SQL Query that is executed is
+The actual SQL Query that is executed is::
 
-.. code:: sql
     select count(*) from import_tables where hive_db = '<HIVE DB>' and hive_table = '<HIVE TABLE>' and copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'
 
 
