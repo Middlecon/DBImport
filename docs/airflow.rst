@@ -67,4 +67,13 @@ In the *airflow_import_dags* there is a column called *run_import_and_etl_separa
 As you can see, the DBImport task is now split into two. One for the actuall import where the communication with the source system is taking place and one for ETL work where the Hive operations are happening. As the Import and ETL Tasks are running as default in separate pools, this is useful in order to minimize the number of sessions against the source system but at the same time have a larger number of sessions in Hive.
 
 
+Finish all Imports first
+------------------------
+
+In the *airflow_import_dags* there is a column called *finish_all_stage1_first*. If this is set to 1 and the DAG is regenerated, the result will look something like this.
+
+.. note:: In the Legacy version of DBImport the *Import* and *ETL* phase was called *stage1* and *stage2*. That's why the column is called what it's called. This will most likely change name as soon as the Legacy version is decommissioned.
+
+.. image:: img/airflow_finish_import_first.jpg
+
 
