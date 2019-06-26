@@ -841,12 +841,12 @@ class operation(object, metaclass=Singleton):
 					logging.warning("Problem sending data to Atlas")
 					sqoopWarning = True
 
-				if sqoopWarning == False:
-					# We detected the string ERROR in the output but we havent found a vaild reason for it in the IF statements above.
-					# We need to mark the sqoop command as error and exit the program
-					logging.error("Unknown error in sqoop export. Please check the output for errors and try again")
-					self.remove_temporary_files()
-					sys.exit(1)
+			if sqoopWarning == False:
+				# We detected the string ERROR in the output but we havent found a vaild reason for it in the IF statements above.
+				# We need to mark the sqoop command as error and exit the program
+				logging.error("Unknown error in sqoop export. Please check the output for errors and try again")
+				self.remove_temporary_files()
+				sys.exit(1)
 
 		# No errors detected in the output and we are ready to store the result
 		logging.info("Sqoop executed successfully")			
