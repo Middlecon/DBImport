@@ -122,8 +122,12 @@ class operation(object, metaclass=Singleton):
 
 		self.copyDestinations = []
 
-		copyTablesResult = pd.DataFrame(session.query(copyTables.copy_id, copyTables.hive_filter, copyTables.destination).all()).fillna('')
+		copyTablesResult = pd.DataFrame(session.query(copyTables.copy_id, copyTables.hive_filter, copyTables.destination, copyTables.data_transfer).all()).fillna('')
 		for index, row in copyTablesResult.iterrows():
+			if row['data_transfer'] == 'Asynchronous':
+				logging.warning("Asynchronous transfer method is NOT supported yet")
+				continue
+
 			for hiveFilterSplit in row['hive_filter'].split(';'):
 
 				if '.' not in hiveFilterSplit:

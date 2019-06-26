@@ -28,8 +28,7 @@ v0.60
 **New Features**
 
   - Multi-cluster imports (synchronous only)
-  - *full_append* import method
-  - *full_no_etl* import method
+  - *full_insert* import method
 
 v0.51
 ------------------------------

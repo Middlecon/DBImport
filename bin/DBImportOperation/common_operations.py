@@ -822,39 +822,6 @@ class operation(object, metaclass=Singleton):
 		if excludeDataLakeColumns == True:
 			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
 
-#		print(result_df)
-
-#		query  = "select "
-#		if forceColumnUppercase == False:
-#			query += "	c.COLUMN_NAME as name "
-#		else:
-#			query += "	upper(c.COLUMN_NAME) as name "
-#		if includeType == True:
-#			query += "	, c.TYPE_NAME as type "
-#		if includeComment == True:
-#			query += "	, c.COMMENT as comment "
-#		if includeIdx == True:
-#			query += "	, c.INTEGER_IDX as idx "
-#		query += "from COLUMNS_V2 c "
-#		query += "   left join SDS s on c.CD_ID = s.CD_ID "
-#		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where d.NAME = %s and t.TBL_NAME = %s "
-#		query += "order by integer_idx"
-#
-#		self.mysql_cursor.execute(query, (hiveDB, hiveTable ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		result_df = pd.DataFrame(self.mysql_cursor.fetchall())
-#
-#		# Set the correct column namnes in the DataFrame
-#		result_df_columns = []
-#		for columns in self.mysql_cursor.description:
-#			result_df_columns.append(columns[0])    # Name of the column is in the first position
-#		result_df.columns = result_df_columns
-#
-#		print(result_df)
-
 		logging.debug("Executing common_operations.getHiveColumns() - Finished")
 		return result_df
 
@@ -865,68 +832,6 @@ class operation(object, metaclass=Singleton):
 		self.executeHiveQuery("analyze table `%s`.`%s` compute statistics "%(hiveDB, hiveTable))
 		logging.debug("Executing common_operations.updateHiveTableStatistics() - Finished")
 
-
-#	def getColumnsFromHiveTable(self, hiveDB, hiveTable, excludeDataLakeColumns=False):
-#		""" Reads the columns from the Hive Metastore and returns the information in a Pandas DF with the columns name, type and comment """
-#		logging.debug("Executing common_operations.getColumnsFromHiveTable()")
-#		hiveColumnDefinition = ""
-#
-#		query  = "select lower(c.COLUMN_NAME) as name, c.TYPE_NAME as type, c.COMMENT as comment "
-#		query += "from COLUMNS_V2 c "
-#		query += "   left join SDS s on c.CD_ID = s.CD_ID "
-#		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where d.NAME = %s and t.TBL_NAME = %s "
-#		if excludeDataLakeColumns == True:
-#			query += "and lower(c.COLUMN_NAME) not like 'datalake_%' "
-#		query += "order by c.INTEGER_IDX "
-#		self.mysql_cursor.execute(query, (hiveDB, hiveTable ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		if self.mysql_cursor.rowcount == 0:
-#			logging.error("Error: Zero rows returned from query on 'import_table'")
-#			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
-#			raise Exception
-#
-#		result_df = pd.DataFrame(self.mysql_cursor.fetchall())
-#
-#		# Set the correct column namnes in the DataFrame
-#		result_df_columns = []
-#		for columns in self.mysql_cursor.description:
-#			result_df_columns.append(columns[0])    # Name of the column is in the first position
-#		result_df.columns = result_df_columns
-#
-#		logging.debug("Executing common_operations.getColumnsFromHiveTable() - Finished")
-#		return result_df
-
-#	def calculateNumberOfBuckets(self, hiveDB, hiveTable):
-#		""" Calculating number of buckets based on Hive table size on HDFS """
-#		logging.debug("Executing common_operations.calculateNumberOfBuckets()")
-#
-#		query  = "select s.LOCATION "
-#		query += "from TBLS t "
-#		query += "	left join SDS s on t.SD_ID = s.SD_ID "
-#		query += "	left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where d.NAME = %s and t.TBL_NAME = %s "
-#
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-#		hdfsCommandList = ['hdfs', 'dfs', '-du', '-s', row[0]]
-#		hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#		stdOut, stdErr = hdfsProc.communicate()
-#		stdOut = stdOut.decode('utf-8').rstrip()
-#		stdErr = stdErr.decode('utf-8').rstrip()
-#		
-#		sizeOnHDFS = int(stdOut.split(" ")[0])
-#		
-#		buckets = int(sizeOnHDFS / self.hdfs_blocksize)
-#		if buckets < self.hive_min_buckets: buckets = self.hive_min_buckets
-#		if buckets > self.hive_max_buckets: buckets = self.hive_max_buckets
-#
-#		logging.debug("Executing common_operations.calculateNumberOfBuckets() - Finished")
-#		return buckets
 
 	def convertHiveTableToACID(self, hiveDB, hiveTable, createDeleteColumn=False, createMergeColumns=False):
 		""" Checks if a table is ACID or not, and it it isn't, it converts the table to an ACID table """

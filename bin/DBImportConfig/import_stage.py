@@ -110,7 +110,7 @@ class stage(object):
 		elif stage == 3059: stageDescription = "Get Target table rowcount"
 		elif stage == 3060: stageDescription = "Validate target table"
 
-		# Import_Phase_FULL & ETL_Phase_APPEND
+		# Import_Phase_FULL & ETL_Phase_INSERT
 		elif stage == 3100: stageDescription = "Connecting to Hive"
 		elif stage == 3101: stageDescription = "Creating the import table in the staging database"
 		elif stage == 3102: stageDescription = "Get Import table rowcount"
@@ -268,7 +268,7 @@ class stage(object):
 		elif stage == 3059: stageShortName = "get_target_rowcount"
 		elif stage == 3060: stageShortName = "validate_target_table"
 
-		# Import_Phase_FULL & ETL_Phase_APPEND
+		# Import_Phase_FULL & ETL_Phase_INSERT
 		elif stage == 3100: stageShortName = "connect_to_hive"
 		elif stage == 3101: stageShortName = "create_import_table"
 		elif stage == 3102: stageShortName = "get_import_rowcount"

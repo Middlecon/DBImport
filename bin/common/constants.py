@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.60 (pre-release)"
+VERSION = "0.60"
 
 # Database types
 MYSQL = "mysql"
@@ -22,7 +22,6 @@ IMPORT_PHASE_INCR = "incr"
 IMPORT_PHASE_SLAVE = "slave"
 COPY_PHASE_NONE = "none"
 ETL_PHASE_NONE = "none"
-ETL_PHASE_APPEND = "append"
 ETL_PHASE_INSERT = "insert"
 ETL_PHASE_TRUNCATEINSERT = "truncate_insert"
 ETL_PHASE_MERGEHISTORYAUDIT = "merge_history_audit"

@@ -190,7 +190,7 @@ class operation(object, metaclass=Singleton):
 			if whereStatement == None and self.import_config.import_with_merge == True and self.import_config.soft_delete_during_merge == True:
 				whereStatement = "datalake_iud != 'D'"
 
-			if whereStatement == None and self.import_config.etlPhase == constant.ETL_PHASE_APPEND:
+			if whereStatement == None and self.import_config.importPhase == constant.IMPORT_PHASE_FULL and self.import_config.etlPhase == constant.ETL_PHASE_INSERT:
 				whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
 
 			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table, whereStatement=whereStatement)
@@ -332,20 +332,12 @@ class operation(object, metaclass=Singleton):
 		print("=============================================================================================================================")
 
 		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-#			if addSchemaToTable == True: 
-#				hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
-#			else:
-#				hiveTable = row['table'].lower()
 			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
 
 		answer = input("Do you want to add these imports to DBImport? (y/N): ")
 		if answer == "y":
 			print("")
 			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-#				if addSchemaToTable == True: 
-#					hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
-#				else:
-#					hiveTable = row['table'].lower()
 				addResult = self.import_config.addImportTable(
 					hiveDB=hiveDB, 
 					hiveTable=row['hiveTable'].lower(),
@@ -1474,10 +1466,8 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.repairAllIncrementalImports()")
 		result_df = self.import_config.getAllActiveIncrImports()
 
-		# Only used under debug so I dont clear any real imports that is going on
 		tablesRepaired = False
-		for index, row in result_df.loc[result_df['hive_db'] == 'user_boszkk'].iterrows():
-#		for index, row in result_df.iterrows():
+		for index, row in result_df.iterrows():
 			tablesRepaired = True
 			hiveDB = row[0]
 			hiveTable = row[1]

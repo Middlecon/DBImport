@@ -389,8 +389,9 @@ class operation(object, metaclass=Singleton):
 		return maxValue
 
 	def updateStatisticsOnExportedTable(self,):
-		logging.info("Updating the Hive statistics on the exported table")
-		self.common_operations.updateHiveTableStatistics(self.hiveDB, self.hiveTable)
+		if self.common_operations.isHiveTableView(hiveDB = self.hiveDB, hiveTable = self.hiveTable) == False:
+			logging.info("Updating the Hive statistics on the exported table")
+			self.common_operations.updateHiveTableStatistics(self.hiveDB, self.hiveTable)
 
 	def createExportTempTable(self):
 		logging.debug("Executing export_operations.createExportTempTable()")

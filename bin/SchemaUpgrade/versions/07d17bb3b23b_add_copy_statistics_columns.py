@@ -17,18 +17,6 @@ depends_on = None
 
 
 def upgrade():
-    op.alter_column('copy_tables', 'destination',
-               existing_type=mysql.VARCHAR(length=32),
-               nullable=False,
-               existing_comment='DBImport instances to copy the imported data to')
-    op.alter_column('dbimport_instances', 'hdfs_address',
-               existing_type=mysql.VARCHAR(length=64),
-               nullable=False,
-               existing_comment='HDFS address. Example hdfs://hadoopcluster')
-    op.alter_column('dbimport_instances', 'hdfs_basedir',
-               existing_type=mysql.VARCHAR(length=64),
-               nullable=False,
-               existing_comment='The base dir to write data to. Example /apps/dbimport')
     op.add_column('import_statistics', sa.Column('copy_data_duration', sa.Integer(), nullable=True))
     op.add_column('import_statistics', sa.Column('copy_data_start', sa.DateTime(), nullable=True))
     op.add_column('import_statistics', sa.Column('copy_data_stop', sa.DateTime(), nullable=True))
@@ -80,15 +68,3 @@ def downgrade():
     op.drop_column('export_statistics_last', 'update_statistics_duration')
     op.drop_column('export_statistics_last', 'update_statistics_start')
     op.drop_column('export_statistics_last', 'update_statistics_stop')
-    op.alter_column('dbimport_instances', 'hdfs_basedir',
-               existing_type=mysql.VARCHAR(length=64),
-               nullable=True,
-               existing_comment='The base dir to write data to. Example /apps/dbimport')
-    op.alter_column('dbimport_instances', 'hdfs_address',
-               existing_type=mysql.VARCHAR(length=64),
-               nullable=True,
-               existing_comment='HDFS address. Example hdfs://hadoopcluster')
-    op.alter_column('copy_tables', 'destination',
-               existing_type=mysql.VARCHAR(length=32),
-               nullable=True,
-               existing_comment='DBImport instances to copy the imported data to')

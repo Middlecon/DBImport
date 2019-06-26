@@ -351,7 +351,7 @@ class initialize(object):
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
 
-		importTablesQuery = Query([importTables.hive_db, importTables.hive_table, importTables.dbalias, importTables.airflow_priority, importTables.import_type, importTables.sqoop_last_mappers])
+		importTablesQuery = Query([importTables.hive_db, importTables.hive_table, importTables.dbalias, importTables.airflow_priority, importTables.import_type, importTables.import_phase_type, importTables.etl_phase_type, importTables.sqoop_last_mappers, importTables.copy_slave])
 		importTablesQuery = importTablesQuery.filter(importTables.include_in_airflow == 1)
 
 		for hiveTarget in DAG['filter_hive'].split(';'):
@@ -380,6 +380,15 @@ class initialize(object):
 			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname)
 			etlPhasePool = DAG['dag_name']
 
+			if row['copy_slave'] == 1:
+				importPhaseAsSensor = True
+			else:
+				importPhaseAsSensor = False
+
+#			if row['hive_db'] == "user_boszkk" and row['hive_table'] == "tbl_full_mysql":
+#				importPhaseAsSensor = True
+
+
 			if DAG['pool_stage1'] != '':
 				importPhasePool = DAG['pool_stage1']
 
@@ -394,12 +403,8 @@ class initialize(object):
 				usedPools.append(etlPhasePool)
 
 			# These are only for Legacy compability
-#			if DAG['use_python_dbimport'] == 1 and row['import_type'] not in ("incr_merge_delete", "incr_merge_delete_history"):
 			dbimportCMD = "%sbin/import"%(self.dbimportCommandPath) 
 			dbimportClearStageCMD = "%sbin/manage --clearImportStage"%(self.dbimportCommandPath) 
-#			else:
-#				dbimportCMD = "sudo -u sqoop /usr/local/db_import/bin/import_main.sh"
-#				dbimportClearStageCMD = "sudo -u sqoop /usr/local/db_import/bin/clear_stage_for_full_imports.sh"
 
 			retries=int(DAG['retries'])
 			try:
@@ -421,7 +426,13 @@ class initialize(object):
 				airflowPriority = int(row['sqoop_last_mappers'])
 
 			clearStageRequired = False
-			if row['import_type'] in ("full_direct", "full", "oracle_flashback_merge", "full_merge_direct_history", "full_merge_direct"):
+			if row['import_type'] in ("full_direct", "full", "oracle_flashback_merge", "full_merge_direct_history", "full_merge_direct", "full_append"):
+				clearStageRequired = True
+
+			if row['import_phase_type'] == "full":
+				clearStageRequired = True
+
+			if row['import_phase_type'] == "oracle_flashback":
 				clearStageRequired = True
 
 			if clearStageRequired == True:
@@ -429,21 +440,37 @@ class initialize(object):
 				self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportClearStageCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-#				if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 				self.DAGfile.write("    priority_weight=0,\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
+			if DAG['finish_all_stage1_first'] == 1 or runImportAndEtlSeparate == True or importPhaseAsSensor == True:
+				if importPhaseAsSensor == True:
+					# Running Import phase as a sensor
+					self.DAGfile.write("%s_sensor = SqlSensor(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_sensor',\n"%(taskID))
+					self.DAGfile.write("    conn_id='DBImport',\n")
+					self.DAGfile.write("    sql=\"\"\"select count(*) from import_tables where hive_db = '%s' and hive_table = '%s' and "%(row['hive_db'], row['hive_table']))
+					self.DAGfile.write("copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
+#					self.DAGfile.write("copy_finished >= '{{ dag_run.start_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
+					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					if DAG['finish_all_stage1_first'] == 1:
+						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
+						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
+						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					else:
+						self.DAGfile.write("    priority_weight=0,\n")
+					self.DAGfile.write("    timeout=14400,\n")
+					self.DAGfile.write("    poke_interval=30,\n")
+					self.DAGfile.write("    mode='reschedule',\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 
-			if DAG['finish_all_stage1_first'] == 1 or runImportAndEtlSeparate == True:
 				self.DAGfile.write("%s_import = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s_import',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s -I -C ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-#				if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 				if DAG['finish_all_stage1_first'] == 1:
 					# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
 					# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
@@ -453,13 +480,11 @@ class initialize(object):
 				self.DAGfile.write("    retries=%s,\n"%(retriesImportPhase))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
-
+			
 				self.DAGfile.write("%s_etl = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s_etl',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s -E ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
-#				if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 				self.DAGfile.write("    retries=%s,\n"%(retriesEtlPhase))
 				self.DAGfile.write("    dag=dag)\n")
@@ -467,22 +492,38 @@ class initialize(object):
 
 				if clearStageRequired == True and DAG['finish_all_stage1_first'] == 1:
 					self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
-					self.DAGfile.write("%s_clearStage.set_downstream(%s_import)\n"%(taskID, taskID))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s_clearStage.set_downstream(%s_sensor)\n"%(taskID, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s_import)\n"%(taskID, taskID))
+					else:
+						self.DAGfile.write("%s_clearStage.set_downstream(%s_import)\n"%(taskID, taskID))
 					self.DAGfile.write("%s_import.set_downstream(Import_Phase_Finished)\n"%(taskID))
 					self.DAGfile.write("Import_Phase_Finished.set_downstream(%s_etl)\n"%(taskID))
 					self.DAGfile.write("%s_etl.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				elif clearStageRequired == True and DAG['finish_all_stage1_first'] == 0:		# This means that runImportAndEtlSeparate == True
 					self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
-					self.DAGfile.write("%s_clearStage.set_downstream(%s_import)\n"%(taskID, taskID))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s_clearStage.set_downstream(%s_sensor)\n"%(taskID, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s_import)\n"%(taskID, taskID))
+					else:
+						self.DAGfile.write("%s_clearStage.set_downstream(%s_import)\n"%(taskID, taskID))
 					self.DAGfile.write("%s_import.set_downstream(%s_etl)\n"%(taskID, taskID))
 					self.DAGfile.write("%s_etl.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				elif clearStageRequired == False and DAG['finish_all_stage1_first'] == 1:
-					self.DAGfile.write("%s.set_downstream(%s_import)\n"%(self.mainStartTask, taskID))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s.set_downstream(%s_sensor)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s_import)\n"%(taskID, taskID))
+					else:
+						self.DAGfile.write("%s.set_downstream(%s_import)\n"%(self.mainStartTask, taskID))
 					self.DAGfile.write("%s_import.set_downstream(Import_Phase_Finished)\n"%(taskID))
 					self.DAGfile.write("Import_Phase_Finished.set_downstream(%s_etl)\n"%(taskID))
 					self.DAGfile.write("%s_etl.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				else:
-					self.DAGfile.write("%s.set_downstream(%s_import)\n"%(self.mainStartTask, taskID))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s.set_downstream(%s_sensor)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s_import)\n"%(taskID, taskID))
+					else:
+						self.DAGfile.write("%s.set_downstream(%s_import)\n"%(self.mainStartTask, taskID))
 					self.DAGfile.write("%s_import.set_downstream(%s_etl)\n"%(taskID, taskID))
 					self.DAGfile.write("%s_etl.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				self.DAGfile.write("\n")
@@ -492,8 +533,6 @@ class initialize(object):
 				self.DAGfile.write("    task_id='%s',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
-#				if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 				self.DAGfile.write("    retries=%s,\n"%(retries))
 				self.DAGfile.write("    dag=dag)\n")
@@ -599,7 +638,7 @@ class initialize(object):
 		self.DAGfile.write("from airflow.operators.dummy_operator import DummyOperator\n")
 		self.DAGfile.write("from airflow.operators.sensors import ExternalTaskSensor\n")
 		self.DAGfile.write("from airflow.sensors.sql_sensor import SqlSensor\n")
-		self.DAGfile.write("from datetime import datetime, timedelta\n")
+		self.DAGfile.write("from datetime import datetime, timedelta, timezone\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("Email_receiver = Variable.get(\"Email_receiver\")\n")
 #		self.DAGfile.write("DBImport_Host = Variable.get(\"DBImport_Host\")\n")

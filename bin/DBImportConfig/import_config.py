@@ -47,6 +47,8 @@ class config(object, metaclass=Singleton):
 		self.source_table = None
 		self.table_id = None
 		self.import_type = None
+		self.import_phase_type = None
+		self.etl_phase_type = None
 		self.import_type_description = None
 		self.sqoop_mappers = None
 		self.validate_import = None
@@ -233,7 +235,9 @@ class config(object, metaclass=Singleton):
 				"    sqoop_last_mappers, "
 				"    sqoop_query, "
 				"    validate_source, "
-				"    copy_slave "
+				"    copy_slave, "
+				"    import_phase_type, "
+				"    etl_phase_type "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -307,6 +311,9 @@ class config(object, metaclass=Singleton):
 		else:
 			self.copy_slave = False
 
+		self.import_phase_type = row[31]
+		self.etl_phase_type = row[32]
+
 		if self.validate_source  != "query" and self.validate_source !=  "sqoop":
 			raise invalidConfiguration("Only the values 'query' or 'sqoop' is valid for column validate_source in import_tables.")
 
@@ -324,12 +331,10 @@ class config(object, metaclass=Singleton):
 		# Validate that self.incr_mode have a valid configuration if it's not NULL
 		if self.incr_mode != None:
 			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
-				logging.error("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
-				raise Exception
+				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
 
 		if self.incr_validation_method != "full" and self.incr_validation_method != "incr":
-			logging.error("Only the values 'full' or 'incr' is valid for column incr_validation_method in import_tables.")
-			raise Exception
+			raise invalidConfiguration("Only the values 'full' or 'incr' is valid for column incr_validation_method in import_tables.")
 
 		# Set sqoop NULL values
 		if self.sqoop_last_size == None:
@@ -349,23 +354,63 @@ class config(object, metaclass=Singleton):
 		self.sqoop_incr_lastvalue = self.incr_maxvalue
 		self.sqoop_incr_validation_method = self.incr_validation_method
 
+		if self.import_type != None and (self.import_phase_type != None or self.etl_phase_type != None):
+			raise invalidConfiguration("It's not supported to enter a value in 'import_type' at the same time as 'import_phase_type' or 'etl_phase_type' is not empty")
+
+		if self.import_type == None and (self.import_phase_type == None or self.etl_phase_type == None):
+			raise invalidConfiguration("You need to enter a value in both 'import_phase_type' and 'etl_phase_type'")
+
+		if self.import_phase_type != None and self.etl_phase_type != None:
+			validCombination = False
+			if self.import_phase_type == "full" and self.etl_phase_type == "truncate_insert": 
+				validCombination = True
+
+			if self.import_phase_type == "full" and self.etl_phase_type == "insert": 
+				validCombination = True
+
+			if self.import_phase_type == "full" and self.etl_phase_type == "merge": 
+				validCombination = True
+
+			if self.import_phase_type == "full" and self.etl_phase_type == "merge_history_audit": 
+				validCombination = True
+
+			if self.import_phase_type == "incr" and self.etl_phase_type == "insert": 
+				validCombination = True
+
+			if self.import_phase_type == "incr" and self.etl_phase_type == "merge": 
+				validCombination = True
+
+			if self.import_phase_type == "incr" and self.etl_phase_type == "merge_history_audit": 
+				validCombination = True
+
+			if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge": 
+				validCombination = True
+
+			if validCombination == False:
+				raise invalidConfiguration("The combination of '%s' and '%s' as import methods is not valid. Please check documentation for supported combinations"%(self.import_phase_type, self.etl_phase_type))
+
 		# Set correct import_types. We do this because of old names of import_type
-		if self.import_type == "merge_acid":
-			self.import_type = "incr_merge_direct"
+		if self.import_type != None:
+			if self.import_type == "merge_acid":
+				self.import_type = "incr_merge_direct"
 
-		if self.import_type == "full_merge":
-			self.import_type = "full_merge_direct"
+			if self.import_type == "full_merge":
+				self.import_type = "full_merge_direct"
 
-		if self.import_type == "full_history":
-			self.import_type = "full_merge_direct_history"
+			if self.import_type == "full_history":
+				self.import_type = "full_merge_direct_history"
 
+			if self.import_type == "full_append":
+				self.import_type = "full_insert"
+		else:
+			self.import_type = ""
 
 # IMPORT_PHASE_FULL = "Full"
 # IMPORT_PHASE_INCR = "Incremental"
 # ETL_PHASE_INSERT = "Insert"
 # ETL_PHASE_MERGEHISTORYAUDIT = "Merge History Audit"
 
-		if self.import_type in ("full", "full_direct"):
+		if self.import_type in ("full", "full_direct") or (self.import_phase_type == "full" and self.etl_phase_type == "truncate_insert"):
 			self.import_type_description = "Full import of table to Hive"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -374,28 +419,28 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Truncate and insert"
 
-		if self.import_type  == "full_append":
+		if self.import_type  == "full_insert" or (self.import_phase_type == "full" and self.etl_phase_type == "insert"):
 			self.import_type_description = "Full import of table to Hive. Data is appended to target"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
 			self.copyPhase               = constant.COPY_PHASE_NONE
-			self.etlPhase                = constant.ETL_PHASE_APPEND
+			self.etlPhase                = constant.ETL_PHASE_INSERT
 			self.importPhaseDescription  = "Full"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Append"
 
-		if self.import_type  == "full_no_etl":
-			self.import_type_description = "Full import of table to Parquet only"
-			self.importPhase             = constant.IMPORT_PHASE_FULL
-			self.copyPhase               = constant.COPY_PHASE_NONE
-			self.etlPhase                = constant.ETL_PHASE_NONE
-			self.importPhaseDescription  = "Full"
-			self.copyPhaseDescription    = "No cluster copy"
-			self.etlPhaseDescription     = "No ETL"
+#		if self.import_type  == "full_no_etl":
+#			self.import_type_description = "Full import of table to Parquet only"
+#			self.importPhase             = constant.IMPORT_PHASE_FULL
+#			self.copyPhase               = constant.COPY_PHASE_NONE
+#			self.etlPhase                = constant.ETL_PHASE_NONE
+#			self.importPhaseDescription  = "Full"
+#			self.copyPhaseDescription    = "No cluster copy"
+#			self.etlPhaseDescription     = "No ETL"
 
 #		if self.import_type == "full_hbase":
 #			self.import_type_description = "Full import of table directly to HBase"
 
-		if self.import_type == "full_merge_direct":
+		if self.import_type == "full_merge_direct" or (self.import_phase_type == "full" and self.etl_phase_type == "merge"):
 			self.import_type_description = "Full import and merge of Hive table"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -404,7 +449,7 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge"
 
-		if self.import_type == "full_merge_direct_history":
+		if self.import_type == "full_merge_direct_history" or (self.import_phase_type == "full" and self.etl_phase_type == "merge_history_audit"):
 			self.import_type_description = "Full import and merge of Hive table. Will also create a History table"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -413,7 +458,7 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge History Audit"
 
-		if self.import_type == "incr_merge_direct":
+		if self.import_type == "incr_merge_direct" or (self.import_phase_type == "incr" and self.etl_phase_type == "merge"):
 			self.import_type_description = "Incremental & merge import of Hive table"
 			self.importPhase             = constant.IMPORT_PHASE_INCR
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -422,7 +467,7 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge"
 
-		if self.import_type == "incr_merge_direct_history":
+		if self.import_type == "incr_merge_direct_history" or (self.import_phase_type == "incr" and self.etl_phase_type == "merge_history_audit"):
 			self.import_type_description = "Incremental & merge import of Hive table. Will also create a History table"
 			self.importPhase             = constant.IMPORT_PHASE_INCR
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -431,7 +476,7 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge History Audit"
 
-		if self.import_type == "incr":
+		if self.import_type == "incr" or (self.import_phase_type == "incr" and self.etl_phase_type == "insert"):
 			self.import_type_description = "Incremental import of Hive table"
 			self.importPhase             = constant.IMPORT_PHASE_INCR
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -440,7 +485,7 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Insert"
 
-		if self.import_type == "oracle_flashback_merge":
+		if self.import_type == "oracle_flashback_merge" or (self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge"):
 			self.import_type_description = "Import with the help of Oracle Flashback"
 			self.importPhase             = constant.IMPORT_PHASE_ORACLE_FLASHBACK
 			self.copyPhase               = constant.COPY_PHASE_NONE
@@ -456,32 +501,26 @@ class config(object, metaclass=Singleton):
 		if self.copy_slave == True:
 			self.importPhaseDescription  = "No Import phase (slave table)"
 
-		if self.import_type == "incr_merge_delete":
-			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
+#		if self.import_type == "incr_merge_delete":
+#			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
 
-		if self.import_type == "incr_merge_delete_history":
-			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system and will also create a History table."
+#		if self.import_type == "incr_merge_delete_history":
+#			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system and will also create a History table."
 
 		# Check to see that we have a valid import type
-#		if self.import_type not in ("full", "incr", "full_direct", "full_merge_direct_history"):
+		# This will only happen if the old 'import_type' column is used. For the import_phase_type we already check if we have a valid combo
 		if self.importPhase == None or self.etlPhase == None:
 			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 			raise Exception
 
 
-		# Determine if it's an incremental import based on the import_type
-#		if self.import_type == "incr_merge_direct" or self.import_type == "incr" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
+		# Determine if it's an incremental import based on the importPhase
 		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
 			self.import_is_incremental = True
 		else:
 			self.import_is_incremental = False
 
-		# incr_merge_direct import_type does not support validation, so we turn it of if that is the import_type
-#		if self.import_type == "incr_merge_direct":
-#			self.validate_import = False
-
 		# Determine if it's an merge and need ACID tables
-#		if self.import_type == "full_merge_direct" or self.import_type == "incr_merge_direct" or self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete" or self.import_type == "incr_merge_delete_history":
 		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY, constant.IMPORT_PHASE_ORACLE_FLASHBACK): 
 			self.create_table_with_acid = True
 			self.import_with_merge = True
@@ -490,14 +529,12 @@ class config(object, metaclass=Singleton):
 			self.import_with_merge = False
 
 		# Determine if a history table should be created
-#		if self.import_type == "full_merge_direct_history" or self.import_type == "incr_merge_delete_history":
 		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT): 
 			self.import_with_history_table = True
 		else:
 			self.import_with_history_table = False
 
 		# Determine if we are doing a full table compare
-#		if self.import_type == "full_merge_direct" or self.import_type == "full_merge_direct_history":
 		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY): 
 			self.full_table_compare = True
 		else:
@@ -521,9 +558,9 @@ class config(object, metaclass=Singleton):
 		else:
 			self.create_datalake_import_column = False
 
-		if self.etlPhase == constant.ETL_PHASE_APPEND:
+		if self.importPhase == constant.IMPORT_PHASE_FULL and self.etlPhase == constant.ETL_PHASE_INSERT:
 			if self.create_datalake_import_column == False:	
-				logging.error("'full_append' requires 'create_datalake_import' to be set in jdbc_connections table")
+				logging.error("Full Insert imports requires 'create_datalake_import' to be set in jdbc_connections table")
 				raise Exception
 
 		self.datalake_source_connection = row[1]
@@ -2073,12 +2110,11 @@ class config(object, metaclass=Singleton):
 		query  = "select "
 		query += "	stage.hive_db, "	
 		query += "	stage.hive_table, "	
-		query += "	stage.stage, "	
-		query += "	tabl.import_type "	
+		query += "	stage.stage "	
 		query += "from import_stage stage "	
 		query += "join import_tables tabl "	
 		query += "	on stage.hive_db = tabl.hive_db and stage.hive_table = tabl.hive_table "
-		query += "where tabl.import_type like 'incr%' "
+		query += "where tabl.import_type like 'incr%' or tabl.import_phase_type = 'incr' "
 
 		self.mysql_cursor01.execute(query)
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
