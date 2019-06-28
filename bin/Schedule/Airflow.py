@@ -233,8 +233,6 @@ class initialize(object):
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool)
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
-		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -323,6 +321,8 @@ class initialize(object):
 				self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 			self.DAGfile.write("\n")
 
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
+		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
 
@@ -345,8 +345,6 @@ class initialize(object):
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool)
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
-		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -547,6 +545,8 @@ class initialize(object):
 					self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				self.DAGfile.write("\n")
 
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
+		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
 
@@ -641,7 +641,6 @@ class initialize(object):
 		self.DAGfile.write("from datetime import datetime, timedelta, timezone\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("Email_receiver = Variable.get(\"Email_receiver\")\n")
-#		self.DAGfile.write("DBImport_Host = Variable.get(\"DBImport_Host\")\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("default_args = {\n")
 		self.DAGfile.write("    'owner': 'airflow',\n")
