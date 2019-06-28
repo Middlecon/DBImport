@@ -563,7 +563,7 @@ class initialize(object):
 				.all())
 
 		for pool in pools:
-			if len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
+			if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
 				logging.info("Creating the Airflow pool '%s' with 24 slots"%(pool))
 				newPool = airflowSchema.slotPool(pool=pool, slots=24)
 				session.add(newPool)
