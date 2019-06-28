@@ -1087,15 +1087,22 @@ class config(object, metaclass=Singleton):
 					self.sqlGeneratedSqoopQuery = "select "
 				else:
 					self.sqlGeneratedSqoopQuery += ", "
-				
+			
 				if source_column_name != column_name_parquet_supported:
 					if re.search('"', source_column_name):
 						self.sqlGeneratedSqoopQuery += "'" + source_column_name + "' as \"" + column_name_parquet_supported + "\""
 					else:
 						self.sqlGeneratedSqoopQuery += quote + source_column_name + quote + " as " + quote + column_name_parquet_supported + quote
+
+					if self.isColumnNameReservedInSqoop(column_name_parquet_supported) == True:
+						raise invalidConfiguration("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(column_name_parquet_supported))
+
 					self.sqoop_use_generated_sql = True
 				else:
 					self.sqlGeneratedSqoopQuery += quote + source_column_name + quote
+
+					if self.isColumnNameReservedInSqoop(source_column_name) == True:
+						raise invalidConfiguration("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(source_column_name))
 
 			# Run a query to see if the column already exists. Will be used to determine if we do an insert or update
 #			query = "select column_id from import_columns where table_id = %s and source_column_name = %s "
@@ -1179,6 +1186,14 @@ class config(object, metaclass=Singleton):
 		logging.debug("    sqlGeneratedSqoopQuery = %s"%(self.sqlGeneratedSqoopQuery))
 		logging.debug("    sqlGeneratedHiveColumnDefinition = %s"%(self.sqlGeneratedHiveColumnDefinition))
 		logging.debug("Executing import_config.saveColumnData() - Finished")
+
+	def isColumnNameReservedInSqoop(self, columnName):
+		""" Returns True or False depending if the column_name is reserved in Sqoop """
+
+		if columnName in ('const'):
+			return True
+		else:
+			return False
 
 	def getParquetColumnName(self, column_name):
 
