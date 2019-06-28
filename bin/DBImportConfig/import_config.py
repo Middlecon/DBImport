@@ -1190,7 +1190,7 @@ class config(object, metaclass=Singleton):
 	def isColumnNameReservedInSqoop(self, columnName):
 		""" Returns True or False depending if the column_name is reserved in Sqoop """
 
-		if columnName in ('const'):
+		if columnName  == "const":
 			return True
 		else:
 			return False
@@ -2287,7 +2287,7 @@ class config(object, metaclass=Singleton):
 			if sqoopColumnType == None:
 				selectQuery += "S.`%s`"%(columnName)
 			else:
-				selectQuery += "cast(S.`%s` as %s) %s"%(columnName, columnType, columnName)
+				selectQuery += "cast(S.`%s` as %s) `%s`"%(columnName, columnType, columnName)
 
 			# Handle reserved column names in Hive
 

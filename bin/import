@@ -556,6 +556,7 @@ def main(argv):
 				import_operation.loadDataFromImportToTargetTable()
 
 			if import_operation.runStage(3058) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":

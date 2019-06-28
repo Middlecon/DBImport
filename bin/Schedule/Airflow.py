@@ -443,7 +443,7 @@ class initialize(object):
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
-			if DAG['finish_all_stage1_first'] == 1 or runImportAndEtlSeparate == True or importPhaseAsSensor == True:
+			if DAG['finish_all_stage1_first'] == 1 or runImportAndEtlSeparate == True:
 				if importPhaseAsSensor == True:
 					# Running Import phase as a sensor
 					self.DAGfile.write("%s_sensor = SqlSensor(\n"%(taskID))
@@ -527,6 +527,27 @@ class initialize(object):
 				self.DAGfile.write("\n")
 
 			else:
+				if importPhaseAsSensor == True:
+					# Running Import phase as a sensor
+					self.DAGfile.write("%s_sensor = SqlSensor(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_sensor',\n"%(taskID))
+					self.DAGfile.write("    conn_id='DBImport',\n")
+					self.DAGfile.write("    sql=\"\"\"select count(*) from import_tables where hive_db = '%s' and hive_table = '%s' and "%(row['hive_db'], row['hive_table']))
+					self.DAGfile.write("copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
+#					self.DAGfile.write("copy_finished >= '{{ dag_run.start_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
+					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					if DAG['finish_all_stage1_first'] == 1:
+						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
+						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
+						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					else:
+						self.DAGfile.write("    priority_weight=0,\n")
+					self.DAGfile.write("    timeout=14400,\n")
+					self.DAGfile.write("    poke_interval=30,\n")
+					self.DAGfile.write("    mode='reschedule',\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
+
 				self.DAGfile.write("%s = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
@@ -537,12 +558,23 @@ class initialize(object):
 				self.DAGfile.write("\n")
 
 				if clearStageRequired == True:
-					self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
-					self.DAGfile.write("%s_clearStage.set_downstream(%s)\n"%(taskID, taskID))
-					self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s_clearStage.set_downstream(%s_sensor)\n"%(taskID, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s)\n"%(taskID, taskID))
+						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
+					else:
+						self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s_clearStage.set_downstream(%s)\n"%(taskID, taskID))
+						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				else:
-					self.DAGfile.write("%s.set_downstream(%s)\n"%(self.mainStartTask, taskID))
-					self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
+					if importPhaseAsSensor == True:
+						self.DAGfile.write("%s.set_downstream(%s_sensor)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s_sensor.set_downstream(%s)\n"%(taskID, taskID))
+						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
+					else:
+						self.DAGfile.write("%s.set_downstream(%s)\n"%(self.mainStartTask, taskID))
+						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				self.DAGfile.write("\n")
 
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
