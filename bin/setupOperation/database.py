@@ -56,7 +56,7 @@ class initialize(object):
 			DBImport_Home = os.environ['DBIMPORT_HOME']
 		except KeyError:
 			print ("Error: System Environment Variable DBIMPORT_HOME is not set")
-			self.remove_temporary_files()
+#			self.remove_temporary_files()
 			sys.exit(1)
 
 
@@ -80,12 +80,12 @@ class initialize(object):
 			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
 		except sa.exc.OperationalError as err:
 			logging.error("%s"%err)
-			self.remove_temporary_files()
+#			self.remove_temporary_files()
 			sys.exit(1)
 		except:
 			print("Unexpected error: ")
 			print(sys.exc_info())
-			self.remove_temporary_files()
+#			self.remove_temporary_files()
 			sys.exit(1)
 
 		# Setup configuration for Alembic
@@ -101,6 +101,10 @@ class initialize(object):
 												 database=self.configDatabase, 
 												 user=self.configUsername, 
 												 password=self.configPassword)
+		except mysql.connector.errors.ProgrammingError as err:
+			logging.error("%s"%err)
+#			self.remove_temporary_files()
+			sys.exit(1)
 		except mysql.connector.Error as err:
 			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
 				logging.error("Something is wrong with your user name or password")
@@ -109,7 +113,7 @@ class initialize(object):
 			else:
 				logging.error("%s"%err)
 			logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
-			self.remove_temporary_files()
+#			self.remove_temporary_files()
 			sys.exit(1)
 		else:
 			self.mysql_cursor = self.mysql_conn.cursor(buffered=False)
