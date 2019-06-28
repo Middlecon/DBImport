@@ -1,6 +1,8 @@
 Release Notes
 =============
 
+  - Issue #39: Export failes when sqoop timeout against Kafka for Atlas info
+
 v0.60
 ------------------------------
 
