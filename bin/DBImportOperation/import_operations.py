@@ -705,6 +705,10 @@ class operation(object, metaclass=Singleton):
 				query = "set hive.tez.container.size=%s"%(self.import_config.hiveJavaHeap)
 				self.common_operations.executeHiveQuery(query)
 
+		# Connect to Hive Metastore Database
+#		se.common_operations.connectToMetaStoreDB()
+
+
 		logging.debug("Executing import_operations.connectToHive() - Finished")
 
 	def createExternalImportView(self):

@@ -181,7 +181,6 @@ def main(argv):
 		sys.exit(1)
 
 
-
 	# ******************************************
 	# * EXPORT_PHASE_FULL
 	# ******************************************
@@ -191,6 +190,7 @@ def main(argv):
 			export_operation.saveRetryAttempt(stage)
 
 			newStage = 0
+			if stage == 105: newStage = 104
 			if stage == 108: newStage = 106
 			if stage == 109: newStage = 100
 			print(" ________________________________________________________ ")
@@ -230,6 +230,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "truncateExportTempTable":
 				if export_operation.runStage(104) == True:
 					export_operation.connectToHive()
+					export_operation.removeHiveLocks()
 					export_operation.truncateExportTempTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "insertDataIntoExportTempTable":
@@ -275,7 +276,7 @@ def main(argv):
 			export_operation.saveRetryAttempt(stage)
 
 			newStage = 0
-#			if stage == 1014: newStage = 1011
+			if stage == 156: newStage = 154
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous export failed and this execution |")
@@ -312,6 +313,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "truncateExportTempTable":
 				if export_operation.runStage(154) == True:
 					export_operation.connectToHive()
+					export_operation.removeHiveLocks()
 					export_operation.truncateExportTempTable()
 
 			if runOnlyFunction == None:

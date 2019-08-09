@@ -492,6 +492,8 @@ def main(argv):
 
 			newStage = 0
 			if stage == 3053: newStage = 3050 
+			if stage == 3055: newStage = 3054
+			if stage == 3056: newStage = 3054
 			if stage == 3060: newStage = 3054
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
@@ -644,6 +646,7 @@ def main(argv):
 				import_operation.loadDataFromImportToTargetTable()
 
 			if import_operation.runStage(3107) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -734,6 +737,7 @@ def main(argv):
 				import_operation.loadDataFromImportToTargetTable()
 
 			if import_operation.runStage(3157) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -857,6 +861,7 @@ def main(argv):
 				)
 
 			if import_operation.runStage(3209) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -970,6 +975,7 @@ def main(argv):
 				)
 
 			if import_operation.runStage(3258) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -1082,6 +1088,7 @@ def main(argv):
 				)
 
 			if import_operation.runStage(3307) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -1204,6 +1211,7 @@ def main(argv):
 				)
 
 			if import_operation.runStage(3358) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
@@ -1332,6 +1340,7 @@ def main(argv):
 				)
 
 			if import_operation.runStage(3407) == True: 
+				import_operation.connectToHive(forceSkipTest=skipHiveTest)
 				import_operation.updateStatisticsOnTargetTable()
 
 		if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":

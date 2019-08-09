@@ -45,6 +45,7 @@ from DBImportOperation import hiveSchema
 # from setupOperation import schema
 from sqlalchemy.sql import alias, select
 from sqlalchemy.orm import aliased, sessionmaker 
+from sqlalchemy.pool import QueuePool
 
 
 class operation(object, metaclass=Singleton):
@@ -68,13 +69,6 @@ class operation(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 
-#		# Fetch configuration about MySQL database for Hive and how to connect to it
-#		self.metastore_mysql_hostname = configuration.get("Hive", "metastore_hostname")
-#		self.metastore_mysql_port =     configuration.get("Hive", "metastore_port")
-#		self.metastore_mysql_database = configuration.get("Hive", "metastore_database")
-#		self.metastore_mysql_username = configuration.get("Hive", "metastore_username")
-#		self.metastore_mysql_password = configuration.get("Hive", "metastore_password")
-
 		# Fetch configuration details about Hive LLAP
 		self.hive_hostname = configuration.get("Hive", "hostname")
 		self.hive_port = configuration.get("Hive", "port")
@@ -82,14 +76,6 @@ class operation(object, metaclass=Singleton):
 		self.hive_kerberos_realm = configuration.get("Hive", "kerberos_realm")
 		self.hive_print_messages = self.common_config.getConfigValue(key = "hive_print_messages")
 
-#		if configuration.get("Hive", "print_hive_message").lower() == "true":
-#			self.hive_print_messages = True
-#		else:
-#			self.hive_print_messages = False
-#		if configuration.get("Hive", "test_hive_execution").lower() == "true":
-#			self.test_hive_execution = True
-#		else:
-#			self.test_hive_execution = False
 		self.hive_min_buckets = int(configuration.get("Hive", "min_buckets"))
 		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
 
@@ -98,16 +84,10 @@ class operation(object, metaclass=Singleton):
 		self.hdfs_basedir = self.common_config.getConfigValue(key = "hdfs_basedir")
 		self.hdfs_blocksize = self.common_config.getConfigValue(key = "hdfs_blocksize")
 
-		# Esablish a SQLAlchemy connection to the DBImport database
-		connectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")
-#		connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
-#			self.metastore_mysql_username,
-#			self.metastore_mysql_password,
-#			self.metastore_mysql_hostname,
-#			self.metastore_mysql_port,
-#			self.metastore_mysql_database)
+		self.hiveConnectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")
+
 		try:
-			self.hiveMetaDB = sa.create_engine(connectStr, echo = self.debugLogLevel)
+			self.hiveMetaDB = sa.create_engine(self.hiveConnectStr, echo = self.debugLogLevel)
 			self.hiveMetaDB.connect()
 			self.hiveMetaSession = sessionmaker(bind=self.hiveMetaDB)
 		except sa.exc.OperationalError as err:
@@ -120,36 +100,9 @@ class operation(object, metaclass=Singleton):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
-
-#		# Esablish a connection to the Hive Metastore database in MySQL
-#		try:
-#			self.mysql_conn = mysql.connector.connect(host=self.metastore_mysql_hostname, 
-#												 port=self.metastore_mysql_port, 
-#												 database=self.metastore_mysql_database, 
-#												 user=self.metastore_mysql_username, 
-#												 password=self.metastore_mysql_password)
-#		except mysql.connector.Error as err:
-#			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-#				logging.error("Something is wrong with your user name or password")
-#			elif err.errno == errorcode.ER_BAD_DB_ERROR:
-#				logging.error("Database does not exist")
-#			else:
-#				logging.error("%s"%err)
-#			logging.error("Error: There was a problem connecting to the Hive Metastore database. Please check configuration and try again")
-#			raise Exception
-#		else:
-#			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
-
 		logging.debug("Executing common_operations.__init__() - Finished")
 
 	def reconnectHiveMetaStore(self):
-#		self.mysql_conn.close()
-#		self.mysql_conn = mysql.connector.connect(host=self.metastore_mysql_hostname, 
-#							 port=self.metastore_mysql_port, 
-#							 database=self.metastore_mysql_database, 
-#							 user=self.metastore_mysql_username, 
-#							 password=self.metastore_mysql_password)
-#		self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
 		logging.debug("Reconnecting to Hive Metastore should not be needed anymore. Code is not really doing anything")
 
 	def setHiveTable(self, Hive_DB, Hive_Table):
@@ -386,6 +339,7 @@ class operation(object, metaclass=Singleton):
 			try:
 				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
 				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
+				# self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name )
 			except Exception as ex:
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
 
@@ -985,6 +939,8 @@ class operation(object, metaclass=Singleton):
 			.filter(DBS.NAME == hiveDB)
 			.one_or_none())
 
+		print("DB: %s"%(hiveDB))
+		print("Table: %s"%(hiveTable))
 #		print(row)
 #
 #		query  = "select t.TBL_TYPE "

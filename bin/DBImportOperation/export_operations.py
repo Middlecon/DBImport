@@ -70,6 +70,9 @@ class operation(object, metaclass=Singleton):
 				self.hiveTable = self.export_config.hiveTable
 				self.hiveExportTempDB = self.export_config.hiveExportTempDB
 				self.hiveExportTempTable = self.export_config.hiveExportTempTable
+
+				self.checkHiveDB(self.hiveDB)
+				self.checkHiveTable(self.hiveDB, self.hiveTable)
 	
 #				self.export_config.setHiveTable(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
 				self.common_operations.setHiveTable(Hive_DB=self.hiveDB, Hive_Table=self.hiveTable)
@@ -131,6 +134,27 @@ class operation(object, metaclass=Singleton):
 	def resetMaxValueFromTarget(self):
 		self.export_config.resetMaxValueFromTarget()
 
+	def removeHiveLocks(self):
+		if self.export_config.common_config.getConfigValue(key = "hive_remove_locks_by_force") == True:
+			self.common_operations.removeHiveLocksByForce(self.hiveExportTempDB, self.hiveExportTempTable)
+
+	def checkHiveTable(self, hiveDB, hiveTable):
+		if self.common_operations.checkHiveTable(hiveDB, hiveTable) == False:
+			logging.error("Hive table '%s' cant be found in '%s' database"%(hiveTable, hiveDB))
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
+
+	def checkHiveDB(self, hiveDB):
+		try:
+			self.common_operations.checkHiveDB(hiveDB)
+		except databaseNotFound as errMsg:
+			logging.error(errMsg)
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
+		except:
+			self.export_config.remove_temporary_files()
+			raise
+#
 	def getHiveTableSchema(self):
 		try:
 			self.export_config.updateLastUpdateFromHive()
@@ -963,17 +987,6 @@ class operation(object, metaclass=Singleton):
 #			sys.exit(1)
 #
 #	
-#	def checkHiveDB(self, hiveDB):
-#		try:
-#			self.common_operations.checkHiveDB(hiveDB)
-#		except databaseNotFound as errMsg:
-#			logging.error(errMsg)
-#			self.import_config.remove_temporary_files()
-#			sys.exit(1)
-#		except:
-#			self.import_config.remove_temporary_files()
-#			raise
-#
 #	def validateSqoopRowCount(self):
 #		try:
 #			validateResult = self.import_config.validateRowCount(validateSqoop=True) 
