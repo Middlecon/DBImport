@@ -1657,15 +1657,15 @@ class config(object, metaclass=Singleton):
 
 			if self.sqoop_incr_mode == "lastmodified":
 				if self.common_config.jdbc_servertype == constant.MSSQL and ( whereForSourceTable == True or whereForSqoop == True ):
-					whereStatement = "%s <= CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+					whereStatement = "`%s` <= CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 				elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
-					whereStatement = "%s <= STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) + "'%Y-%m-%d %H:%i:%s') "
+					whereStatement = "`%s` <= STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) + "'%Y-%m-%d %H:%i:%s') "
 				elif whereForSourceTable == True or whereForSqoop == True:
-					whereStatement = "%s <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+					whereStatement = "`%s` <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 				else:
-					whereStatement = "%s <= '%s' "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+					whereStatement = "`%s` <= '%s' "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 			else:
-				whereStatement = "%s <= %s "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+				whereStatement = "`%s` <= %s "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 
 			whereStatementSaved = whereStatement
 
@@ -1675,15 +1675,15 @@ class config(object, metaclass=Singleton):
 			if ( self.sqoop_incr_validation_method == "incr" or forceIncr == True or whereForSqoop == True ) and self.sqoop_incr_lastvalue != None:
 				if self.sqoop_incr_mode == "lastmodified":
 					if self.common_config.jdbc_servertype == constant.MSSQL and ( whereForSourceTable == True or whereForSqoop == True ):
-						whereStatement += "and %s > CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
+						whereStatement += "and `%s` > CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
 					elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
-						whereStatement += "and %s > STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) + "'%Y-%m-%d %H:%i:%s') "
+						whereStatement += "and `%s` > STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) + "'%Y-%m-%d %H:%i:%s') "
 					elif whereForSourceTable == True or whereForSqoop == True:
-						whereStatement += "and %s > TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
+						whereStatement += "and `%s` > TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
 					else:
-						whereStatement += "and %s > '%s' "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
+						whereStatement += "and `%s` > '%s' "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
 				else:
-					whereStatement += "and %s > %s "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
+					whereStatement += "and `%s` > %s "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
 			
 			if whereStatementSaved == whereStatement and ignoreIfOnlyIncrMax == True:
 				# We have only added the MAX value to there WHERE statement and have a setting to ignore it if that is the only value
