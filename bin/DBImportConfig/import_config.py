@@ -1208,6 +1208,7 @@ class config(object, metaclass=Singleton):
 			.replace('å', 'a')
 			.replace('ä', 'a')
 			.replace('ö', 'o')
+			.replace('#', 'hash')
 			.replace('`', '')
 			.replace('\'', '')
 			.replace(';', '')

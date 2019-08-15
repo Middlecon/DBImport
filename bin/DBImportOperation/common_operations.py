@@ -985,6 +985,7 @@ class operation(object, metaclass=Singleton):
 			targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a')
 			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
 			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
+			targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash')
 #			targetColumns['name'] = targetColumns['name'].str.replace(r'^_', '')
 			targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_')
 
