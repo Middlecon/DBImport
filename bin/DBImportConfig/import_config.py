@@ -1190,7 +1190,7 @@ class config(object, metaclass=Singleton):
 	def isColumnNameReservedInSqoop(self, columnName):
 		""" Returns True or False depending if the column_name is reserved in Sqoop """
 
-		if columnName in ("const", "private", "public", "default"):
+		if columnName in ("const", "private", "public", "default", "long"):
 			return True
 		else:
 			return False
