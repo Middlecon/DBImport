@@ -875,6 +875,10 @@ class config(object, metaclass=Singleton):
 					sqoop_column_type = "String"
 					column_type = "string"
 
+				if source_column_type == "time": 
+					sqoop_column_type = "String"
+					column_type = "string"
+			
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
 				column_type = re.sub('^datetime$', 'timestamp', column_type)
 				column_type = re.sub('^datetime2$', 'timestamp', column_type)
@@ -889,7 +893,6 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^nchar\(', 'char(', column_type)
 				column_type = re.sub('^numeric\(', 'decimal(', column_type)
 				column_type = re.sub('^real$', 'float', column_type)
-				column_type = re.sub('^time$', 'string', column_type)
 				column_type = re.sub('^varchar\(-1\)$', 'string', column_type)
 				column_type = re.sub('^varchar\(65355\)$', 'string', column_type)
 				column_type = re.sub('^smallmoney$', 'float', column_type)
