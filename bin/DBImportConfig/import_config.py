@@ -929,7 +929,7 @@ class config(object, metaclass=Singleton):
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
-				if source_column_type in ("clob", "nclob", "nlob", "long raw"): 
+				if source_column_type in ("clob", "nclob", "nlob", "long", "long raw"): 
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
@@ -962,7 +962,7 @@ class config(object, metaclass=Singleton):
 #				column_type = re.sub('^clob$', 'string', column_type)
 #				column_type = re.sub('^nclob$', 'string', column_type)
 #				column_type = re.sub('^nlob$', 'string', column_type)
-				column_type = re.sub('^long$', 'binary', column_type)
+#				column_type = re.sub('^long$', 'binary', column_type)
 				column_type = re.sub('^xmltype\([0-9]*\)$', 'string', column_type)
 				column_type = re.sub('^raw$', 'binary', column_type)
 				column_type = re.sub('^raw\([0-9]*\)$', 'binary', column_type)
