@@ -425,7 +425,7 @@ class config(object, metaclass=Singleton):
 			# If all encrypt settings are available, we create an encryption string that will be used by the Schema Python Program
 			if self.jdbc_encrypt == True and self.jdbc_trustedservercert != None and self.jdbc_hostincert != None and self.jdbc_logintimeout != None:
 				self.jdbc_encrypt_string = "encrypt=true;trustServerCertificate=" + self.jdbc_trustedservercert + ";hostNameInCertificate=" + self.jdbc_hostincert + ";loginTimeout=" + self.jdbc_logintimeout
-				self.jdbc_driver_for_python, self.jdbc_classpath_for_python = self.getJDBCDriverConfig("SQL Server", "jTDS")
+#				self.jdbc_driver_for_python, self.jdbc_classpath_for_python = self.getJDBCDriverConfig("SQL Server", "jTDS")
 #				self.jdbc_driver_for_python = "net.sourceforge.jtds.jdbc.Driver"
 #				self.jdbc_classpath_for_python = "/usr/hdp/current/sqoop-client/lib/jtds.jar"
 
@@ -451,11 +451,11 @@ class config(object, metaclass=Singleton):
 				logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
-			try:
-				self.jdbc_ad_domain = self.jdbc_url.split("domain=")[1].split(';')[0]
-			except:
-				logging.error("Cant determine AD Domain based on jdbc_string")
-				exit_after_function = True
+#			try:
+#				self.jdbc_ad_domain = self.jdbc_url.split("domain=")[1].split(';')[0]
+#			except:
+#				logging.error("Cant determine AD Domain based on jdbc_string")
+#				exit_after_function = True
 
 
 		if self.jdbc_url.startswith( 'jdbc:oracle:'): 
@@ -717,6 +717,7 @@ class config(object, metaclass=Singleton):
 			logging.debug("	self.jdbc_driver = %s"%(self.jdbc_driver))
 			logging.debug("	self.jdbc_url = %s"%(self.jdbc_url))
 			logging.debug("	self.jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
+#			logging.debug("	self.jdbc_driver_for_python = %s"%(self.jdbc_driver_for_python))
 
 			JDBCCredentials = [ self.jdbc_username, self.jdbc_password ]
 			try:
