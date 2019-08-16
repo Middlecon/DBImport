@@ -1741,7 +1741,9 @@ class config(object, metaclass=Singleton):
 				logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
 		else:
 			if self.sqoop_sql_where_addition != None:
-				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
+				logging.debug("Where statement for full imports: %s"%(self.sqoop_sql_where_addition))
+#				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
+				whereStatement = self.sqoop_sql_where_addition
 			else:
 				whereStatement = ""
 
