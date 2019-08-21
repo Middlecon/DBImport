@@ -135,7 +135,7 @@ class initialize(object):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
-	def generateDAG(self, name=None, writeDAG=False):
+	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False):
 
 		self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, name)
 		self.DAGfilenameInAirflow = "%s/%s.py"%(self.DAGdirectory, name)
@@ -153,7 +153,8 @@ class initialize(object):
 				airflowExportDags.filter_dbalias,
 				airflowExportDags.filter_target_schema,
 				airflowExportDags.filter_target_table,
-				airflowExportDags.retries
+				airflowExportDags.retries,
+				airflowExportDags.auto_regenerate_dag
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -168,7 +169,8 @@ class initialize(object):
 				airflowImportDags.pool_stage1,
 				airflowImportDags.pool_stage2,
 				airflowImportDags.run_import_and_etl_separate,
-				airflowImportDags.finish_all_stage1_first
+				airflowImportDags.finish_all_stage1_first,
+				airflowImportDags.auto_regenerate_dag
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -180,7 +182,8 @@ class initialize(object):
 				airflowEtlDags.filter_task,
 				airflowEtlDags.filter_source_db,
 				airflowEtlDags.filter_target_db,
-				airflowEtlDags.retries
+				airflowEtlDags.retries,
+				airflowEtlDags.auto_regenerate_dag
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -188,7 +191,8 @@ class initialize(object):
 		customDAG = pd.DataFrame(session.query(
 				airflowCustomDags.dag_name,
 				airflowCustomDags.schedule_interval,
-				airflowCustomDags.retries
+				airflowCustomDags.retries,
+				airflowCustomDags.auto_regenerate_dag
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -200,6 +204,14 @@ class initialize(object):
 				exportDAG = exportDAG.loc[exportDAG['dag_name'] == name]
 			if customDAG.empty == False:
 				customDAG = customDAG.loc[customDAG['dag_name'] == name]
+
+		if autoDAGonly == True:
+			if importDAG.empty == False:
+				importDAG = importDAG.loc[importDAG['auto_regenerate_dag'] == 1]
+			if exportDAG.empty == False:
+				exportDAG = exportDAG.loc[exportDAG['auto_regenerate_dag'] == 1]
+			if customDAG.empty == False:
+				customDAG = customDAG.loc[customDAG['auto_regenerate_dag'] == 1]
 
 		dagFound = False
 
@@ -218,7 +230,7 @@ class initialize(object):
 			for index, row in customDAG.iterrows():
 				self.generateCustomDAG(DAG=row)
 
-		if dagFound == False:
+		if dagFound == False and name != None:
 			logging.error("Can't find DAG with that name")
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
@@ -424,7 +436,7 @@ class initialize(object):
 				airflowPriority = int(row['sqoop_last_mappers'])
 
 			clearStageRequired = False
-			if row['import_type'] in ("full_direct", "full", "oracle_flashback_merge", "full_merge_direct_history", "full_merge_direct", "full_append"):
+			if row['import_type'] in ("full_direct", "full", "oracle_flashback_merge", "full_history", "full_merge_direct_history", "full_merge_direct", "full_append"):
 				clearStageRequired = True
 
 			if row['import_phase_type'] == "full":
