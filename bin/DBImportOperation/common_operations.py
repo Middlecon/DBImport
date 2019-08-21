@@ -713,6 +713,17 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.removeHiveLocksByForce()")
 
 		session = self.hiveMetaSession()
+
+		lockCount = (session.query(hiveSchema.HIVE_LOCKS)
+					.filter(hiveSchema.HIVE_LOCKS.HL_DB == hiveDB)
+					.filter(hiveSchema.HIVE_LOCKS.HL_TABLE == hiveTable)
+					.count()
+					) 
+
+		if lockCount > 0:
+			logging.warning("Removing %s locks from table %s.%s by force"%(lockCount, hiveDB, hiveTable))
+			self.common_config.logImportFailure(hiveDB=hiveDB, hiveTable=hiveTable, severity="Warning", errorText="%s locks removed by force"%(lockCount))  
+
 		(session.query(hiveSchema.HIVE_LOCKS)
 			.filter(hiveSchema.HIVE_LOCKS.HL_DB == hiveDB)
 			.filter(hiveSchema.HIVE_LOCKS.HL_TABLE == hiveTable)

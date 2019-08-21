@@ -1358,8 +1358,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.common_config.getConfigValue(key = "hive_remove_locks_by_force") == True:
 			self.common_operations.removeHiveLocksByForce(self.Hive_DB, self.Hive_Table)
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_PKonly_DB, self.import_config.Hive_Import_PKonly_Table)
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table)
+			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_HistoryTemp_DB, self.import_config.Hive_HistoryTemp_Table)
 
 	def truncateTargetTable(self,):
 		logging.info("Truncating Target table in Hive")

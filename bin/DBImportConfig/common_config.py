@@ -898,6 +898,20 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.dropJDBCTable() - Finished")
 
+	def logImportFailure(self, errorText, severity, importType=None, hiveDB=None, hiveTable=None):
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		query  = "insert into import_failure_log "
+		query += "( hive_db, hive_table, eventtime, severity, import_type, error_text ) "
+		query += "values "
+		query += "( %s, %s, %s, %s, %s, %s )"
+
+		logging.debug("SQL Statement executed: %s" % (query))
+		self.mysql_cursor.execute(query, (hiveDB, hiveTable, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), severity, importType, errorText))
+		self.mysql_conn.commit()
+
 	def logHiveColumnAdd(self, column, columnType=None, description=None, hiveDB=None, hiveTable=None):
 		if description == None:
 			description = "Column '%s' added to table with type '%s'"%(column, columnType)
