@@ -1023,7 +1023,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^real', 'float', column_type)
 				column_type = re.sub('^vargraph', 'varchar', column_type)
 				column_type = re.sub('^graphic', 'varchar', column_type)
-				column_type = re.sub('^time\([0-9]\)', 'timestamp', column_type)
+				column_type = re.sub('^time\([0-9]\)', 'varchar(9)', column_type)
 
 			if self.common_config.db_db2as400 == True:
 				if re.search('^numeric\(', column_type):
