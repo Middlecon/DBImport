@@ -1013,16 +1013,27 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub(',none\)', ',0)', column_type)
 
 			if self.common_config.db_db2udb == True:
+				if re.search('^clob', column_type):
+					column_type = "string"
+					sqoop_column_type = "String"
+
 				column_type = re.sub('^integer', 'int', column_type)
 				column_type = re.sub('^timestmp', 'timestamp', column_type)
 				column_type = re.sub('^blob', 'binary', column_type)
-				column_type = re.sub('^clob', 'string', column_type)
 				column_type = re.sub('^real', 'float', column_type)
 				column_type = re.sub('^vargraph', 'varchar', column_type)
 				column_type = re.sub('^graphic', 'varchar', column_type)
 				column_type = re.sub('^time\([0-9]\)', 'timestamp', column_type)
 
 			if self.common_config.db_db2as400 == True:
+				if re.search('^numeric\(', column_type):
+					column_type = re.sub('^numeric\(', 'decimal(', column_type)
+					column_type = re.sub('\)$', ',0)', column_type)
+
+				if re.search('^clob', column_type):
+					column_type = "string"
+					sqoop_column_type = "String"
+
 				column_type = re.sub('^integer', 'int', column_type)
 				column_type = re.sub('^timestmp', 'timestamp', column_type)
 				column_type = re.sub('^timestamp\(.*\)', 'timestamp', column_type)
@@ -1030,13 +1041,6 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
 				column_type = re.sub('^blob', 'binary', column_type)
 				column_type = re.sub('^real', 'float', column_type)
-				if re.search('^numeric\(', column_type):
-					column_type = re.sub('^numeric\(', 'decimal(', column_type)
-					column_type = re.sub('\)$', ',0)', column_type)
-				if re.search('^clob', column_type):
-					column_type = "string"
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
-					sqoop_column_type = "String"
 
 			if self.common_config.db_mongodb == True:
 				column_type = re.sub(':null', ':string', column_type)
