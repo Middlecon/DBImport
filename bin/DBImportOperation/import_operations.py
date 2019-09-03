@@ -745,7 +745,6 @@ class operation(object, metaclass=Singleton):
 			hiveDB = self.import_config.Hive_Import_DB
 			hiveView = self.import_config.Hive_Import_View
 			columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveView, includeType=True, excludeDataLakeColumns=True) 
-#			columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveView, excludeDataLakeColumns=True) 
 			columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 			columnsDiffCount  = len(columnsMerge.loc[columnsMerge['Exist'] != 'both'])
 
@@ -756,14 +755,6 @@ class operation(object, metaclass=Singleton):
 					self.import_config.Hive_Import_DB, 
 					self.import_config.Hive_Import_View,
 					self.import_config.getSelectForImportView())
-#				query = "alter view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
-#				query += "%s "%(self.import_config.getSelectForImportView())
-#				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-#					# Add the specific Oracle FlashBack columns that we need to import
-#					query += ", `datalake_flashback_operation`"
-#					query += ", `datalake_flashback_startscn`"
-#				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-#				print(query)
 
 				self.common_operations.executeHiveQuery(query)
 				self.common_operations.reconnectHiveMetaStore()
@@ -773,7 +764,6 @@ class operation(object, metaclass=Singleton):
 	def createExternalImportTable(self):
 		logging.debug("Executing import_operations.createExternalImportTable()")
 
-#		externalTableDeleted = False
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
 			if self.common_operations.isHiveTableExternalParquetFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
@@ -1439,7 +1429,7 @@ class operation(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
-		if self.import_config.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			logging.error("Oracle Flashback imports does not support repairing the table.")
 			self.import_config.remove_temporary_files()
 			sys.exit(1)

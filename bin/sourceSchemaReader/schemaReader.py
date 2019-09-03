@@ -89,6 +89,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -156,6 +157,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -216,6 +218,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -264,6 +267,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -314,6 +318,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -362,6 +367,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
@@ -407,6 +413,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
 #				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])

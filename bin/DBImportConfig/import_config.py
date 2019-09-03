@@ -871,7 +871,7 @@ class config(object, metaclass=Singleton):
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
-				if source_column_type in ("uniqueidentifier", "ntext", "xml", "text", "varchar(-1)", "nvarchar(-1)"): 
+				if source_column_type in ("timestamp", "uniqueidentifier", "ntext", "xml", "text", "varchar(-1)", "nvarchar(-1)"): 
 #					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
@@ -1674,7 +1674,8 @@ class config(object, metaclass=Singleton):
 				elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
 					whereStatement = "%s <= STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) + "'%Y-%m-%d %H:%i:%s') "
 				elif whereForSourceTable == True or whereForSqoop == True:
-					whereStatement = "%s <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
+					if self.sqoopIncrMaxvaluePending != None:
+						whereStatement = "%s <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 				else:
 					whereStatement = "`%s` <= '%s' "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 			else:

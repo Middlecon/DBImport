@@ -137,8 +137,6 @@ class initialize(object):
 
 	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False):
 
-		self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, name)
-		self.DAGfilenameInAirflow = "%s/%s.py"%(self.DAGdirectory, name)
 		self.writeDAG = writeDAG
 
 		session = self.configDBSession()
@@ -670,6 +668,9 @@ class initialize(object):
 		tasksBeforeMainExists = False
 		tasksAfterMainExists = False
 		tasksSensorsExists = False
+
+		self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, dagName)
+		self.DAGfilenameInAirflow = "%s/%s.py"%(self.DAGdirectory, dagName)
 
 		self.DAGfile = open(self.DAGfilename, "w")
 		self.DAGfile.write("# -*- coding: utf-8 -*-\n")
