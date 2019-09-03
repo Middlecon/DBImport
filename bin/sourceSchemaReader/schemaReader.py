@@ -524,6 +524,7 @@ class source(object):
 #			print(JDBCCursor.fetchall())
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = line.split('|')[0]
 #				line_dict["TABLE_NAME"] = line.split('|')[1]
@@ -603,6 +604,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = line.split('|')[0]
 #				line_dict["TABLE_NAME"] = line.split('|')[1]
@@ -669,6 +671,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = line.split('|')[0]
 #				line_dict["TABLE_NAME"] = line.split('|')[1]
@@ -742,6 +745,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = line.split('|')[0]
 #				line_dict["TABLE_NAME"] = line.split('|')[1]
@@ -813,6 +817,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 #				line_dict["SCHEMA_NAME"] = line.split('|')[0]
 #				line_dict["TABLE_NAME"] = line.split('|')[1]
@@ -888,6 +893,7 @@ class source(object):
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
+				logging.debug(row)
 				line_dict = {}
 				schemaName = row[0]
 				tableName = row[1]
