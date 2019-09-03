@@ -136,8 +136,6 @@ class operation(object, metaclass=Singleton):
 				query += "and\n   T.`%s` = S.`%s` "%(targetColumn, sourceColumn)
 		query += "\n"
 	
-		print("passed")
-
 		query += "when matched "
 		if sourceIsIncremental == False:
 			# If the source is not incremental, it means that we need to check all the values in 

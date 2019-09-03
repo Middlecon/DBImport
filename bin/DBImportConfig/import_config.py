@@ -2068,6 +2068,12 @@ class config(object, metaclass=Singleton):
 			self.pk_column_override_mergeonly = re.sub(', *', ',', self.pk_column_override_mergeonly.strip())
 			self.pk_column_override_mergeonly = re.sub(' *,', ',', self.pk_column_override_mergeonly)
 			return self.pk_column_override_mergeonly.lower()
+		elif self.pk_column_override != None and self.pk_column_override.strip() != "" and PKforMerge == True:
+			logging.debug("Executing import_config.getPKcolumns() - Finished")
+			self.pk_column_override = re.sub(', *', ',', self.pk_column_override.strip())
+			self.pk_column_override = re.sub(' *,', ',', self.pk_column_override)
+			return self.pk_column_override.lower()
+
 
 		# If we reach this part, it means that we didnt override the PK. So lets fetch the real one	
 		query  = "select c.source_column_name "
