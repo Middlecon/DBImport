@@ -99,6 +99,9 @@ class config(object, metaclass=Singleton):
 		self.pk_column_override_mergeonly = None
 		self.validate_source = None
 		self.copy_slave = None
+		self.create_foreign_keys = None
+		self.create_foreign_keys_table = None
+		self.create_foreign_keys_connection = None
 
 		self.importPhase = None
 		self.importPhaseDescription = None
@@ -237,7 +240,8 @@ class config(object, metaclass=Singleton):
 				"    validate_source, "
 				"    copy_slave, "
 				"    import_phase_type, "
-				"    etl_phase_type "
+				"    etl_phase_type, "
+				"    create_foreign_keys "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -313,6 +317,7 @@ class config(object, metaclass=Singleton):
 
 		self.import_phase_type = row[31]
 		self.etl_phase_type = row[32]
+		self.create_foreign_keys_table = row[33]
 
 		if self.validate_source  != "query" and self.validate_source !=  "sqoop":
 			raise invalidConfiguration("Only the values 'query' or 'sqoop' is valid for column validate_source in import_tables.")
@@ -541,7 +546,7 @@ class config(object, metaclass=Singleton):
 			self.full_table_compare = False
 
 		# Fetch data from jdbc_connection table
-		query = "select create_datalake_import, datalake_source from jdbc_connections where dbalias = %s "
+		query = "select create_datalake_import, datalake_source, create_foreign_keys from jdbc_connections where dbalias = %s "
 		self.mysql_cursor01.execute(query, (self.connection_alias, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -571,22 +576,28 @@ class config(object, metaclass=Singleton):
 		elif self.datalake_source_connection != None and self.datalake_source_connection.strip() != '':
 			self.datalake_source = self.datalake_source_connection
 
+		self.create_foreign_keys_connection = row[2]
+
+		# Set self.create_foreign_keys based on values from either self.create_foreign_keys_table or self.create_foreign_keys_connection
+		if self.create_foreign_keys_table == 0 or self.create_foreign_keys_table == 1:
+			self.create_foreign_keys = self.create_foreign_keys_table
+		elif self.create_foreign_keys_connection == 0 or self.create_foreign_keys_connection == 1:
+			self.create_foreign_keys = self.create_foreign_keys_connection
+		else:
+			self.create_foreign_keys = 1
+
 		# Set the name of the history tables, temporary tables and such
 		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database")
 
-#		self.Hive_Import_DB = "etl_import_staging"
 		self.Hive_Import_DB = importStagingDB
 		self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
 		self.Hive_Import_View = self.Hive_DB + "__" + self.Hive_Table + "__staging_view"
 		self.Hive_History_DB = self.Hive_DB
 		self.Hive_History_Table = self.Hive_Table + "_history"
-#		self.Hive_HistoryTemp_DB = "etl_import_staging"
 		self.Hive_HistoryTemp_DB = importStagingDB
 		self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
-#		self.Hive_Import_PKonly_DB = "etl_import_staging"
 		self.Hive_Import_PKonly_DB = importStagingDB
 		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
-#		self.Hive_Delete_DB = "etl_import_staging"
 		self.Hive_Delete_DB = importStagingDB
 		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
 

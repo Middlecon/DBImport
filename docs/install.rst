@@ -46,8 +46,11 @@ Once created, make sure that the unix permission only enabled the correct users 
 Database Setup
 --------------
 
-As the configuration is all located in a MariaDB database, you need to create this database and then create the required tables. We assume that you have a working MariaDB server as the setup of that is not part of this documentation.
-    Create the configuration database running these commands::
+As the configuration is all located in a MariaDB database, you need to create this database, give the DBImport user the permissions to create tables and then the *setup* tool will create the required tables in that database. We assume that you have a working MariaDB server as the setup of that is not part of this documentation.
+
+.. note:: Due to incombability between MariaDB and SQLAlchemy, MariaDB version 10.2.8 or earlier in the 10.2 series is not supported. Either run 10.1.x or 10.2.9 or newer
+
+Create the configuration schema running this command::
 
         bin/setup --createDB
    
@@ -71,3 +74,14 @@ JDBC Driver location
 In order to connect to a specific database type, the path to the JDBC JAR file must be updated. Inside the *jdbc_connections_drivers* table you will find the supported database types with the JDBC driver name and the classpath data. For a new and fresh installation of DBImport the *classpath* will be 'add path to JAR file'. This is obviously not correct and needs to up update to point to the full path of the jar file that includes the driver specified in the *driver* column. Enter the correct path to your jar file and also make sure that sqoop have these files in its classpath. 
 
 Thats it. DBImport is now installed and ready for usage. If this is your first time working with DBImport, the :doc:`quickstart` guide can help you to get up to speed fast.
+
+
+Upgrading
+--------------------
+
+In order to upgrade DBImport, all files from the source package needs to be replaced with new versions. Many versions also needs a configuration database schema upgrade. To be sure that you are on the last schema for the configuration database, please run the following after upgrading the binary files::
+
+        ./setup --upgradeDB
+
+This command will only upgrade the schema if it's not in the last version. So it's safe to run it even if there are no new schema.
+

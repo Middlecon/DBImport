@@ -559,6 +559,7 @@ class operation(object, metaclass=Singleton):
 #		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 #
 #		for row in self.mysql_cursor.fetchall():
+
 			if result != "":
 				result += ","
 			if row[0] == None:

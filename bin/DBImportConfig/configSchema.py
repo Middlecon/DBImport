@@ -34,6 +34,17 @@ class copyTables(Base):
 
     dbimport_instances = relationship('dbimportInstances')
 
+class copyASyncStatus(Base):
+    __tablename__ = 'copy_async_status'
+    __table_args__ = {'comment': 'The status table for asynchronous copy between DBImport instances.'}
+
+    table_id = Column(Integer, primary_key=True, nullable=False, index=True, comment='Reference to import_table.table_id')
+    hive_db = Column(String(256), nullable=False, comment='Hive Database')
+    hive_table = Column(String(256), nullable=False, comment='Hive Table to copy')
+    destination = Column(String(32), primary_key=True, nullable=False, comment="DBImport instances to copy the imported data to")
+    copy_status = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Status of the copy operation')
+    last_status_update = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment='Last time the server changed progress on this copy')
+
 class airflowCustomDags(Base):
     __tablename__ = 'airflow_custom_dags'
     __table_args__ = {'comment': 'Its possible to construct a DAG that have no import, export or ETL definitions in it, but instead just Tasks from the airflow_task table. That might nbe useful to for example run custom Hive Code after an import is completed as a separate DAG. Defining a DAG in here also requires you to have at least one task in airflow_tasks defined "in main"'}
@@ -648,6 +659,7 @@ class importTables(Base):
     operator_notes = Column(Text, comment='Free text field to write a note about the import. ')
     copy_finished = Column(DateTime, comment='Time when last copy from Master DBImport instance was completed. Dont change manually')
     copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
+    create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
 
 
 class jdbcConnections(Base):
@@ -666,6 +678,7 @@ class jdbcConnections(Base):
     timewindow_start = Column(Time, comment='Start of the time window when we are allowed to run against this connection.')
     timewindow_stop = Column(Time, comment='End of the time window when we are allowed to run against this connection.')
     operator_notes = Column(Text, comment='Free text field to write a note about the connection')
+    create_foreign_keys = Column(TINYINT(4), nullable=False, comment='1 = Create foreign keys, 0 = Dont create foreign keys', server_default=text("'1'"))
 
 
 class jdbcConnectionsDrivers(Base):

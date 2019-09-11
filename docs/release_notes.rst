@@ -1,7 +1,33 @@
 Release Notes
 =============
 
+v0.61
+------------------------------
+
+**Fixed issues**
+
   - Issue #39: Export failes when sqoop timeout against Kafka for Atlas info
+  - Issue #40: Creating Airflow Pools failes when pool table is empy in Airflow
+  - Issue #41: Error when creating DBImport database
+  - Issue #42: Airflow Tasks failes 'In Main' if there is a dependency to a DBImport Task
+  - Issue #44: Importing a table with a column called 'const' is not supported
+  - Issue #45: Retries sometimes failes due to Hive connection
+  - Issue #46: Exporting from a Hive table that doesnt exists gives errors
+  - Issue #47: Get rowcount failes if column for incremental load is a reserved word
+  - Issue #48: Column names containing # fails on column not found
+  - Issue #49: Importing ‘time’ columns from MSSQL fails
+  - Issue #50: SQL Server connection with encryption uses wrong JDBC driver
+  - Issue #51: sqoop_sql_where_statement with validation = query failes with double where statements
+  - Issue #52: column type 'long' in oracle gets wrong column type in Hive
+  - Issue #53: No logging of forced removal of locks 
+  - Issue #54: DB2 clob columns is not mapped to String in sqoop
+  - Issue #55: DB2 import with column type time(3) result in null values
+  - Issue #56: timestamp columns from MSSQL will result in NULL values
+  - Issue #58: merge operations only look at mergeonly override for PK
+
+**Improvments**
+
+  - Foreign Keys can be disabled per table or connection 
 
 v0.60
 ------------------------------

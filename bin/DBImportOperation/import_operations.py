@@ -1294,6 +1294,10 @@ class operation(object, metaclass=Singleton):
 		""" Update the ForeignKeys definition on a Hive Table """
 		logging.debug("Executing import_operations.updateFKonTable()")
 
+		if self.import_config.create_foreign_keys == 0:
+			logging.info("No Foreign Keys will be created for this table as it's disabled in the configuration")
+			return
+
 		foreignKeysFromConfig = self.import_config.getForeignKeysFromConfig()
 		foreignKeysFromHive   = self.common_operations.getForeignKeysFromHive(hiveDB, hiveTable)
 
