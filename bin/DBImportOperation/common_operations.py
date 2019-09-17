@@ -338,8 +338,8 @@ class operation(object, metaclass=Singleton):
 			if quiet == False: logging.info("Connecting to Hive")
 			try:
 				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
-#				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
-				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none', 'hive.server2.session.check.interval': '15m', 'hive.lock.sleep.between.retries': '30s', 'hive.txn.manager.dump.lock.state.on.acquire.timeout': 'true'} )
+				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
+#				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none', 'hive.server2.session.check.interval': '15m', 'hive.lock.sleep.between.retries': '30s', 'hive.txn.manager.dump.lock.state.on.acquire.timeout': 'true'} )
 				# self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name )
 			except Exception as ex:
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
