@@ -15,7 +15,7 @@ To install DBImport, please follow the steps on this page. That will setup DBImp
 
  #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. Please install these python packages::
 
-        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python jaydebeapi pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic
+        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python jaydebeapi pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons
 
 
 Base configuration

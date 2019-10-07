@@ -334,9 +334,9 @@ class config(object, metaclass=Singleton):
 			self.validate_diff_allowed = None
 
 		# Validate that self.incr_mode have a valid configuration if it's not NULL
-		if self.incr_mode != None:
-			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
-				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
+#		if self.incr_mode != None:
+#			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
+#				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
 
 		if self.incr_validation_method != "full" and self.incr_validation_method != "incr":
 			raise invalidConfiguration("Only the values 'full' or 'incr' is valid for column incr_validation_method in import_tables.")
@@ -515,13 +515,16 @@ class config(object, metaclass=Singleton):
 		# Check to see that we have a valid import type
 		# This will only happen if the old 'import_type' column is used. For the import_phase_type we already check if we have a valid combo
 		if self.importPhase == None or self.etlPhase == None:
-			logging.error("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
-			raise Exception
+			raise invalidConfiguration("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 
 
 		# Determine if it's an incremental import based on the importPhase
 		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
 			self.import_is_incremental = True
+			if self.sqoop_incr_column == None:
+				raise invalidConfiguration("An incremental import requires a valid column name specified in 'incr_column'. Please check configuration")
+			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
+				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
 		else:
 			self.import_is_incremental = False
 
@@ -1589,6 +1592,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("ignoreIfOnlyIncrMax = %s"%(ignoreIfOnlyIncrMax))
 		logging.debug("whereForSourceTable = %s"%(whereForSourceTable))
 		logging.debug("whereForSqoop = %s"%(whereForSqoop))
+		logging.debug("sqoopIncrMaxvaluePending = %s"%(self.sqoopIncrMaxvaluePending))
+		logging.debug("sqoop_incr_mode = %s"%(self.sqoop_incr_mode))
+		logging.debug("sqoop_incr_validation_method = %s"%(self.sqoop_incr_validation_method))
+		logging.debug("sqoop_incr_lastvalue = %s"%(self.sqoop_incr_lastvalue))
 
 		whereStatement = None
 
@@ -1678,6 +1685,7 @@ class config(object, metaclass=Singleton):
 	
 				row = self.mysql_cursor01.fetchone()
 				self.sqoopIncrMaxvaluePending = row[0]
+				logging.debug("sqoopIncrMaxvaluePending = %s"%(self.sqoopIncrMaxvaluePending))
 
 			if self.sqoop_incr_mode == "lastmodified":
 				if self.common_config.jdbc_servertype == constant.MSSQL and ( whereForSourceTable == True or whereForSqoop == True ):
@@ -1716,6 +1724,7 @@ class config(object, metaclass=Singleton):
 					else:
 						whereStatement += "and `%s` > %s "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
 			
+			logging.debug("whereStatement = %s"%(whereStatement))
 			if whereStatementSaved == whereStatement and ignoreIfOnlyIncrMax == True:
 				# We have only added the MAX value to there WHERE statement and have a setting to ignore it if that is the only value
 				whereStatement = None
@@ -1954,6 +1963,8 @@ class config(object, metaclass=Singleton):
 		# This is used to validate the Import table if the validation method is full for incremental import
 
 		logging.debug("Executing import_config.validateRowCount()")
+		logging.debug("validateSqoop = %s"%(validateSqoop))
+		logging.debug("incremental = %s"%(incremental))
 		returnValue = None
 
 		if self.validate_import == True:
@@ -2079,6 +2090,7 @@ class config(object, metaclass=Singleton):
 			self.pk_column_override_mergeonly = re.sub(', *', ',', self.pk_column_override_mergeonly.strip())
 			self.pk_column_override_mergeonly = re.sub(' *,', ',', self.pk_column_override_mergeonly)
 			return self.pk_column_override_mergeonly.lower()
+
 		elif self.pk_column_override != None and self.pk_column_override.strip() != "" and PKforMerge == True:
 			logging.debug("Executing import_config.getPKcolumns() - Finished")
 			self.pk_column_override = re.sub(', *', ',', self.pk_column_override.strip())

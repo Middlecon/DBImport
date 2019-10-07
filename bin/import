@@ -99,6 +99,7 @@ def main(argv):
 	skipSqoop = False
 	runImportPhase = False
 	runCopyPhase = False
+	runCopyPhaseByForce = False
 	runETLPhase = False
 	displayVersion = False
 	ignoreTime = False
@@ -148,7 +149,7 @@ def main(argv):
 		printHelp()
 
 	if runImportPhase == False and runETLPhase == False and runCopyPhase == False:
-		# If nothing is specified we run both stages
+		# If nothing is specified we run all stages
 		runImportPhase = True
 		runCopyPhase = True
 		runETLPhase = True
@@ -211,10 +212,10 @@ def main(argv):
 		firstRow = True
 		for dest in copyDestinations:
 			if firstRow == True:
-				print("Copy destinations:        %s"%(dest))
+				print("Copy destinations:        %s"%(dest.replace(';', " - ")))
 				firstRow = False
 			else:
-				print("                          %s"%(dest))
+				print("                          %s"%(dest.replace(';', " - ")))
 
 	print("ETL Phase:                %s"%(etlPhaseDescription))
 #	print("Export Phase:             %s"%("No Export"))
@@ -230,6 +231,30 @@ def main(argv):
 	print("")
 	sys.stdout.flush()
 
+	stage = import_operation.getStage()
+
+	# Check if the configured Hive database exists
+	import_operation.checkHiveDB(Hive_DB.lower())
+
+	if ignoreTime == False:
+#		# Checking if we are allowed to use the configued JDBC connection at this time
+		import_operation.checkTimeWindow()
+
+	if import_operation.import_config.common_config.checkKerberosTicket() == False:
+		logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
+		import_operation.remove_temporary_files()
+		sys.exit(1)
+
+	if resetStage == True:
+		import_operation.setStage(0, force=True)
+		stage = 0
+
+	if copy_operation.isPreviousCopyCompleted() == False and stage < 2099 :
+		logging.error("There is a previous copy that isnt completed yet. This import cant continue until that copy is completed") 
+		import_operation.remove_temporary_files()
+		sys.exit(1)
+
+
 	if ( runImportPhase == True and runETLPhase == False and runCopyPhase == False ) and runOnlyFunction == None:
 		print(" _____________________ ")
 		print("|                     |")
@@ -237,6 +262,8 @@ def main(argv):
 		print("|_____________________|")
 		print("")
 		print("")
+		if stage > 1999:
+			print("Warning: There is already an ongoing import with a stage that already passed the Import stage. Nothing will happen")
 
 	if ( runImportPhase == False and runETLPhase == False  and runCopyPhase == True) and runOnlyFunction == None:
 		print(" ___________________")
@@ -245,9 +272,15 @@ def main(argv):
 		print("|___________________|")
 		print("")
 		print("")
+		if stage > 2999:
+			print("Warning: There is already an ongoing import with a stage that already passed the Copy stage. Nothing will happen")
+		if stage < 2000 and stage != 1049 and stage != 1149 and stage != 1249 and stage != 0:
+			print("Warning: There is already an ongoing import but it havent completed the Import stage yet. Nothing will happen")
 
 		# As we can run copy phase only, we will just keep the stage info in memories for these imports
-		import_operation.setStageOnlyInMemory()
+		if stage == 0:
+			import_operation.setStageOnlyInMemory()
+			runCopyPhaseByForce = True
 
 	if ( runImportPhase == False and runETLPhase == True  and runCopyPhase == False) and runOnlyFunction == None:
 		print(" __________________")
@@ -266,23 +299,6 @@ def main(argv):
 		print("")
 
 		import_operation.setStageOnlyInMemory()
-
-	# Check if the configured Hive database exists
-	import_operation.checkHiveDB(Hive_DB.lower())
-
-	if ignoreTime == False:
-#		# Checking if we are allowed to use the configued JDBC connection at this time
-		import_operation.checkTimeWindow()
-
-	if import_operation.import_config.common_config.checkKerberosTicket() == False:
-		logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
-		import_operation.remove_temporary_files()
-		sys.exit(1)
-
-	stage = import_operation.getStage()
-	if resetStage == True:
-		import_operation.setStage(0, force=True)
-		stage = 0
 
 	if stage > 0 and stage < 1000:
 		# TODO: Remove this once everything is migrated to python version
@@ -469,7 +485,8 @@ def main(argv):
 
 	if slaveTable == False and copyDestinations != None and runCopyPhase == True:
 		# Only run if Import Phase was completed successfully
-		if stage == 1049 or stage == 1149 or stage != 1249:
+		stage = import_operation.getStage()
+		if stage == 1049 or stage == 1149 or stage == 1249 or stage >= 2000 or runCopyPhaseByForce == True:
 			if runOnlyFunction == None or runOnlyFunction == "copyFiles": 
 				if import_operation.runStage(2000) == True: 
 					copy_operation.copyDataToDestinations()
@@ -480,6 +497,9 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				import_operation.setStage(2099)
+
+#	import_operation.remove_temporary_files()
+#	sys.exit(1)
 
 	# ******************************************
 	# * IMPORT_PHASE_FULL & ETL_PHASE_TRUNCATEINSERT

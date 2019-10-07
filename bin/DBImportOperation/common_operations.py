@@ -23,6 +23,7 @@ import time
 import subprocess 
 from reprint import output
 import requests
+import puretransport
 from pyhive import hive
 from pyhive import exc
 from common.Singleton import Singleton
@@ -75,6 +76,10 @@ class operation(object, metaclass=Singleton):
 		self.hive_kerberos_service_name = configuration.get("Hive", "kerberos_service_name")
 		self.hive_kerberos_realm = configuration.get("Hive", "kerberos_realm")
 		self.hive_print_messages = self.common_config.getConfigValue(key = "hive_print_messages")
+		if configuration.get("Hive", "use_ssl").lower() == "true":
+			self.hive_use_ssl = True
+		else:
+			self.hive_use_ssl = False
 
 		self.hive_min_buckets = int(configuration.get("Hive", "min_buckets"))
 		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
@@ -338,9 +343,11 @@ class operation(object, metaclass=Singleton):
 			if quiet == False: logging.info("Connecting to Hive")
 			try:
 				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
-				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
-#				self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none', 'hive.server2.session.check.interval': '15m', 'hive.lock.sleep.between.retries': '30s', 'hive.txn.manager.dump.lock.state.on.acquire.timeout': 'true'} )
-				# self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name )
+				if self.hive_use_ssl == True:
+					transport = puretransport.transport_factory(host=self.hive_hostname, port = self.hive_port, kerberos_service_name = self.hive_kerberos_service_name, use_sasl=True, sasl_auth='GSSAPI', use_ssl=True, username='dummy', password='dummy')
+					self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
+				else:
+					self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
 			except Exception as ex:
 				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
 

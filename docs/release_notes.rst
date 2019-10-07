@@ -1,6 +1,13 @@
 Release Notes
 =============
 
+v0.62
+------------------------------
+
+**New Features**
+
+  - Multi-cluster imports with asynchronous copy mode
+
 v0.61
 ------------------------------
 

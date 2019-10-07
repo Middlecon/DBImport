@@ -44,6 +44,9 @@ class copyASyncStatus(Base):
     destination = Column(String(32), primary_key=True, nullable=False, comment="DBImport instances to copy the imported data to")
     copy_status = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Status of the copy operation')
     last_status_update = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment='Last time the server changed progress on this copy')
+    failures = Column(Integer, server_default=text("'0'"), nullable=False, comment='Number of failures on current state')
+    hdfs_source_path = Column(String(768), nullable=False, comment='HDFS path to copy from')
+    hdfs_target_path = Column(String(768), nullable=False, comment='HDFS path to copy to')
 
 class airflowCustomDags(Base):
     __tablename__ = 'airflow_custom_dags'

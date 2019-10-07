@@ -124,9 +124,10 @@ class operation(object, metaclass=Singleton):
 
 		copyTablesResult = pd.DataFrame(session.query(copyTables.copy_id, copyTables.hive_filter, copyTables.destination, copyTables.data_transfer).all()).fillna('')
 		for index, row in copyTablesResult.iterrows():
-			if row['data_transfer'] == 'Asynchronous':
-				logging.warning("Asynchronous transfer method is NOT supported yet")
-				continue
+			if ';' in row['destination']:
+				logging.error("';' not supported in the Copy Destination name")
+				self.remove_temporary_files()
+				sys.exit(1)
 
 			for hiveFilterSplit in row['hive_filter'].split(';'):
 
@@ -135,10 +136,16 @@ class operation(object, metaclass=Singleton):
 				else:
 					filterDB = hiveFilterSplit.split('.')[0]
 					filterTable = hiveFilterSplit.split('.')[1]
-	
+
 					if fnmatch.fnmatch(hiveDB, filterDB) and fnmatch.fnmatch(hiveTable, filterTable):
-						if row['destination'] not in self.copyDestinations:
-							self.copyDestinations.append(row['destination'])
+						destString = "%s;%s"%(row['destination'], row['data_transfer'])
+						destStringASync = "%s;Asynchronous"%(row['destination'])
+						destStringSync  = "%s;Synchronous"%(row['destination'])
+						if destStringSync in self.copyDestinations and destString == destStringASync:
+							# ASync have priority. So if sync is already in there, we remove it and add async
+							self.copyDestinations.remove(destStringSync)
+						if destStringASync not in self.copyDestinations and destStringSync not in self.copyDestinations:
+							self.copyDestinations.append(destString)
 	
 		if self.copyDestinations == []:
 			self.copyDestinations = None
@@ -215,6 +222,50 @@ class operation(object, metaclass=Singleton):
 
 		return connectStatus
 
+	def isPreviousCopyCompleted(self):
+		""" Returns True or False if the previous copy was completed. Returns True if there is nothing to copy. 
+			If it is a full import, then it will return True if the previous copy have status 0 (not started)."""
+
+		session = self.configDBSession()
+		copyASyncStatus = aliased(configSchema.copyASyncStatus)
+
+		if self.copyDestinations == None:	
+			return True
+
+		ongoingCopy = False
+
+		for destAndMethod in self.copyDestinations:
+			destination = destAndMethod.split(';')[0]
+			method = destAndMethod.split(';')[1]
+
+
+			if self.import_config.import_is_incremental == True:
+				result = (session.query(
+						copyASyncStatus
+					)
+					.filter(copyASyncStatus.table_id == self.import_config.table_id)
+					.filter(copyASyncStatus.destination == destination)
+					.count())
+			else:
+				result = (session.query(
+						copyASyncStatus
+					)
+					.filter(copyASyncStatus.table_id == self.import_config.table_id)
+					.filter(copyASyncStatus.destination == destination)
+					.filter(copyASyncStatus.copy_status > 0)
+					.count())
+
+			if result > 0:
+				ongoingCopy = True
+
+		session.close()
+
+		if ongoingCopy == True:
+			return False
+		else:
+			return True
+
+
 	def copyDataToDestinations(self):
 		session = self.configDBSession()
 
@@ -225,58 +276,134 @@ class operation(object, metaclass=Singleton):
 			logging.warning("There are no destination for this table to receive a copy")
 			return
 
-		for destination in self.copyDestinations:
-			if self.connectDBImportInstance(instance = destination):
-				logging.info("Copy HDFS data to instance '%s'"%(destination))
+		for destAndMethod in self.copyDestinations:
+			destination = destAndMethod.split(';')[0]
+			method = destAndMethod.split(';')[1]
 
-				dbimportInstances = aliased(configSchema.dbimportInstances)
+			# Calculate the source and target HDFS directories
+			dbimportInstances = aliased(configSchema.dbimportInstances)
+	
+			row = (session.query(
+					dbimportInstances.hdfs_address,
+					dbimportInstances.hdfs_basedir
+				)
+				.filter(dbimportInstances.name == destination)
+				.one())
+		
+			targetHDFSaddress = row[0]
+			targetHDFSbasedir = row[1]
 
-				row = (session.query(
-						dbimportInstances.hdfs_address,
-						dbimportInstances.hdfs_basedir
+			sourceHDFSdir = (sourceHDFSbasedir + "/"+ self.Hive_DB + "/" + self.Hive_Table).replace('$', '').replace(' ', '')
+			targetHDFSdir = (targetHDFSbasedir + "/"+ self.Hive_DB + "/" + self.Hive_Table).replace('$', '').replace(' ', '')
+
+			if method == "Asynchronous":
+				copyASyncStatus = aliased(configSchema.copyASyncStatus)
+
+				result = (session.query(
+						copyASyncStatus
 					)
-					.filter(dbimportInstances.name == destination)
-					.one())
+					.filter(copyASyncStatus.table_id == self.import_config.table_id)
+					.filter(copyASyncStatus.destination == destination)
+					.count())
 
-				targetHDFSaddress = row[0]
-				targetHDFSbasedir = row[1]
+				if result == 0:
+					# No current copy ongoing for this table. Just insert it into the table
+					newcopyASyncStatus = configSchema.copyASyncStatus(
+						table_id = self.import_config.table_id,
+						hive_db = self.import_config.Hive_DB,
+						hive_table = self.import_config.Hive_Table,
+						destination = destination,
+						hdfs_source_path = "%s%s"%(sourceHDFSaddress, sourceHDFSdir),
+						hdfs_target_path = "%s%s"%(targetHDFSaddress, targetHDFSdir),
+						copy_status = 0)
+					session.add(newcopyASyncStatus)
+					session.commit()
+					logging.info("DBImport server was notified about asynchronous copy of imported data to '%s'"%(destination))
+				else:
+					# This table is already scheduled for ASync copy to another cluster
+					# If it is a full import without history, it's ok to overwrite if it havent started
+					# If not, we need to exit here to make sure that the other cluster first process the data before we 
+					# write new data to it.
+					
+					if self.import_config.import_is_incremental == True:
+						logging.error("This is an incremental import and the previous copy to the other cluster is not finnished yet.")
+						logging.error("Make sure that the other cluster received the data before you make a new copy")
+						self.remove_temporary_files()
+						sys.exit(1)
 
-				sourceHDFSdir = (sourceHDFSbasedir + "/"+ self.Hive_DB + "/" + self.Hive_Table).replace('$', '').replace(' ', '')
-				targetHDFSdir = (targetHDFSbasedir + "/"+ self.Hive_DB + "/" + self.Hive_Table).replace('$', '').replace(' ', '')
+					if self.import_config.import_with_history_table == True:
+						logging.error("This is an import that will create a history table and the previous copy to the other cluster")
+						logging.error("is not finnished yet. Make sure that the other cluster received the data before you make a new copy")
+						self.remove_temporary_files()
+						sys.exit(1)
 
-				distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
-					"%s%s"%(sourceHDFSaddress, sourceHDFSdir),
-					"%s%s"%(targetHDFSaddress, targetHDFSdir)]
+					# If we passed the two tests above, it means that this is not an incremental or history table that we are going to copy
+					# If the copy havent started yet (copy_status = 0), we can just overwrite it. Otherwise we have to wait until the copy
+					# is completed
 
-				print(" ______________________ ")
-				print("|                      |")
-				print("| Hadoop distCp starts |")
-				print("|______________________|")
-				print("")
+					result = (session.query(
+							copyASyncStatus
+						)
+						.filter(copyASyncStatus.table_id == self.import_config.table_id)
+						.filter(copyASyncStatus.destination == destination)
+						.filter(copyASyncStatus.copy_status > 0)
+						.count())
+
+					if result == 0:
+						updateDict = {}
+						updateDict["last_status_update"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
+						updateDict["hdfs_source_path"] = "%s%s"%(sourceHDFSaddress, sourceHDFSdir)
+						updateDict["hdfs_target_path"] = "%s%s"%(targetHDFSaddress, targetHDFSdir)
+
+						# Update the date in copyASyncStatus table
+						(session.query(configSchema.copyASyncStatus)
+							.filter(configSchema.copyASyncStatus.table_id == self.import_config.table_id)
+							.filter(configSchema.copyASyncStatus.destination == destination)
+							.update(updateDict))
+						session.commit()
+						logging.info("DBImport server was notified about asynchronous copy of imported data to '%s'"%(destination))
+					else:
+						logging.error("There is an ongoing copy of this table to destination '%s'. Please wait until that copy is finished and try again"%(destination))
+						self.remove_temporary_files()
+						sys.exit(1)
+
+			else:
+				if self.connectDBImportInstance(instance = destination):
+					logging.info("Copy HDFS data to instance '%s'"%(destination))
+	
+					distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
+						"%s%s"%(sourceHDFSaddress, sourceHDFSdir),
+						"%s%s"%(targetHDFSaddress, targetHDFSdir)]
+
+					print(" ______________________ ")
+					print("|                      |")
+					print("| Hadoop distCp starts |")
+					print("|______________________|")
+					print("")
 
 
-				# Start distcp
-				sh_session = subprocess.Popen(distcpCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+					# Start distcp
+					sh_session = subprocess.Popen(distcpCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-				# Print Stdout and stderr while distcp is running
-				while sh_session.poll() == None:
-					row = sh_session.stdout.readline().decode('utf-8').rstrip()
-					if row != "":
-						print(row)
-						sys.stdout.flush()
+					# Print Stdout and stderr while distcp is running
+					while sh_session.poll() == None:
+						row = sh_session.stdout.readline().decode('utf-8').rstrip()
+						if row != "":
+							print(row)
+							sys.stdout.flush()
 
-				# Print what is left in output after distcp is finished
-				for row in sh_session.stdout.readlines():
-					row = row.decode('utf-8').rstrip()
-					if row != "":
-						print(row)
-						sys.stdout.flush()
+					# Print what is left in output after distcp is finished
+					for row in sh_session.stdout.readlines():
+						row = row.decode('utf-8').rstrip()
+						if row != "":
+							print(row)
+							sys.stdout.flush()
 
-				print(" _________________________ ")
-				print("|                         |")
-				print("| Hadoop distCp completed |")
-				print("|_________________________|")
-				print("")
+					print(" _________________________ ")
+					print("|                         |")
+					print("| Hadoop distCp completed |")
+					print("|_________________________|")
+					print("")
 
 	def copySchemaToDestinations(self):
 		""" Copy the schema definitions to the target instances """
@@ -286,7 +413,9 @@ class operation(object, metaclass=Singleton):
 			logging.warning("There are no destination for this table to receive a copy")
 			return
 
-		for destination in self.copyDestinations:
+		for destAndMethod in self.copyDestinations:
+			destination = destAndMethod.split(';')[0]
+			method = destAndMethod.split(';')[1]
 			if self.connectDBImportInstance(instance = destination):
 				logging.info("Copy schema definitions to instance '%s'"%(destination))
 				remoteSession = self.instanceConfigDBSession()
@@ -305,10 +434,11 @@ class operation(object, metaclass=Singleton):
 					.count())
 
 				if result == 0:
+					# Table does not exist in target system. Lets create a skeleton record
 					newImportTable = configSchema.importTables(
 						hive_db = self.import_config.Hive_DB,
 						hive_table = self.import_config.Hive_Table,
-						dbalias = '',
+						dbalias = self.import_config.connection_alias,
 						source_schema = '',
 						source_table = '')
 					remoteSession.add(newImportTable)
@@ -316,7 +446,8 @@ class operation(object, metaclass=Singleton):
 
 				# Get the table_id from the table at the remote instance
 				remoteImportTableID = (remoteSession.query(
-						importTables.table_id
+						importTables.table_id,
+						importTables.dbalias
 					)
 					.select_from(importTables)
 					.filter(importTables.hive_db == self.import_config.Hive_DB)
@@ -324,42 +455,8 @@ class operation(object, metaclass=Singleton):
 					.one())
 
 				remoteTableID =	remoteImportTableID[0]
+				jdbcConnection = remoteImportTableID[1]
 
-				# Read the entire import_table row from the source database
-				sourceTableDefinition = pd.DataFrame(localSession.query(configSchema.importTables.__table__)
-					.filter(configSchema.importTables.table_id == self.import_config.table_id)
-					)
-
-				# Table to update with values from import_table source
-				remoteTableDefinition = (remoteSession.query(configSchema.importTables.__table__)
-					.filter(configSchema.importTables.table_id == remoteTableID)
-					.one()
-					)
-
-				# Create dictonary to be used to update the values in import_table on the remote Instance
-				updateDict = {}
-				jdbcConnection = ""
-				for name, values in sourceTableDefinition.iteritems():
-					if name in ("table_id", "hive_db", "hive_table", "copy_finished", "copy_slave"):
-						continue
-
-					value = str(values[0])
-					if value == "None":
-						value = None
-
-					if name == "dbalias":
-						jdbcConnection = value
-
-					updateDict["%s"%(name)] = value 
-				updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
-				updateDict["copy_slave"] = 1
-
-
-				# Update the values in import_table on the remote instance
-				(remoteSession.query(configSchema.importTables)
-					.filter(configSchema.importTables.table_id == remoteTableID)
-					.update(updateDict))
-				remoteSession.commit()
 
 				##################################
 				# Update jdbc_connections
@@ -482,12 +579,46 @@ class operation(object, metaclass=Singleton):
 						.update(updateDict))
 					remoteSession.commit()
 
-#					# Table to update with values from import_table source
-#					remoteTableDefinition = (remoteSession.query(configSchema.importTables.__table__)
-#						.filter(configSchema.importTables.table_id == remoteTableID)
-#						.one()
-#						)
-#					print(remoteColumnID)
+
+				##################################
+				# Update import_tables
+				##################################
+
+				# Read the entire import_table row from the source database
+				sourceTableDefinition = pd.DataFrame(localSession.query(configSchema.importTables.__table__)
+					.filter(configSchema.importTables.table_id == self.import_config.table_id)
+					)
+
+				# Table to update with values from import_table source
+				remoteTableDefinition = (remoteSession.query(configSchema.importTables.__table__)
+					.filter(configSchema.importTables.table_id == remoteTableID)
+					.one()
+					)
+
+				# Create dictonary to be used to update the values in import_table on the remote Instance
+				updateDict = {}
+				jdbcConnection = ""
+				for name, values in sourceTableDefinition.iteritems():
+					if name in ("table_id", "hive_db", "hive_table", "copy_finished", "copy_slave"):
+						continue
+
+					value = str(values[0])
+					if value == "None":
+						value = None
+
+					updateDict["%s"%(name)] = value 
+				if method == "Synchronous":
+					updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
+				else:
+					updateDict["copy_finished"] = None
+				updateDict["copy_slave"] = 1
+
+
+				# Update the values in import_table on the remote instance
+				(remoteSession.query(configSchema.importTables)
+					.filter(configSchema.importTables.table_id == remoteTableID)
+					.update(updateDict))
+				remoteSession.commit()
 
 			else:
 				logging.warning("Connection failed! No data will be copied to instance '%s'"%(destination))

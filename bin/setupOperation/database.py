@@ -468,7 +468,7 @@ class initialize(object):
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hdfs_basedir', 
 				valueStr='/apps/dbimport', 
-				description='The HDFS blocksize in bytes. Can usually be found in /etc/hadoop/conf/hdfs-site.xml (search for dfs.blocksize)')
+				description='The base dir to write data to. Example /apps/dbimport')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'sqoop_import_default_mappers').any() == False:

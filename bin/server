@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+#!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import os
+import time
+import sys
+import getopt
+import logging
+import psutil
+from common import constants as constant
+from ConfigReader import configuration
+from Server import daemon
+
+
+def printHelp():
+	print ("Usage: ./server <action> <options>")
+	print ("Actions:")
+	print ("  start              Start the DBImport server")
+	print ("  stop               Stop the DBImport server")
+	print ("  restart            Restart the DBImport server")
+	print ("  status             Check status of DBImport server")
+	print ("")
+	print ("Options:")
+	print ("  --help             Show this help message and exit")
+	print ("  -v, --debug        Turn on extensive debug output.")
+	print ("  -V, --version      Displays the version of DBImport")
+	sys.exit(1)
+
+def main(argv):
+
+	if argv == []:
+		printHelp()
+
+	try:
+		action = sys.argv[1]
+		opts, args = getopt.getopt(argv[1:], "vVh", ["version", "help", "debug"])
+	except getopt.GetoptError:
+		printHelp()
+
+	loggingLevel = logging.INFO
+	displayVersion = False
+
+	for opt, arg in opts:
+		if opt in ("-h", "--help"):
+			printHelp()
+		elif opt in ("-V", "--version"):
+			displayVersion = True
+		elif opt in ("-v", "--debug"):
+			loggingLevel = logging.DEBUG
+
+	if displayVersion == True:
+		print("DBImport version: %s"%(constant.VERSION))
+		sys.exit(0)
+
+	logfile = configuration.get("Server", "logfile")
+	pidfile = configuration.get("Server", "pidfile")
+
+	# Initiate the logging functions with the correct level
+	if loggingLevel == logging.DEBUG:
+		logging.basicConfig(filename=logfile, format='%(asctime)s %(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+	else:
+		logging.basicConfig(filename=logfile, format='%(asctime)s %(levelname)s - %(message)s', level=loggingLevel)
+
+	d = daemon.serverDaemon(pidfile=pidfile)
+
+	if action == "start":
+		d.start()
+	elif action == "stop":
+		d.stop()
+	elif action == "restart":
+		d.restart()
+	elif action == "status":
+		if os.path.isfile(pidfile):
+			f = open(pidfile, "r")
+			pid=int(f.readline().strip())
+			f.close
+
+			if psutil.pid_exists(pid):
+				print("DBImport Server is running with pid %s"%(pid))
+				sys.exit(0)
+			else:
+				print("DBImport Server is not running")
+				sys.exit(1)
+		else:
+			print("DBImport Server is not running")
+			sys.exit(1)
+	else:
+		printHelp()
+
+
+if __name__ == "__main__":
+	try:
+		main(sys.argv[1:])
+	except getopt.GetoptError:
+		printHelp()
+

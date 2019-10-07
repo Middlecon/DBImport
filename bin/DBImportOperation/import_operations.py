@@ -193,8 +193,10 @@ class operation(object, metaclass=Singleton):
 			if whereStatement == None and self.import_config.importPhase == constant.IMPORT_PHASE_FULL and self.import_config.etlPhase == constant.ETL_PHASE_INSERT:
 				whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
 
+			logging.debug("whereStatement: %s"%(whereStatement))
 			targetTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_DB, self.import_config.Hive_Table, whereStatement=whereStatement)
 			self.import_config.saveHiveTableRowCount(targetTableRowCount)
+
 		except:
 			logging.exception("Fatal error when reading Hive table row count")
 			self.import_config.remove_temporary_files()
@@ -209,6 +211,7 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 	def validateRowCount(self):
+		logging.debug("Executing import_operations.validateRowCount()")
 		try:
 			validateResult = self.import_config.validateRowCount() 
 		except:
@@ -221,6 +224,7 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 	def validateSqoopRowCount(self):
+		logging.debug("Executing import_operations.validateSqoopRowCount()")
 		try:
 			validateResult = self.import_config.validateRowCount(validateSqoop=True) 
 		except:
@@ -233,8 +237,8 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 	def validateIncrRowCount(self):
+		logging.debug("Executing import_operations.validateIncrRowCount()")
 		try:
-#			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=True) 
 			validateResult = self.import_config.validateRowCount(validateSqoop=False, incremental=True) 
 		except:
 			logging.exception("Fatal error when validating imported incremental rows")
@@ -912,12 +916,12 @@ class operation(object, metaclass=Singleton):
 			query += "CLUSTERED BY ("
 			firstColumn = True
 
-			if self.import_config.getPKcolumns() == None:
+			if self.import_config.getPKcolumns(PKforMerge = True) == None:		# To look at both pk_column_override and pk_override_merge_only 
 				logging.error("There is no Primary Key for this table. Please add one in source system or in 'pk_column_override'")
 				self.import_config.remove_temporary_files()
 				sys.exit(1)
 
-			for column in self.import_config.getPKcolumns().split(","):
+			for column in self.import_config.getPKcolumns(PKforMerge = True).split(","):
 				if firstColumn == False:
 					query += ", " 
 				query += "`" + column + "`" 
@@ -1451,10 +1455,12 @@ class operation(object, metaclass=Singleton):
 				(dt, micro) = maxValue.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
 				maxValue = "%s.%03d" % (dt, int(micro) / 1000)
 			else:
-				maxValue = int(maxValue)
+				if maxValue != None:
+					maxValue = int(maxValue)
 
-			self.import_config.resetSqoopStatistics(maxValue)
-			self.import_config.clearStage()
+			if maxValue != None:
+				self.import_config.resetSqoopStatistics(maxValue)
+				self.import_config.clearStage()
 		else:
 			logging.error("This is not an incremental import. Nothing to repair.")
 			self.import_config.remove_temporary_files()
