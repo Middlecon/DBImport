@@ -1,12 +1,32 @@
 Release Notes
 =============
 
+v0.63
+------------------------------
+
+**Fixed issues**
+  - Issue #60: Export tries to alter column types FLOAT(*)
+
+**Improvments**
+
+  - Better description of parameters in *manage* command
+
+**Changed behavior**
+
+  - Kerberos ticket is created and handled by DBImport internally. No need to have a valid ticket before start anymore
+
+**New Features**
+
+  - Dedicated *copy* command
+  - Sqoop column type can be overridden with setting in import_columns
+
 v0.62
 ------------------------------
 
 **New Features**
 
   - Multi-cluster imports with asynchronous copy mode
+  - DBImport server daemon. This is the service that handles asynchronous copy of data between clusters
 
 v0.61
 ------------------------------

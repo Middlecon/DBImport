@@ -84,7 +84,10 @@ class operation(object, metaclass=Singleton):
 				self.export_config.remove_temporary_files()
 				sys.exit(1)
 			except:
-				self.export_config.remove_temporary_files()
+				try:
+					self.export_config.remove_temporary_files()
+				except:
+					pass
 				raise
 				sys.exit(1)
 

@@ -493,7 +493,7 @@ def main(argv):
 
 			if runOnlyFunction == None or runOnlyFunction == "copySchema": 
 				if import_operation.runStage(2001) == True: 
-					copy_operation.copySchemaToDestinations()
+					copy_operation.copyImportSchemaToDestinations()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(2099)

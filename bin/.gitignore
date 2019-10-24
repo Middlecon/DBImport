@@ -1,2 +1,4 @@
 *.pyc
 *.swp
+dbimport_server.log
+dbimport_server.pid

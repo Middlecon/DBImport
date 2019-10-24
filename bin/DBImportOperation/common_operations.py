@@ -21,6 +21,7 @@ import sys
 import logging
 import time 
 import subprocess 
+import re
 from reprint import output
 import requests
 import puretransport
@@ -392,13 +393,20 @@ class operation(object, metaclass=Singleton):
 		# Read and print the output from the async Hive query
 		result_df = None
 		firstOutputLine = True
+		errorsFound = False
 		linesToJumpUp = 0
 		while status in (TOperationState.INITIALIZED_STATE, TOperationState.RUNNING_STATE):
 			# If the user configured to print the logs, we do it here
 			logs = self.hive_cursor.fetch_logs()
-			if self.hive_print_messages == True:
-				for message in logs:
+			for message in logs:
+				if self.hive_print_messages == True:
 					print(message)
+
+				if re.search('^ERROR ', message):	
+					logging.error("An ERROR occured in the Hive execution")
+					logging.error(message)
+					self.hive_print_messages = True		# Turn on logging if there is an error
+					errorsFound = True
 
 			# Print the progress of the query
 			for row in self.hive_cursor.poll().progressUpdateResponse.rows:
@@ -447,7 +455,6 @@ class operation(object, metaclass=Singleton):
 
 		# If the user configured to print the logs, we do it here
 		logs = self.hive_cursor.fetch_logs()
-		errorsFound = False
 		if self.hive_print_messages == True:
 			for message in logs:
 				print(message)
@@ -478,10 +485,14 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.executeHiveQuery() - Finished")
 		return result_df
 
-	def executeBeelineScript(self, hiveScriptFile):
+	def executeBeelineScript(self, hiveScriptFile, useDB=None):
 		logging.debug("Executing common_operations.executeBeelineScript()")
 
-		beelineConnectStr = "jdbc:hive2://%s:%s/;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+		if useDB == None:
+			useDB=""
+			
+		beelineConnectStr = "jdbc:hive2://%s:%s/%s;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, useDB, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+		logging.debug("JDBC Connection String: %s"%(beelineConnectStr))
 
 		beelineCommand = ["beeline", "--silent=true", "-u", beelineConnectStr, "-f", hiveScriptFile]
 
@@ -657,58 +668,20 @@ class operation(object, metaclass=Singleton):
 					KEY.CONSTRAINT_NAME.label("fk_name")
 				)
 				.select_from(KEY)
-				.join(TBLS_TC, KEY.TBLS_CHILD)
-				.join(TBLS_TP, KEY.TBLS_PARENT)
-				.join(COLUMNS_CC, (COLUMNS_CC.CD_ID == KEY.CHILD_CD_ID) & (COLUMNS_CC.INTEGER_IDX == KEY.CHILD_INTEGER_IDX))
-				.join(COLUMNS_CP, (COLUMNS_CP.CD_ID == KEY.PARENT_CD_ID) & (COLUMNS_CP.INTEGER_IDX == KEY.PARENT_INTEGER_IDX))
-				.join(DBS_DC)
-				.join(DBS_DP)
+				.join(TBLS_TC, KEY.TBLS_CHILD, isouter=True)
+				.join(TBLS_TP, KEY.TBLS_PARENT, isouter=True)
+				.join(COLUMNS_CP, (COLUMNS_CP.CD_ID == KEY.PARENT_CD_ID) & (COLUMNS_CP.INTEGER_IDX == KEY.PARENT_INTEGER_IDX), isouter=True)
+				.join(COLUMNS_CC, (COLUMNS_CC.CD_ID == KEY.CHILD_CD_ID) & (COLUMNS_CC.INTEGER_IDX == KEY.CHILD_INTEGER_IDX), isouter=True)
+				.join(DBS_DC, isouter=True)
+				.join(DBS_DP, isouter=True)
 				.filter(KEY.CONSTRAINT_TYPE == 1)
-				.filter(TBLS_TC.TBL_NAME == hiveTable)
 				.filter(DBS_DC.NAME == hiveDB)
+				.filter(TBLS_TC.TBL_NAME == hiveTable)
 				.order_by(KEY.POSITION)
 				.all()).fillna('')
 
 		if len(result_df) == 0:
 			return pd.DataFrame(columns=['fk_name', 'source_hive_db', 'source_hive_table', 'ref_hive_db', 'ref_hive_table', 'source_column_name', 'ref_column_name'])
-
-#		query  = "select " 
-#		query += "   coalesce(k.POSITION, '') as fk_index, "
-#		query += "   coalesce(dc.NAME, '') as source_hive_db, "
-#		query += "   coalesce(tc.TBL_NAME, '') as source_hive_table, " 
-#		query += "   coalesce(dp.NAME, '') as ref_hive_db, "
-#		query += "   coalesce(tp.TBL_NAME, '') as ref_hive_table, " 
-#		query += "   coalesce(cc.COLUMN_NAME, '') as source_column_name, "
-#		query += "   coalesce(cp.COLUMN_NAME, '') as ref_column_name, "
-#		query += "   coalesce(k.CONSTRAINT_NAME, '') as fk_name "
-#		query += "from KEY_CONSTRAINTS k "
-#		query += "   left join TBLS tp on k.PARENT_TBL_ID = tp.TBL_ID "
-#		query += "   left join TBLS tc on k.CHILD_TBL_ID = tc.TBL_ID "
-#		query += "   left join COLUMNS_V2 cp on k.PARENT_CD_ID = cp.CD_ID and k.PARENT_INTEGER_IDX = cp.INTEGER_IDX "
-#		query += "   left join COLUMNS_V2 cc on k.CHILD_CD_ID = cc.CD_ID and k.CHILD_INTEGER_IDX = cc.INTEGER_IDX "
-#		query += "   left join DBS dc on tc.DB_ID = dc.DB_ID "
-#		query += "   left join DBS dp on tp.DB_ID = dp.DB_ID "
-#		query += "where k.CONSTRAINT_TYPE = 1 and dc.NAME = %s and tc.TBL_NAME = %s "
-#		query += "order by k.POSITION"
-#
-#		self.mysql_cursor.execute(query, (hiveDB, hiveTable ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		if self.mysql_cursor.rowcount == 0:
-#			return pd.DataFrame(columns=['fk_name', 'source_hive_db', 'source_hive_table', 'ref_hive_db', 'ref_hive_table', 'source_column_name', 'ref_column_name'])
-#
-#		result_df = pd.DataFrame(self.mysql_cursor.fetchall())
-#		print(result_df)
-#
-#		# Set the correct column namnes in the DataFrame
-#		result_df_columns = []
-#		for columns in self.mysql_cursor.description:
-#			result_df_columns.append(columns[0])    # Name of the column is in the first position
-#		result_df.columns = result_df_columns
-
-#		print(result_df)
-#		self.common_config.remove_temporary_files()
-#		sys.exit(1)
 
 		result_df = (result_df.groupby(by=['fk_name', 'source_hive_db', 'source_hive_table', 'ref_hive_db', 'ref_hive_table'] )
 			.aggregate({'source_column_name': lambda a: ",".join(a),
@@ -960,21 +933,6 @@ class operation(object, metaclass=Singleton):
 			.filter(DBS.NAME == hiveDB)
 			.one_or_none())
 
-		print("DB: %s"%(hiveDB))
-		print("Table: %s"%(hiveTable))
-#		print(row)
-#
-#		query  = "select t.TBL_TYPE "
-#		query += "from TBLS t "
-#		query += "	left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where "
-#		query += "	d.NAME = %s "
-#		query += "	and t.TBL_NAME = %s "
-#
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#		row = self.mysql_cursor.fetchone()
-		
 		returnValue = False
 
 		if row[0] == "VIRTUAL_VIEW":

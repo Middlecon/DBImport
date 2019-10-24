@@ -1304,7 +1304,7 @@ class operation(object, metaclass=Singleton):
 
 		foreignKeysFromConfig = self.import_config.getForeignKeysFromConfig()
 		foreignKeysFromHive   = self.common_operations.getForeignKeysFromHive(hiveDB, hiveTable)
-
+	
 		if foreignKeysFromConfig.empty == True and foreignKeysFromHive.empty == True:
 			logging.info("No Foreign Keys informaton exists for this table")
 			return
@@ -1322,7 +1322,12 @@ class operation(object, metaclass=Singleton):
 
 				logging.info("Dropping FK in Hive as it doesnt match the FK's in DBImport config database")
 				query = "alter table `%s`.`%s` drop constraint %s"%(hiveDB, hiveTable, row['fk_name'])
-				self.common_operations.executeHiveQuery(query)
+				try:
+					self.common_operations.executeHiveQuery(query)
+				except Exception as ex:
+					logging.error(ex)
+					logging.error("There was a problem when dropping FK. Will stop trying to drop the rest of the FK's on this table")
+					break
 					
 							
 			for index, row in foreignKeysDiff.loc[foreignKeysDiff['Exist'] == 'left_only'].iterrows():
@@ -1346,7 +1351,13 @@ class operation(object, metaclass=Singleton):
 					query += ") DISABLE NOVALIDATE RELY"
 	
 					logging.info("Creating FK in Hive as it doesnt exist")
-					self.common_operations.executeHiveQuery(query)
+					
+					try:
+						self.common_operations.executeHiveQuery(query)
+					except Exception as ex:
+						logging.error(ex)
+						logging.error("There was a problem when creating FK. Will stop trying to create the rest of the FK's on this table")
+						break
 
 			self.common_operations.reconnectHiveMetaStore()
 
@@ -1486,3 +1497,23 @@ class operation(object, metaclass=Singleton):
 			logging.info("\n\u001b[32mNo incremental tables found that could be repaired\u001b[0m\n")
 
 		logging.debug("Executing import_operations.repairAllIncrementalImports() - Finished")
+
+
+	def concatenateTable(self, hiveDB=None, hiveTable=None):
+		""" Execute a concatenate table on the specified table, or what is already set in the class """
+		logging.debug("Executing import_operations.concatenateTable()")
+
+		self.connectToHive(forceSkipTest=True)
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		hdfsBlocksize = int(self.import_config.common_config.getConfigValue(key = "hdfs_blocksize"))
+		query = "set mapreduce.input.fileinputformat.split.minsize=%s"%(hdfsBlocksize)
+		self.common_operations.executeHiveQuery(query)
+
+		query = "alter table `%s`.`%s` concatenate"%(hiveDB, hiveTable)
+		self.common_operations.executeHiveQuery(query)
+
+		logging.debug("Executing import_operations.concatenateTable() - Finished")
+

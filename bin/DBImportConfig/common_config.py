@@ -87,6 +87,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_oracle_sid = None
 		self.jdbc_oracle_servicename = None
 		self.jdbc_force_column_lowercase = None
+		self.kerberosInitiated = False
 
 		self.sourceSchema = None
 
@@ -101,6 +102,9 @@ class config(object, metaclass=Singleton):
 		self.debugLogLevel = False
 		if logging.root.level == 10:        # DEBUG
 			self.debugLogLevel = True
+
+		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
+		self.kerberosKeytab = configuration.get("Kerberos", "keytab")
 
 		self.crypto = decryption.crypto()
 		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
@@ -196,6 +200,13 @@ class config(object, metaclass=Singleton):
 		return self.mysql_conn
 
 	def remove_temporary_files(self):
+
+		# Remove the kerberos ticket file
+		if self.kerberosInitiated == True:
+			klistCommandList = ['kdestroy']
+			klistProc = subprocess.Popen(klistCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			stdOut, stdErr = klistProc.communicate()
+
 		# We add this check just to make sure that self.tempdir contains a valid path and that no exception forces us to remove example /
 		if len(self.tempdir) > 13 and self.tempdir.startswith( '/tmp/' ):
 			try:
@@ -278,29 +289,34 @@ class config(object, metaclass=Singleton):
 	def checkKerberosTicket(self):
 		""" Checks if there is a valid kerberos ticket or not. Runst 'klist -s' and checks the exitCode. Returns True or False """
 		logging.debug("Executing common_config.checkKerberosTicket()")
+
+		os.environ["KRB5CCNAME"] = "FILE:/tmp/krb5cc_%s_%s"%(os.getuid(), os.getpid())
+
+		if self.kerberosPrincipal == "" or self.kerberosKeytab == "":
+			logging.error("The kerberos information is not correct in configuration file.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		logging.info("Initialize Kerberos ticket")
+		self.kerberosInitiated = True
+
+		kinitCommandList = ['kinit', '-kt', self.kerberosKeytab, self.kerberosPrincipal]
+		kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = kinitProc.communicate()
+		stdOut = stdOut.decode('utf-8').rstrip()
+		stdErr = stdErr.decode('utf-8').rstrip()
+
 		klistCommandList = ['klist', '-s']
 		klistProc = subprocess.Popen(klistCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdOut, stdErr = klistProc.communicate()
-#		stdOut = stdOut.decode('utf-8').rstrip()
-#		stdErr = stdErr.decode('utf-8').rstrip()
-		
+		stdOut = stdOut.decode('utf-8').rstrip()
+		stdErr = stdErr.decode('utf-8').rstrip()
+
 		if klistProc.returncode == 0:
 			return True
 		else:
 			return False
-#
-#           refStdOutText = "Deleted %s"%(self.import_config.sqoop_hdfs_location)
-#           refStdErrText = "No such file or directory"
-#
-#           if refStdOutText not in stdOut and refStdErrText not in stdErr:
-#               logging.error("There was an error deleting the target HDFS directory (%s)"%(self.import_config.sqoop_hdfs_location))
-#               logging.error("Please check the status of that directory and try again")
-#               logging.debug("StdOut: %s"%(stdOut))
-#               logging.debug("StdErr: %s"%(stdErr))
-#               self.import_config.remove_temporary_files()
-#               sys.exit(1)
-##      if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-##          whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, whereForSourceTable=True)
+
 		logging.debug("Executing common_config.checkKerberosTicket() - Finished")
 
 
@@ -332,6 +348,9 @@ class config(object, metaclass=Singleton):
 		row = self.mysql_cursor.fetchone()
 		driver = row[0]
 		classPath = row[1]
+
+		if classPath == "add path to JAR file" or not classPath.startswith("/"):
+			raise invalidConfiguration("Error: You need to specify the full path to the JAR files in the table 'jdbc_connections_drivers'")
 
 		logging.debug("Executing common_config.getJDBCDriverConfig() - Finished")
 		return driver, classPath

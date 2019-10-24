@@ -26,6 +26,8 @@ import Crypto
 import binascii
 from subprocess import Popen, PIPE
 from ConfigReader import configuration
+from common.Singleton import Singleton
+from common.Exceptions import *
 import mysql.connector
 from mysql.connector import errorcode
 from common.Singleton import Singleton
@@ -47,13 +49,13 @@ from sqlalchemy.orm import aliased, sessionmaker, Query
 
 class operation(object, metaclass=Singleton):
 	def __init__(self):
-		logging.debug("Executing etl_operations.__init__()")
+		logging.debug("Executing copy_operations.__init__()")
 		self.Hive_DB = None
 		self.Hive_Table = None
 		self.startDate = None
 		self.configDBSession = None
-		self.instanceConfigDB = None
-		self.instanceConfigDBSession = None
+		self.remoteInstanceConfigDBEngine = None
+		self.remoteInstanceConfigDBSession = None
 		self.copyDestinations = None
 
 		self.common_operations = common_operations.operation()
@@ -63,12 +65,12 @@ class operation(object, metaclass=Singleton):
 		self.Hive_Table = self.common_operations.Hive_Table
 		self.startDate = self.import_config.startDate
 
-		logging.debug("Executing etl_operations.__init__() - Finished")
-
 		self.import_config.common_config.connectSQLAlchemy()
 		self.configDBSession = self.import_config.common_config.configDBSession
 		self.crypto = self.import_config.common_config.crypto
 		self.debugLogLevel = self.import_config.common_config.debugLogLevel
+
+		logging.debug("Executing copy_operations.__init__() - Finished")
 		
 	def remove_temporary_files(self):
 		self.import_config.remove_temporary_files()
@@ -152,7 +154,7 @@ class operation(object, metaclass=Singleton):
 		return self.copyDestinations
 
 
-	def connectDBImportInstance(self, instance):
+	def connectRemoteDBImportInstance(self, instance):
 		""" Connects to the configuration database with SQLAlchemy """
 
 		connectStatus = True
@@ -196,17 +198,17 @@ class operation(object, metaclass=Singleton):
 			row[1],
 			row[2])
 
-		if self.instanceConfigDB != None:
+		if self.remoteInstanceConfigDBEngine != None:
 			try:
-				self.instanceConfigDB.dispose()
+				self.remoteInstanceConfigDBEngine.dispose()
 			except:
 				print("Unexpected warning when closing connection to DBImport Instance database: ")
 				print(sys.exc_info())
 
 		try:
-			self.instanceConfigDB = sa.create_engine(instanceConnectStr, echo = self.debugLogLevel)
-			self.instanceConfigDB.connect()
-			self.instanceConfigDBSession = sessionmaker(bind=self.instanceConfigDB)
+			self.remoteInstanceConfigDBEngine = sa.create_engine(instanceConnectStr, echo = self.debugLogLevel)
+			self.remoteInstanceConfigDBEngine.connect()
+			self.remoteInstanceConfigDBSession = sessionmaker(bind=self.remoteInstanceConfigDBEngine)
 
 		except sa.exc.OperationalError as err:
 			logging.warning("%s"%err)
@@ -368,7 +370,7 @@ class operation(object, metaclass=Singleton):
 						sys.exit(1)
 
 			else:
-				if self.connectDBImportInstance(instance = destination):
+				if self.connectRemoteDBImportInstance(instance = destination):
 					logging.info("Copy HDFS data to instance '%s'"%(destination))
 	
 					distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
@@ -405,7 +407,822 @@ class operation(object, metaclass=Singleton):
 					print("|_________________________|")
 					print("")
 
-	def copySchemaToDestinations(self):
+	def scheduleTableAsyncCopy(self, hiveFilterDB, hiveFilterTable, copyDestination):
+		""" Schdeule an asynchronous copy of one or more Hive table to the specified destination """
+		logging.debug("Executing copy_operations.scheduleTableAsyncCopy()")
+
+		if self.checkDBImportInstance(instance = copyDestination) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		hiveFilterDB = hiveFilterDB.replace('*', '%').strip()
+		hiveFilterTable = hiveFilterTable.replace('*', '%').strip()
+
+		localSession = self.configDBSession()
+		importTables = aliased(configSchema.importTables)
+		copyASyncStatus = aliased(configSchema.copyASyncStatus)
+
+		# Check if there are any tabled in this DAG that is marked for copy against the specified destination
+		result = (localSession.query(
+				copyASyncStatus
+			)
+			.filter(copyASyncStatus.hive_db.like(hiveFilterDB))
+			.filter(copyASyncStatus.hive_table.like(hiveFilterTable))
+			.filter(copyASyncStatus.destination == copyDestination)
+			.count())
+
+		if result > 0:
+			logging.error("There is already tables that matches this DAG's filter that is scheduled for copy against")
+			logging.error("the specified destination. This operation cant continue until all the current copies are completed")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		# Calculate the source and target HDFS directories
+		dbimportInstances = aliased(configSchema.dbimportInstances)
+	
+		sourceHDFSaddress = self.common_operations.hdfs_address 
+		sourceHDFSbasedir = self.common_operations.hdfs_basedir 
+
+		row = (localSession.query(
+				dbimportInstances.hdfs_address,
+				dbimportInstances.hdfs_basedir
+			)
+			.filter(dbimportInstances.name == copyDestination)
+			.one())
+		
+		targetHDFSaddress = row[0]
+		targetHDFSbasedir = row[1]
+
+		logging.debug("sourceHDFSaddress: %s"%(sourceHDFSaddress))
+		logging.debug("sourceHDFSbasedir: %s"%(sourceHDFSbasedir))
+		logging.debug("targetHDFSaddress: %s"%(targetHDFSaddress))
+		logging.debug("targetHDFSbasedir: %s"%(targetHDFSbasedir))
+
+		# Fetch a list of tables that match the database and table filter
+		result = pd.DataFrame(localSession.query(
+				importTables.table_id,
+				importTables.hive_db,
+				importTables.hive_table,
+				importTables.dbalias
+			)
+			.filter(importTables.hive_db.like(hiveFilterDB))
+			.filter(importTables.hive_table.like(hiveFilterTable))
+			)
+
+		for index, row in result.iterrows():
+			logging.info("Schedule asynchronous copy for %s.%s"%(row['hive_db'], row['hive_table']))
+			self.import_config.Hive_DB = row['hive_db']
+			self.import_config.Hive_Table = row['hive_table']
+
+			try:
+				self.import_config.getImportConfig()
+			except invalidConfiguration as errMsg:
+				logging.error(errMsg)
+				self.import_config.remove_temporary_files()
+				sys.exit(1)
+
+			logging.debug("table_id: %s"%(self.import_config.table_id))
+			logging.debug("import_is_incremental: %s"%(self.import_config.import_is_incremental))
+
+			if self.import_config.import_is_incremental == True and includeIncrImports == False:
+				logging.warning("Asynchronous copy for incremental table %s.%s skipped"%(row['hive_db'], row['hive_table']))
+				continue
+
+			sourceHDFSdir = (sourceHDFSbasedir + "/"+ row['hive_db'] + "/" + row['hive_table']).replace('$', '').replace(' ', '')
+			targetHDFSdir = (targetHDFSbasedir + "/"+ row['hive_db'] + "/" + row['hive_table']).replace('$', '').replace(' ', '')
+			logging.debug("sourceHDFSdir: %s"%(sourceHDFSdir))
+			logging.debug("targetHDFSdir: %s"%(targetHDFSdir))
+
+			result = (localSession.query(
+					copyASyncStatus
+				)
+				.filter(copyASyncStatus.table_id == row['table_id'])
+				.filter(copyASyncStatus.destination == copyDestination)
+				.count())
+
+			if result == 0:
+				newcopyASyncStatus = configSchema.copyASyncStatus(
+					table_id = row['table_id'],
+					hive_db = row['hive_db'],
+					hive_table = row['hive_table'],
+					destination = copyDestination,
+					hdfs_source_path = "%s%s"%(sourceHDFSaddress, sourceHDFSdir),
+					hdfs_target_path = "%s%s"%(targetHDFSaddress, targetHDFSdir),
+					copy_status = 0)
+				localSession.add(newcopyASyncStatus)
+				localSession.commit()
+
+		localSession.close()
+
+
+		logging.debug("Executing copy_operations.scheduleTableAsyncCopy() - Finished")
+
+	def scheduleDAGasyncCopy(self, airflowDAGname, copyDestination, includeIncrImports):
+		""" Schedule an asynchronous copy of all tables that are included in the specified DAG to the specified destination """
+
+		if self.checkDBImportInstance(instance = copyDestination) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession = self.configDBSession()
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		importTables = aliased(configSchema.importTables)
+		copyASyncStatus = aliased(configSchema.copyASyncStatus)
+
+		hiveFilterStr = (localSession.query(
+				airflowImportDags.filter_hive
+				)
+			.select_from(airflowImportDags)
+			.filter(airflowImportDags.dag_name == airflowDAGname)
+			.one()
+			)
+
+		for hiveFilter in hiveFilterStr[0].split(';'):
+			hiveFilterDB = hiveFilter.split('.')[0]
+			hiveFilterTable = hiveFilter.split('.')[1]
+
+			hiveFilterDB = hiveFilterDB.replace('*', '%').strip()
+			hiveFilterTable = hiveFilterTable.replace('*', '%').strip()
+
+			# Check if there are any tabled in this DAG that is marked for copy against the specified destination
+			result = (localSession.query(
+					copyASyncStatus
+				)
+				.filter(copyASyncStatus.hive_db.like(hiveFilterDB))
+				.filter(copyASyncStatus.hive_table.like(hiveFilterTable))
+				.filter(copyASyncStatus.destination == copyDestination)
+				.count())
+
+			if result > 0:
+				logging.error("There is already tables that matches this DAG's filter that is scheduled for copy against")
+				logging.error("the specified destination. This operation cant continue until all the current copies are completed")
+				self.remove_temporary_files()
+				sys.exit(1)
+
+		# Calculate the source and target HDFS directories
+		dbimportInstances = aliased(configSchema.dbimportInstances)
+	
+		sourceHDFSaddress = self.common_operations.hdfs_address 
+		sourceHDFSbasedir = self.common_operations.hdfs_basedir 
+
+		row = (localSession.query(
+				dbimportInstances.hdfs_address,
+				dbimportInstances.hdfs_basedir
+			)
+			.filter(dbimportInstances.name == copyDestination)
+			.one())
+		
+		targetHDFSaddress = row[0]
+		targetHDFSbasedir = row[1]
+
+		logging.debug("sourceHDFSaddress: %s"%(sourceHDFSaddress))
+		logging.debug("sourceHDFSbasedir: %s"%(sourceHDFSbasedir))
+		logging.debug("targetHDFSaddress: %s"%(targetHDFSaddress))
+		logging.debug("targetHDFSbasedir: %s"%(targetHDFSbasedir))
+
+		# We need this for loop here again as there might be multi table specifications that ovarlap each other. So it's important that we
+		# dont start the actual schedule of copies before we tested them all. Otherwise we might block ourself during the schedule
+		for hiveFilter in hiveFilterStr[0].split(';'):
+			hiveFilterDB = hiveFilter.split('.')[0]
+			hiveFilterTable = hiveFilter.split('.')[1]
+
+			hiveFilterDB = hiveFilterDB.replace('*', '%').strip()
+			hiveFilterTable = hiveFilterTable.replace('*', '%').strip()
+
+			logging.debug("hiveFilterDB: %s"%(hiveFilterDB))
+			logging.debug("hiveFilterTable: %s"%(hiveFilterTable))
+
+			# Fetch a list of tables that match the database and table filter
+			result = pd.DataFrame(localSession.query(
+					importTables.table_id,
+					importTables.hive_db,
+					importTables.hive_table,
+					importTables.dbalias
+				)
+				.filter(importTables.hive_db.like(hiveFilterDB))
+				.filter(importTables.hive_table.like(hiveFilterTable))
+				)
+
+			for index, row in result.iterrows():
+				logging.info("Schedule asynchronous copy for %s.%s"%(row['hive_db'], row['hive_table']))
+				self.import_config.Hive_DB = row['hive_db']
+				self.import_config.Hive_Table = row['hive_table']
+
+				try:
+					self.import_config.getImportConfig()
+				except invalidConfiguration as errMsg:
+					logging.error(errMsg)
+					self.import_config.remove_temporary_files()
+					sys.exit(1)
+
+				logging.debug("table_id: %s"%(self.import_config.table_id))
+				logging.debug("import_is_incremental: %s"%(self.import_config.import_is_incremental))
+
+				if self.import_config.import_is_incremental == True and includeIncrImports == False:
+					logging.warning("Asynchronous copy for incremental table %s.%s skipped"%(row['hive_db'], row['hive_table']))
+					continue
+
+				sourceHDFSdir = (sourceHDFSbasedir + "/"+ row['hive_db'] + "/" + row['hive_table']).replace('$', '').replace(' ', '')
+				targetHDFSdir = (targetHDFSbasedir + "/"+ row['hive_db'] + "/" + row['hive_table']).replace('$', '').replace(' ', '')
+				logging.debug("sourceHDFSdir: %s"%(sourceHDFSdir))
+				logging.debug("targetHDFSdir: %s"%(targetHDFSdir))
+
+				result = (localSession.query(
+						copyASyncStatus
+					)
+					.filter(copyASyncStatus.table_id == row['table_id'])
+					.filter(copyASyncStatus.destination == copyDestination)
+					.count())
+
+				if result == 0:
+					newcopyASyncStatus = configSchema.copyASyncStatus(
+						table_id = row['table_id'],
+						hive_db = row['hive_db'],
+						hive_table = row['hive_table'],
+						destination = copyDestination,
+						hdfs_source_path = "%s%s"%(sourceHDFSaddress, sourceHDFSdir),
+						hdfs_target_path = "%s%s"%(targetHDFSaddress, targetHDFSdir),
+						copy_status = 0)
+					localSession.add(newcopyASyncStatus)
+					localSession.commit()
+
+		localSession.close()
+
+	def copyAirflowExportDAG(self, airflowDAGname, copyDestination, setAutoRegenerateDAG = False):
+		""" Copy an Airflow Export DAG, including connections, tables and columns to a remote DBImport instance """
+
+		if self.checkDBImportInstance(instance = copyDestination) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession = self.configDBSession()
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		airflowTasks = aliased(configSchema.airflowTasks)
+		exportTables = aliased(configSchema.exportTables)
+
+		# Check if Airflow DAG exists with that name, and if so, get all the details
+		airflowDAG = pd.DataFrame(localSession.query(configSchema.airflowExportDags.__table__)
+			.filter(configSchema.airflowExportDags.dag_name == airflowDAGname)
+					)
+
+		if airflowDAG.empty == True:
+			logging.error("The specified Airflow DAG does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		# airflowDAG now contains a Pandas DF with the complete DAG configuraiton. This needs to be synced to the remote DBImport instance
+		if self.connectRemoteDBImportInstance(instance = copyDestination):
+			remoteSession = self.remoteInstanceConfigDBSession()
+
+			# Check if the DAG exists on the remote DBImport instance
+			result = (remoteSession.query(
+					airflowExportDags
+				)
+				.filter(airflowExportDags.dag_name == airflowDAGname)
+				.count())
+
+			if result == 0:
+				# Table does not exist in target system. Lets create a skeleton record
+				newAirflowExportDags = configSchema.airflowExportDags(
+					dag_name = airflowDAGname,
+					filter_dbalias = 'None') 
+				remoteSession.add(newAirflowExportDags)
+				remoteSession.commit()
+
+			# Create dictonary to be used to update the values in airflow_import_dag on the remote Instance
+			updateDict = {}
+			filterDBalias = ""
+			filterSchema = ""
+			filterTable = ""
+			for name, values in airflowDAG.iteritems():
+				if name in ("dag_name"):
+					continue
+
+				if name == "filter_dbalias":
+					filterDBalias = str(values[0])
+
+				if name == "filter_target_schema":
+					filterSchema = str(values[0])
+					if filterSchema == "None": filterSchema = "%"
+
+				if name == "filter_target_table":
+					filterTable = str(values[0])
+					if filterTable == "None": filterTable = "%"
+
+				value = str(values[0])
+				if value == "None":
+					value = None
+
+				updateDict["%s"%(name)] = value 
+
+			if setAutoRegenerateDAG == True:
+				updateDict["auto_regenerate_dag"] = "1"
+
+			if updateDict["schedule_interval"] == None:
+				updateDict["schedule_interval"] = "None"
+
+			# Update the values in airflow_import_dag on the remote instance
+			(remoteSession.query(configSchema.airflowExportDags)
+				.filter(configSchema.airflowExportDags.dag_name == airflowDAGname)
+				.update(updateDict))
+			remoteSession.commit()
+
+			logging.info("DAG definition copied to remote DBImport successfully")
+
+			# **************************
+			# Copy custom tasks from airflow_tasks table
+			# **************************
+
+			airflowTasksResult = pd.DataFrame(localSession.query(configSchema.airflowTasks.__table__)
+				.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
+				)
+
+			for index, row in airflowTasksResult.iterrows():
+
+				# Check if the Airflow Task exists on the remote DBImport instance
+				result = (remoteSession.query(
+						airflowTasks
+					)
+					.filter(airflowTasks.dag_name == airflowDAGname)
+					.filter(airflowTasks.task_name == row['task_name'])
+					.count())
+
+				if result == 0:
+					# Create a new row in importColumns if it doesnt exists
+					newAirflowTask = configSchema.airflowTasks(
+						dag_name = airflowDAGname,
+						task_name = row['task_name'])
+					remoteSession.add(newAirflowTask)
+					remoteSession.commit()
+
+				updateDict = {}
+				for name, value in row.iteritems():
+					if name in ("dag_name", "task_name"):
+						continue
+
+					updateDict["%s"%(name)] = value 
+
+				# Update the values in airflow_tasks on the remote instance
+				(remoteSession.query(configSchema.airflowTasks)
+					.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
+					.filter(configSchema.airflowTasks.task_name == row['task_name'])
+					.update(updateDict))
+				remoteSession.commit()
+
+			if airflowTasksResult.empty == False:
+				logging.info("DAG custom tasks copied to remote DBImport successfully")
+
+			# **************************
+			# Convert rows in airflow_dag_sensors to airflow_tasks in remote system
+			# **************************
+
+			airflowDAGsensorsResult = pd.DataFrame(localSession.query(configSchema.airflowDagSensors.__table__)
+				.filter(configSchema.airflowDagSensors.dag_name == airflowDAGname)
+				)
+
+			for index, row in airflowDAGsensorsResult.iterrows():
+
+				# Check if the Airflow Task exists on the remote DBImport instance
+				result = (remoteSession.query(
+						airflowTasks
+					)
+					.filter(airflowTasks.dag_name == airflowDAGname)
+					.filter(airflowTasks.task_name == row['sensor_name'])
+					.count())
+
+				if result == 0:
+					# Create a new row in importColumns if it doesnt exists
+					newAirflowTask = configSchema.airflowTasks(
+						dag_name = airflowDAGname,
+						task_name = row['sensor_name'])
+					remoteSession.add(newAirflowTask)
+					remoteSession.commit()
+
+				updateDict = {}
+				updateDict['task_type'] = 'DAG Sensor'
+				updateDict['placement'] = 'before main'
+				if row['wait_for_task'] == None:
+					updateDict['task_config'] = "%s.stop"%(row['wait_for_dag'])
+				else:
+					updateDict['task_config'] = "%s.%s"%(row['wait_for_dag'], row['wait_for_task'])
+
+				# Update the values in airflow_tasks on the remote instance
+				(remoteSession.query(configSchema.airflowTasks)
+					.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
+					.filter(configSchema.airflowTasks.task_name == row['sensor_name'])
+					.update(updateDict))
+				remoteSession.commit()
+
+				logging.info("Converted DAG sensor '%s' to an airflow_tasks entry"%(row['sensor_name']))
+
+			# **************************
+			# Prepair and trigger a copy of all schemas to the other cluster
+			# **************************
+
+			self.copyExportSchemaToDestination(	filterDBalias=filterDBalias, 
+												filterSchema=filterSchema,
+												filterTable=filterTable,
+												destination=copyDestination)
+
+			logging.info("Schema definitions copied to remote DBImport successfully")
+
+
+
+	def copyAirflowImportDAG(self, airflowDAGname, copyDestination, copyDAGnoSlave = False, setAutoRegenerateDAG = False):
+		""" Copy an Airflow Import DAG, including connections, tables and columns to a remote DBImport instance """
+
+		if self.checkDBImportInstance(instance = copyDestination) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession = self.configDBSession()
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		airflowTasks = aliased(configSchema.airflowTasks)
+		importTables = aliased(configSchema.importTables)
+
+		# Check if Airflow DAG exists with that name, and if so, get all the details
+		airflowDAG = pd.DataFrame(localSession.query(configSchema.airflowImportDags.__table__)
+			.filter(configSchema.airflowImportDags.dag_name == airflowDAGname)
+					)
+
+		if airflowDAG.empty == True:
+			logging.error("The specified Airflow DAG does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		# airflowDAG now contains a Pandas DF with the complete DAG configuraiton. This needs to be synced to the remote DBImport instance
+		if self.connectRemoteDBImportInstance(instance = copyDestination):
+			remoteSession = self.remoteInstanceConfigDBSession()
+
+			# Check if the DAG exists on the remote DBImport instance
+			result = (remoteSession.query(
+					airflowImportDags
+				)
+				.filter(airflowImportDags.dag_name == airflowDAGname)
+				.count())
+
+			if result == 0:
+				# Table does not exist in target system. Lets create a skeleton record
+				newAirflowImportDags = configSchema.airflowImportDags(
+					dag_name = airflowDAGname,
+					filter_hive = 'None') 
+				remoteSession.add(newAirflowImportDags)
+				remoteSession.commit()
+
+			# Create dictonary to be used to update the values in airflow_import_dag on the remote Instance
+			updateDict = {}
+			for name, values in airflowDAG.iteritems():
+				if name in ("dag_name"):
+					continue
+
+				if name == "filter_hive":
+					hiveFilterStr = str(values[0])
+
+				value = str(values[0])
+				if value == "None":
+					value = None
+
+				updateDict["%s"%(name)] = value 
+
+			if setAutoRegenerateDAG == True:
+				updateDict["auto_regenerate_dag"] = "1"
+
+			if updateDict["schedule_interval"] == None:
+				updateDict["schedule_interval"] = "None"
+
+			# Update the values in airflow_import_dag on the remote instance
+			(remoteSession.query(configSchema.airflowImportDags)
+				.filter(configSchema.airflowImportDags.dag_name == airflowDAGname)
+				.update(updateDict))
+			remoteSession.commit()
+
+			logging.info("DAG definition copied to remote DBImport successfully")
+
+			# **************************
+			# Copy custom tasks from airflow_tasks table
+			# **************************
+
+			airflowTasksResult = pd.DataFrame(localSession.query(configSchema.airflowTasks.__table__)
+				.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
+				)
+
+			for index, row in airflowTasksResult.iterrows():
+
+				# Check if the Airflow Task exists on the remote DBImport instance
+				result = (remoteSession.query(
+						airflowTasks
+					)
+					.filter(airflowTasks.dag_name == airflowDAGname)
+					.filter(airflowTasks.task_name == row['task_name'])
+					.count())
+
+				if result == 0:
+					# Create a new row in importColumns if it doesnt exists
+					newAirflowTask = configSchema.airflowTasks(
+						dag_name = airflowDAGname,
+						task_name = row['task_name'])
+					remoteSession.add(newAirflowTask)
+					remoteSession.commit()
+
+				updateDict = {}
+				for name, value in row.iteritems():
+					if name in ("dag_name", "task_name"):
+						continue
+
+					updateDict["%s"%(name)] = value 
+
+				# Update the values in airflow_tasks on the remote instance
+				(remoteSession.query(configSchema.airflowTasks)
+					.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
+					.filter(configSchema.airflowTasks.task_name == row['task_name'])
+					.update(updateDict))
+				remoteSession.commit()
+
+			if airflowTasksResult.empty == False:
+				logging.info("DAG custom tasks copied to remote DBImport successfully")
+
+			# **************************
+			# Prepair and trigger a copy of all schemas to the other cluster
+			# **************************
+			self.copyDestinations = []
+			destString = "%s;Asynchronous"%(copyDestination)
+			self.copyDestinations.append(destString)
+
+			for hiveFilter in hiveFilterStr.split(';'):
+				hiveFilterDB = hiveFilter.split('.')[0]
+				hiveFilterTable = hiveFilter.split('.')[1]
+
+				hiveFilterDB = hiveFilterDB.replace('*', '%')
+				hiveFilterTable = hiveFilterTable.replace('*', '%')
+
+				result = pd.DataFrame(localSession.query(
+						importTables.table_id,
+						importTables.hive_db,
+						importTables.hive_table,
+						importTables.dbalias
+					)
+					.filter(importTables.hive_db.like(hiveFilterDB))
+					.filter(importTables.hive_table.like(hiveFilterTable))
+					)
+
+				for index, row in result.iterrows():
+					self.copyImportSchemaToDestinations(tableID=row['table_id'], 
+													hiveDB=row['hive_db'], 
+													hiveTable=row['hive_table'], 
+													connectionAlias=row['dbalias'],
+													copyDAGnoSlave=copyDAGnoSlave)
+			logging.info("Schema definitions copied to remote DBImport successfully")
+
+		else:
+			logging.error("Cant connect to remote DBImport instance")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession.close()
+		remoteSession.close()
+
+	def copyExportSchemaToDestination(self, filterDBalias, filterSchema, filterTable, destination):
+		""" Copy the schema definitions to the target instances """
+		localSession = self.configDBSession()
+		exportTables = aliased(configSchema.exportTables)
+		exportColumns = aliased(configSchema.exportColumns)
+		jdbcConnections = aliased(configSchema.jdbcConnections)
+		dbimportInstances = aliased(configSchema.dbimportInstances)
+
+		if self.connectRemoteDBImportInstance(instance = destination):
+			remoteSession = self.remoteInstanceConfigDBSession()
+
+			# Check if if we are going to sync the credentials for this destination
+			result = (localSession.query(
+					dbimportInstances.sync_credentials
+				)
+				.select_from(dbimportInstances)
+				.filter(dbimportInstances.name == destination)
+				.one())
+
+			if result[0] == 1:
+				syncCredentials = True
+			else:
+				syncCredentials = False
+
+			filterDBalias = filterDBalias.replace('*', '%')
+			filterSchema = filterSchema.replace('*', '%')
+			filterTable = filterTable.replace('*', '%')
+
+			result = pd.DataFrame(localSession.query(
+					exportTables.table_id,
+					exportTables.hive_db,
+					exportTables.hive_table,
+					exportTables.dbalias,
+					exportTables.target_schema,
+					exportTables.target_table
+				)
+				.filter(exportTables.dbalias.like(filterDBalias))
+				.filter(exportTables.target_schema.like(filterSchema))
+				.filter(exportTables.target_table.like(filterTable))
+				)
+
+			for index, row in result.iterrows():
+				logging.info("Copy schema definitions for %s.%s"%(row['hive_db'], row['hive_table']))
+
+				##################################
+				# Update jdbc_connections
+				##################################
+
+				# Check if the jdbcConnection exists on the remote DBImport instance
+				result = (remoteSession.query(
+						jdbcConnections
+					)
+					.filter(jdbcConnections.dbalias == row['dbalias'])
+					.count())
+
+				if result == 0:
+					newJdbcConnection = configSchema.jdbcConnections(
+						dbalias = row['dbalias'],
+						jdbc_url = '')
+					remoteSession.add(newJdbcConnection)
+					remoteSession.commit()
+
+				# Read the entire import_table row from the source database
+				sourceJdbcConnection = pd.DataFrame(localSession.query(configSchema.jdbcConnections.__table__)
+					.filter(configSchema.jdbcConnections.dbalias == row['dbalias'])
+					)
+
+				# Table to update with values from import_table source
+				remoteJdbcConnection = (remoteSession.query(configSchema.jdbcConnections.__table__)
+					.filter(configSchema.jdbcConnections.dbalias == row['dbalias'])
+					.one()
+					)
+
+				# Create dictonary to be used to update the values in import_table on the remote Instance
+				updateDict = {}
+				for name, values in sourceJdbcConnection.iteritems():
+					if name == "dbalias":
+						continue
+
+					if syncCredentials == False and name in ("credentials", "private_key_path", "public_key_path"):
+						continue
+
+					value = str(values[0])
+					if value == "None":
+						value = None
+
+					updateDict["%s"%(name)] = value 
+
+
+				# Update the values in import_table on the remote instance
+				(remoteSession.query(configSchema.jdbcConnections)
+					.filter(configSchema.jdbcConnections.dbalias == row['dbalias'])
+					.update(updateDict))
+				remoteSession.commit()
+
+				##################################
+				# Update export_tables
+				##################################
+
+				# Check if the table exists on the remote DBImport instance
+				result = (remoteSession.query(
+						exportTables
+					)
+					.filter(exportTables.dbalias == row['dbalias'])
+					.filter(exportTables.target_schema == row['target_schema'])
+					.filter(exportTables.target_table == row['target_table'])
+					.count())
+
+				if result == 0:
+					# Table does not exist in target system. Lets create a skeleton record
+					newExportTable = configSchema.exportTables(
+						dbalias = row['dbalias'],
+						target_schema = row['target_schema'],
+						target_table = row['target_table'],
+						hive_db = row['hive_db'],
+						hive_table = row['hive_table'])
+					remoteSession.add(newExportTable)
+					remoteSession.commit()
+
+				# Get the table_id from the table at the remote instance
+				remoteExportTableID = (remoteSession.query(
+						exportTables.table_id
+					)
+					.select_from(exportTables)
+					.filter(exportTables.dbalias == row['dbalias'])
+					.filter(exportTables.target_schema == row['target_schema'])
+					.filter(exportTables.target_table == row['target_table'])
+					.one())
+
+				remoteTableID =	remoteExportTableID[0]
+
+				# Read the entire export_table row from the source database
+				sourceTableDefinition = pd.DataFrame(localSession.query(configSchema.exportTables.__table__)
+					.filter(configSchema.exportTables.table_id == row['table_id'])
+					)
+
+				# Table to update with values from import_table source
+				remoteTableDefinition = (remoteSession.query(configSchema.exportTables.__table__)
+					.filter(configSchema.exportTables.table_id == remoteTableID)
+					.one()
+					)
+
+				# Create dictonary to be used to update the values in import_table on the remote Instance
+				updateDict = {}
+				for name, values in sourceTableDefinition.iteritems():
+					if name in ("table_id", "dbalias", "target_schema", "target_table", "sqoop_last_execution"):
+						continue
+
+					value = str(values[0])
+					if value == "None":
+						value = None
+
+					updateDict["%s"%(name)] = value 
+
+
+				# Update the values in import_table on the remote instance
+				(remoteSession.query(configSchema.exportTables)
+					.filter(configSchema.exportTables.table_id == remoteTableID)
+					.update(updateDict))
+				remoteSession.commit()
+
+				##################################
+				# Update export_colums 
+				##################################
+
+				# Read the entire export_columns row from the source database
+				sourceAllColumnDefinitions = pd.DataFrame(localSession.query(configSchema.exportColumns.__table__)
+					.filter(configSchema.exportColumns.table_id == row['table_id'])
+					)
+
+				for columnIndex, columnRow in sourceAllColumnDefinitions.iterrows():
+
+					# Check if the column exists on the remote DBImport instance
+					result = (remoteSession.query(
+							exportColumns
+						)
+						.filter(exportColumns.table_id == remoteTableID)
+						.filter(exportColumns.column_name == columnRow['column_name'])
+						.count())
+
+					if result == 0:
+						# Create a new row in exportColumns if it doesnt exists
+						newExportColumn = configSchema.exportColumns(
+							table_id = remoteTableID,
+							column_name = columnRow['column_name'],
+							last_update_from_hive = str(columnRow['last_update_from_hive']))
+						remoteSession.add(newExportColumn)
+						remoteSession.commit()
+
+					# Get the table_id from the table at the remote instance
+					remoteExportColumnID = (remoteSession.query(
+							exportColumns.column_id
+						)
+						.select_from(exportColumns)
+						.filter(exportColumns.table_id == remoteTableID)
+						.filter(exportColumns.column_name == columnRow['column_name'])
+						.one())
+	
+					remoteColumnID = remoteExportColumnID[0]
+
+					# Read the entire export_columnis row from the source database
+					sourceColumnDefinition = pd.DataFrame(localSession.query(configSchema.exportColumns.__table__)
+						.filter(configSchema.exportColumns.column_id == columnRow['column_id'])
+						)
+
+					# Table to update with values from export_columns source
+					remoteColumnDefinition = (remoteSession.query(configSchema.exportColumns.__table__)
+						.filter(configSchema.exportColumns.column_id == remoteColumnID)
+						.one()
+						)
+
+					# Create dictonary to be used to update the values in export_table on the remote Instance
+					updateDict = {}
+					for name, values in sourceColumnDefinition.iteritems():
+						if name in ("table_id", "column_id", "column_name"):
+							continue
+	
+						value = str(values[0])
+						if value == "None":
+							value = None
+	
+						updateDict["%s"%(name)] = value 
+
+					# Update the values in export_table on the remote instance
+					(remoteSession.query(configSchema.exportColumns)
+						.filter(configSchema.exportColumns.column_id == remoteColumnID)
+						.update(updateDict))
+					remoteSession.commit()
+
+
+
+			remoteSession.close()
+		else:
+			logging.warning("Connection failed! No data will be copied to instance '%s'"%(destination))
+
+		localSession.close()
+
+	def copyImportSchemaToDestinations(self, tableID=None, hiveDB=None, hiveTable=None, connectionAlias=None, copyDAGnoSlave=False):
 		""" Copy the schema definitions to the target instances """
 		localSession = self.configDBSession()
 
@@ -413,32 +1230,59 @@ class operation(object, metaclass=Singleton):
 			logging.warning("There are no destination for this table to receive a copy")
 			return
 
+		if tableID == None and hiveDB == None and hiveTable == None and connectionAlias == None:
+			# This happens during a normal import
+			tableID = self.import_config.table_id
+			hiveDB = self.import_config.Hive_DB
+			hiveTable = self.import_config.Hive_Table
+			connectionAlias = self.import_config.connection_alias
+			printDestination = True
+		else:
+			# This happens during a "manage --copyAirflowImportDAG". And then the destination is specified in cmd and not needed to be printed
+			printDestination = False
+
 		for destAndMethod in self.copyDestinations:
 			destination = destAndMethod.split(';')[0]
 			method = destAndMethod.split(';')[1]
-			if self.connectDBImportInstance(instance = destination):
-				logging.info("Copy schema definitions to instance '%s'"%(destination))
-				remoteSession = self.instanceConfigDBSession()
+			if self.connectRemoteDBImportInstance(instance = destination):
+				if printDestination == True:
+					logging.info("Copy schema definitions for %s.%s to instance '%s'"%(hiveDB, hiveTable, destination))
+				else:
+					logging.info("Copy schema definitions for %s.%s"%(hiveDB, hiveTable))
+				remoteSession = self.remoteInstanceConfigDBSession()
 
 				jdbcConnections = aliased(configSchema.jdbcConnections)
 				importTables = aliased(configSchema.importTables)
 				importColumns = aliased(configSchema.importColumns)
 				dbimportInstances = aliased(configSchema.dbimportInstances)
 
+				# Check if if we are going to sync the credentials for this destination
+				result = (localSession.query(
+						dbimportInstances.sync_credentials
+					)
+					.select_from(dbimportInstances)
+					.filter(dbimportInstances.name == destination)
+					.one())
+
+				if result[0] == 1:
+					syncCredentials = True
+				else:
+					syncCredentials = False
+
 				# Check if the table exists on the remote DBImport instance
 				result = (remoteSession.query(
 						importTables
 					)
-					.filter(importTables.hive_db == self.import_config.Hive_DB)
-					.filter(importTables.hive_table == self.import_config.Hive_Table)
+					.filter(importTables.hive_db == hiveDB)
+					.filter(importTables.hive_table == hiveTable)
 					.count())
 
 				if result == 0:
 					# Table does not exist in target system. Lets create a skeleton record
 					newImportTable = configSchema.importTables(
-						hive_db = self.import_config.Hive_DB,
-						hive_table = self.import_config.Hive_Table,
-						dbalias = self.import_config.connection_alias,
+						hive_db = hiveDB,
+						hive_table = hiveTable,
+						dbalias = connectionAlias,
 						source_schema = '',
 						source_table = '')
 					remoteSession.add(newImportTable)
@@ -450,8 +1294,8 @@ class operation(object, metaclass=Singleton):
 						importTables.dbalias
 					)
 					.select_from(importTables)
-					.filter(importTables.hive_db == self.import_config.Hive_DB)
-					.filter(importTables.hive_table == self.import_config.Hive_Table)
+					.filter(importTables.hive_db == hiveDB)
+					.filter(importTables.hive_table == hiveTable)
 					.one())
 
 				remoteTableID =	remoteImportTableID[0]
@@ -490,7 +1334,10 @@ class operation(object, metaclass=Singleton):
 				# Create dictonary to be used to update the values in import_table on the remote Instance
 				updateDict = {}
 				for name, values in sourceJdbcConnection.iteritems():
-					if name in ("dbalias", "credentials", "private_key_path", "public_key_path"):
+					if name == "dbalias":
+						continue
+
+					if syncCredentials == False and name in ("credentials", "private_key_path", "public_key_path"):
 						continue
 
 					value = str(values[0])
@@ -512,7 +1359,7 @@ class operation(object, metaclass=Singleton):
 
 				# Read the entire import_table row from the source database
 				sourceAllColumnDefinitions = pd.DataFrame(localSession.query(configSchema.importColumns.__table__)
-					.filter(configSchema.importColumns.table_id == self.import_config.table_id)
+					.filter(configSchema.importColumns.table_id == tableID)
 					)
 
 				for columnIndex, columnRow in sourceAllColumnDefinitions.iterrows():
@@ -530,8 +1377,8 @@ class operation(object, metaclass=Singleton):
 						newImportColumn = configSchema.importColumns(
 							table_id = remoteTableID,
 							column_name = columnRow['column_name'],
-							hive_db = self.import_config.Hive_DB,
-							hive_table = self.import_config.Hive_Table,
+							hive_db = hiveDB,
+							hive_table = hiveTable,
 							source_column_name = columnRow['source_column_name'],
 							column_type = '',
 							source_column_type = '',
@@ -586,7 +1433,7 @@ class operation(object, metaclass=Singleton):
 
 				# Read the entire import_table row from the source database
 				sourceTableDefinition = pd.DataFrame(localSession.query(configSchema.importTables.__table__)
-					.filter(configSchema.importTables.table_id == self.import_config.table_id)
+					.filter(configSchema.importTables.table_id == tableID)
 					)
 
 				# Table to update with values from import_table source
@@ -607,11 +1454,16 @@ class operation(object, metaclass=Singleton):
 						value = None
 
 					updateDict["%s"%(name)] = value 
-				if method == "Synchronous":
-					updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
-				else:
+
+				if copyDAGnoSlave == True:
+					updateDict["copy_slave"] = 0
 					updateDict["copy_finished"] = None
-				updateDict["copy_slave"] = 1
+				else:
+					updateDict["copy_slave"] = 1
+					if method == "Synchronous":
+						updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
+					else:
+						updateDict["copy_finished"] = None
 
 
 				# Update the values in import_table on the remote instance
@@ -624,9 +1476,120 @@ class operation(object, metaclass=Singleton):
 				logging.warning("Connection failed! No data will be copied to instance '%s'"%(destination))
 
 			
+	def importCopiedTable(self, localHDFSpath, hiveDB, hiveTable):
+		""" Import a table from the specified directory """
+		logging.debug("Executing copy_operations.importCopiedTable()")
 
+		self.common_operations.connectToHive(forceSkipTest=True)
+		localHDFSpath = (localHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
 
+		logging.info("Importing table")	
+		query = "import table `%s`.`%s` from '%s'"%(hiveDB, hiveTable, localHDFSpath)
+		try:
+			self.common_operations.executeHiveQuery(query)
+		except Exception as ex:
+			logging.error(ex)
+			logging.error("The import failed! The data was not loaded to the table")
+			self.remove_temporary_files()
+			sys.exit(1)
 
+		logging.debug("Executing copy_operations.importCopiedTable() - Finished")
 
+	def exportAndCopyTable(self, copyDestination, localHDFSpath, remoteHDFSpath, hiveDB, hiveTable):
+		""" Export the Hive table and distcp the directory to another cluster """
+		logging.debug("Executing copy_operations.exportAndCopyTable()")
 
+		if copyDestination == None or self.checkDBImportInstance(instance = copyDestination) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
 
+		if localHDFSpath == None or remoteHDFSpath == None:
+			logging.error("You need to specify a local and remote HDFS path")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		localHDFSpath = (localHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
+		remoteHDFSpath = (remoteHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
+
+		logging.info("Deleting local HDFS directory before export")
+
+		hdfsDeleteCommand = ["hdfs", "dfs", "-rm", "-r", "-skipTrash", localHDFSpath]
+		sh_session = subprocess.Popen(hdfsDeleteCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		hdfsDeleteoutput = ""
+
+		# Print Stdout and stderr while distcp is running
+		while sh_session.poll() == None:
+			row = sh_session.stdout.readline().decode('utf-8').rstrip()
+			if row != "" and "No such file or directory" not in row:
+				logging.info(row)
+				hdfsDeleteoutput += row + "\n"
+				sys.stdout.flush()
+
+		# Print what is left in output after distcp is finished
+		for row in sh_session.stdout.readlines():
+			row = row.decode('utf-8').rstrip()
+			if row != "" and "No such file or directory" not in row:
+				logging.info(row)
+				hdfsDeleteoutput += row + "\n"
+				sys.stdout.flush()
+
+		self.common_operations.connectToHive(forceSkipTest=True)
+
+		logging.info("Exporting table")	
+		query = "export table `%s`.`%s` to '%s'"%(hiveDB, hiveTable, localHDFSpath)
+		self.common_operations.executeHiveQuery(query)
+
+		print("")
+		print("")
+		sourceHDFSaddress = self.common_operations.hdfs_address 
+
+		# Calculate the source and target HDFS directories
+		session = self.configDBSession()
+		dbimportInstances = aliased(configSchema.dbimportInstances)
+
+		row = (session.query(
+				dbimportInstances.hdfs_address
+			)
+			.filter(dbimportInstances.name == copyDestination)
+			.one())
+	
+		targetHDFSaddress = row[0]
+
+		logging.debug("sourceHDFSaddress = %s"%(sourceHDFSaddress))
+		logging.debug("targetHDFSaddress = %s"%(targetHDFSaddress))
+		logging.debug("localHDFSpath = %s"%(localHDFSpath))
+		logging.debug("remoteHDFSpath = %s"%(remoteHDFSpath))
+
+		HDFSsourcePath = "%s%s"%(sourceHDFSaddress, localHDFSpath),
+		HDFStargetPath = "%s%s"%(targetHDFSaddress, remoteHDFSpath),
+
+		logging.info("Copy exported directory to remote cluster")	
+		distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
+		"%s"%(HDFSsourcePath),
+		"%s"%(HDFStargetPath)]
+
+		# Start distcp
+		sh_session = subprocess.Popen(distcpCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		distCPoutput = ""
+
+		# Print Stdout and stderr while distcp is running
+		while sh_session.poll() == None:
+			row = sh_session.stdout.readline().decode('utf-8').rstrip()
+			if row != "":
+				logging.info(row)
+				distCPoutput += row + "\n"
+				sys.stdout.flush()
+
+		# Print what is left in output after distcp is finished
+		for row in sh_session.stdout.readlines():
+			row = row.decode('utf-8').rstrip()
+			if row != "":
+				logging.info(row)
+				distCPoutput += row + "\n"
+				sys.stdout.flush()
+
+		logging.debug("Executing copy_operations.exportAndCopyTable() - Finished")

@@ -356,67 +356,71 @@ class serverDaemon(run.RunDaemon):
 				session.rollback()
 				self.disconnectDBImportDB()
 
-			for index, row in aSyncRow.iterrows():
+			else:
+				for index, row in aSyncRow.iterrows():
 
-				tableID = row['table_id']
-				destination = row['destination']
-				hiveDB = row['hive_db']
-				hiveTable = row['hive_table']
-				failures = row['failures']
-				HDFSsourcePath = row['hdfs_source_path']
-				HDFStargetPath = row['hdfs_target_path']
+					tableID = row['table_id']
+					destination = row['destination']
+					hiveDB = row['hive_db']
+					hiveTable = row['hive_table']
+					failures = row['failures']
+					HDFSsourcePath = row['hdfs_source_path']
+					HDFStargetPath = row['hdfs_target_path']
 
-				# Get the remote sessions. if sessions is not available, we just continue to the next item in the database
-				_remoteSession = self.getDBImportRemoteSession(destination)
-				if _remoteSession == None:
-					continue
+					# Get the remote sessions. if sessions is not available, we just continue to the next item in the database
+					_remoteSession = self.getDBImportRemoteSession(destination)
+					if _remoteSession == None:
+						continue
 
-				try:
-					remoteSession = _remoteSession()
+					try:
+						remoteSession = _remoteSession()
 
-					# Get the table_id from the table at the remote instance
-					remoteImportTableID = (remoteSession.query(
-							importTables.table_id
-						)
-						.select_from(importTables)
-						.filter(importTables.hive_db == hiveDB)
-						.filter(importTables.hive_table == hiveTable)
-						.one())
-
-					remoteTableID = remoteImportTableID[0]
-
-					updateDict = {}
-					updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
+						# Get the table_id from the table at the remote instance
+						remoteImportTableID = (remoteSession.query(
+								importTables.table_id
+							)
+							.select_from(importTables)
+							.filter(importTables.hive_db == hiveDB)
+							.filter(importTables.hive_table == hiveTable)
+							.one())
 	
-					# Update the values in import_table on the remote instance
-					(remoteSession.query(configSchema.importTables)
-						.filter(configSchema.importTables.table_id == remoteTableID)
-						.update(updateDict))
-					remoteSession.commit()
+						remoteTableID = remoteImportTableID[0]
 
-					remoteSession.close()
+						updateDict = {}
+						updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
+		
+						# Update the values in import_table on the remote instance
+						(remoteSession.query(configSchema.importTables)
+							.filter(configSchema.importTables.table_id == remoteTableID)
+							.update(updateDict))
+						remoteSession.commit()
+	
+						remoteSession.close()
 
-				except SQLAlchemyError as e:
-					logging.error(str(e.__dict__['orig']))
-					remoteSession.rollback()
-					self.disconnectRemoteSession(destination)
+					except SQLAlchemyError as e:
+						logging.error(str(e.__dict__['orig']))
+						remoteSession.rollback()
+						self.disconnectRemoteSession(destination)
 
-				# Delete the record from copyASyncStatus 
-				try:
-					session = self.getDBImportSession()
-					(session.query(configSchema.copyASyncStatus)
-						.filter(configSchema.copyASyncStatus.table_id == tableID)
-						.filter(configSchema.copyASyncStatus.destination == destination)
-						.delete())
-					session.commit()
-					session.close()
+					else:
+						# Delete the record from copyASyncStatus 
+						try:
+							session = self.getDBImportSession()
+							(session.query(configSchema.copyASyncStatus)
+								.filter(configSchema.copyASyncStatus.table_id == tableID)
+								.filter(configSchema.copyASyncStatus.destination == destination)
+								.delete())
+							session.commit()
+							session.close()
 
-				except SQLAlchemyError as e:
-					logging.error(str(e.__dict__['orig']))
-					session.rollback()
-					self.disconnectDBImportDB()
+						except SQLAlchemyError as e:
+							logging.error(str(e.__dict__['orig']))
+							session.rollback()
+							self.disconnectDBImportDB()
 
-				logging.info("Table %s.%s copied successfully to '%s'"%(hiveDB, hiveTable, destination))
+						else:
+
+							logging.info("Table %s.%s copied successfully to '%s'"%(hiveDB, hiveTable, destination))
 				
 			session.close()
 #			logging.info("Starting wait")

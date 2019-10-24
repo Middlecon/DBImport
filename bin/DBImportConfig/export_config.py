@@ -140,31 +140,10 @@ class config(object, metaclass=Singleton):
 			rows=self.sqoop_last_rows,
 			sessions=self.sqoop_last_mappers
 		)
-#
-#	def convertStageStatisticsToJSON(self):
-#		self.stage.convertStageStatisticsToJSON(
-#			hive_db=self.Hive_DB, 
-#			hive_table=self.Hive_Table, 
-#			import_phase=self.importPhase, 
-#			copy_phase=self.copyPhase, 
-#			etl_phase=self.etlPhase, 
-#			incremental=self.import_is_incremental,
-#			source_database=self.common_config.jdbc_database,
-#			source_schema=self.source_schema,
-#			source_table=self.source_table,
-#			sqoop_size=self.sqoop_last_size,
-#			sqoop_rows=self.sqoop_last_rows,
-#			sqoop_mappers=self.sqoop_last_mappers
-#		)
-#
-#	def lookupConnectionAlias(self):
-#		self.common_config.lookupConnectionAlias(self.connection_alias)
-#
+
 	def checkTimeWindow(self):
 		self.common_config.checkTimeWindow(self.connectionAlias)
 
-#	def getJDBCTableDefinition(self):
-#		self.common_config.getJDBCTableDefinition(self.source_schema, self.source_table)
 	def checkJDBCTable(self):
 		return self.common_config.checkJDBCTable(schema=self.targetSchema, table=self.targetTable)
 
@@ -257,21 +236,12 @@ class config(object, metaclass=Singleton):
 		self.datalakeSourceConnection = row[0]
 
 #		# Set the name of the history tables, temporary tables and such
-#		self.hiveExportTempDB = "etl_export_staging"
 		self.hiveExportTempDB = self.common_config.getConfigValue(key = "export_staging_database")
 		if self.targetSchema == "-":
 			self.hiveExportTempTable = self.connectionAlias.replace('-', '_') + "__" + self.targetTable + "__exporttemptable"
 		else:
 			self.hiveExportTempTable = self.connectionAlias.replace('-', '_') + "__" + self.targetSchema + "__" + self.targetTable + "__exporttemptable"
 		self.hiveExportTempTable = self.hiveExportTempTable.lower()
-#		self.Hive_History_DB = self.Hive_DB
-#		self.Hive_History_Table = self.Hive_Table + "_history"
-#		self.Hive_HistoryTemp_DB = "etl_import_staging"
-#		self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
-#		self.Hive_Import_PKonly_DB = "etl_import_staging"
-#		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
-#		self.Hive_Delete_DB = "etl_import_staging"
-#		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
 
 		logging.debug("Settings from export_config.getExportConfig()")
 		logging.debug("    tableID = %s"%(self.tableID))
@@ -450,6 +420,11 @@ class config(object, metaclass=Singleton):
 		sourceTable = self.hiveTable
 		historyTableExport = False
 
+		if columnName == "_globalid":
+			print(sourceDB)
+			print(sourceTable)
+			print(columnType)
+
 		if sourceTable.endswith('_history'):
 			# First check to see that we dont have a import table that actually is called _history in the end
 			query = "select count(hive_table) from import_tables where hive_db = %s and hive_table = %s"
@@ -574,6 +549,12 @@ class config(object, metaclass=Singleton):
 				columnType = "clob"
 				mapColumnJava = "String"
 			columnType = re.sub('^timestamp$', 'timestmp', columnType)
+
+		if columnName == "_globalid":
+			print("===============================")
+			print(sourceDB)
+			print(sourceTable)
+			print(columnType)
 
 		logging.debug("Executing export_config.convertColumnTypeForTargetTable() - Finished")
 		return columnType, mapColumnJava
@@ -787,6 +768,13 @@ class config(object, metaclass=Singleton):
 		# Check for changed column types
 		columnsSourceOnlyNameType = columnsSource.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsTargetOnlyNameType = columnsTarget.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
+
+		# Some columns types must be changed as the function to read the schema will return a precision, but we
+		# dont have that in the configuration. If this is not done, there will be an alter table every time an export
+		# is running and it wont really change anything. 
+		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'^FLOAT(.*)', 'FLOAT')
+
+		# Merge and find the difference
 		columnsMergeOnlyNameType = pd.merge(columnsSourceOnlyNameType, columnsTargetOnlyNameType, on=None, how='outer', indicator='Exist')
 
 		logging.debug("columnsSourceOnlyNameType")

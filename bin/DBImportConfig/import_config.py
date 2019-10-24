@@ -521,10 +521,11 @@ class config(object, metaclass=Singleton):
 		# Determine if it's an incremental import based on the importPhase
 		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
 			self.import_is_incremental = True
-			if self.sqoop_incr_column == None:
-				raise invalidConfiguration("An incremental import requires a valid column name specified in 'incr_column'. Please check configuration")
-			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
-				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
+			if self.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+				if self.sqoop_incr_column == None:
+					raise invalidConfiguration("An incremental import requires a valid column name specified in 'incr_column'. Please check configuration")
+				if self.incr_mode != "append" and self.incr_mode != "lastmodified":
+					raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
 		else:
 			self.import_is_incremental = False
 
@@ -843,7 +844,8 @@ class config(object, metaclass=Singleton):
 			query += "	column_id, "
 			query += "	include_in_import, "
 			query += "	column_name_override, "
-			query += "	column_type_override "
+			query += "	column_type_override, "
+			query += "	sqoop_column_type_override "
 			query += "from import_columns where table_id = %s and source_column_name = %s "
 			self.mysql_cursor01.execute(query, (self.table_id, source_column_name))
 			logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
@@ -851,6 +853,7 @@ class config(object, metaclass=Singleton):
 			includeColumnInImport = True
 			columnID = None
 			columnTypeOverride = None
+			sqoopColumnTypeOverride = None
 
 			columnRow = self.mysql_cursor01.fetchone()
 			if columnRow != None:
@@ -861,6 +864,10 @@ class config(object, metaclass=Singleton):
 					column_name = columnRow[2].strip().lower()
 				if columnRow[3] != None and columnRow[3].strip() != "":
 					columnTypeOverride = columnRow[3].strip().lower()
+				if columnRow[4] != None and columnRow[4].strip() != "":
+					sqoopColumnTypeOverride = columnRow[4].strip().lower().capitalize() 
+#					if sqoopColumnTypeOverride == "string": sqoopColumnTypeOverride = "String"
+#					if sqoopColumnTypeOverride == "integer": sqoopColumnTypeOverride = "Integer"
 
 			# Handle reserved column names in Hive
 			column_name = self.convertHiveColumnNameReservedWords(column_name)
@@ -876,17 +883,13 @@ class config(object, metaclass=Singleton):
 			sqoop_column_type = None
 
 			if self.common_config.db_mssql == True:
-				# If source type is BIT, we convert them to INTEGER
 				if source_column_type == "bit": 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 			
 				if source_column_type == "float": 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
 				if source_column_type in ("timestamp", "uniqueidentifier", "ntext", "xml", "text", "varchar(-1)", "nvarchar(-1)"): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
 
@@ -913,43 +916,34 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^smallmoney$', 'float', column_type)
 
 			if self.common_config.db_oracle == True:
-				# If source type is BIT, we convert them to INTEGER
 				if source_column_type.startswith("rowid("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 			
 				if source_column_type.startswith("sdo_geometry("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("jtf_pf_page_object("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("wf_event_t("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("ih_bulk_type("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type.startswith("anydata("): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "binary"
 			
 				if source_column_type in ("clob", "nclob", "nlob", "long", "long raw"): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 					column_type = "string"
 
 				if source_column_type.startswith("float"): 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Float")
 					sqoop_column_type = "Float"
 			
 				column_type = re.sub('^nvarchar\(', 'varchar(', column_type)
@@ -963,25 +957,18 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^number$', 'decimal(38,19)', column_type)
 				if re.search('^number\([0-9]\)', column_type):
 					column_type = "int"
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 				if re.search('^number\(1[0-8]\)', column_type):
 					column_type = "bigint"
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					sqoop_column_type = "String"
 				column_type = re.sub('^number\(', 'decimal(', column_type)
 				column_type = re.sub('^date$', 'timestamp', column_type)
 				column_type = re.sub('^timestamp\([0-9]*\) with time zone', 'timestamp', column_type)
 				column_type = re.sub('^blob$', 'binary', column_type)
-#				column_type = re.sub('^clob$', 'string', column_type)
-#				column_type = re.sub('^nclob$', 'string', column_type)
-#				column_type = re.sub('^nlob$', 'string', column_type)
-#				column_type = re.sub('^long$', 'binary', column_type)
 				column_type = re.sub('^xmltype\([0-9]*\)$', 'string', column_type)
 				column_type = re.sub('^raw$', 'binary', column_type)
 				column_type = re.sub('^raw\([0-9]*\)$', 'binary', column_type)
 				column_type = re.sub('^timestamp\([0-9]\)', 'timestamp', column_type)
-#				column_type = re.sub('^long raw$', 'string', column_type)
 				column_type = re.sub('^long raw\([0-9]*\)$', 'string', column_type)
 				column_type = re.sub('^decimal\(3,4\)', 'decimal(8,4)', column_type)    # Very stange Oracle type number(3,4), how can pricision be smaller than scale?
 				if re.search('^decimal\([0-9][0-9]\)$', column_type) != None:
@@ -990,16 +977,13 @@ class config(object, metaclass=Singleton):
 			if self.common_config.db_mysql == True:
 				if source_column_type == "bit": 
 					column_type = "tinyint"
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 
 				if source_column_type in ("smallint", "mediumint"): 
 					column_type = "int"
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=Integer")
 					sqoop_column_type = "Integer"
 		
 				if re.search('^enum\(', column_type):
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					column_type = "string"
 					sqoop_column_type = "String"
 
@@ -1011,7 +995,6 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
 				if column_type == "time": 
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 					column_type = "string"
 					sqoop_column_type = "String"
 
@@ -1041,7 +1024,6 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^real', 'float', column_type)
 				column_type = re.sub('^vargraph', 'varchar', column_type)
 				column_type = re.sub('^graphic', 'varchar', column_type)
-#				column_type = re.sub('^time\([0-9]\)', 'varchar(9)', column_type)
 
 			if self.common_config.db_db2as400 == True:
 				if re.search('^numeric\(', column_type):
@@ -1080,22 +1062,20 @@ class config(object, metaclass=Singleton):
 
 			# As Parquet imports some column types wrong, we need to map them all to string
 			if column_type in ("timestamp", "date", "bigint"): 
-#				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 			if re.search('^decimal\(', column_type):
-#				self.sqoop_mapcolumnjava.append(source_column_name + "=String")
 				sqoop_column_type = "String"
 
 			# Fetch if we should force this column to 'string' in Hive
-			if column_type.startswith("char(") == True or column_type.startswith("varchar("):
+			if column_type.startswith("char(") == True or column_type.startswith("varchar(") == True:
 				columnForceString = self.getColumnForceString(column_name)
 				if columnForceString == True:
 					column_type = "string"
 
 			if includeColumnInImport == True:
-				if sqoop_column_type != None:
-#					self.sqoop_mapcolumnjava.append(source_column_name + "=" + sqoop_column_type)
-#					Changed 20190524-0637
+				if sqoopColumnTypeOverride != None:
+					self.sqoop_mapcolumnjava.append(column_name + "=" + sqoopColumnTypeOverride)
+				elif sqoop_column_type != None:
 					self.sqoop_mapcolumnjava.append(column_name + "=" + sqoop_column_type)
 
 				# Add , between column names in the list
@@ -2146,7 +2126,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		if self.mysql_cursor01.rowcount == 0:
-			return pd.DataFrame()
+			return pd.DataFrame(columns=['fk_name', 'source_hive_db', 'source_hive_table', 'ref_hive_db', 'ref_hive_table', 'source_column_name', 'ref_column_name'])
 
 		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
 
@@ -2312,7 +2292,7 @@ class config(object, metaclass=Singleton):
 	def getSelectForImportView(self):
 		logging.debug("Executing import_config.getSelectForImportView()")
 
-		query  = "select c.column_name as name, c.column_name_override, c.column_type as type, c.sqoop_column_type "
+		query  = "select c.column_name as name, c.column_name_override, c.column_type as type, c.sqoop_column_type, c.sqoop_column_type_override "
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
@@ -2328,14 +2308,21 @@ class config(object, metaclass=Singleton):
 			columnNameOverride = row[1]
 			columnType = row[2]
 			sqoopColumnType = row[3]
+			sqoopColumnTypeOverride = row[4]
 
 			if columnNameOverride != None: columnName = columnNameOverride
 			columnName = self.convertHiveColumnNameReservedWords(columnName)
 			columnName = self.getParquetColumnName(columnName)
 	
+			if sqoopColumnType != None and sqoopColumnType.strip() == "":
+				sqoopColumnType = None
+
+			if sqoopColumnTypeOverride != None and sqoopColumnTypeOverride.strip() == "":
+				sqoopColumnTypeOverride = None
+
 			if selectQuery != "": selectQuery += ", "
 
-			if sqoopColumnType == None:
+			if sqoopColumnType == None and sqoopColumnTypeOverride == None:
 				selectQuery += "S.`%s`"%(columnName)
 			else:
 				selectQuery += "cast(S.`%s` as %s) `%s`"%(columnName, columnType, columnName)
