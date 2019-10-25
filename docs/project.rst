@@ -9,6 +9,9 @@ Committers
 Versions
 --------
 
+  - v0.63. Copy command
+  - v0.62. Asynchronous copy mode for multi-cluster imports
+  - v0.61. Bug-fix release
   - v0.60. Multi-cluster imports
   - v0.51. Airflow integration
   - v0.50. Oracle Flashback support
@@ -26,8 +29,8 @@ RoadMap
 -------
 
   1. Implement all existing function in Legacy DBImport into the Python version. - **Ongoing**
-  2. WebGui for administration of DBImport - **Alpha version available**
-  3. Multi cluster ingestion of data - **Synchronous support implemented**
+  2. Spark support for imports
+  3. WebGui for administration of DBImport - **Alpha version available**
   4. Custom queries and delta loads from source - **Partially implemented**
   5. Support for more JDBC sources such as Netezza, TeraData, ExaData
   6. Support for more than MySQL as configuration database for DBImport

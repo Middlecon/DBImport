@@ -61,3 +61,11 @@ Export Validation
 
 For exports, there will be only one validation and that is at the end of the export. The number or rows in the Hive table is compared to the rows in the target table. If it's an incremental export, there is the possibility to only validate the exported rows and not the entire table.
 
+Sqoop and Spark
+-----------------
+
+Exports support both sqoop and spark as export tool. This is selectable on table level and you can run with different tools on different exports on the same installation. 
+
+If you are running Hive 3.x, all tables in Hive are transactional tables. Sqoop cant export tables that are transactional tables. So if you are running Hive 3.x, you are forced to use spark for the export tool.
+
+Import still only supports sqoop, but it's on the roadmap to add spark as an option for imports as well.

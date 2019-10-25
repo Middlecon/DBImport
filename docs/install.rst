@@ -15,7 +15,7 @@ To install DBImport, please follow the steps on this page. That will setup DBImp
 
  #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. Please install these python packages::
 
-        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python JPype1==0.6.3 jaydebeapi pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons
+        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python JPype1==0.6.3 jaydebeapi py4j pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons
 
 
 Base configuration
@@ -74,6 +74,53 @@ JDBC Driver location
 In order to connect to a specific database type, the path to the JDBC JAR file must be updated. Inside the *jdbc_connections_drivers* table you will find the supported database types with the JDBC driver name and the classpath data. For a new and fresh installation of DBImport the *classpath* will be 'add path to JAR file'. This is obviously not correct and needs to up update to point to the full path of the jar file that includes the driver specified in the *driver* column. Enter the correct path to your jar file and also make sure that sqoop have these files in its classpath. 
 
 Thats it. DBImport is now installed and ready for usage. If this is your first time working with DBImport, the :doc:`quickstart` guide can help you to get up to speed fast.
+
+Support for Spark and Python3
+-----------------------------
+
+If you are planning to use Spark there might be an incombability problem with python2 vs python3 and the topology script file in HDFS. 
+
+.. note:: If you see the error ** SyntaxError: Missing parentheses in call to 'print'. Did you mean print(rack)?** when using the spark tool in DBImport, you know that you will have to fix this
+
+The usual way to change this is the following
+
+  - change the *net.topology.script.file.name* to another filename in core-site.xml. In this example we will use * /etc/hadoop/conf/custom_topology_script.py*
+  - cp /etc/hadoop/conf/ topology_script.py /etc/hadoop/conf/custom_topology_script.py
+  - Change the first row from “#!/usr/bin/env python” to “#!/usr/bin/python2”
+  - Make the same change on all nodes in the cluster. 
+  - Restart affected services (HDFS, Yarn and so on)
+
+Once that is changed, you need to update the Spark settings in the configuration file. These two different versions have been testad and works on HDP 2.6.5 and HDP 3.1.4
+
+Verified Spark settings for HDP 2.6.5::
+
+        path_append = /usr/hdp/current/spark2-client/python/, /usr/hdp/current/spark2-client/python/lib/py4j-0.10.7-src.zip
+        jar_files =
+        py_files = /usr/hdp/current/spark2-client/python/lib/py4j-src.zip
+        master = yarn
+        deployMode = client
+        yarnqueue = default
+        dynamic_allocation = true
+        min_executors = 0
+        max_executors = 20
+        executor_memory = 2688M
+        hdp_version = 2.6.5.0-292
+        hive_library = HiveContext
+
+Verified Spark settings for HDP 3.1.4::
+
+        path_append = /usr/hdp/current/spark2-client/python/, /usr/hdp/current/spark2-client/python/lib/py4j-0.10.7-src.zip, /usr/hdp/current/hive_warehouse_connector/pyspark_hwc-1.0.0.3.1.4.0-315.zip
+        jar_files = /usr/hdp/current/hive_warehouse_connector/hive-warehouse-connector-assembly-1.0.0.3.1.4.0-315.jar
+        py_files = /usr/hdp/current/hive_warehouse_connector/pyspark_hwc-1.0.0.3.1.4.0-315.zip
+        master = yarn
+        deployMode = client
+        yarnqueue = default
+        dynamic_allocation = true
+        min_executors = 0
+        max_executors = 20
+        executor_memory = 2688M
+        hdp_version = 3.1.4.0-315
+        hive_library = HiveWarehouseSession
 
 
 Upgrading
