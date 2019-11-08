@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v0.64
+------------------------------
+
+**Fixed issues**
+  - Issue #59: Export update_table failes because table is not empty
+
+**New Features**
+
+  - Spark supported for both import and exports (TechPreview)
+
 v0.63
 ------------------------------
 
@@ -34,7 +44,7 @@ v0.61
 **Fixed issues**
 
   - Issue #39: Export failes when sqoop timeout against Kafka for Atlas info
-  - Issue #40: Creating Airflow Pools failes when pool table is empy in Airflow
+  - Issue #40: Creating Airflow Pools failes when pool table is empty in Airflow
   - Issue #41: Error when creating DBImport database
   - Issue #42: Airflow Tasks failes 'In Main' if there is a dependency to a DBImport Task
   - Issue #44: Importing a table with a column called 'const' is not supported

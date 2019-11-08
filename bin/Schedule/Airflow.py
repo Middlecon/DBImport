@@ -335,6 +335,7 @@ class initialize(object):
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
+		session.close()
 
 
 	def generateImportDAG(self, DAG):
@@ -591,6 +592,7 @@ class initialize(object):
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
+		session.close()
 
 	def createAirflowPools(self, pools): 
 		""" Creates the pools in Airflow database """
@@ -640,6 +642,7 @@ class initialize(object):
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
+		session.close()
 
 	def convertTimeToCron(self, time):
 		""" Converts a string in format HH:MM to a CRON time string based on 'minute hour day month weekday' """
@@ -1068,6 +1071,7 @@ class initialize(object):
 
 
 		self.DAGfile.write(taskDependencies)
+		session.close()
 			
 	def addSensorsToDAGfile(self, dagName, mainDagSchedule):
 		session = self.configDBSession()
@@ -1193,4 +1197,4 @@ class initialize(object):
 			self.DAGfile.write("%s.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
 			self.DAGfile.write("\n")
 
-
+		session.close()

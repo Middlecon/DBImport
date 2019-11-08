@@ -89,6 +89,20 @@ class config(object, metaclass=Singleton):
 		self.jdbc_force_column_lowercase = None
 		self.kerberosInitiated = False
 
+		self.sparkPathAppend = None
+		self.sparkPysparkSubmitArgs = None
+		self.sparkJarFiles = None
+		self.sparkPyFiles = None
+		self.sparkMaster = None
+		self.sparkDeployMode = None
+		self.sparkYarnQueue = None
+		self.sparkDynamicAllocation = None
+		self.sparkMinExecutors = None
+		self.sparkMaxExecutors = None
+		self.sparkExecutorMemory = None
+		self.sparkHDPversion = None
+		self.sparkHiveLibrary = None
+
 		self.sourceSchema = None
 
 		self.source_columns_df = pd.DataFrame()
@@ -105,6 +119,21 @@ class config(object, metaclass=Singleton):
 
 		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
 		self.kerberosKeytab = configuration.get("Kerberos", "keytab")
+
+		self.sparkPathAppend = configuration.get("Spark", "path_append")
+		self.sparkJarFiles = configuration.get("Spark", "jar_files")
+		self.sparkPyFiles = configuration.get("Spark", "py_files")
+		self.sparkMaster = configuration.get("Spark", "master")
+		self.sparkDeployMode = configuration.get("Spark", "deployMode")
+		self.sparkYarnQueue = configuration.get("Spark", "yarnqueue")
+		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
+		self.sparkHDPversion = configuration.get("Spark", "hdp_version")
+		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
+
+		if configuration.get("Spark", "dynamic_allocation").lower() == "true":
+			self.sparkDynamicAllocation = True
+		else:
+			self.sparkDynamicAllocation = False
 
 		self.crypto = decryption.crypto()
 		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
@@ -403,8 +432,6 @@ class config(object, metaclass=Singleton):
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "default")
-#			self.jdbc_driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-#			self.jdbc_classpath = "/usr/share/java/mssql-jdbc-6.2.2.jre8.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_hostname = self.jdbc_url[17:].split(':')[0].split(';')[0]
 
@@ -444,9 +471,6 @@ class config(object, metaclass=Singleton):
 			# If all encrypt settings are available, we create an encryption string that will be used by the Schema Python Program
 			if self.jdbc_encrypt == True and self.jdbc_trustedservercert != None and self.jdbc_hostincert != None and self.jdbc_logintimeout != None:
 				self.jdbc_encrypt_string = "encrypt=true;trustServerCertificate=" + self.jdbc_trustedservercert + ";hostNameInCertificate=" + self.jdbc_hostincert + ";loginTimeout=" + self.jdbc_logintimeout
-#				self.jdbc_driver_for_python, self.jdbc_classpath_for_python = self.getJDBCDriverConfig("SQL Server", "jTDS")
-#				self.jdbc_driver_for_python = "net.sourceforge.jtds.jdbc.Driver"
-#				self.jdbc_classpath_for_python = "/usr/hdp/current/sqoop-client/lib/jtds.jar"
 
 
 		if self.jdbc_url.startswith( 'jdbc:jtds:sqlserver:'): 
@@ -454,8 +478,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.MSSQL
 			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "jTDS")
-#			self.jdbc_driver = "net.sourceforge.jtds.jdbc.Driver"
-#			self.jdbc_classpath = "/usr/hdp/current/sqoop-client/lib/jtds.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_hostname = self.jdbc_url[22:].split(':')[0].split(';')[0]
 			try:
@@ -470,20 +492,12 @@ class config(object, metaclass=Singleton):
 				logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
-#			try:
-#				self.jdbc_ad_domain = self.jdbc_url.split("domain=")[1].split(';')[0]
-#			except:
-#				logging.error("Cant determine AD Domain based on jdbc_string")
-#				exit_after_function = True
-
 
 		if self.jdbc_url.startswith( 'jdbc:oracle:'): 
 			self.db_oracle = True
 			self.jdbc_servertype = constant.ORACLE
 			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Oracle", "default")
-#			self.jdbc_driver = "oracle.jdbc.driver.OracleDriver"
-#			self.jdbc_classpath = "/usr/share/java/ojdbc8.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_database = "-"
 
@@ -519,9 +533,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.MYSQL
 			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MySQL", "default")
-#			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MySQL", "v5.1.47")
-#			self.jdbc_driver = "com.mysql.jdbc.Driver"
-#			self.jdbc_classpath = "/usr/share/java/mysql-connector-java.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
@@ -543,8 +554,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.POSTGRESQL
 			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("PostgreSQL", "default")
-#			self.jdbc_driver = "org.postgresql.Driver"
-#			self.jdbc_classpath = "/usr/share/java/postgresql-jdbc.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[18:].split(':')[0].split(';')[0].split('/')[0]
@@ -566,9 +575,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.PROGRESS
 			self.jdbc_force_column_lowercase = True
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Progress DB", "default")
-#			self.jdbc_driver = "com.ddtek.jdbc.openedge.OpenEdgeDriver"
-#			self.jdbc_classpath = "/usr/share/java/progress/openedge.jar:/usr/share/java/progress/pool.jar"
-#			self.jdbc_classpath_for_python = "/usr/share/java/progress/openedge.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[27:].split(':')[0].split(';')[0]
@@ -590,8 +596,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.DB2_UDB
 			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 UDB", "default")
-#			self.jdbc_driver = "com.ibm.db2.jcc.DB2Driver"
-#			self.jdbc_classpath = "/usr/share/java/db2jcc4.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[11:].split(':')[0].split(';')[0].split('/')[0]
@@ -629,8 +633,6 @@ class config(object, metaclass=Singleton):
 			self.jdbc_servertype = constant.DB2_AS400
 			self.jdbc_force_column_lowercase = False
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 AS400", "default")
-#			self.jdbc_driver = "com.ibm.as400.access.AS400JDBCDriver"
-#			self.jdbc_classpath = "/usr/share/java/db2_jt400.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
@@ -853,7 +855,6 @@ class config(object, metaclass=Singleton):
 		except jaydebeapi.DatabaseError as errMsg:
 			raise SQLerror(errMsg)	
 
-#		result_df = None
 		result_df = pd.DataFrame()
 		try:
 			result_df = pd.DataFrame(self.JDBCCursor.fetchall())
@@ -1074,7 +1075,7 @@ class config(object, metaclass=Singleton):
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers"):
+		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors"):
 			valueColumn = "valueInt"
 		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"

@@ -108,6 +108,17 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing common_operations.__init__() - Finished")
 
+	def __del__(self):
+		""" Make sure that the Hive connector is closed correctly """
+
+		try:
+			if self.hive_cursor != None:
+				self.hive_cursor.close()
+				self.hive_conn.close()
+		except:
+			# We dont really care. Close if you can. If you cant, well, we still are closing the application :)
+			pass
+
 	def reconnectHiveMetaStore(self):
 		logging.debug("Reconnecting to Hive Metastore should not be needed anymore. Code is not really doing anything")
 
@@ -265,6 +276,26 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing common_operations.getExternalTableLocation() - Finished")
 
+	def isHiveTableExternalOrcFormat(self, hiveDB, hiveTable):
+		logging.debug("Executing common_operations.isHiveTableExternalOrcFormat()")
+
+		if self.isHiveTableExternal(hiveDB, hiveTable) == False: return False
+
+		session = self.hiveMetaSession()
+		TBLS = aliased(hiveSchema.TBLS, name="T")
+		DBS = aliased(hiveSchema.DBS, name="D")
+		SDS = aliased(hiveSchema.SDS, name="S")
+
+		try:
+			row = session.query(SDS.INPUT_FORMAT).select_from(TBLS).join(SDS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
+		except sa.orm.exc.NoResultFound:
+			raise rowNotFound("Cant get SDS.INPUT_FORMAT from Hive Meta Database"%(hiveDB))
+
+		if row[0] == "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat":
+			return True
+		else:
+			return False
+
 	def isHiveTableExternalParquetFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing common_operations.isExternalHiveTableParquetFormat()")
 
@@ -280,15 +311,6 @@ class operation(object, metaclass=Singleton):
 		except sa.orm.exc.NoResultFound:
 			raise rowNotFound("Cant get SDS.INPUT_FORMAT from Hive Meta Database"%(hiveDB))
 
-#		query  = "select s.INPUT_FORMAT from TBLS t "
-#		query += "   left join SDS s on t.SD_ID = s.SD_ID "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where d.NAME = %s and t.TBL_NAME = %s"
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-
-#		row = self.mysql_cursor.fetchone()
-#		print(row)
 		if row[0] == "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat":
 			return True
 		else:

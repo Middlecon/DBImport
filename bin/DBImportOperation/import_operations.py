@@ -213,7 +213,7 @@ class operation(object, metaclass=Singleton):
 	def validateRowCount(self):
 		logging.debug("Executing import_operations.validateRowCount()")
 		try:
-			validateResult = self.import_config.validateRowCount() 
+			validateResult = self.import_config.validateRowCount(validateSqoop=False, incremental=False) 
 		except:
 			logging.exception("Fatal error when validating imported rows")
 			self.import_config.remove_temporary_files()
@@ -226,7 +226,7 @@ class operation(object, metaclass=Singleton):
 	def validateSqoopRowCount(self):
 		logging.debug("Executing import_operations.validateSqoopRowCount()")
 		try:
-			validateResult = self.import_config.validateRowCount(validateSqoop=True) 
+			validateResult = self.import_config.validateRowCount(validateSqoop=True, incremental=False) 
 		except:
 			logging.exception("Fatal error when validating imported rows by sqoop")
 			self.import_config.remove_temporary_files()
@@ -301,7 +301,7 @@ class operation(object, metaclass=Singleton):
 				startValue = int(counterStart)
 			except ValueError:
 				logging.error("The value specified for --counterStart must be a number")
-				self.export_config.remove_temporary_files()
+				self.import_config.remove_temporary_files()
 				sys.exit(1)
 
 			for index, row in mergeDF.iterrows():
@@ -364,37 +364,227 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
 
-	def runSqoop(self, PKOnlyImport):
-		logging.debug("Executing import_operations.runSqoop()")
+	def runSparkImport(self, PKOnlyImport):
+		logging.debug("Executing import_operations.runSparkImport()")
+
+		self.sparkStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+		self.sparkStartUTS = int(time.time())
+		sparkQuery = ""
+
+		# Fetch the number of executors and sql splits that should be used
+		self.import_config.calculateJobMappers()
+
+		if self.import_config.sqlSessions > 1:
+			# Generate the SQL that fetch the min and max values from the column that is defined in self.import_config.splitByColumn
+			minMaxDict = self.import_config.getMinMaxBoundaryValues()
+		else:
+			minMaxDict = {}
+			minMaxDict['min'] = "Unknown"
+			minMaxDict['max'] = "Unknown"
+
+		rowCount = 0
+		incrWhereStatement = ""
+		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+			if incrWhereStatement == "":
+				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
+				rowCount = self.import_config.common_config.getJDBCTableRowCount(self.import_config.source_schema, self.import_config.source_table)
+				if rowCount == 0:
+					self.sqoopIncrNoNewRows = True
+					try:
+						logging.warning("There are no rows in the source table. As this is an incremental import, sqoop will not run")
+						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
+					except:
+						logging.exception("Fatal error when saving sqoop statistics")
+						self.import_config.remove_temporary_files()
+						sys.exit(1)
+					return
+				else:
+					logging.error("DBImport is unable to find the max value for the configured incremental column.")
+					self.import_config.remove_temporary_files()
+					sys.exit(1)
+
+		# Create the SQL that will be used to fetch the data. This will be used on a "from" statement
+		if incrWhereStatement != "":
+			sparkQuery = "(%s where %s) as %s"%(self.import_config.getSQLtoReadFromSource(), incrWhereStatement, self.Hive_Table)
+		elif self.import_config.sqoop_sql_where_addition != None and self.import_config.sqoop_sql_where_addition.strip() != "":
+			sparkQuery = "(%s where %s) as %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.sqoop_sql_where_addition, self.Hive_Table)
+		else:
+			sparkQuery = "(%s) as %s"%(self.import_config.getSQLtoReadFromSource(), self.Hive_Table)
+
+		# Handle mappers, split-by with custom query
+#		if sparkQuery != "":
+#			if "split-by" not in self.import_config.sqoop_options.lower():
+#		self.import_config.generateSqoopSplitBy()
+
+		# Override Spark Executor memory if it's set on the import table configuration
+		if self.import_config.spark_executor_memory != None and self.import_config.spark_executor_memory.strip() != "":
+			self.import_config.common_config.sparkExecutorMemory = self.import_config.spark_executor_memory
+
+		logging.debug("")
+		logging.debug("=======================================================================")
+		logging.debug("sparkQuery: %s"%(sparkQuery))
+		logging.debug("incrWhereStatement: %s"%(incrWhereStatement))
+		logging.debug("rowCount: %s"%(rowCount))
+		logging.debug("splitByColumn: %s"%(self.import_config.splitByColumn))
+		logging.debug("sqoopBoundaryQuery: %s"%(self.import_config.sqoopBoundaryQuery))
+		logging.debug("Min boundary: %s"%(minMaxDict["min"]))
+		logging.debug("Max boundary: %s"%(minMaxDict["max"]))
+		logging.debug("parallell sessions: %s"%(self.import_config.sqlSessions))
+		logging.debug("Target HDFS: %s"%(self.import_config.sqoop_hdfs_location))
+		logging.debug("Spark Executor Memory: %s"%(self.import_config.common_config.sparkExecutorMemory))
+		logging.debug("Spark Max Executors: %s"%(self.import_config.sparkMaxExecutors))
+		logging.debug("Spark Dynamic Executors: %s"%(self.import_config.common_config.sparkDynamicAllocation))
+		logging.debug("=======================================================================")
+
+#		raise daemonExit("Step 1")
+
+		# Create a valid PYSPARK_SUBMIT_ARGS string
+		sparkPysparkSubmitArgs = "--jars "
+		firstLoop = True
+		if self.import_config.common_config.sparkJarFiles.strip() != "":
+			for jarFile in self.import_config.common_config.sparkJarFiles.split(","):
+				if firstLoop == False:
+					sparkPysparkSubmitArgs += ","
+				sparkPysparkSubmitArgs += jarFile.strip()
+				firstLoop = False
+
+		for jarFile in self.import_config.common_config.jdbc_classpath.split(":"):
+			if firstLoop == False:
+				sparkPysparkSubmitArgs += ","
+			sparkPysparkSubmitArgs += jarFile.strip()
+			firstLoop = False
+
+		if self.import_config.common_config.sparkPyFiles.strip() != "":
+			sparkPysparkSubmitArgs += " --py-files "
+			firstLoop = True
+			for pyFile in self.import_config.common_config.sparkPyFiles.split(","):
+				if firstLoop == False:
+					sparkPysparkSubmitArgs += ","
+				sparkPysparkSubmitArgs += pyFile.strip()
+				firstLoop = False
+
+		sparkPysparkSubmitArgs += " pyspark-shell"
+
+		# Setup the additional path required to find the libraries/modules
+		for path in self.import_config.common_config.sparkPathAppend.split(","):
+			sys.path.append(path.strip())
+
+		# Set required OS parameters
+		os.environ['HDP_VERSION'] = self.import_config.common_config.sparkHDPversion
+		os.environ['PYSPARK_SUBMIT_ARGS'] = sparkPysparkSubmitArgs
+
+		print(" _____________________ ")
+		print("|                     |")
+		print("| Spark Import starts |")
+		print("|_____________________|")
+		print("")
+
+		# import all packages after the environment is set
+		from pyspark.context import SparkContext, SparkConf
+		from pyspark.sql import SparkSession
+		from pyspark import HiveContext
+		from pyspark.context import SparkContext
+		from pyspark.sql import Row
+		import pyspark.sql.session
+
+		conf = SparkConf()
+		conf.setMaster(self.import_config.common_config.sparkMaster)
+		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
+		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
+		conf.set('spark.jars', self.import_config.common_config.jdbc_classpath)
+		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
+		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
+		if self.import_config.common_config.sparkDynamicAllocation == True:
+			conf.set('spark.shuffle.service.enabled', 'true')
+			conf.set('spark.dynamicAllocation.enabled', 'true')
+			conf.set('spark.dynamicAllocation.minExecutors', '0')
+			conf.set('spark.dynamicAllocation.maxExecutors', str(self.import_config.sparkMaxExecutors))
+			logging.info("Number of executors is dynamic with a max value of %s executors"%(self.import_config.sparkMaxExecutors))
+		else:
+			conf.set('spark.dynamicAllocation.enabled', 'false')
+			conf.set('spark.shuffle.service.enabled', 'false')
+			if self.import_config.sqlSessions < self.import_config.sparkMaxExecutors:
+				conf.set('spark.executor.instances', str(self.import_config.sqlSessions))
+				logging.info("Number of executors is fixed at %s"%(self.import_config.sqlSessions))
+			else:
+				conf.set('spark.executor.instances', str(self.import_config.sparkMaxExecutors))
+				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
+
+		JDBCconnectionProperties = {}
+		JDBCconnectionProperties["user"] = self.import_config.common_config.jdbc_username
+		JDBCconnectionProperties["password"] = self.import_config.common_config.jdbc_password
+		JDBCconnectionProperties["driver"] = self.import_config.common_config.jdbc_driver
+		JDBCconnectionProperties["fetchsize"] = "10000"
+
+		if self.import_config.sqlSessions > 1:
+			JDBCconnectionProperties["partitionColumn"] = str(self.import_config.splitByColumn)
+			JDBCconnectionProperties["lowerBound"] = str(minMaxDict["min"])
+			JDBCconnectionProperties["upperBound"] = str(minMaxDict["max"])
+			JDBCconnectionProperties["numPartitions"] = str(self.import_config.sqlSessions)
+
+		sys.stdout.flush()
+		sc = SparkContext(conf=conf)
+		sys.stdout.flush()
+		spark = SparkSession(sc)
+		sys.stdout.flush()
+
+		yarnApplicationID = sc.applicationId
+		logging.info("Yarn application started with id %s"%(yarnApplicationID))
+		sys.stdout.flush()
+		
+		spark.sql("set spark.sql.orc.impl=native")
+
+		df = spark.read.jdbc(url=self.import_config.common_config.jdbc_url, table=sparkQuery, properties=JDBCconnectionProperties)
+		sys.stdout.flush()
+		df.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
+		sys.stdout.flush()
+
+		hdfsDataDf = spark.read.format("orc").load(self.import_config.sqoop_hdfs_location)
+		rowsWrittenBySpark = hdfsDataDf.count()
+		sys.stdout.flush()
+		logging.info("Number of rows written by spark = %s"%(rowsWrittenBySpark))
+		sys.stdout.flush()
+
+		# Get size of all files on HDFS that spark wrote
+		hdfsCommandList = ['hdfs', 'dfs', '-du', '-s', self.import_config.sqoop_hdfs_location]
+		hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = hdfsProc.communicate()
+		stdOut = stdOut.decode('utf-8').rstrip()
+		stdErr = stdErr.decode('utf-8').rstrip()
+
+		sizeWrittenBySpark = stdOut.split()[0]
+		logging.info("Size of data written by spark = %s bytes"%(sizeWrittenBySpark))
+		sys.stdout.flush()
+
+#		time.sleep(1)   # Sleep 1 sec in order to avoid Yarn applications finished before program is able to get state
+		sc.stop()
+
+		print(" ________________________ ")
+		print("|                        |")
+		print("| Spark Import completed |")
+		print("|________________________|")
+		print("")
+		sys.stdout.flush()
+
+		if PKOnlyImport == False:
+			try:
+				self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
+			except:
+				logging.exception("Fatal error when saving sqoop statistics")
+				self.import_config.remove_temporary_files()
+				sys.exit(1)
+
+		logging.debug("Executing import_operations.runSparkImport() - Finished")
+
+	def runSqoopImport(self, PKOnlyImport):
+		logging.debug("Executing import_operations.runSqoopImport()")
 
 		self.sqoopStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 		self.sqoopStartUTS = int(time.time())
 
 		# Fetch the number of mappers that should be used
 		self.import_config.calculateJobMappers()
-
-		# As sqoop dont allow us to use the --delete-target-dir when doing incremental loads, we need to remove
-		# the HDFS dir first for those imports. Reason for not doing this here for full imports is because the
-		# --delete-target-dir is ore efficient and take less resources
-#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-#			hdfsCommandList = ['hdfs', 'dfs', '-rm', '-r', '-skipTrash', self.import_config.sqoop_hdfs_location]
-#			hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#			stdOut, stdErr = hdfsProc.communicate()
-#			stdOut = stdOut.decode('utf-8').rstrip()
-#			stdErr = stdErr.decode('utf-8').rstrip()
-#
-#			refStdOutText = "Deleted %s"%(self.import_config.sqoop_hdfs_location)
-#			refStdErrText = "No such file or directory"
-#
-#			if refStdOutText not in stdOut and refStdErrText not in stdErr:
-#				logging.error("There was an error deleting the target HDFS directory (%s)"%(self.import_config.sqoop_hdfs_location))
-#				logging.error("Please check the status of that directory and try again")
-#				logging.debug("StdOut: %s"%(stdOut))
-#				logging.debug("StdErr: %s"%(stdErr))
-#				self.import_config.remove_temporary_files()
-#				sys.exit(1)
-##		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-##			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, whereForSourceTable=True)
 
 		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
 		sqoopQuery = ""
@@ -404,12 +594,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.common_config.db_mssql == True: 
 			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
-#			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_oracle == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema.upper(), self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_postgresql == True: 
-#			sqoopSourceSchema = "--  --schema  %s"%(self.import_config.source_schema)
 			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_progress == True: 
@@ -430,10 +618,6 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# Add the specific Oracle FlashBack columns that we need to import
 			sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\", \"VERSIONS_STARTSCN\" as \"datalake_flashback_startscn\",', self.import_config.sqlGeneratedSqoopQuery)
-#			print(self.import_config.generatedSqoopOptions)
-#			self.import_config.remove_temporary_files()
-#			sys.exit(1)
-			# sqoopQuery = re.sub('^select', 'select \"VERSIONS_OPERATION\" as \"datalake_flashback_operation\",', self.import_config.sqlGeneratedSqoopQuery)
 
 		if self.import_config.sqoop_query != None:
 			sqoopQuery = self.import_config.sqoop_query
@@ -456,9 +640,6 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand = []
 		sqoopCommand.extend(["sqoop", "import", "-D", "mapreduce.job.user.classpath.first=true"])
 		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])
-#		sqoopCommand.extend(["-D", "mapred.child.java.opts=\"-Xmx%sm\""%(12288)])
-#		sqoopCommand.extend(["-D", "mapreduce.map.java.opts=\"-Xmx%sm\""%(3072)])
-#		sqoopCommand.extend(["-D", "mapreduce.reduce.java.opts=\"-Xmx%sm\""%(6144)])
 		sqoopCommand.extend(["-D", "mapreduce.map.memory.mb=%s"%(25000)])
 		sqoopCommand.extend(["-D", "mapreduce.reduce.memory.mb=%s"%(50000)])
 		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
@@ -470,12 +651,6 @@ class operation(object, metaclass=Singleton):
 		# Progress and DB2 AS400 imports needs to know the class name for the JDBC driver. 
 		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
 			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
-
-#		sqoopCommand.extend(["--jar-file", self.import_config.common_config.jdbc_classpath])
-#		sqoopCommand.extend(["--class-name", self.import_config.common_config.jdbc_driver])
-
-#		sqoopCommand.extend(["--driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver"])
-#		sqoopCommand.extend(["--class-name", "com.microsoft.sqlserver.jdbc.SQLServerDriver"])
 
 		sqoopCommand.extend(["--class-name", "dbimport"]) 
 		sqoopCommand.append("--fetch-size=10000") 
@@ -502,15 +677,6 @@ class operation(object, metaclass=Singleton):
 		if sqoopQuery == "" and self.import_config.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			sqoopCommand.extend(["--table", sqoopSourceTable])
 
-#		if self.import_config.import_is_incremental == True and PKOnlyImport == False:	# Cant do incr for PK only imports. Needs to be full
-#			self.sqoopIncrNoNewRows = False
-#
-#			sqoopCommand += "--incremental  %s  "%(self.import_config.sqoop_incr_mode)
-#			sqoopCommand += "--check-column  %s  "%(self.import_config.sqoop_incr_column)
-#			if self.import_config.sqoop_incr_lastvalue != None: 
-#				sqoopCommand += "--last-value  %s  "%(self.import_config.sqoop_incr_lastvalue)
-#		else:
-#			sqoopCommand += "--delete-target-dir  " 
 		sqoopCommand.append("--delete-target-dir")
 
 		if self.import_config.generatedSqoopOptions != "" and self.import_config.generatedSqoopOptions != None:
@@ -521,8 +687,6 @@ class operation(object, metaclass=Singleton):
 				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options.lower()))
 			else:
 				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
-#				sqoopCommand.extend(shlex.split(self.import_config.sqoop_options.lower()))
-#			sqoopCommand.extend(shlex.split(self.import_config.sqoop_options))
 
 		if self.import_config.sqoopBoundaryQuery.strip() != "" and self.import_config.sqlSessions > 1:
 			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
@@ -548,7 +712,6 @@ class operation(object, metaclass=Singleton):
 					sys.exit(1)
 
 		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-#			sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, incrWhereStatement)])
 			sqoopCommand.extend(["--query", "%s %s AND $CONDITIONS "%(sqoopQuery, incrWhereStatement)])
 		elif sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
@@ -559,7 +722,6 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.extend(sqoopSourceSchema)
 		else:
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-#			if self.import_config.sqoop_sql_where_addition != None:
 				sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, incrWhereStatement)])
 			else:
 				if self.import_config.sqoop_sql_where_addition != None:
@@ -672,7 +834,7 @@ class operation(object, metaclass=Singleton):
 				self.import_config.remove_temporary_files()
 				sys.exit(1)
 
-		logging.debug("Executing import_operations.runSqoop() - Finished")
+		logging.debug("Executing import_operations.runSqoopImport() - Finished")
 
 
 	def parseSqoopOutput(self, row ):
@@ -770,19 +932,23 @@ class operation(object, metaclass=Singleton):
 
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
-			if self.common_operations.isHiveTableExternalParquetFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
+			if self.common_operations.isHiveTableExternalParquetFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False and self.import_config.importTool == "sqoop":
 				logging.info("Dropping staging table as it's not an external table based on parquet")
 				self.common_operations.dropHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 				self.common_operations.reconnectHiveMetaStore()
-#				externalTableDeleted = True
 
-#		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False or externalTableDeleted == True:
+			if self.common_operations.isHiveTableExternalOrcFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False and self.import_config.importTool in ("spark", "local"):
+				logging.info("Dropping staging table as it's not an external table based on ORC")
+				self.common_operations.dropHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+				self.common_operations.reconnectHiveMetaStore()
+
 		if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
 			# Import table does not exist. We just create it in that case
 			logging.info("Creating External Import Table")
 			query  = "create external table `%s`.`%s` ("%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 			columnsDF = self.import_config.getColumnsFromConfigDatabase() 
-			columnsDF = self.updateColumnsForImportTable(columnsDF)
+			if self.import_config.importTool == "sqoop":
+				columnsDF = self.updateColumnsForImportTable(columnsDF)
 
 			firstLoop = True
 			for index, row in columnsDF.iterrows():
@@ -810,15 +976,13 @@ class operation(object, metaclass=Singleton):
 			if tableComment != None:
 				query += "COMMENT \"%s\" "%(tableComment)
 
-			query += "stored as parquet "
-#			query += "ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' "
-#			query += "LINES TERMINATED BY '\002' "
-#			query += "LOCATION '%s%s/' "%(self.import_config.common_config.hdfs_address, self.import_config.sqoop_hdfs_location)
-			query += "LOCATION '%s%s/' "%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
-#			query += "LOCATION '%s%s/' "%(self.import_config.common_config.getConfigValue(key = "hdfs_address"), self.import_config.sqoop_hdfs_location)
-			query += "TBLPROPERTIES ('parquet.compress' = 'SNAPPY') "
-#			query += "TBLPROPERTIES('serialization.null.format' = '\\\\N') "
-#			query += "TBLPROPERTIES('serialization.null.format' = '\003') "
+			if self.import_config.importTool == "sqoop":
+				query += "stored as parquet "
+				query += "LOCATION '%s%s/' "%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
+				query += "TBLPROPERTIES ('parquet.compress' = 'SNAPPY') "
+			elif self.import_config.importTool in ("spark", "local"):
+				query += "stored as ORC "
+				query += "LOCATION '%s%s/' "%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
 
 			self.common_operations.executeHiveQuery(query)
 			self.common_operations.reconnectHiveMetaStore()
@@ -1041,7 +1205,10 @@ class operation(object, metaclass=Singleton):
 
 	def updateExternalImportTable(self):
 		logging.info("Updating Import table columns based on source system schema")
-		self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, sourceIsParquetFile=True)
+		if self.import_config.importTool == "sqoop":
+			self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, sourceIsParquetFile=True)
+		elif self.import_config.importTool in ("spark", "local"):
+			self.updateHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, sourceIsParquetFile=False)
 	
 		tableLocation = self.common_operations.getTableLocation(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 		configuredLocation = "%s%s"%(self.common_operations.hdfs_address, self.import_config.sqoop_hdfs_location)
@@ -1095,8 +1262,9 @@ class operation(object, metaclass=Singleton):
 		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files
-		if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:
-			columnsConfig = self.updateColumnsForImportTable(columnsConfig)
+		if self.import_config.importTool == "sqoop":
+			if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:
+				columnsConfig = self.updateColumnsForImportTable(columnsConfig)
 
 		# Check for missing columns
 		columnsConfigOnlyName = columnsConfig.filter(['name'])
@@ -1107,6 +1275,28 @@ class operation(object, metaclass=Singleton):
 		columnsHiveCount   = len(columnsHiveOnlyName)
 		columnsMergeLeftOnlyCount  = len(columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'])
 		columnsMergeRightOnlyCount = len(columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'right_only'])
+
+		if self.import_config.importTool in ("spark", "local"):
+			# Orc files needs the column to be in the right order. This can only be fixed with a drop/create
+			# And it's only needed for the external tables
+			if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:
+				foundColumnError = False
+				for hiveIndex, hiveRow in columnsHiveOnlyName.iterrows():
+					hiveName = hiveRow['name']
+					indexInConfig = -1
+					if len(columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName]) > 0:
+						# Row in Hive exists in Config aswell. Need to check position
+						indexInConfig = columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName].index.tolist()[0]
+						if hiveIndex != indexInConfig:
+							foundColumnError = True
+	
+				if foundColumnError == True:
+					# There was an error with the column order. We need to drop and recreate
+					logging.warning("The column order was not correct in the External Import Table. As this is a ORC table, we will have to drop and recreate it. This is needed because Hive tables based on ORC files does not support reordering of columns")
+					self.common_operations.dropHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+					self.createExternalImportTable()
+					self.common_operations.reconnectHiveMetaStore()
+
 
 		logging.debug("columnsConfigOnlyName")
 		logging.debug(columnsConfigOnlyName)

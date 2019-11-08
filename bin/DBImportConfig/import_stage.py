@@ -73,23 +73,26 @@ class stage(object):
 		elif stage == 1011: stageDescription = "Clear table rowcount"
 		elif stage == 1012: stageDescription = "Get source table rowcount"
 		elif stage == 1013: stageDescription = "Sqoop import"
-		elif stage == 1014: stageDescription = "Validate sqoop import"
+		elif stage == 1014: stageDescription = "Spark import"
+		elif stage == 1020: stageDescription = "Validate sqoop import"
 		elif stage == 1049: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_INCR 
 		elif stage == 1110: stageDescription = "Getting source tableschema"
 		elif stage == 1111: stageDescription = "Clear table rowcount"
 		elif stage == 1112: stageDescription = "Sqoop import"
-		elif stage == 1113: stageDescription = "Get source table rowcount"
-		elif stage == 1114: stageDescription = "Validate sqoop import"
+		elif stage == 1113: stageDescription = "Spark import"
+		elif stage == 1120: stageDescription = "Get source table rowcount"
+		elif stage == 1121: stageDescription = "Validate sqoop import"
 		elif stage == 1149: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_ORACLE_FLASHBACK 
 		elif stage == 1210: stageDescription = "Getting source tableschema"
 		elif stage == 1211: stageDescription = "Clear table rowcount"
 		elif stage == 1212: stageDescription = "Sqoop import"
-		elif stage == 1213: stageDescription = "Get source table rowcount"
-		elif stage == 1214: stageDescription = "Validate sqoop import"
+		elif stage == 1213: stageDescription = "Spark import"
+		elif stage == 1220: stageDescription = "Get source table rowcount"
+		elif stage == 1221: stageDescription = "Validate sqoop import"
 		elif stage == 1249: stageDescription = "Import Phase Completed"
 
 		# Copy Phase
@@ -231,23 +234,26 @@ class stage(object):
 		elif stage == 1011: stageShortName = "clear_table_rowcount"
 		elif stage == 1012: stageShortName = "get_source_rowcount"
 		elif stage == 1013: stageShortName = "sqoop"
-		elif stage == 1014: stageShortName = "validate_sqoop_import"
+		elif stage == 1014: stageShortName = "spark"
+		elif stage == 1020: stageShortName = "validate_sqoop_import"
 		elif stage == 1049: stageShortName = "skip"
 
 		# Import_Phase_INCR 
 		elif stage == 1110: stageShortName = "get_source_tableschema"
 		elif stage == 1111: stageShortName = "clear_table_rowcount"
 		elif stage == 1112: stageShortName = "sqoop"
-		elif stage == 1113: stageShortName = "get_source_rowcount"
-		elif stage == 1114: stageShortName = "validate_sqoop_import"
+		elif stage == 1113: stageShortName = "spark"
+		elif stage == 1120: stageShortName = "get_source_rowcount"
+		elif stage == 1121: stageShortName = "validate_sqoop_import"
 		elif stage == 1149: stageShortName = "skip"
 
 		# Import_Phase_ORACLE_FLASHBACK
 		elif stage == 1210: stageShortName = "get_source_tableschema"
 		elif stage == 1211: stageShortName = "clear_table_rowcount"
 		elif stage == 1212: stageShortName = "sqoop"
-		elif stage == 1213: stageShortName = "get_source_rowcount"
-		elif stage == 1214: stageShortName = "validate_sqoop_import"
+		elif stage == 1213: stageShortName = "spark"
+		elif stage == 1220: stageShortName = "get_source_rowcount"
+		elif stage == 1221: stageShortName = "validate_sqoop_import"
 		elif stage == 1249: stageShortName = "skip"
 
 		# Copy Phase

@@ -94,7 +94,7 @@ Once that is changed, you need to update the Spark settings in the configuration
 
 Verified Spark settings for HDP 2.6.5::
 
-        path_append = /usr/hdp/current/spark2-client/python/, /usr/hdp/current/spark2-client/python/lib/py4j-0.10.7-src.zip
+        path_append = /usr/hdp/current/spark2-client/python/, /usr/hdp/current/spark2-client/python/lib/py4j-0.10.6-src.zip
         jar_files =
         py_files = /usr/hdp/current/spark2-client/python/lib/py4j-src.zip
         master = yarn
@@ -131,4 +131,6 @@ In order to upgrade DBImport, all files from the source package needs to be repl
         ./setup --upgradeDB
 
 This command will only upgrade the schema if it's not in the last version. So it's safe to run it even if there are no new schema.
+
+There might also be changes in the *conf/dbimport.cfg* configuration file. Please compare your local version with the default config file available in the release. If you are missing certain settings in your local configuration, please add those. If you dont do that, you will most likely get an error saying that you cant find a specific key in the configuration. 
 

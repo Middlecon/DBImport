@@ -20,6 +20,7 @@ import sys
 import getopt
 import logging
 from common import constants as constant
+from common.Exceptions import *
 from DBImportOperation import import_operations
 from DBImportOperation import copy_operations
 from DBImportOperation import etl_operations
@@ -29,7 +30,7 @@ def printHelp():
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
 	print ("  -V, --version      Displays the version of DBImport")
-	print ("  --skipSqoop        Dont run the sqoop command. Useful when the Parquet files are correct and you need to recreate Hive tables")
+	print ("  --skipImportData   Dont run the import data command. Useful when the files are correct and you need to recreate Hive tables")
 	print ("  --ignoreTime       Ignores the start and stop time for the table. Will run outside that window regardless")
 	print ("  --resetStage       Starts from the beginning regardless of previous problems")
 	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
@@ -45,7 +46,7 @@ def printHelp():
 	print ("                     Use with caution!")
 	print ("                     Valid function options are:")
 	print ("                     - getSourceTableSchema")
-	print ("                     - sqoop")
+	print ("                     - importData")
 	print ("                     - createImportTable")
 	print ("                     - getSourceTableRowCount")
 	print ("                     - getImportTableRowCount")
@@ -87,7 +88,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest"])
+		opts, args = getopt.getopt(argv, "vVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -96,7 +97,7 @@ def main(argv):
 	Hive_Table = None
 	runOnlyFunction = None
 	loggingLevel = logging.INFO
-	skipSqoop = False
+	skipImportData = False
 	runImportPhase = False
 	runCopyPhase = False
 	runCopyPhaseByForce = False
@@ -119,7 +120,9 @@ def main(argv):
 		elif opt in ("-V", "--version"):
 			displayVersion = True
 		elif opt == "--skipSqoop":
-			skipSqoop = True
+			skipImportData = True
+		elif opt == "--skipImportData":
+			skipImportData = True
 		elif opt == "--skipHiveTest":
 			skipHiveTest = True
 		elif opt == "--resetStage":
@@ -155,7 +158,7 @@ def main(argv):
 		runETLPhase = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -218,7 +221,7 @@ def main(argv):
 				print("                          %s"%(dest.replace(';', " - ")))
 
 	print("ETL Phase:                %s"%(etlPhaseDescription))
-#	print("Export Phase:             %s"%("No Export"))
+	print("Import Tool:              %s"%(import_operation.import_config.importTool))
 	print("Source hostname:          %s"%(import_operation.import_config.common_config.jdbc_hostname))
 	print("Source database type:     %s"%(import_operation.import_config.common_config.jdbc_servertype))
 	print("Source database:          %s"%(import_operation.import_config.common_config.jdbc_database))
@@ -230,6 +233,11 @@ def main(argv):
 	print("______________________________________________________________________________")
 	print("")
 	sys.stdout.flush()
+
+	# To handle backward combability. 
+	if runOnlyFunction == "sqoop":
+		logging.warning("runOnlyFunction 'sqoop' is deprecated. Please use 'importData' instead.")
+		runOnlyFunction = "importData"
 
 	stage = import_operation.getStage()
 
@@ -331,53 +339,71 @@ def main(argv):
 		sys.exit(1)
 
 
-	# ******************************************
-	# * IMPORT_PHASE_FULL 
-	# ******************************************
+	try:
 
-	if slaveTable == False and importPhase == constant.IMPORT_PHASE_FULL and runImportPhase == True:
-		if stage >= 1000 and stage < 1049 and runOnlyFunction == None:
-			import_operation.saveRetryAttempt(stage)
+		# ******************************************
+		# * IMPORT_PHASE_FULL 
+		# ******************************************
 
-			newStage = 0
-			if stage == 1014: newStage = 1011 
-			print(" ________________________________________________________ ")
-			print("|                                                        |")
-			print("| WARNING: The previous import failed and this execution |") 	
-			print("|          is recovering from that failure.              |") 	
-			print("| Last execution failed on stage %s                    |"%(stage)) 	
-			if newStage != 0: 
-				print("| Will restart from stage %s                           |"%(newStage)) 	
-				import_operation.setStage(newStage, force=True)
-			print("|________________________________________________________|")
-			print("")
-			print("")
-			sys.stdout.flush()
-
-
-		# Fetch the source table schema. This is mandatory for all imports
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
-			if import_operation.runStage(1010) == True: 
-				import_operation.getSourceTableSchema()
-
-		if runOnlyFunction == None: 
-			if import_operation.runStage(1011) == True: 
-				import_operation.clearTableRowCount()
-
-		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1012) == True: 
-				import_operation.getJDBCTableRowCount()
+		if slaveTable == False and importPhase == constant.IMPORT_PHASE_FULL and runImportPhase == True:
+			if stage >= 1000 and stage < 1049 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
 	
-		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1013) == True: 
-				import_operation.runSqoop(False)
+				newStage = 0
+				if stage == 1020: newStage = 1011 
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
 
-			if import_operation.runStage(1014) == True: 
-				import_operation.validateSqoopRowCount()
 
-		if runOnlyFunction == None:
-			import_operation.setStage(1049)
+			# Fetch the source table schema. This is mandatory for all imports
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+				if import_operation.runStage(1010) == True: 
+					import_operation.getSourceTableSchema()
 
+			if runOnlyFunction == None: 
+				if import_operation.runStage(1011) == True: 
+					import_operation.clearTableRowCount()
+
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+				if import_operation.runStage(1012) == True: 
+					import_operation.getJDBCTableRowCount()
+	
+			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
+				if import_operation.import_config.importTool == "sqoop": 
+					if import_operation.runStage(1013) == True:
+						import_operation.runSqoopImport(False)
+				if import_operation.import_config.importTool == "spark": 
+					if import_operation.runStage(1014) == True:
+						import_operation.runSparkImport(False)
+
+				if import_operation.runStage(1020) == True: 
+					import_operation.validateSqoopRowCount()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(1049)
+
+	except invalidConfiguration as errMsg:
+		logging.error(errMsg)
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except daemonExit as errMsg:
+		logging.error("Program exit because requested to do so by developer. %s"%(errMsg))
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except:
+		import_operation.import_config.remove_temporary_files()
+		raise
+		sys.exit(1)
 
 	# ******************************************
 	# * IMPORT_PHASE_INCR 
@@ -390,7 +416,7 @@ def main(argv):
 
 			newStage = 0
 			# TODO: Add correct restart points once incremental imports are working
-			if stage == 1114: newStage = 1111 
+			if stage == 1121: newStage = 1111 
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous import failed and this execution |") 	
@@ -413,19 +439,26 @@ def main(argv):
 			if import_operation.runStage(1111) == True: 
 				import_operation.clearTableRowCount()
 
-		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1112) == True: 
-				import_operation.saveIncrMinValue()
-				import_operation.runSqoop(False)
-				if import_operation.sqoopIncrNoNewRows == True: 
-					import_operation.setStage(1149)
+		if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
+			if import_operation.import_config.importTool == "sqoop": 
+				if import_operation.runStage(1112) == True: 
+					import_operation.saveIncrMinValue()
+					import_operation.runSqoopImport(False)
+					if import_operation.sqoopIncrNoNewRows == True: 
+						import_operation.setStage(1149)
+			if import_operation.import_config.importTool == "spark": 
+				if import_operation.runStage(1113) == True: 
+					import_operation.saveIncrMinValue()
+					import_operation.runSparkImport(False)
+					if import_operation.sqoopIncrNoNewRows == True: 
+						import_operation.setStage(1149)
 
 		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1113) == True: 
+			if import_operation.runStage(1120) == True: 
 				import_operation.getJDBCTableRowCount()
 	
 		if runOnlyFunction == None:
-			if import_operation.runStage(1114) == True: 
+			if import_operation.runStage(1121) == True: 
 				import_operation.validateSqoopRowCount()
 
 		if runOnlyFunction == None:
@@ -441,7 +474,7 @@ def main(argv):
 			import_operation.saveRetryAttempt(stage)
 
 			newStage = 0
-			if stage == 1214: newStage = 1211 
+			if stage == 1221: newStage = 1211 
 			print(" ________________________________________________________ ")
 			print("|                                                        |")
 			print("| WARNING: The previous import failed and this execution |") 	
@@ -465,15 +498,19 @@ def main(argv):
 			if import_operation.runStage(1211) == True: 
 				import_operation.clearTableRowCount()
 
-		if ( runOnlyFunction == None or runOnlyFunction == "sqoop" ) and skipSqoop == False:
-			if import_operation.runStage(1212) == True: 
-				import_operation.runSqoop(False)
+		if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
+			if import_operation.import_config.importTool == "sqoop": 
+				if import_operation.runStage(1212) == True:
+					import_operation.runSqoopImport(False)
+			if import_operation.import_config.importTool == "spark": 
+				if import_operation.runStage(1213) == True:
+					import_operation.runSparkImport(False)
 
 		if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
-			if import_operation.runStage(1213) == True: 
+			if import_operation.runStage(1220) == True: 
 				import_operation.getJDBCTableRowCount()
 	
-			if import_operation.runStage(1214) == True: 
+			if import_operation.runStage(1221) == True: 
 				import_operation.validateSqoopRowCount()
 
 		if runOnlyFunction == None:

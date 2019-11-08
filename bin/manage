@@ -574,6 +574,8 @@ def main(argv):
 			import_operation = import_operations.operation()
 			import_operation.repairAllIncrementalImports()
 			import_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 
 	if operation == "repairIncrementalImport":
@@ -594,7 +596,10 @@ def main(argv):
 		if answer.lower() == "y":
 			import_operation = import_operations.operation(Hive_DB, Hive_Table)
 			import_operation.resetIncrMaxValue()
+			import_operation.clearStage()
 			import_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 	if operation == "resetIncrementalImport":
 		import_operation = import_operations.operation(Hive_DB, Hive_Table)
@@ -618,7 +623,10 @@ def main(argv):
 		if answer.lower() == "y":
 			import_operation.resetIncrMinMaxValues(maxValue=None)
 			import_operation.truncateTargetTable()
+			import_operation.clearStage()
 			import_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 	if operation == "resetIncrementalExport":
 		print("This command will truncate the Target Table and force the next export to be a full export.")
@@ -639,6 +647,8 @@ def main(argv):
 			export_operation.resetIncrMinMaxValues(maxValue=None)
 			export_operation.clearStage()
 			export_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 	if operation == "repairIncrementalExport":
 		print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
@@ -659,6 +669,8 @@ def main(argv):
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
 			export_operation.resetMaxValueFromTarget()
 			export_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 	if operation == "dropExportTable":
 		print("This command will drop the Target Table and if it's an incremental export, force the next export to be a full export.")
@@ -680,6 +692,8 @@ def main(argv):
 			export_operation.resetIncrMinMaxValues(maxValue=None)
 			export_operation.clearStage()
 			export_operation.remove_temporary_files()
+		else:
+			logging.info("Didnt answer 'y'. No actions performed")
 
 	if operation == "clearExportStage":
 		export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)

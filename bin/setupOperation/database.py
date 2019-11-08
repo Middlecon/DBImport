@@ -499,3 +499,31 @@ class initialize(object):
 				description='The maximum number of mappers to use during exports')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'spark_import_default_executors').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='spark_import_default_executors', 
+				valueInt='12', 
+				description='How many executors should be used for tables who have never been imported before')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'spark_import_max_executors').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='spark_import_max_executors', 
+				valueInt='32', 
+				description='The maximum number of executors to use during imports')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'spark_export_default_executors').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='spark_export_default_executors', 
+				valueInt='2', 
+				description='How many executors should be used for tables who have never been exported before')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'spark_export_max_executors').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='spark_export_max_executors', 
+				valueInt='32', 
+				description='The maximum number of executors to use during exports')
+			self.configDB.execute(query)
+

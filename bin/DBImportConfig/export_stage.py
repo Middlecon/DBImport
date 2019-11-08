@@ -92,8 +92,10 @@ class stage(object):
 		elif stage == 105: stageDescription = "Insert data into Export Temp table" 
 		elif stage == 106: stageDescription = "Create Target table"
 		elif stage == 107: stageDescription = "Truncate Target table"
-		elif stage == 108: stageDescription = "Sqoop Export"
-		elif stage == 109: stageDescription = "Validations"
+		elif stage == 108: stageDescription = "Update Target table"
+		elif stage == 109: stageDescription = "Sqoop Export"
+		elif stage == 110: stageDescription = "Spark Export"
+		elif stage == 111: stageDescription = "Validations"
 
 		# Export_Phase_INCR
 		elif stage == 150: stageDescription = "Getting Hive tableschema"
@@ -104,9 +106,11 @@ class stage(object):
 		elif stage == 155: stageDescription = "Fetching the Max value from Hive"
 		elif stage == 156: stageDescription = "Insert data into Export Temp table" 
 		elif stage == 157: stageDescription = "Create Target table"
-		elif stage == 158: stageDescription = "Sqoop Export"
-		elif stage == 159: stageDescription = "Validations"
-		elif stage == 160: stageDescription = "Saving pending incremental values"
+		elif stage == 158: stageDescription = "Update Target table"
+		elif stage == 159: stageDescription = "Sqoop Export"
+		elif stage == 160: stageDescription = "Spark Export"
+		elif stage == 161: stageDescription = "Validations"
+		elif stage == 162: stageDescription = "Saving pending incremental values"
 
 		elif stage == 999: stageDescription = "DBImport completed successfully"
 
@@ -135,8 +139,10 @@ class stage(object):
 		elif stage == 105: stageShortName = "insert_into_temp_table"
 		elif stage == 106: stageShortName = "create_target_table"
 		elif stage == 107: stageShortName = "truncate_target_table"
-		elif stage == 108: stageShortName = "sqoop"
-		elif stage == 109: stageShortName = "validate"
+		elif stage == 108: stageShortName = "update_target_table"
+		elif stage == 109: stageShortName = "sqoop"
+		elif stage == 110: stageShortName = "spark"
+		elif stage == 111: stageShortName = "validate"
 
 		# Export_Phase_INCR
 		elif stage == 150: stageShortName = "get_hive_tableschema"
@@ -147,9 +153,11 @@ class stage(object):
 		elif stage == 155: stageShortName = "fetch_maxvalue"
 		elif stage == 156: stageShortName = "insert_into_temp_table"
 		elif stage == 157: stageShortName = "create_target_table"
-		elif stage == 158: stageShortName = "sqoop"
-		elif stage == 159: stageShortName = "validate"
-		elif stage == 160: stageShortName = "skip"
+		elif stage == 158: stageShortName = "update_target_table"
+		elif stage == 159: stageShortName = "sqoop"
+		elif stage == 160: stageShortName = "spark"
+		elif stage == 161: stageShortName = "validate"
+		elif stage == 162: stageShortName = "skip"
 
 		elif stage == 999: stageShortName = "skip"
 

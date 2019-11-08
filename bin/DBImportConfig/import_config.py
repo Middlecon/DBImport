@@ -94,7 +94,7 @@ class config(object, metaclass=Singleton):
 		self.sqoopStartUTS = None
 		self.sqoopIncrMaxvaluePending = None
 		self.incr_validation_method = None
-		self.sqoopSplitByColumn = ""	
+		self.splitByColumn = ""	
 		self.sqoopBoundaryQuery = ""	
 		self.pk_column_override_mergeonly = None
 		self.validate_source = None
@@ -102,6 +102,9 @@ class config(object, metaclass=Singleton):
 		self.create_foreign_keys = None
 		self.create_foreign_keys_table = None
 		self.create_foreign_keys_connection = None
+		self.importTool = None
+		self.spark_executor_memory = None
+		self.split_by_column = None
 
 		self.importPhase = None
 		self.importPhaseDescription = None
@@ -241,7 +244,10 @@ class config(object, metaclass=Singleton):
 				"    copy_slave, "
 				"    import_phase_type, "
 				"    etl_phase_type, "
-				"    create_foreign_keys "
+				"    create_foreign_keys, "
+				"    import_tool, "
+				"    spark_executor_memory, "
+				"    split_by_column "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -318,8 +324,14 @@ class config(object, metaclass=Singleton):
 		self.import_phase_type = row[31]
 		self.etl_phase_type = row[32]
 		self.create_foreign_keys_table = row[33]
+		self.importTool = row[34]
+		self.spark_executor_memory = row[35]
+		self.split_by_column = row[36]
 
-		if self.validate_source  != "query" and self.validate_source !=  "sqoop":
+		if self.importTool != "sqoop" and self.importTool != "spark":
+			raise invalidConfiguration("Only the values 'sqoop' or 'spark' is valid for column import_tool in import_tables.")
+
+		if self.validate_source != "query" and self.validate_source != "sqoop":
 			raise invalidConfiguration("Only the values 'query' or 'sqoop' is valid for column validate_source in import_tables.")
 
 		if self.sqoop_query != None and self.sqoop_query.strip() == "": self.sqoop_query = None
@@ -1481,6 +1493,7 @@ class config(object, metaclass=Singleton):
 
 		sqlSessionsMin = 1
 		sqlSessionsMax = None
+		self.sparkMaxExecutors = 1
 
 		query = "select max_import_sessions from jdbc_connections where dbalias = %s "
 		self.mysql_cursor01.execute(query, (self.connection_alias, ))
@@ -1495,15 +1508,25 @@ class config(object, metaclass=Singleton):
 		if row[0] != None and row[0] == 0: 
 			logging.warning("Unsupported value of 0 in column 'max_import_sessions' in table 'jdbc_connections'")
 
-		# Fetch the configured max and default value from configuration file
-#		sqlSessionsMaxFromConfig = int(configuration.get("Import", "max_sql_sessions"))
-#		sqlSessionsDefault = int(configuration.get("Import", "default_sql_sessions"))
-		sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "sqoop_import_max_mappers"))
-		sqlSessionsDefault = int(self.common_config.getConfigValue(key = "sqoop_import_default_mappers"))
+		if self.importTool == "sqoop":
+			# Fetch the configured max and default value from configuration file
+			sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "sqoop_import_max_mappers"))
+			sqlSessionsDefault = int(self.common_config.getConfigValue(key = "sqoop_import_default_mappers"))
 
-		if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
-		if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
-		if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
+			if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
+			if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
+			if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
+
+		elif self.importTool == "spark":
+			# Fetch the configured max and default value from configuration file
+			self.sparkMaxExecutors = int(self.common_config.getConfigValue(key = "spark_import_max_executors"))
+			sparkDefaultExecutors = int(self.common_config.getConfigValue(key = "spark_import_default_executors"))
+
+			if sqlSessionsMax !=  None and sqlSessionsMax > 0: 
+				self.sparkMaxExecutors = sqlSessionsMax 
+#			if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
+#			if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
+
 
 		hdfsBlocksize = int(self.common_config.getConfigValue(key = "hdfs_blocksize"))
 		if hdfsBlocksize == None or hdfsBlocksize == 0:
@@ -1537,20 +1560,32 @@ class config(object, metaclass=Singleton):
 		logging.debug("sqlSessions:     %s"%(self.sqlSessions))
 		logging.debug("sqoop_mappers:   %s"%(self.sqoop_mappers))
 
-		if self.sqoop_mappers > 0: 
-			logging.info("Setting the number of mappers to a fixed value")
-			self.sqlSessions = self.sqoop_mappers
+		if self.importTool == "sqoop":
+			if self.sqoop_mappers > 0: 
+				logging.info("Setting the number of mappers to a fixed value")
+				self.sqlSessions = self.sqoop_mappers
 
-		if self.sqlSessions == None:
-			logging.info("Cant find the previous import size so it's impossible to calculate the correct amount of mappers. Will default to %s"%(sqlSessionsDefault))
-			self.sqlSessions = sqlSessionsDefault
-		else:
-			if self.sqlSessions < sqlSessionsMin:
-				self.sqlSessions = sqlSessionsMin
-			elif self.sqlSessions > sqlSessionsMax:
-				self.sqlSessions = sqlSessionsMax
+			if self.sqlSessions == None:
+				logging.info("Cant find the previous import size so it's impossible to calculate the correct amount of mappers. Will default to %s"%(sqlSessionsDefault))
+				self.sqlSessions = sqlSessionsDefault
+			else:
+				if self.sqlSessions < sqlSessionsMin:
+					self.sqlSessions = sqlSessionsMin
+				elif self.sqlSessions > sqlSessionsMax:
+					self.sqlSessions = sqlSessionsMax
 
-			logging.info("The import will use %s parallell SQL sessions in the source system."%(self.sqlSessions)) 
+				logging.info("The import will use %s parallell SQL sessions in the source system."%(self.sqlSessions)) 
+
+		elif self.importTool == "spark":
+			if self.sqoop_mappers > 0: 
+				self.sqlSessions = self.sqoop_mappers
+				logging.info("Setting the number of SQL splits to %s (fixed value)"%(self.sqlSessions))
+			else:
+				if self.sqlSessions == None:
+					logging.info("Cant find the previous import size so it's impossible to calculate the correct amount of SQL splits. Will default to %s"%(sparkDefaultExecutors))
+					self.sqlSessions = sparkDefaultExecutors
+				else:
+					logging.info("The import will use %s SQL splits in the source system."%(self.sqlSessions)) 
 
 		logging.debug("Executing import_config.calculateJobMappers() - Finished")
 
@@ -1751,7 +1786,6 @@ class config(object, metaclass=Singleton):
 		else:
 			if self.sqoop_sql_where_addition != None:
 				logging.debug("Where statement for full imports: %s"%(self.sqoop_sql_where_addition))
-#				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
 				whereStatement = self.sqoop_sql_where_addition
 			else:
 				whereStatement = ""
@@ -1873,7 +1907,56 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.saveSqoopStatistics() - Finished")
 
-	def getColumnsFromConfigDatabase(self, restrictColumns=None, sourceIsParquetFile=False):
+	def getSQLtoReadFromSource(self):
+		""" Creates and return the SQL needed to read all rows from the source database """
+		logging.debug("Executing import_config.getSQLtoReadFromSource()")
+
+		quote = self.common_config.getQuoteAroundColumn()
+
+		query  = "select "
+		query += "   c.source_column_name, "
+		query += "   c.column_name "
+#		query += "   c.column_name_override "
+		query += "from import_tables t " 
+		query += "join import_columns c on t.table_id = c.table_id "
+		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
+		query += "and c.include_in_import = 1 "
+		query += "order by c.column_order"
+
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		if self.mysql_cursor01.rowcount == 0:
+			logging.error("Error: Zero rows returned from query on 'import_table'")
+			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor01.statement) )
+			raise Exception
+
+		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+		result_df.columns = ['source_name', 'name' ]
+#		result_df.columns = ['name', 'name_override' ]
+
+		sparkQuery = ""
+		for index, row in result_df.iterrows():	
+			if len(sparkQuery) == 0:
+				sparkQuery = "select "
+			else:
+				sparkQuery += ", "
+			if row['source_name'] != row['name']:
+				sparkQuery += quote + row['source_name'] + quote + " as " + quote + row['name'] + quote
+			else:
+				sparkQuery += quote + row['source_name'] + quote
+#			if row['name_override'] != None and row['name_override'].strip() != "":
+#				sparkQuery += quote + row['name'] + quote + " as " + quote + row['name_override'] + quote
+#			else:
+#				sparkQuery += quote + row['name'] + quote
+
+		# Add the source the to the generated sql query
+		sparkQuery += " from %s"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
+
+		logging.debug("Executing import_config.getSQLtoReadFromSource() - Finished")
+		return sparkQuery
+
+	def getColumnsFromConfigDatabase(self, restrictColumns=None, sourceIsParquetFile=False, ignoreIncludeInImport=True):
 		""" Reads the columns from the configuration database and returns the information in a Pandas DF with the columns name, type and comment """
 		logging.debug("Executing import_config.getColumnsFromConfigDatabase()")
 		hiveColumnDefinition = ""
@@ -1889,6 +1972,9 @@ class config(object, metaclass=Singleton):
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
+
+		if ignoreIncludeInImport == False:
+			query += " and c.include_in_import = 1 "
 
 		if restrictColumnsList != []:
 			query += " and c.column_name in ('"
@@ -1974,6 +2060,7 @@ class config(object, metaclass=Singleton):
 					validateTextSource = "Source table (incr)"
 					validateText = "Hive table"
 			else:
+				# validateSqoop = True
 				if self.import_is_incremental == False:
 					logging.debug("validateSqoop == True & self.import_is_incremental == False")
 					# Sqoop validation for full imports
@@ -1997,6 +2084,10 @@ class config(object, metaclass=Singleton):
 				target_rowcount = row[1]
 			else:
 				target_rowcount = self.sqoop_last_rows
+				if target_rowcount == -1:
+					# Import didnt now report the number of rows imported. Validation impossible
+					logging.warning("No validation of import possible as the import didnt report the number of rows written.")
+					return True
 			diffAllowed = 0
 			logging.debug("source_rowcount: %s"%(source_rowcount))
 			logging.debug("target_rowcount: %s"%(target_rowcount))
@@ -2020,7 +2111,6 @@ class config(object, metaclass=Singleton):
 
 
 			if target_rowcount > upperValidationLimit or target_rowcount < lowerValidationLimit:
-#			if 1 == 1:
 				logging.error("Validation failed! The %s exceedes the allowed limit compared top the source table"%(validateText))
 				if target_rowcount > source_rowcount:
 					logging.info("Diff between source and target table: %s"%(target_rowcount - source_rowcount))
@@ -2183,14 +2273,29 @@ class config(object, metaclass=Singleton):
 		""" This function will try to generate a split-by """
 		logging.debug("Executing import_config.generateSqoopSplitBy()")
 
-		self.sqoopSplitByColumn = ""	
+		self.splitByColumn = ""	
 
-		if self.generatedPKcolumns != None and self.generatedPKcolumns != "":
-			self.sqoopSplitByColumn = self.generatedPKcolumns.split(",")[0]
+		if self.split_by_column != None and self.split_by_column.strip() != "" and "split-by" in self.sqoop_options.lower():
+			raise invalidConfiguration("Specifying both a '--split-by' in sqoop_options column and a value in 'split_by_column' is not supported. Please remove the '--split-by' statement in sqoop_options and rerun the import.")
+
+		if self.split_by_column != None and self.split_by_column.strip() != "":
+			# self.split_by_column comes from configuration database
+			self.splitByColumn = self.split_by_column
+
+		elif "split-by" in self.sqoop_options.lower():
+			# Try to read the column from the --split-by config in sqoop_options
+			for id, value in enumerate(self.sqoop_options.split(" ")):
+				if value == "--split-by":
+					logging.warning("Specifying the column to split on in 'sqoop_options' is deprecated. Please use 'split_by_column'") 
+					self.splitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
+
+		elif self.generatedPKcolumns != None and self.generatedPKcolumns.strip() != "":
+			# If there is a primary key, we use that one to split on. If multi column PK, we take the first column
+			self.splitByColumn = self.generatedPKcolumns.split(",")[0]
 
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
-				self.sqoop_options += "--split-by \"%s\""%(self.sqoopSplitByColumn)		# This is needed, otherwise PK with space in them fail
+				self.sqoop_options += "--split-by \"%s\""%(self.splitByColumn)		# This is needed, otherwise PK with space in them fail
 
 		logging.debug("Executing import_config.generateSqoopSplitBy() - Finished")
 
@@ -2198,25 +2303,32 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.generateSqoopBoundaryQuery()")
 		self.generateSqoopSplitBy()
 
-#		print("self.sqoopSplitByColumn: %s"%(self.sqoopSplitByColumn))
-#		print("self.sqoop_options: %s"%(self.sqoop_options))
-
-#		if self.sqoopSplitByColumn != "" and "split-by" in self.sqoop_options.lower():
 		if "split-by" in self.sqoop_options.lower():
-#			for id, value in enumerate(self.sqoop_options.lower().split(" ")):
 			for id, value in enumerate(self.sqoop_options.split(" ")):
 				if value == "--split-by":
-					self.sqoopSplitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
+					self.splitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
 		
-#		print("self.sqoopSplitByColumn: %s"%(self.sqoopSplitByColumn))
+		if self.splitByColumn != "":
+			self.sqoopBoundaryQuery = "select min(%s), max(%s) from %s"%(self.splitByColumn, self.splitByColumn, self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
 
-		if self.sqoopSplitByColumn != "":
-			self.sqoopBoundaryQuery = "select min(%s), max(%s) from %s"%(self.sqoopSplitByColumn, self.sqoopSplitByColumn, self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
-
-		logging.debug("SplitByColumn = %s"%(self.sqoopSplitByColumn))	
+		logging.debug("SplitByColumn = %s"%(self.splitByColumn))	
 		logging.debug("sqoopBoundaryQuery = %s"%(self.sqoopBoundaryQuery))	
 		logging.debug("Executing import_config.generateSqoopBoundaryQuery() - Finished")
 
+
+	def getMinMaxBoundaryValues(self):
+		""" Returns a dictionary with two values called min and max that contains the boundary values """
+		logging.debug("Executing import_config.getMinMaxBoundaryValues()")
+		self.generateSqoopBoundaryQuery()
+
+		logging.info("Getting boundary MIN and MAX values")
+		minMaxValues = self.common_config.executeJDBCquery(self.sqoopBoundaryQuery)
+		returnDict = {}
+		returnDict["min"] = minMaxValues.iloc[0].values[0]
+		returnDict["max"] = minMaxValues.iloc[0].values[1]
+
+		logging.debug("Executing import_config.getMinMaxBoundaryValues() - Finished")
+		return returnDict
 
 	def getImportTables(self, hiveDB):
 		""" Return all tables that we import to a specific Hive DB """
