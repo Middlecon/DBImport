@@ -627,6 +627,7 @@ class config(object, metaclass=Singleton):
 			'SOURCE_COLUMN_COMMENT':'comment', 
 			'SOURCE_COLUMN_TYPE':'type'}, 
 			inplace=True)
+		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
 		columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
 		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
 
@@ -737,6 +738,7 @@ class config(object, metaclass=Singleton):
 				'SOURCE_COLUMN_COMMENT':'comment', 
 				'SOURCE_COLUMN_TYPE':'type'}, 
 				inplace=True)
+			columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
 			columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
 			columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
 			columnsTargetOnlyName = columnsTarget.filter(['name'])
@@ -772,6 +774,7 @@ class config(object, metaclass=Singleton):
 			'SOURCE_COLUMN_COMMENT':'comment', 
 			'SOURCE_COLUMN_TYPE':'type'}, 
 			inplace=True)
+		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
 		columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
 		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
 
@@ -835,6 +838,7 @@ class config(object, metaclass=Singleton):
 			'SOURCE_COLUMN_COMMENT':'comment', 
 			'SOURCE_COLUMN_TYPE':'type'}, 
 			inplace=True)
+		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
 		columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
 		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
 		columnsTarget['comment'].replace('', None, inplace = True)        # Replace blank column comments with None as it would otherwise trigger an alter table on every run

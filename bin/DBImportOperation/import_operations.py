@@ -35,7 +35,6 @@ import pandas as pd
 import numpy as np
 import time
 
-
 class operation(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing import_operations.__init__()")
@@ -136,6 +135,10 @@ class operation(object, metaclass=Singleton):
 	def saveStageStatistics(self):
 		self.import_config.saveStageStatistics()
 	
+	def updateAtlasWithSourceSchema(self):
+		if self.import_config.common_config.checkAtlasSchema() == True:
+			self.import_config.updateAtlasWithRDBMSdata()
+
 	def checkHiveDB(self, hiveDB):
 		try:
 			self.common_operations.checkHiveDB(hiveDB)
@@ -636,7 +639,6 @@ class operation(object, metaclass=Singleton):
 	
 
 		# From here and forward we are building the sqoop command with all options
-
 		sqoopCommand = []
 		sqoopCommand.extend(["sqoop", "import", "-D", "mapreduce.job.user.classpath.first=true"])
 		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])

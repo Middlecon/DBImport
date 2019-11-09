@@ -370,6 +370,8 @@ def main(argv):
 				if import_operation.runStage(1010) == True: 
 					import_operation.getSourceTableSchema()
 
+				import_operation.updateAtlasWithSourceSchema()
+
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1011) == True: 
 					import_operation.clearTableRowCount()

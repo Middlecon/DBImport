@@ -119,6 +119,8 @@ class source(object):
 					else:
 						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(row[4], row[5])
 
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
@@ -186,6 +188,8 @@ class source(object):
 					else:
 						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(row[4], int(row[5]))
 
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
@@ -220,19 +224,22 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
 					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+
 				if row[4] == "decimal":
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(self.removeNewLine(row[4]), row[8], row[9])
 				elif row[5] == None:
 					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
 				if row[6] == None or row[6] == "":
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
@@ -283,6 +290,8 @@ class source(object):
 					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
 
 				if row[7] == ""  or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
@@ -335,6 +344,8 @@ class source(object):
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
 
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
 				if self.removeNewLine(row[7]) == "" or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
@@ -369,21 +380,25 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
 					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+
 				if row[5] == None:
 					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
+
 				line_dict["IS_NULLABLE"] = row[7]
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
@@ -433,6 +448,8 @@ class source(object):
 						line_dict["SOURCE_COLUMN_TYPE"] = "%s"%(row[4])
 					else:
 						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(row[4], row[5])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
 
 				if self.removeNewLine(row[7]) == "" or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None

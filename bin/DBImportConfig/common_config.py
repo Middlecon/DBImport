@@ -25,6 +25,10 @@ import jaydebeapi
 import jpype
 import base64
 import re
+import json
+import ssl
+import requests
+from requests_kerberos import HTTPKerberosAuth
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from subprocess import Popen, PIPE
@@ -103,6 +107,16 @@ class config(object, metaclass=Singleton):
 		self.sparkHDPversion = None
 		self.sparkHiveLibrary = None
 
+		self.atlasEnabled = False
+		self.atlasSchemaChecked = False
+		self.atlasAddress = None
+		self.atlasHeaders = None
+		self.atlasTimeout = None
+		self.atlasSSLverify = None
+		self.atlasRestTypeDefDBImportProcess = None
+		self.atlasRestEntities = None
+		self.atlasRestUniqueAttributeType = None
+
 		self.sourceSchema = None
 
 		self.source_columns_df = pd.DataFrame()
@@ -138,6 +152,27 @@ class config(object, metaclass=Singleton):
 		self.crypto = decryption.crypto()
 		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
 		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
+		# Get Atlas config
+		self.atlasAddress = configuration.get("Atlas", "address")
+		if self.atlasAddress != None and self.atlasAddress.strip() != "": 
+			self.atlasRestTypeDefDBImportProcess = "%s/api/atlas/v2/types/typedef/name/DBImport_Process"%(self.atlasAddress)
+			self.atlasRestEntities = "%s/api/atlas/v2/entity/bulk"%(self.atlasAddress)
+			self.atlasRestUniqueAttributeType = "%s/api/atlas/v2/entity/uniqueAttribute/type"%(self.atlasAddress)
+			self.atlasEnabled = True
+			self.atlasHeaders = {'Content-type': 'application/json', 'Accept': 'application/json'}
+			try:
+				self.atlasTimeout = int(configuration.get("Atlas", "timeout"))
+			except ValueError:
+				self.atlasTimeout = 5
+				logging.warning("Atlas timeout configuration does not contain a valid number. Setting the timeout to 5 seconds")
+			if configuration.get("Atlas", "ssl_verify").lower() == "false":
+				self.atlasSSLverify = False
+			else:
+				if configuration.get("Atlas", "ssl_cert_path").strip() != "":
+					self.atlasSSLverify = configuration.get("Atlas", "ssl_cert_path").strip()
+				else:
+					self.atlasSSLverify = True
 
 		# Sets and create a temporary directory
 		self.tempdir = "/tmp/dbimport." + str(os.getpid()) + ".tmp"
@@ -192,6 +227,309 @@ class config(object, metaclass=Singleton):
 		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_config.__init__() - Finished")
 
+	def getAtlasRdbmsColumnURI(self, schemaName, tableName, columnName):
+		""" Returns a string with the correct column URI for Atlas """
+
+		if self.atlasEnabled == False:
+			return None
+
+		if self.db_oracle == True:
+			if self.jdbc_oracle_sid != None and self.jdbc_oracle_sid != "None": oracleDB = self.jdbc_oracle_sid
+			if self.jdbc_oracle_servicename != None and self.jdbc_oracle_servicename != "None": oracleDB = self.jdbc_oracle_servicename
+			columnUri = "%s.%s.%s.%s@%s:%s"%(oracleDB, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_mssql == True:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_mysql == True:
+			columnUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_postgresql == True:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_progress == True:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_db2udb == True:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		elif self.db_db2as400 == True:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
+		else:
+			logging.warning("The Atlas integrations does not support this database type. Atlas integration disabled")
+			self.atlasEnabled = False
+			return None
+
+		return columnUri
+
+	def getAtlasRdbmsNames(self, schemaName, tableName):
+		""" Returns a dict with the names needed for the rdbms_* configuration, depending on database type """
+
+		tableUri = None
+		dbUri = None
+		instanceUri = None
+		instanceName = None
+		instanceType = None
+
+		if self.atlasEnabled == False:
+			return None
+
+		if self.db_oracle == True:
+			if self.jdbc_oracle_sid != None and self.jdbc_oracle_sid != "None": oracleDB = self.jdbc_oracle_sid
+			if self.jdbc_oracle_servicename != None and self.jdbc_oracle_servicename != "None": oracleDB = self.jdbc_oracle_servicename
+
+			tableUri = "%s.%s.%s@%s:%s"%(oracleDB, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(oracleDB, self.jdbc_hostname, self.jdbc_port)
+			dbName = oracleDB
+			instanceUri = "Oracle@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "Oracle"
+			instanceType = "Oracle"
+
+		elif self.db_mssql == True:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "MSSQL@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "MSSQL"
+			instanceType = "MSSQL"
+
+		elif self.db_mysql == True:
+			tableUri = "%s.%s@%s:%s"%(self.jdbc_database, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "MySQL@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "MySQL"
+			instanceType = "MySQL"
+
+		elif self.db_postgresql == True:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "PostgreSQL@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "PostgreSQL"
+			instanceType = "PostgreSQL"
+
+		elif self.db_progress == True:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "OpenEdge@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "OpenEdge"
+			instanceType = "OpenEdge"
+
+		elif self.db_db2udb == True:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "DB2UDB@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "DB2"
+			instanceType = "DB2"
+
+		elif self.db_db2as400 == True:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "DB2AS400@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "DB2"
+			instanceType = "DB2"
+
+		else:
+			logging.warning("The Atlas integrations does not support this database type. Atlas integration disabled")
+			self.atlasEnabled = False
+			return None
+
+		returnDict = {}
+		returnDict["tableUri"] = tableUri
+		returnDict["dbUri"] = dbUri
+		returnDict["dbName"] = dbName
+		returnDict["instanceUri"] = instanceUri
+		returnDict["instanceName"] = instanceName
+		returnDict["instanceType"] = instanceType
+
+		return returnDict
+
+
+	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, tableComment):
+		""" Returns a dict that contains the referredEntities part for the RDBMS update rest call """
+		logging.debug("Executing common_config.getAtlasReferredEntities()")
+
+		if self.atlasEnabled == False:
+			return None
+
+		returnDict = self.getAtlasRdbmsNames(schemaName = schemaName, tableName = tableName)
+		if returnDict == None:
+			return
+
+		tableUri = returnDict["tableUri"]
+		dbUri = returnDict["dbUri"]
+		dbName = returnDict["dbName"]
+		instanceUri = returnDict["instanceUri"]
+		instanceName = returnDict["instanceName"]
+		instanceType = returnDict["instanceType"]
+
+		# TODO: Get the following information from dbimport and source system
+		# comment in jdbc_connections
+		# Owner in jdbc_connections
+		# OnPrem or Cloud in jdbc_connections
+		# create_time from source database on table
+		# Foreign Keys
+
+		jsonData = {}
+		jsonData["referredEntities"] = {}
+		jsonData["referredEntities"]["-100"] = {}
+		jsonData["referredEntities"]["-100"]["guid"] = "-100"
+		jsonData["referredEntities"]["-100"]["typeName"] = "rdbms_table"
+		jsonData["referredEntities"]["-100"]["attributes"] = {}
+		jsonData["referredEntities"]["-100"]["attributes"]["qualifiedName"] = tableUri
+		jsonData["referredEntities"]["-100"]["attributes"]["uri"] = tableUri
+		jsonData["referredEntities"]["-100"]["attributes"]["name"] = tableName
+#       jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = "Berry Osterlund, IXAB"
+		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
+		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
+#       jsonData["referredEntities"]["-200"] = {}
+#       jsonData["referredEntities"]["-200"]["guid"] = "-200"
+#       jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
+#       jsonData["referredEntities"]["-200"]["attributes"] = {}
+#       jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
+#       jsonData["referredEntities"]["-200"]["attributes"]["uri"] = hdfsUri
+#       jsonData["referredEntities"]["-200"]["attributes"]["name"] = self.sqoop_hdfs_location
+#       jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
+		jsonData["referredEntities"]["-300"] = {}
+		jsonData["referredEntities"]["-300"]["guid"] = "-300"
+		jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
+		jsonData["referredEntities"]["-300"]["attributes"] = {}
+		jsonData["referredEntities"]["-300"]["attributes"]["qualifiedName"] = dbUri
+		jsonData["referredEntities"]["-300"]["attributes"]["uri"] = dbUri
+		jsonData["referredEntities"]["-300"]["attributes"]["name"] = dbName
+#       jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = "Berry Osterlund, IXAB"
+		jsonData["referredEntities"]["-300"]["attributes"]["instance"] = { "guid": "-400", "typeName": "rdbms_instance" }
+		jsonData["referredEntities"]["-400"] = {}
+		jsonData["referredEntities"]["-400"]["guid"] = "-400"
+		jsonData["referredEntities"]["-400"]["typeName"] = "rdbms_instance"
+		jsonData["referredEntities"]["-400"]["attributes"] = {}
+		jsonData["referredEntities"]["-400"]["attributes"]["qualifiedName"] = instanceUri
+		jsonData["referredEntities"]["-400"]["attributes"]["uri"] = instanceUri
+		jsonData["referredEntities"]["-400"]["attributes"]["name"] = instanceName
+		jsonData["referredEntities"]["-400"]["attributes"]["rdbms_type"] = instanceType
+		jsonData["referredEntities"]["-400"]["attributes"]["hostname"] = self.jdbc_hostname
+		jsonData["referredEntities"]["-400"]["attributes"]["port"] = self.jdbc_port
+		jsonData["referredEntities"]["-400"]["attributes"]["protocol"] = "jdbc"
+
+		return jsonData
+
+		logging.debug("Executing common_config.getAtlasReferredEntities() - Finished")
+
+	def checkAtlasSchema(self):
+		""" Checks if the Atlas schema for DBImport is available and at the correct version. Returns True or False """
+		logging.debug("Executing common_config.checkAtlasSchema()")
+
+		# We only check the Atlas schema ones per execution. This will otherwise add more requests to Atlas for the same data
+		if self.atlasSchemaChecked == True:
+			return self.atlasEnabled
+
+		if self.atlasEnabled == True:
+			logging.info("Checking Atlas connection")
+			response = self.atlasGetData(URL=self.atlasRestTypeDefDBImportProcess)
+			statusCode = response["statusCode"]
+			responseData = json.loads(response["data"])
+
+		if self.atlasEnabled == True and statusCode == 404:
+			# The TypeDef was not found
+			logging.warning("The Atlas typeDef 'DBImport_Process' was not found. Did you run the Atlas setup for DBImport?")
+			self.atlasEnabled = False
+
+		elif self.atlasEnabled == True and statusCode != 200:
+			logging.warning("Atlas communication failed with response %s"%(statusCode))
+			self.atlasEnabled = False
+
+		if self.atlasEnabled == True:
+			# if self.atlasEnabled = True at this stage, it means that we have a valid json response in DBImportProcessJSON
+			typeDefVersion = responseData["typeVersion"]
+			if typeDefVersion != "1.2":
+				logging.warning("The version for Atlas typeDef 'DBImport_Process' is not correct. Version required is 1.2 and version found is %s"%(typeDefVersion))
+				logging.warning("Atlas integration is Disabled")
+				self.atlasEnabled = False
+			else:
+				self.atlasSchemaChecked = True
+
+		return self.atlasEnabled
+
+		logging.debug("Executing common_config.checkAtlasSchema() - Finished")
+
+	def atlasGetData(self, URL):
+		logging.debug("Executing common_config.atlasGetData()")
+		return self.atlasCommunicate(URL=URL, requestType="GET")
+
+	def atlasPostData(self, URL, data):
+		logging.debug("Executing common_config.atlasPostData()")
+		return self.atlasCommunicate(URL=URL, requestType="POST", data=data)
+
+	def atlasDeleteData(self, URL):
+		logging.debug("Executing common_config.atlasDeleteData()")
+		return self.atlasCommunicate(URL=URL, requestType="DELETE")
+
+	def atlasCommunicate(self, URL, requestType, data=None):
+		logging.debug("Executing common_config.atlasCommunicate()")
+
+		returnValue = None
+		if self.atlasEnabled == True:
+			try:
+				if requestType == "POST":
+					response = requests.post(URL,
+						headers=self.atlasHeaders,
+						data=data,
+						timeout=self.atlasTimeout,
+						auth=HTTPKerberosAuth(),
+						verify=self.atlasSSLverify)
+
+				elif requestType == "GET":
+					response = requests.get(URL,
+						headers=self.atlasHeaders,
+						timeout=self.atlasTimeout,
+						auth=HTTPKerberosAuth(),
+						verify=self.atlasSSLverify)
+
+				elif requestType == "DELETE":
+					response = requests.delete(URL,
+						headers=self.atlasHeaders,
+						timeout=self.atlasTimeout,
+						auth=HTTPKerberosAuth(),
+						verify=self.atlasSSLverify)
+
+				else:
+					raise ValueError 
+
+				returnValue = { "statusCode": response.status_code, "data": response.text }
+				logging.debug("Atlas statusCode = %s"%(response.status_code))
+				logging.debug("Atlas data = %s"%(response.text))
+
+			except requests.exceptions.ConnectionError:
+				logging.error("Connection error when communicating with Atlas on %s"%(URL))
+				logging.warning("Atlas integration is Disabled")
+				self.common_config.atlasEnabled = False
+			except requests.exceptions.HTTPError:
+				logging.error("HTTP error when communicating with Atlas on %s"%(URL))
+				logging.warning("Atlas integration is Disabled")
+				self.common_config.atlasEnabled = False
+			except requests.exceptions.RequestException:
+				logging.error("RequestException error when communicating with Atlas on %s"%(URL))
+				logging.warning("Atlas integration is Disabled")
+				self.common_config.atlasEnabled = False
+			except requests.exceptions.SSLError:
+				logging.error("Atlas connection failed due to SSL validation. Please check Atlas connection configuration in config file")
+				logging.warning("Atlas integration is Disabled")
+				self.atlasEnabled = False
+			except ValueError:
+				logging.error("The used requstType (%s) for atlasCommunicate() is not supported"%(requestType))
+				logging.warning("Atlas integration is Disabled")
+				self.atlasEnabled = False
+#			else:
+#				returnValue = response.text
+
+		logging.debug("Executing common_config.atlasCommunicate() - Finished")
+		return returnValue
+
 	def connectSQLAlchemy(self):
 		""" Connects to the configuration database with SQLAlchemy """
 
@@ -229,6 +567,7 @@ class config(object, metaclass=Singleton):
 		return self.mysql_conn
 
 	def remove_temporary_files(self):
+		logging.debug("Executing common_config.remove_temporary_files()")
 
 		# Remove the kerberos ticket file
 		if self.kerberosInitiated == True:
@@ -242,7 +581,9 @@ class config(object, metaclass=Singleton):
 				shutil.rmtree(self.tempdir)
 			except FileNotFoundError:
 				# This can happen as we might call this function multiple times during an error and we dont want an exception because of that
-				return
+				pass
+
+		logging.debug("Executing common_config.remove_temporary_files() - Finished")
 
 	def checkTimeWindow(self, connection_alias):
 		logging.debug("Executing common_config.checkTimeWindow()")
