@@ -603,6 +603,35 @@ class stage(object):
 		logging.debug("Executing stage.getStage() - Finished")
 		return self.currentStage
 
+	def getStageStartStop(self, stage):
+		""" Returns the start and stop time for a specific stage. If no info can be found, None is returned """
+		logging.debug("Executing stage.getStageStartStop()")
+
+		query = "select stage, start, stop, duration from import_stage_statistics where hive_db = %s and hive_table = %s "
+		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		returnDict = {}
+		returnDict["startTime"] = "1970-01-01T00:00:00.000000Z"
+		returnDict["stopTime"] = "1970-01-01T00:00:00.000000Z"
+
+		for row in self.mysql_cursor.fetchall():
+			stage_id = row[0]
+			stage_start = row[1]
+			stage_stop = row[2]
+			stage_duration = row[3]
+
+			stageShortName = self.getStageShortName(stage_id)
+			if stageShortName == stage:
+				returnDict["startTime"] = stage_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+				returnDict["stopTime"] = stage_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+				break
+
+		return returnDict
+
+		logging.debug("Executing stage.getStageStartStop() - Finished")
+
+
 	def setStage(self, newStage, force=False):
 		""" Saves the stage information that is used for finding the correct step in the retries operations """
 		logging.debug("Executing stage.setStage()")

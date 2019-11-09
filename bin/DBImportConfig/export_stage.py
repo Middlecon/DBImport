@@ -330,17 +330,35 @@ class stage(object):
 
 		logging.debug("Executing stage.saveStageStatistics() - Finished")
 
-#	def setStageUnrecoverable(self):
-#		""" Removes all stage information from the export_stage table """
-#		logging.debug("Executing stage.setStageUnrecoverable()")
-#
-#		if self.memoryStage == False:
-#			query = "update export_stage set unrecoverable_error = 1 where hive_db = %s and hive_table = %s"
-#			self.mysql_cursor.execute(query, (self.hiveDB, self.hiveTable))
-#			self.mysql_conn.commit()
-#			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		logging.debug("Executing stage.setStageUnrecoverable() - Finished")
+
+	def getStageStartStop(self, stage):
+		""" Returns the start and stop time for a specific stage. If no info can be found, None is returned """
+		logging.debug("Executing stage.getStageStartStop()")
+
+		query = "select stage, start, stop, duration from export_stage_statistics where dbalias = %s and target_schema = %s and target_table = %s"
+		self.mysql_cursor.execute(query, (self.connectionAlias, self.targetSchema, self.targetTable))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		returnDict = {}
+		returnDict["startTime"] = "1970-01-01T00:00:00.000000Z"
+		returnDict["stopTime"] = "1970-01-01T00:00:00.000000Z"
+
+		for row in self.mysql_cursor.fetchall():
+			stage_id = row[0]
+			stage_start = row[1]
+			stage_stop = row[2]
+			stage_duration = row[3]
+
+			stageShortName = self.getStageShortName(stage_id)
+			if stageShortName == stage:
+				returnDict["startTime"] = stage_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+				returnDict["stopTime"] = stage_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+				break
+
+		return returnDict
+
+		logging.debug("Executing stage.getStageStartStop() - Finished")
+
 
 	def setStageOnlyInMemory(self):
 		self.memoryStage = True

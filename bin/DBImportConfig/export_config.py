@@ -20,6 +20,7 @@ import re
 import logging
 import json
 import math
+import getpass
 from ConfigReader import configuration
 import mysql.connector
 from common.Singleton import Singleton 
@@ -64,6 +65,8 @@ class config(object, metaclass=Singleton):
 		self.hiveJavaHeap = None
 
 		self.tempTableNeeded = None
+
+		self.fullExecutedCommand = None
 
 		self.sqoop_mapcolumnjava = None
 		self.sqoop_last_mappers = None
@@ -1622,5 +1625,94 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing export_config.updateAtlasWithSourceSchema() - Finished")
 
 
+
+
+
+	def updateAtlasWithExportLineage(self):
+		""" This will update Atlas lineage for the export process """
+		logging.debug("Executing export_config.updateAtlasWithExportLineage()")
+
+		if self.common_config.atlasEnabled == False:
+			return
+
+		logging.info("Updating Atlas with export lineage")
+
+		tableComment = ""
+#		if self.table_comment != None:
+#			tableComment = self.table_comment.replace('\r', "\n")
+
+		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
+		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = self.targetSchema,
+																	tableName = self.targetTable, 
+																	tableComment = tableComment,
+																	)
+
+		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
+		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = self.targetSchema, tableName = self.targetTable)
+		if returnDict == None:
+			return
+
+		tableUri = returnDict["tableUri"]
+		dbUri = returnDict["dbUri"]
+		dbName = returnDict["dbName"]
+		instanceUri = returnDict["instanceUri"]
+		instanceName = returnDict["instanceName"]
+		instanceType = returnDict["instanceType"]
+
+		# Get extended data from jdbc_connections table
+		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
+		contactInfo = jdbcConnectionDict["contact_info"]
+		description = jdbcConnectionDict["description"]
+		owner = jdbcConnectionDict["owner"]
+
+		clusterName = self.common_config.getConfigValue(key = "cluster_name")
+
+		startStopDict = self.stage.getStageStartStop(stage = self.exportTool)
+
+		processName = "%s.%s.%s@DBimport"%(self.connectionAlias, self.targetSchema, self.targetTable)
+
+		if self.tempTableNeeded == True:
+			hiveQualifiedName = "%s.%s@%s"%(self.hiveExportTempDB, self.hiveExportTempTable, clusterName)
+		else:
+			hiveQualifiedName = "%s.%s@%s"%(self.hiveDB, self.hiveTable, clusterName)
+
+		jsonData["referredEntities"]["-500"] = {}
+		jsonData["referredEntities"]["-500"]["guid"] = "-500"
+		jsonData["referredEntities"]["-500"]["typeName"] = "hive_table"
+		jsonData["referredEntities"]["-500"]["attributes"] = {}
+		jsonData["referredEntities"]["-500"]["attributes"]["qualifiedName"] = hiveQualifiedName
+		jsonData["referredEntities"]["-500"]["attributes"]["name"] = self.hiveTable
+
+		lineageData = {}
+		lineageData["typeName"] = "DBImport_Process"
+		lineageData["createdBy"] = "DBImport"
+		lineageData["attributes"] = {}
+		lineageData["attributes"]["qualifiedName"] = processName
+		lineageData["attributes"]["uri"] = processName
+		lineageData["attributes"]["name"] = processName
+		lineageData["attributes"]["operation"] = "export"
+		lineageData["attributes"]["commandlineOpts"] = self.fullExecutedCommand
+		lineageData["attributes"]["description"] = "Export of %s.%s"%(self.hiveDB, self.hiveTable)
+		lineageData["attributes"]["startTime"] = startStopDict["startTime"]
+		lineageData["attributes"]["endTime"] = startStopDict["stopTime"]
+		lineageData["attributes"]["userName"] = getpass.getuser()
+		lineageData["attributes"]["exportTool"] = self.exportTool
+		lineageData["attributes"]["inputs"] = [{ "guid": "-500", "typeName": "hive_table" }]
+		lineageData["attributes"]["outputs"] = [{ "guid": "-100", "typeName": "rdbms_table" }]
+
+		jsonData["entities"] = []
+		jsonData["entities"].append(lineageData)
+
+		logging.debug(json.dumps(jsonData, indent=3))
+
+		response = self.common_config.atlasPostData(URL = self.common_config.atlasRestEntities, data = json.dumps(jsonData))
+		statusCode = response["statusCode"]
+		if statusCode != 200:
+			logging.warning("Request from Atlas when updating export lineage was %s."%(statusCode))
+			self.common_config.atlasEnabled == False
+
+#		print(response)
+
+		logging.debug("Executing export_config.updateAtlasWithExportLineage() - Finished")
 
 

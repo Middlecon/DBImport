@@ -382,7 +382,7 @@ class config(object, metaclass=Singleton):
 		return returnDict
 
 
-	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, tableComment):
+	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, tableComment, hdfsPath = ""):
 		""" Returns a dict that contains the referredEntities part for the RDBMS update rest call """
 		logging.debug("Executing common_config.getAtlasReferredEntities()")
 
@@ -423,6 +423,23 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
 		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
 		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
+	
+		if hdfsPath != "":
+			hdfsAddress = self.getConfigValue(key = "hdfs_address")
+			clusterName = self.getConfigValue(key = "cluster_name")
+#			clusterName = hdfsAddress.split("//")[1].split(":")[0]
+			hdfsUri = "%s%s@%s"%(hdfsAddress, hdfsPath, clusterName)
+			hdfsFullPath = "%s%s"%(hdfsAddress, hdfsPath)
+
+			jsonData["referredEntities"]["-200"] = {}
+			jsonData["referredEntities"]["-200"]["guid"] = "-200"
+			jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
+			jsonData["referredEntities"]["-200"]["attributes"] = {}
+			jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
+			jsonData["referredEntities"]["-200"]["attributes"]["uri"] = hdfsUri
+			jsonData["referredEntities"]["-200"]["attributes"]["name"] = hdfsPath
+			jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
+
 		jsonData["referredEntities"]["-300"] = {}
 		jsonData["referredEntities"]["-300"]["guid"] = "-300"
 		jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
@@ -1449,7 +1466,7 @@ class config(object, metaclass=Singleton):
 			boolValue = True
 		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors"):
 			valueColumn = "valueInt"
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))

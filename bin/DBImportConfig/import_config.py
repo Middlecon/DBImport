@@ -22,6 +22,7 @@ import json
 import math
 import ssl
 import requests
+import getpass
 from requests_kerberos import HTTPKerberosAuth
 from ConfigReader import configuration
 import mysql.connector
@@ -119,6 +120,8 @@ class config(object, metaclass=Singleton):
 		self.phaseThree = None
 
 		self.sqlSessions = None
+
+		self.fullExecutedCommand = None
 
 		self.common_config = common_config.config(Hive_DB, Hive_Table)
 		self.rest = rest.restInterface()
@@ -2636,5 +2639,76 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.updateAtlasWithSourceSchema() - Finished")
 
 
+	def updateAtlasWithImportLineage(self):
+		""" This will update Atlas lineage for the import process """
+		logging.debug("Executing import_config.updateAtlasWithImportLineage()")
+
+		if self.common_config.atlasEnabled == False:
+			return
+
+		logging.info("Updating Atlas with import lineage")
+
+		tableComment = ""
+		if self.table_comment != None:
+			tableComment = self.table_comment.replace('\r', "\n")
+
+		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
+		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = self.source_schema,
+																	tableName = self.source_table, 
+																	tableComment = tableComment,
+																	hdfsPath = self.sqoop_hdfs_location
+																	)
+
+		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
+		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = self.source_schema, tableName = self.source_table)
+		if returnDict == None:
+			return
+
+		tableUri = returnDict["tableUri"]
+		dbUri = returnDict["dbUri"]
+		dbName = returnDict["dbName"]
+		instanceUri = returnDict["instanceUri"]
+		instanceName = returnDict["instanceName"]
+		instanceType = returnDict["instanceType"]
+
+		# Get extended data from jdbc_connections table
+		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
+		contactInfo = jdbcConnectionDict["contact_info"]
+		description = jdbcConnectionDict["description"]
+		owner = jdbcConnectionDict["owner"]
+
+		startStopDict = self.stage.getStageStartStop(stage = self.importTool)
+
+		processName = "%s.%s@DBimport"%(self.Hive_DB, self.Hive_Table)
+
+		lineageData = {}
+		lineageData["typeName"] = "DBImport_Process"
+		lineageData["createdBy"] = "DBImport"
+		lineageData["attributes"] = {}
+		lineageData["attributes"]["qualifiedName"] = processName
+		lineageData["attributes"]["uri"] = processName
+		lineageData["attributes"]["name"] = processName
+		lineageData["attributes"]["operation"] = "import"
+		lineageData["attributes"]["commandlineOpts"] = self.fullExecutedCommand
+		lineageData["attributes"]["description"] = "Import of %s.%s"%(self.Hive_DB, self.Hive_Table)
+		lineageData["attributes"]["startTime"] = startStopDict["startTime"]
+		lineageData["attributes"]["endTime"] = startStopDict["stopTime"]
+		lineageData["attributes"]["userName"] = getpass.getuser()
+		lineageData["attributes"]["importTool"] = self.importTool
+		lineageData["attributes"]["inputs"] = [{ "guid": "-100", "typeName": "rdbms_table" }]
+		lineageData["attributes"]["outputs"] = [{ "guid": "-200", "typeName": "hdfs_path" }]
+
+		jsonData["entities"] = []
+		jsonData["entities"].append(lineageData)
+
+		logging.debug(json.dumps(jsonData, indent=3))
+
+		response = self.common_config.atlasPostData(URL = self.common_config.atlasRestEntities, data = json.dumps(jsonData))
+		statusCode = response["statusCode"]
+		if statusCode != 200:
+			logging.warning("Request from Atlas when updating import lineage was %s."%(statusCode))
+			self.common_config.atlasEnabled == False
+
+		logging.debug("Executing import_config.updateAtlasWithImportLineage() - Finished")
 
 

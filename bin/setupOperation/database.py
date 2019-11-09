@@ -450,6 +450,13 @@ class initialize(object):
 				description='File permission of created DAG file')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'cluster_name').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='cluster_name', 
+				valueStr='hadoopcluster', 
+				description='Name of Hadoop cluster')
+			self.configDB.execute(query)
+
 		if result_df.empty or (result_df[0] == 'hdfs_address').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hdfs_address', 

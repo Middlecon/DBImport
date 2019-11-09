@@ -139,6 +139,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.common_config.checkAtlasSchema() == True:
 			self.import_config.updateAtlasWithRDBMSdata()
 
+	def updateAtlasWithImportLineage(self):
+		if self.import_config.common_config.checkAtlasSchema() == True:
+			self.import_config.updateAtlasWithImportLineage()
+
 	def checkHiveDB(self, hiveDB):
 		try:
 			self.common_operations.checkHiveDB(hiveDB)

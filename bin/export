@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import os
 import sys
 import getopt
 import logging
@@ -59,6 +60,7 @@ def main(argv):
 	except getopt.GetoptError:
 		printHelp()
 
+	fullExecutedCommand = "%s %s"%(os.path.basename(__file__), " ".join(argv))
 	connectionAlias = None
 	targetSchema = None
 	targetTable = None
@@ -129,7 +131,9 @@ def main(argv):
 
 	# Initiate the master class for all export operations
 	export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=targetSchema, targetTable=targetTable)
-#	etl_operation = etl_operations.operation()
+
+	# Save data down to export_operation
+	export_operation.export_config.fullExecutedCommand = fullExecutedCommand
 
 	exportPhase = export_operation.export_config.exportPhase
 	exportPhaseDescription = export_operation.export_config.exportPhaseDescription
@@ -273,6 +277,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
 				if export_operation.runStage(950) == True:
 					export_operation.updateAtlasWithTargetSchema()
+					export_operation.updateAtlasWithExportLineage()
 
 			if runOnlyFunction == None:
 				export_operation.setStage(999)
@@ -379,6 +384,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
 				if export_operation.runStage(950) == True:
 					export_operation.updateAtlasWithTargetSchema()
+					export_operation.updateAtlasWithExportLineage()
 
 			if runOnlyFunction == None:
 				export_operation.setStage(999)

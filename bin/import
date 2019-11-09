@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import os
 import sys
 import getopt
 import logging
@@ -93,7 +94,7 @@ def main(argv):
 	except getopt.GetoptError:
 		printHelp()
 
-	version = "0.10"
+	fullExecutedCommand = "%s %s"%(os.path.basename(__file__), " ".join(argv))
 	Hive_DB = None
 	Hive_Table = None
 	runOnlyFunction = None
@@ -193,6 +194,9 @@ def main(argv):
 	etl_operation = etl_operations.operation()
 
 	copyDestinations = copy_operation.getCopyDestinations(hiveDB = Hive_DB, hiveTable = Hive_Table)
+
+	# Save data down to import_operation
+	import_operation.import_config.fullExecutedCommand = fullExecutedCommand
 
 	# Get the name of the different phases we are going to execute
 	importPhase = import_operation.import_config.importPhase 
@@ -393,6 +397,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1045) == True: 
 					import_operation.updateAtlasWithSourceSchema()
+					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1049)
@@ -456,6 +461,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1145) == True: 
 					import_operation.updateAtlasWithSourceSchema()
+					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1149)
@@ -512,6 +518,7 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1245) == True: 
 					import_operation.updateAtlasWithSourceSchema()
+					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1249)
