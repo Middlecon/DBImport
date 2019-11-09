@@ -112,6 +112,8 @@ class stage(object):
 		elif stage == 161: stageDescription = "Validations"
 		elif stage == 162: stageDescription = "Saving pending incremental values"
 
+		elif stage == 950: stageDescription = "Update Atlas Schema"
+
 		elif stage == 999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -158,6 +160,8 @@ class stage(object):
 		elif stage == 160: stageShortName = "spark"
 		elif stage == 161: stageShortName = "validate"
 		elif stage == 162: stageShortName = "skip"
+
+		elif stage == 950: stageShortName = "atlas_schema"
 
 		elif stage == 999: stageShortName = "skip"
 

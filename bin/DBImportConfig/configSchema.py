@@ -276,6 +276,9 @@ class exportStatistic(Base):
     update_statistics_duration = Column(Integer)
     update_statistics_start = Column(DateTime)
     update_statistics_stop = Column(DateTime)
+    atlas_schema_duration = Column(Integer)
+    atlas_schema_start = Column(DateTime)
+    atlas_schema_stop = Column(DateTime)
 
 
 class exportStatisticsLast(Base):
@@ -335,6 +338,9 @@ class exportStatisticsLast(Base):
     update_statistics_duration = Column(Integer)
     update_statistics_start = Column(DateTime)
     update_statistics_stop = Column(DateTime)
+    atlas_schema_duration = Column(Integer)
+    atlas_schema_start = Column(DateTime)
+    atlas_schema_stop = Column(DateTime)
 
 
 class exportTables(Base):
@@ -531,7 +537,9 @@ class importStatistic(Base):
     copy_schema_duration = Column(Integer)
     copy_schema_start = Column(DateTime)
     copy_schema_stop = Column(DateTime)
-
+    atlas_schema_duration = Column(Integer)
+    atlas_schema_start = Column(DateTime)
+    atlas_schema_stop = Column(DateTime)
 
 
 class importStatisticsLast(Base):
@@ -623,6 +631,9 @@ class importStatisticsLast(Base):
     copy_schema_duration = Column(Integer)
     copy_schema_start = Column(DateTime)
     copy_schema_stop = Column(DateTime)
+    atlas_schema_duration = Column(Integer)
+    atlas_schema_start = Column(DateTime)
+    atlas_schema_stop = Column(DateTime)
 
 
 
@@ -709,6 +720,10 @@ class jdbcConnections(Base):
     timewindow_stop = Column(Time, comment='End of the time window when we are allowed to run against this connection.')
     operator_notes = Column(Text, comment='Free text field to write a note about the connection')
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='1 = Create foreign keys, 0 = Dont create foreign keys', server_default=text("'1'"))
+    contact_info = Column(String(255), comment='Contact information. Used by Atlas integration')
+    description = Column(String(255), comment='Description. Used by Atlas integration')
+    owner = Column(String(255), comment='Owner of system and/or data. Used by Atlas integration')
+
 
 
 class jdbcConnectionsDrivers(Base):

@@ -75,6 +75,7 @@ class stage(object):
 		elif stage == 1013: stageDescription = "Sqoop import"
 		elif stage == 1014: stageDescription = "Spark import"
 		elif stage == 1020: stageDescription = "Validate sqoop import"
+		elif stage == 1045: stageDescription = "Update Atlas"
 		elif stage == 1049: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_INCR 
@@ -84,6 +85,7 @@ class stage(object):
 		elif stage == 1113: stageDescription = "Spark import"
 		elif stage == 1120: stageDescription = "Get source table rowcount"
 		elif stage == 1121: stageDescription = "Validate sqoop import"
+		elif stage == 1145: stageDescription = "Update Atlas"
 		elif stage == 1149: stageDescription = "Import Phase Completed"
 
 		# Import_Phase_ORACLE_FLASHBACK 
@@ -93,6 +95,7 @@ class stage(object):
 		elif stage == 1213: stageDescription = "Spark import"
 		elif stage == 1220: stageDescription = "Get source table rowcount"
 		elif stage == 1221: stageDescription = "Validate sqoop import"
+		elif stage == 1245: stageDescription = "Update Atlas"
 		elif stage == 1249: stageDescription = "Import Phase Completed"
 
 		# Copy Phase
@@ -236,6 +239,7 @@ class stage(object):
 		elif stage == 1013: stageShortName = "sqoop"
 		elif stage == 1014: stageShortName = "spark"
 		elif stage == 1020: stageShortName = "validate_sqoop_import"
+		elif stage == 1045: stageShortName = "atlas_schema"
 		elif stage == 1049: stageShortName = "skip"
 
 		# Import_Phase_INCR 
@@ -245,6 +249,7 @@ class stage(object):
 		elif stage == 1113: stageShortName = "spark"
 		elif stage == 1120: stageShortName = "get_source_rowcount"
 		elif stage == 1121: stageShortName = "validate_sqoop_import"
+		elif stage == 1145: stageShortName = "atlas_schema"
 		elif stage == 1149: stageShortName = "skip"
 
 		# Import_Phase_ORACLE_FLASHBACK
@@ -254,6 +259,7 @@ class stage(object):
 		elif stage == 1213: stageShortName = "spark"
 		elif stage == 1220: stageShortName = "get_source_rowcount"
 		elif stage == 1221: stageShortName = "validate_sqoop_import"
+		elif stage == 1245: stageShortName = "atlas_schema"
 		elif stage == 1249: stageShortName = "skip"
 
 		# Copy Phase

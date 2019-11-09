@@ -47,6 +47,7 @@ def printHelp():
 	print ("                     - exportData")
 	print ("                     - validate")
 	print ("                     - createStatistics")
+	print ("                     - updateAtlas")
 
 
 	sys.exit(1)
@@ -91,7 +92,7 @@ def main(argv):
 			ignoreTime = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getHiveTableSchema", "createExportTempTable", "truncateExportTempTable", "insertDataIntoExportTempTable", "createTargetTable", "truncateJDBCTable", "exportData", "validate", "createStatistics"):
+		if runOnlyFunction not in ("getHiveTableSchema", "createExportTempTable", "truncateExportTempTable", "insertDataIntoExportTempTable", "createTargetTable", "truncateJDBCTable", "exportData", "validate", "createStatistics", "updateAtlas"):
 			printHelp()
 
 	if displayVersion == True:
@@ -269,6 +270,10 @@ def main(argv):
 					export_operation.getTargetTableRowCount()
 					export_operation.validateRowCount()
 
+			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
+				if export_operation.runStage(950) == True:
+					export_operation.updateAtlasWithTargetSchema()
+
 			if runOnlyFunction == None:
 				export_operation.setStage(999)
 
@@ -370,6 +375,10 @@ def main(argv):
 			if runOnlyFunction == None: 
 				if export_operation.runStage(162) == True:
 					export_operation.saveIncrPendingValues()
+
+			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
+				if export_operation.runStage(950) == True:
+					export_operation.updateAtlasWithTargetSchema()
 
 			if runOnlyFunction == None:
 				export_operation.setStage(999)

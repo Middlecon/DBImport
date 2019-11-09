@@ -149,6 +149,10 @@ class operation(object, metaclass=Singleton):
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
+	def updateAtlasWithTargetSchema(self):
+		if self.export_config.common_config.checkAtlasSchema() == True:
+			self.export_config.updateAtlasWithRDBMSdata()
+
 	def checkHiveDB(self, hiveDB):
 		try:
 			self.common_operations.checkHiveDB(hiveDB)

@@ -60,6 +60,7 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor = None
 		self.tempdir = None
 		self.startDate = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f') 
+		self.dbAlias = None
 
 		# Variables used in lookupConnectionAlias
 		self.db_mssql = False
@@ -227,6 +228,37 @@ class config(object, metaclass=Singleton):
 		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_config.__init__() - Finished")
 
+	def getAtlasJdbcConnectionData(self, dbAlias=None):
+		""" Reads the extended information in jdbc_connections needed by Atlas (contact_info, owner and more) """
+		logging.debug("Executing common_config.getAtlasJdbcConnectionData()")
+	
+		if dbAlias == None:
+			dbAlias = self.dbAlias
+
+		# Fetch data from jdbc_connection table
+		query = "select contact_info, description, owner from jdbc_connections where dbalias = %s "
+		logging.debug("Executing the following SQL: %s" % (query))
+		self.mysql_cursor.execute(query, (dbAlias, ))
+
+		if self.mysql_cursor.rowcount != 1:
+			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
+			logging.error("Rows returned: %d" % (self.mysql_cursor.rowcount) )
+			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
+			raise Exception
+
+		row = self.mysql_cursor.fetchone()
+		returnDict = {}
+		returnDict["contact_info"] = row[0]
+		returnDict["description"] = row[1]
+		returnDict["owner"] = row[2]
+
+		if returnDict["contact_info"] == None:	returnDict["contact_info"] = ""
+		if returnDict["description"] == None:	returnDict["description"] = ""
+		if returnDict["owner"] == None:			returnDict["owner"] = ""
+
+		logging.debug("Executing common_config.getAtlasJdbcConnectionData() - Finished")
+		return returnDict
+
 	def getAtlasRdbmsColumnURI(self, schemaName, tableName, columnName):
 		""" Returns a string with the correct column URI for Atlas """
 
@@ -369,11 +401,14 @@ class config(object, metaclass=Singleton):
 		instanceType = returnDict["instanceType"]
 
 		# TODO: Get the following information from dbimport and source system
-		# comment in jdbc_connections
-		# Owner in jdbc_connections
-		# OnPrem or Cloud in jdbc_connections
 		# create_time from source database on table
 		# Foreign Keys
+
+		# Get extended data from jdbc_connections table
+		jdbcConnectionDict = self.getAtlasJdbcConnectionData()
+		contactInfo = jdbcConnectionDict["contact_info"]
+		description = jdbcConnectionDict["description"]
+		owner = jdbcConnectionDict["owner"]
 
 		jsonData = {}
 		jsonData["referredEntities"] = {}
@@ -384,17 +419,10 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-100"]["attributes"]["qualifiedName"] = tableUri
 		jsonData["referredEntities"]["-100"]["attributes"]["uri"] = tableUri
 		jsonData["referredEntities"]["-100"]["attributes"]["name"] = tableName
-#       jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = "Berry Osterlund, IXAB"
+		jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = contactInfo
+		jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
 		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
 		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
-#       jsonData["referredEntities"]["-200"] = {}
-#       jsonData["referredEntities"]["-200"]["guid"] = "-200"
-#       jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
-#       jsonData["referredEntities"]["-200"]["attributes"] = {}
-#       jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
-#       jsonData["referredEntities"]["-200"]["attributes"]["uri"] = hdfsUri
-#       jsonData["referredEntities"]["-200"]["attributes"]["name"] = self.sqoop_hdfs_location
-#       jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
 		jsonData["referredEntities"]["-300"] = {}
 		jsonData["referredEntities"]["-300"]["guid"] = "-300"
 		jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
@@ -402,7 +430,9 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-300"]["attributes"]["qualifiedName"] = dbUri
 		jsonData["referredEntities"]["-300"]["attributes"]["uri"] = dbUri
 		jsonData["referredEntities"]["-300"]["attributes"]["name"] = dbName
-#       jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = "Berry Osterlund, IXAB"
+		jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = contactInfo
+		jsonData["referredEntities"]["-300"]["attributes"]["owner"] = owner
+		jsonData["referredEntities"]["-300"]["attributes"]["description"] = description
 		jsonData["referredEntities"]["-300"]["attributes"]["instance"] = { "guid": "-400", "typeName": "rdbms_instance" }
 		jsonData["referredEntities"]["-400"] = {}
 		jsonData["referredEntities"]["-400"]["guid"] = "-400"
@@ -729,6 +759,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
+		self.dbAlias = connection_alias
 
 		# Fetch data from jdbc_connection table
 		query = "select jdbc_url, credentials from jdbc_connections where dbalias = %s "

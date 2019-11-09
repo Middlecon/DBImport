@@ -2507,6 +2507,10 @@ class config(object, metaclass=Singleton):
 		if self.common_config.atlasEnabled == False:
 			return
 
+		# Fetch the remote system schema if we havent before
+		if self.common_config.source_columns_df.empty == True:
+			self.common_config.getJDBCTableDefinition(source_schema = self.source_schema, source_table = self.source_table, printInfo = True)
+
 		logging.info("Updating Atlas with source database schema")
 
 		tableComment = ""
@@ -2530,6 +2534,13 @@ class config(object, metaclass=Singleton):
 		instanceUri = returnDict["instanceUri"]
 		instanceName = returnDict["instanceName"]
 		instanceType = returnDict["instanceType"]
+
+		# Get extended data from jdbc_connections table
+		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
+		contactInfo = jdbcConnectionDict["contact_info"]
+		description = jdbcConnectionDict["description"]
+		owner = jdbcConnectionDict["owner"]
+
 
 		jsonData["entities"] = []
 				
@@ -2556,7 +2567,7 @@ class config(object, metaclass=Singleton):
 
 			columnData["attributes"]["qualifiedName"] = columnUri
 			columnData["attributes"]["uri"] = columnUri
-#			columnData["attributes"]["owner"] = "Berry"
+			columnData["attributes"]["owner"] = owner
 
 			if row['SOURCE_COLUMN_COMMENT'] != None and row['SOURCE_COLUMN_COMMENT'].strip() != "":
 				columnData["attributes"]["comment"] = row['SOURCE_COLUMN_COMMENT']
@@ -2566,9 +2577,7 @@ class config(object, metaclass=Singleton):
 			except ValueError:
 				columnLength = None
 
-			# if row['SOURCE_COLUMN_LENGTH'] != None and int(str(row['SOURCE_COLUMN_LENGTH']).split('.')[0].split(':')[0]) > 0:
 			if columnLength != None:
-#				columnData["attributes"]["length"] = str(row['SOURCE_COLUMN_LENGTH']).split('.')[0].split(':')[0]
 				columnData["attributes"]["length"] = str(columnLength)
 
 			columnData["attributes"]["name"] = columnName
