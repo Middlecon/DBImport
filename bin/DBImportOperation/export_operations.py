@@ -711,7 +711,11 @@ class operation(object, metaclass=Singleton):
 		columnsTarget.drop('SOURCE_COLUMN_COMMENT', axis=1, inplace=True)
 		columnsTarget.drop('SOURCE_COLUMN_TYPE', axis=1, inplace=True)
 		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
+		columnsTarget.drop('TABLE_TYPE', axis=1, inplace=True)
 		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
+		columnsTarget.drop('TABLE_CREATE_TIME', axis=1, inplace=True)
+		columnsTarget.drop('DEFAULT_VALUE', axis=1, inplace=True)
+
 
 		columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, forceColumnUppercase=forceColumnUppercase)
 
@@ -935,7 +939,10 @@ class operation(object, metaclass=Singleton):
 		columnsTarget.drop('SOURCE_COLUMN_COMMENT', axis=1, inplace=True)
 		columnsTarget.drop('SOURCE_COLUMN_TYPE', axis=1, inplace=True)
 		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
+		columnsTarget.drop('TABLE_TYPE', axis=1, inplace=True)
 		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
+		columnsTarget.drop('TABLE_CREATE_TIME', axis=1, inplace=True)
+		columnsTarget.drop('DEFAULT_VALUE', axis=1, inplace=True)
 
 		if self.isExportTempTableNeeded() == True:
 			hiveDB = self.hiveExportTempDB

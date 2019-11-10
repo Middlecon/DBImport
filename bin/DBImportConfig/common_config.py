@@ -36,6 +36,8 @@ from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import date, datetime, time, timedelta
+from dateutil import *
+from dateutil.tz import *
 import pandas as pd
 from sourceSchemaReader import schemaReader
 from common.Singleton import Singleton
@@ -382,7 +384,85 @@ class config(object, metaclass=Singleton):
 		return returnDict
 
 
-	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, tableComment, hdfsPath = ""):
+	def getJdbcTableType(self):
+		""" Returns the table type of the table fetched and available in self.source_columns_df """
+		logging.debug("Executing common_config.getJdbcTableType()")
+
+		if self.source_columns_df.empty == True:
+			logging.warning("No metadata from jdbc table in getJdbcTableType()")
+			return None
+
+		tableTypeFromSource = self.source_columns_df.iloc[0]["TABLE_TYPE"]
+		tableType = None
+
+
+		if self.db_mssql == True:
+			# BASE TABLE, VIEW
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif self.db_oracle == True:
+			# TABLE, VIEW
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif self.db_mysql == True:
+			# BASE TABLE, VIEW, SYSTEM VIEW (for an INFORMATION_SCHEMA table)
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif self.db_postgresql == True:
+			# BASE TABLE, VIEW, FOREIGN TABLE, LOCAL TEMPORARY
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			if tableTypeFromSource == "LOCAL TEMPORARY":	tableType = "temporary"
+			else: tableType = "table"
+
+		elif self.db_progress == True:
+			# Unsure. Cant find documentation. 
+			# Verified	T=Table
+			# We assume	V=View
+			if tableTypeFromSource == "V":	tableType = "view"
+			else: tableType = "table"
+
+		elif self.db_db2udb == True or self.db_db2as400 == True: 
+			# A = Alias
+			# C = Clone Table
+			# D = Accelerator-only table
+			# G = Global temporary table
+			# H = History Table
+			# M = Materialized query table
+			# P = Table that was implicitly created for XML columns
+			# R = Archive table 
+			# T = Table
+			# V = View
+			# X = Auxiliary table
+			if tableTypeFromSource == "A":	tableType = "view"
+			if tableTypeFromSource == "V":	tableType = "view"
+			else: tableType = "table"
+
+#		elif self.db_db2as400 == True:		
+#			# TABLE
+#			# VIEW
+#			# INOPERATIVE VIEW
+#			# SYSTEM TABLE
+#			# ALIAS
+#			# SYNONYM
+#			# GLOBAL TEMPORARY TABLE
+#			# AUXILIARY TABLE
+#			# MATERIALIZED QUERY TABLE
+#			# ACCEL-ONLY TABLE
+#			if tableTypeFromSource == "VIEW":	tableType = "view"
+#			if tableTypeFromSource == "INOPERATIVE VIEW":	tableType = "view"
+#			if tableTypeFromSource == "ALIAS":	tableType = "view"
+#			if tableTypeFromSource == "SYNONYM":	tableType = "view"
+#			if tableTypeFromSource == "GLOBAL TEMPORARY TABLE":	tableType = "temporary"
+#			else: tableType = "table"
+
+
+		logging.debug("Executing common_config.getJdbcTableType() - Finished")
+		return tableType
+
+	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, hdfsPath = ""):
 		""" Returns a dict that contains the referredEntities part for the RDBMS update rest call """
 		logging.debug("Executing common_config.getAtlasReferredEntities()")
 
@@ -401,14 +481,18 @@ class config(object, metaclass=Singleton):
 		instanceType = returnDict["instanceType"]
 
 		# TODO: Get the following information from dbimport and source system
-		# create_time from source database on table
 		# Foreign Keys
+		# Index
 
 		# Get extended data from jdbc_connections table
 		jdbcConnectionDict = self.getAtlasJdbcConnectionData()
 		contactInfo = jdbcConnectionDict["contact_info"]
 		description = jdbcConnectionDict["description"]
 		owner = jdbcConnectionDict["owner"]
+
+		tableCreateTime = self.source_columns_df.iloc[0]["TABLE_CREATE_TIME"]
+		tableComment = self.source_columns_df.iloc[0]["TABLE_COMMENT"]
+		tableType = self.getJdbcTableType()
 
 		jsonData = {}
 		jsonData["referredEntities"] = {}
@@ -422,12 +506,16 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = contactInfo
 		jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
 		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
+		jsonData["referredEntities"]["-100"]["attributes"]["type"] = tableType
+		if tableCreateTime != None:
+			# Atlas only support fractions of a second with 3 digits. So we remove the last 3 as python %f gives 6 digits
+			# This datetime object from the source database needs to be in UTC. We might have to convert it
+			jsonData["referredEntities"]["-100"]["attributes"]["createTime"] = tableCreateTime.strftime('%Y-%m-%dT%H:%M:%S.%f')[0:-3] + "Z"
 		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
 	
 		if hdfsPath != "":
 			hdfsAddress = self.getConfigValue(key = "hdfs_address")
 			clusterName = self.getConfigValue(key = "cluster_name")
-#			clusterName = hdfsAddress.split("//")[1].split(":")[0]
 			hdfsUri = "%s%s@%s"%(hdfsAddress, hdfsPath, clusterName)
 			hdfsFullPath = "%s%s"%(hdfsAddress, hdfsPath)
 
@@ -1604,3 +1692,142 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getJDBCtablesAndViews() - Finished")
 		return result_df
+
+
+	def updateAtlasWithRDBMSdata(self, schemaName, tableName):
+		""" This will update Atlas metadata with the information about the remote table schema """
+		logging.debug("Executing common_config.updateAtlasWithSourceSchema()")
+
+		if self.atlasEnabled == False:
+			return
+
+		# Fetch the remote system schema if we havent before
+		if self.source_columns_df.empty == True:
+			self.getJDBCTableDefinition(source_schema = schemaName, 
+										source_table = tableName, 
+										printInfo = True)
+
+		logging.info("Updating Atlas with remote database schema")
+
+		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
+		jsonData = self.getAtlasRdbmsReferredEntities(	schemaName = schemaName,
+														tableName = tableName
+														)
+
+		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
+		returnDict = self.getAtlasRdbmsNames(schemaName = schemaName, tableName = tableName)
+		if returnDict == None:
+			return
+
+		tableUri = returnDict["tableUri"]
+		dbUri = returnDict["dbUri"]
+		dbName = returnDict["dbName"]
+		instanceUri = returnDict["instanceUri"]
+		instanceName = returnDict["instanceName"]
+		instanceType = returnDict["instanceType"]
+
+		# Get extended data from jdbc_connections table
+		jdbcConnectionDict = self.getAtlasJdbcConnectionData()
+		contactInfo = jdbcConnectionDict["contact_info"]
+		description = jdbcConnectionDict["description"]
+		owner = jdbcConnectionDict["owner"]
+
+		jsonData["entities"] = []
+				
+		# Loop through the columns and add them to the JSON
+		for index, row in self.source_columns_df.iterrows():
+			columnData = {}
+			columnData["typeName"] = "rdbms_column"
+			columnData["createdBy"] = "DBImport"
+			columnData["attributes"] = {}
+
+			columnName = row['SOURCE_COLUMN_NAME']
+			columnUri = self.getAtlasRdbmsColumnURI(schemaName = schemaName,
+													tableName = tableName,
+													columnName = columnName)
+			if row['IS_NULLABLE'] == "YES":
+				columnNullable = True
+			else:
+				columnNullable = False
+
+			columnIsPrimaryKey = False
+			for keysIndex, keysRow in self.source_keys_df.iterrows():
+				if keysRow['COL_NAME'] == columnName and keysRow['CONSTRAINT_TYPE'] == constant.PRIMARY_KEY:
+					columnIsPrimaryKey = True
+
+			columnData["attributes"]["qualifiedName"] = columnUri
+			columnData["attributes"]["uri"] = columnUri
+			columnData["attributes"]["owner"] = owner
+
+			if row['SOURCE_COLUMN_COMMENT'] != None and row['SOURCE_COLUMN_COMMENT'].strip() != "":
+				columnData["attributes"]["comment"] = row['SOURCE_COLUMN_COMMENT']
+
+			try:
+				columnLength = int(str(row['SOURCE_COLUMN_LENGTH']).split('.')[0].split(':')[0])
+			except ValueError:
+				columnLength = None
+
+			if columnLength != None:
+				columnData["attributes"]["length"] = str(columnLength)
+
+			columnData["attributes"]["name"] = columnName
+			columnData["attributes"]["data_type"] = row['SOURCE_COLUMN_TYPE']
+			columnData["attributes"]["isNullable"] = columnNullable
+			columnData["attributes"]["isPrimaryKey"] = columnIsPrimaryKey
+			columnData["attributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
+
+			jsonData["entities"].append(columnData)
+
+		logging.debug("======================================")
+		logging.debug("JSON to send to Atlas!")
+		logging.debug(json.dumps(jsonData, indent=3))
+		logging.debug("======================================")
+
+		response = self.atlasPostData(URL = self.atlasRestEntities, data = json.dumps(jsonData))
+		statusCode = response["statusCode"]
+		if statusCode != 200:
+			logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+			self.atlasEnabled == False
+
+		# We now have to find columns that exists in DBImport but not in the source anymore.
+		# These columns need to be deleted from Atlas
+
+		# Fetch the table from Atlas so we can check all columns configured on it
+		atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, tableUri)
+		response = self.atlasGetData(URL = atlasRestURL)
+		statusCode = response["statusCode"]
+		responseData = json.loads(response["data"])
+
+#		logging.info("======================================")
+#		logging.info(json.dumps(responseData, indent=3))
+
+		for jsonRefEntities in responseData["referredEntities"]:
+			jsonRefEntity = responseData["referredEntities"][jsonRefEntities]
+			if jsonRefEntity["typeName"] == "rdbms_column":
+				# We found on column in the ""referredEntities" part. We will now check the column we found
+				columnQualifiedName = jsonRefEntity["attributes"]["qualifiedName"]
+				columnName = jsonRefEntity["attributes"]["name"]
+
+				# Loop through the source columns to see if it exists in there
+				foundSourceColumn = False
+				for index, row in self.source_columns_df.iterrows():
+					sourceColumnName = row['SOURCE_COLUMN_NAME']
+					sourceColumnUri = self.getAtlasRdbmsColumnURI(schemaName = self.source_schema, 
+																				tableName = self.source_table, 
+																				columnName = sourceColumnName)
+					if sourceColumnName == columnName and sourceColumnUri == columnQualifiedName:
+						foundSourceColumn = True
+
+				if foundSourceColumn == False and jsonRefEntity["status"] == "ACTIVE":
+					# The column defined in Atlas cant be found on the source, and it's still marked as ACTIVE. Lets delete it!
+					logging.debug("Deleting Atlas column with qualifiedName = '%s'"%(columnQualifiedName))
+
+					atlasRestURL = "%s/rdbms_column?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, columnQualifiedName)
+					response = self.atlasDeleteData(URL = atlasRestURL)
+					statusCode = response["statusCode"]
+					if statusCode != 200:
+						logging.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
+						self.atlasEnabled == False
+
+
+		logging.debug("Executing updateAtlasWithSourceSchema() - Finished")

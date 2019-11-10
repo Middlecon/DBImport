@@ -56,11 +56,15 @@ class source(object):
 			query += "	ColumnDescription = CAST((colDesc.ColumnDescription) AS NVARCHAR(4000)), " 
 			query += "	ColumnPrecision = CAST((COL.numeric_precision) AS NVARCHAR(128)), "
 			query += "	ColumnScale = COL.numeric_scale, "
-			query += "	IsNullable =  CAST((COL.Is_Nullable) AS NVARCHAR(128)) "
+			query += "	IsNullable =  CAST((COL.Is_Nullable) AS NVARCHAR(128)), "
+			query += "	TableType =  CAST((TBL.TABLE_TYPE) AS NVARCHAR(4000)), "
+			query += "  CreateDate = sysTables.create_date "
 			query += "FROM INFORMATION_SCHEMA.TABLES TBL " 
 			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS COL " 
 			query += "	ON COL.TABLE_NAME = TBL.TABLE_NAME "
 			query += "	AND COL.TABLE_SCHEMA = TBL.TABLE_SCHEMA " 
+			query += "INNER JOIN sys.tables sysTables "
+			query += "	ON sysTables.object_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
 			query += "LEFT JOIN sys.extended_properties tableProp "
 			query += "	ON tableProp.major_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
 			query += "	AND tableProp.minor_id = 0 "
@@ -83,6 +87,38 @@ class source(object):
 			query += "	AND COL.TABLE_SCHEMA = '%s' "%(schema)
 			query += "	AND COL.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY TBL.TABLE_SCHEMA, TBL.TABLE_NAME,COL.ordinal_position"
+
+#			query  = "select "
+#			query += "   sys_schemas.name as schemaName, "
+#			query += "   st.name as tableName, "
+#			query += "   cast((tableProp.value) as nvarchar(4000)) as tableDescription, "
+#			query += "   sc.name as columnName, "
+#			query += "   sys_types.name as columnType, "
+#			query += "   sc.max_length as columnLength, "
+#			query += "   cast((colProp.value) as nvarchar(4000)) as columnDescription, "
+#			query += "   sc.precision as columnPrecision, "
+#			query += "   sc.scale as columnPrecision, "
+#			query += "   sc.is_nullable as isNullable, "
+#			query += "   st.type as tableType, "
+#			query += "   st.create_date as createDate "
+#			query += "from sys.tables as st "
+#			query += "join sys.schemas as sys_schemas "
+#			query += "   on st.schema_id = sys_schemas.schema_id "
+#			query += "join sys.columns as sc "
+#			query += "   on st.object_id = sc.object_id "
+#			query += "join sys.types as sys_types "
+#			query += "   on sc.user_type_id = sys_types.user_type_id "
+#			query += "left join sys.extended_properties as colProp "
+#			query += "   ON colProp.major_id = sc.object_id "
+#			query += "   AND colProp.minor_id = sc.column_id "
+#			query += "   AND colProp.name = 'MS_Description' "
+#			query += "left join sys.extended_properties tableProp "
+#			query += "   ON tableProp.major_id = st.object_id "
+#			query += "   AND tableProp.minor_id = 0 "
+#			query += "   AND tableProp.name = 'MS_Description' "
+#			query += "where sys_schemas.name = '%s' "%(schema)
+#			query += "   and st.name = '%s' "%(table)
+#			query += "order by column_id "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
 			JDBCCursor.execute(query)
@@ -126,6 +162,11 @@ class source(object):
 				else:
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["IS_NULLABLE"] = row[9]
+
+				line_dict["TABLE_TYPE"] = row[10]
+				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S.%f')
+#				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
@@ -141,7 +182,9 @@ class source(object):
 			query += "  ALL_TAB_COLUMNS.CHAR_LENGTH, "
 			query += "  ALL_TAB_COLUMNS.DATA_PRECISION, " 
 			query += "  ALL_TAB_COLUMNS.DATA_SCALE, " 
-			query += "  ALL_TAB_COLUMNS.NULLABLE " 
+			query += "  ALL_TAB_COLUMNS.NULLABLE, " 
+			query += "  ALL_OBJECTS.OBJECT_TYPE, " 
+			query += "  ALL_OBJECTS.CREATED " 
 			query += "FROM ALL_TAB_COLUMNS ALL_TAB_COLUMNS " 
 			query += "LEFT JOIN ALL_TAB_COMMENTS ALL_TAB_COMMENTS " 
 			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_TAB_COMMENTS.TABLE_NAME " 
@@ -150,6 +193,9 @@ class source(object):
 			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_COL_COMMENTS.TABLE_NAME " 
 			query += "  AND ALL_COL_COMMENTS.OWNER = ALL_TAB_COLUMNS.OWNER " 
 			query += "  AND ALL_TAB_COLUMNS.COLUMN_NAME = ALL_COL_COMMENTS.COLUMN_NAME " 
+			query += "LEFT JOIN ALL_OBJECTS ALL_OBJECTS " 
+			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_OBJECTS.OBJECT_NAME " 
+			query += "  AND ALL_COL_COMMENTS.OWNER = ALL_OBJECTS.OWNER " 
 			query += "WHERE ALL_TAB_COLUMNS.OWNER = '%s' "%(schema)
 			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, ALL_TAB_COLUMNS.TABLE_NAME, ALL_TAB_COLUMNS.COLUMN_ID"
@@ -195,6 +241,10 @@ class source(object):
 				else:
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["IS_NULLABLE"] = row[10]
+
+				line_dict["TABLE_TYPE"] = row[11]
+				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[12], '%Y-%m-%d %H:%M:%S')
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
@@ -210,7 +260,9 @@ class source(object):
 			query += "   c.column_comment, "
 			query += "   c.is_nullable, " 
 			query += "   c.numeric_precision, " 
-			query += "   c.numeric_scale " 
+			query += "   c.numeric_scale, " 
+			query += "   t.table_type, " 
+			query += "   t.create_time " 
 			query += "from information_schema.columns c "
 			query += "left join information_schema.tables t " 
 			query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
@@ -245,6 +297,10 @@ class source(object):
 				else:
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
 				line_dict["IS_NULLABLE"] = row[7]
+
+				line_dict["TABLE_TYPE"] = row[10]
+				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S')
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
@@ -259,7 +315,9 @@ class source(object):
 			query += "	SC.LENGTH as SOURCE_COLUMN_LENGTH, "
 			query += "	SC.SCALE as SOURCE_COLUMN_SCALE, " 
 			query += "	TRIM(SC.REMARKS) as SOURCE_COLUMN_COMMENT, "
-			query += "	SC.NULLS as IS_NULLABLE "
+			query += "	SC.NULLS as IS_NULLABLE, "
+			query += "	ST.TYPE as TABLE_TYPE, "
+			query += "	ST.CREATEDTS "
 			query += "FROM SYSIBM.SYSTABLES ST "
 			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC " 
 			query += "	ON ST.NAME = SC.TBNAME "
@@ -299,28 +357,37 @@ class source(object):
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
 
 				line_dict["IS_NULLABLE"] = row[8]
+
+				line_dict["TABLE_TYPE"] = row[9]
+				print(row[10])
+				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
 		if serverType == constant.DB2_AS400:
 			query  = "SELECT "
-			query += "	TRIM(ST.TABLE_SCHEM) as SCHEMA_NAME, "
+			query += "	TRIM(ST.TABLE_SCHEMA) as SCHEMA_NAME, "
 			query += "	TRIM(ST.TABLE_NAME) as TABLE_NAME, "
-			query += "	ST.REMARKS as TABLE_COMMENT, "
+			query += "	ST.LONG_COMMENT as TABLE_COMMENT, "
 			query += "	TRIM(SC.COLUMN_NAME) as SOURCE_COLUMN_NAME, " 
 			query += "	SC.TYPE_NAME as SOURCE_COLUMN_TYPE, "
 			query += "	SC.COLUMN_SIZE as SOURCE_COLUMN_LENGTH, "
 			query += "	SC.DECIMAL_DIGITS as SOURCE_COLUMN_SCALE, " 
-			query += "	ST.REMARKS as SOURCE_COLUMN_COMMENT, "
-			query += "	SC.IS_NULLABLE as IS_NULLABLE "
-			query += "FROM SYSIBM.SQLTABLES ST "
+			query += "	SC.REMARKS as SOURCE_COLUMN_COMMENT, "
+			query += "	SC.IS_NULLABLE, "
+			query += "	ST.TABLE_TYPE, "
+						# ST.LAST_ALTERED_TIMESTAMP is not really correct, but it's the best we got
+						# https://www.ibm.com/support/knowledgecenter/SSAE4W_9.6.0/db2/rbafzcatsystbls.htm
+			query += "	ST.LAST_ALTERED_TIMESTAMP "
+			query += "FROM QSYS2.SYSTABLES ST "
 			query += "LEFT JOIN SYSIBM.SQLCOLUMNS SC " 
-			query += "	ON ST.TABLE_SCHEM = SC.TABLE_SCHEM "
+			query += "	ON ST.TABLE_SCHEMA = SC.TABLE_SCHEM "
 			query += "	AND ST.TABLE_NAME= SC.TABLE_NAME "
 			query += "WHERE "
-			query += "	ST.TABLE_SCHEM = '%s' "%(schema)
+			query += "	ST.TABLE_SCHEMA = '%s' "%(schema)
 			query += "	AND SC.TABLE_NAME = '%s' "%(table)
-			query += "ORDER BY ST.TABLE_SCHEM, SC.TABLE_NAME,SC.COLUMN_NAME"
+			query += "ORDER BY ST.TABLE_SCHEMA, SC.TABLE_NAME, SC.ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
 			JDBCCursor.execute(query)
@@ -352,6 +419,10 @@ class source(object):
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
 
 				line_dict["IS_NULLABLE"] = row[8]
+
+				line_dict["TABLE_TYPE"] = row[9]
+				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
@@ -364,10 +435,15 @@ class source(object):
 			query += "	data_type, "
 			query += "	character_maximum_length, " 
 			query += "	pg_catalog.col_description(c.oid, tab_columns.ordinal_position::int) as column_comment, "
-			query += "	is_nullable " 
+			query += "	is_nullable, " 
+			query += "	tab_tables.table_type " 
 			query += "FROM information_schema.columns AS tab_columns " 
 			query += "LEFT JOIN pg_catalog.pg_class c "
 			query += "	ON c.relname = tab_columns.table_name "
+			query += "LEFT JOIN information_schema.tables AS tab_tables "
+			query += "	ON tab_tables.table_catalog = tab_columns.table_catalog "
+			query += "	AND tab_tables.table_schema = tab_columns.table_schema "
+			query += "	AND tab_tables.table_name = tab_columns.table_name "
 			query += "WHERE tab_columns.table_catalog = '%s' "%(database)
 			query += "	AND tab_columns.table_schema ='%s' "%(schema)
 			query += "	AND tab_columns.table_name = '%s' "%(table)
@@ -400,6 +476,10 @@ class source(object):
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
 
 				line_dict["IS_NULLABLE"] = row[7]
+
+				line_dict["TABLE_TYPE"] = row[8]
+				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
@@ -413,7 +493,8 @@ class source(object):
 			query += "	WIDTH, "
 			query += "	SCALE, "
 			query += "	tab_columns.DESCRIPTION, "
-			query += "	tab_columns.NULLFLAG "
+			query += "	tab_columns.NULLFLAG, "
+			query += "	tab_tables.TBLTYPE "
 			query += "FROM sysprogress.SYSCOLUMNS_FULL tab_columns "
 			query += "LEFT JOIN SYSPROGRESS.SYSTABLES_FULL tab_tables " 
 			query += "	ON tab_tables.TBL = tab_columns.TBL "
@@ -457,6 +538,10 @@ class source(object):
 					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
 
 				line_dict["IS_NULLABLE"] = row[8]
+
+				line_dict["TABLE_TYPE"] = row[9]
+				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
