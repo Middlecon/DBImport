@@ -142,6 +142,7 @@ class operation(object, metaclass=Singleton):
 	def updateAtlasWithImportLineage(self):
 		if self.import_config.common_config.checkAtlasSchema() == True:
 			self.import_config.updateAtlasWithImportLineage()
+			logging.info("")	# Just to get a blank row before connecting to Hive
 
 	def checkHiveDB(self, hiveDB):
 		try:

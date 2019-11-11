@@ -462,7 +462,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJdbcTableType() - Finished")
 		return tableType
 
-	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, hdfsPath = ""):
+	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, refSchemaName = "", refTableName = "", hdfsPath = ""):
 		""" Returns a dict that contains the referredEntities part for the RDBMS update rest call """
 		logging.debug("Executing common_config.getAtlasReferredEntities()")
 
@@ -479,6 +479,13 @@ class config(object, metaclass=Singleton):
 		instanceUri = returnDict["instanceUri"]
 		instanceName = returnDict["instanceName"]
 		instanceType = returnDict["instanceType"]
+
+		if refSchemaName != "" and refTableName != "":
+			returnDict = self.getAtlasRdbmsNames(schemaName = refSchemaName, tableName = refTableName)
+			if returnDict == None:
+				return
+	
+			refTableUri = returnDict["tableUri"]
 
 		# TODO: Get the following information from dbimport and source system
 		# Foreign Keys
@@ -513,6 +520,16 @@ class config(object, metaclass=Singleton):
 			jsonData["referredEntities"]["-100"]["attributes"]["createTime"] = tableCreateTime.strftime('%Y-%m-%dT%H:%M:%S.%f')[0:-3] + "Z"
 		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
 	
+		if refSchemaName != "" and refTableName != "":
+			jsonData["referredEntities"]["-101"] = {}
+			jsonData["referredEntities"]["-101"]["guid"] = "-101"
+			jsonData["referredEntities"]["-101"]["typeName"] = "rdbms_table"
+			jsonData["referredEntities"]["-101"]["attributes"] = {}
+			jsonData["referredEntities"]["-101"]["attributes"]["qualifiedName"] = refTableUri
+			jsonData["referredEntities"]["-101"]["attributes"]["uri"] = refTableUri
+			jsonData["referredEntities"]["-101"]["attributes"]["name"] = refTableName
+			jsonData["referredEntities"]["-101"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
+
 		if hdfsPath != "":
 			hdfsAddress = self.getConfigValue(key = "hdfs_address")
 			clusterName = self.getConfigValue(key = "cluster_name")
@@ -1707,6 +1724,12 @@ class config(object, metaclass=Singleton):
 										source_table = tableName, 
 										printInfo = True)
 
+		if self.source_columns_df.empty == True:
+			self.atlasEnabled = False
+			logging.warning("No columns could be found on the source system.")
+			return
+		
+
 		logging.info("Updating Atlas with remote database schema")
 
 		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
@@ -1812,9 +1835,9 @@ class config(object, metaclass=Singleton):
 				foundSourceColumn = False
 				for index, row in self.source_columns_df.iterrows():
 					sourceColumnName = row['SOURCE_COLUMN_NAME']
-					sourceColumnUri = self.getAtlasRdbmsColumnURI(schemaName = self.source_schema, 
-																				tableName = self.source_table, 
-																				columnName = sourceColumnName)
+					sourceColumnUri = self.getAtlasRdbmsColumnURI(	schemaName = schemaName,
+																	tableName = tableName,
+																	columnName = sourceColumnName)
 					if sourceColumnName == columnName and sourceColumnUri == columnQualifiedName:
 						foundSourceColumn = True
 
@@ -1829,5 +1852,99 @@ class config(object, metaclass=Singleton):
 						logging.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
 						self.atlasEnabled == False
 
+		# Code to add Foreign Keys to table. This is done in a new JSON as we reference the table we just created. One JSON per FK
+
+		if self.source_keys_df.empty == False:
+			# Select only rows where CONSTRAINT_TYPE = FK and the slice so that we only see the CONSTRAINT_NAME and make it unique
+			textPrinted = False
+			for fkName in self.source_keys_df.loc[self.source_keys_df['CONSTRAINT_TYPE'] == constant.FOREIGN_KEY][['CONSTRAINT_NAME']].CONSTRAINT_NAME.unique():
+				if textPrinted == False:
+					logging.info("Updating Atlas with remote database foreign keys")
+					textPrinted = True
+
+				jsonData = None
+				columnCount = 0
+
+				for index, row in self.source_keys_df.loc[self.source_keys_df['CONSTRAINT_NAME'] == fkName].iterrows():
+					# Each 'row' now contains information about the column in the FK
+					if jsonData == None:
+						# First time we loop through the columns and jsonData is empty. Lets create the base for the json
+						jsonData = self.getAtlasRdbmsReferredEntities(	schemaName = schemaName,
+																		tableName = tableName,
+																		refSchemaName = row['REFERENCE_SCHEMA_NAME'],
+																		refTableName = row['REFERENCE_TABLE_NAME'],
+																		)
+
+						entitiesData = {}
+						entitiesData["typeName"] = "rdbms_foreign_key"
+						entitiesData["createdBy"] = "DBImport"
+						entitiesData["attributes"] = {}
+						entitiesData["attributes"]["qualifiedName"] = "%s.%s"%(fkName, tableUri) 
+						entitiesData["attributes"]["uri"] = "%s.%s"%(fkName, tableUri)
+						entitiesData["attributes"]["name"] = fkName
+						entitiesData["relationshipAttributes"] = {}
+						entitiesData["relationshipAttributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
+						entitiesData["relationshipAttributes"]["references_table"] = { "guid": "-101", "typeName": "rdbms_table" }
+	
+						entitiesData["relationshipAttributes"]["key_columns"] = []
+						entitiesData["relationshipAttributes"]["references_columns"] = []
+
+
+					# We now have a jsonData object with reference to the two tables (on -100 and -101) + db and instance. 
+					# Lets add the columns
+	
+					# Reference to the table column
+					sourceColumnUri = self.getAtlasRdbmsColumnURI(	schemaName = schemaName,
+																	tableName = tableName,
+																	columnName = row['COL_NAME'])
+
+					uuidRef = str(1000 + columnCount)
+					jsonData["referredEntities"][uuidRef] = {}
+					jsonData["referredEntities"][uuidRef]["guid"] = uuidRef 
+					jsonData["referredEntities"][uuidRef]["typeName"] = "rdbms_column"
+					jsonData["referredEntities"][uuidRef]["attributes"] = {}
+					jsonData["referredEntities"][uuidRef]["attributes"]["qualifiedName"] = sourceColumnUri
+					jsonData["referredEntities"][uuidRef]["attributes"]["uri"] = sourceColumnUri
+					jsonData["referredEntities"][uuidRef]["attributes"]["name"] = row['COL_NAME']
+					jsonData["referredEntities"][uuidRef]["attributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
+					columnCount = columnCount + 1
+
+					keyColumnsData = {}
+					keyColumnsData["guid"] = uuidRef
+					keyColumnsData["typeName"] = "rdbms_column"
+					entitiesData["relationshipAttributes"]["key_columns"].append(keyColumnsData)
+
+					# Reference to the refTable column
+					refColumnUri = self.getAtlasRdbmsColumnURI(	schemaName = row['REFERENCE_SCHEMA_NAME'],
+																tableName = row['REFERENCE_TABLE_NAME'],
+																columnName = row['REFERENCE_COL_NAME'])
+
+					uuidRef = str(1000 + columnCount)
+					jsonData["referredEntities"][uuidRef] = {}
+					jsonData["referredEntities"][uuidRef]["guid"] = uuidRef 
+					jsonData["referredEntities"][uuidRef]["typeName"] = "rdbms_column"
+					jsonData["referredEntities"][uuidRef]["attributes"] = {}
+					jsonData["referredEntities"][uuidRef]["attributes"]["qualifiedName"] = refColumnUri
+					jsonData["referredEntities"][uuidRef]["attributes"]["uri"] = refColumnUri
+					jsonData["referredEntities"][uuidRef]["attributes"]["name"] = row['REFERENCE_COL_NAME']
+					jsonData["referredEntities"][uuidRef]["attributes"]["table"] = { "guid": "-101", "typeName": "rdbms_table" }
+					columnCount = columnCount + 1
+
+					refColumnsData = {}
+					refColumnsData["guid"] = uuidRef
+					refColumnsData["typeName"] = "rdbms_column"
+					entitiesData["relationshipAttributes"]["references_columns"].append(refColumnsData)
+
+
+				jsonData["entities"] = []
+				jsonData["entities"].append(entitiesData)
+
+				logging.debug(json.dumps(jsonData, indent=3))
+
+				response = self.atlasPostData(URL = self.atlasRestEntities, data = json.dumps(jsonData))
+				statusCode = response["statusCode"]
+				if statusCode != 200:
+					logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+					self.atlasEnabled == False
 
 		logging.debug("Executing updateAtlasWithSourceSchema() - Finished")

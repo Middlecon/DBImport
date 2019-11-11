@@ -427,22 +427,13 @@ def main(argv):
 
 	if operation == "runHiveScript":
 		commonOperation = common_operations.operation()
-		if commonOperation.common_config.checkKerberosTicket() == False:
-			logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
-			commonOperation.common_config.remove_temporary_files()
-			sys.exit(1)
-
 		commonOperation.common_config.checkKerberosTicket()
 		commonOperation.executeBeelineScript(hiveScriptFile=hiveScript, useDB=Hive_DB)
 		commonOperation.common_config.remove_temporary_files()
 
 	if operation == "runHiveQuery":
 		commonOperation = common_operations.operation()
-		if commonOperation.common_config.checkKerberosTicket() == False:
-			logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
-			commonOperation.common_config.remove_temporary_files()
-			sys.exit(1)
-
+		commonOperation.common_config.checkKerberosTicket()
 		commonOperation.connectToHive(forceSkipTest=True, quiet=quietMode)
 		result = commonOperation.executeHiveQuery(query=jdbcQuery, quiet=quietMode)
 		if result.empty == True:

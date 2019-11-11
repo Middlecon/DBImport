@@ -316,8 +316,8 @@ class source(object):
 			query += "	SC.SCALE as SOURCE_COLUMN_SCALE, " 
 			query += "	TRIM(SC.REMARKS) as SOURCE_COLUMN_COMMENT, "
 			query += "	SC.NULLS as IS_NULLABLE, "
-			query += "	ST.TYPE as TABLE_TYPE, "
-			query += "	ST.CREATEDTS "
+			query += "	ST.TYPE as TABLE_TYPE, " 
+			query += "	ST.CTIME as CREATE_TIME "
 			query += "FROM SYSIBM.SYSTABLES ST "
 			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC " 
 			query += "	ON ST.NAME = SC.TBNAME "
@@ -334,8 +334,6 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
@@ -359,8 +357,7 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[8]
 
 				line_dict["TABLE_TYPE"] = row[9]
-				print(row[10])
-				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
