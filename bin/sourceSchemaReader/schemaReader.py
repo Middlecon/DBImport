@@ -63,7 +63,7 @@ class source(object):
 			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS COL " 
 			query += "	ON COL.TABLE_NAME = TBL.TABLE_NAME "
 			query += "	AND COL.TABLE_SCHEMA = TBL.TABLE_SCHEMA " 
-			query += "INNER JOIN sys.tables sysTables "
+			query += "LEFT JOIN sys.tables sysTables "
 			query += "	ON sysTables.object_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
 			query += "LEFT JOIN sys.extended_properties tableProp "
 			query += "	ON tableProp.major_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
@@ -164,8 +164,12 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[9]
 
 				line_dict["TABLE_TYPE"] = row[10]
-				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S.%f')
-#				line_dict["TABLE_CREATE_TIME"] = None
+
+				try:
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S.%f')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
@@ -243,7 +247,12 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[10]
 
 				line_dict["TABLE_TYPE"] = row[11]
-				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[12], '%Y-%m-%d %H:%M:%S')
+
+				try:
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[12], '%Y-%m-%d %H:%M:%S')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
@@ -299,7 +308,12 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[7]
 
 				line_dict["TABLE_TYPE"] = row[10]
-				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S')
+
+				try:
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
@@ -357,7 +371,12 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[8]
 
 				line_dict["TABLE_TYPE"] = row[9]
-				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+
+				try:
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
@@ -418,7 +437,12 @@ class source(object):
 				line_dict["IS_NULLABLE"] = row[8]
 
 				line_dict["TABLE_TYPE"] = row[9]
-				line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+
+				try:
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
 				line_dict["DEFAULT_VALUE"] = None
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
