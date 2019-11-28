@@ -81,5 +81,36 @@ length              Length of the column. If the type is a varchar(45), the valu
 owner               Gets populated by the *owner* column in *jdbc_connections* table
 =================== ============================================================================================
 
+**DBImport_Process**
 
+This is the DBImport object that gets created in Atlas as part of the DBImport installation. The object contains information about the source and target, if it's an import or export and also serves as the object that will be part of the Lineage from the SQL table to the HDFS directory and further into Hive. 
+
+=================== ============================================================================================
+commandlineOpts     The entire command including the parameters that was used to run the DBImport tool
+description         Description of what have been done in the process
+startTime           Timestamp of when the DBImport process started
+endTimepe           Timestamp of when the DBImport process stopped
+importTool          Sqoop or Spark
+input               Link to the input object. Usually *rdbms_table* for imports and *hive_table* for exports
+output              Link to the output object. Usually *hdfs_path* for imports and *rdbms_table* for exports
+operation           Import or Export
+username            Name of user executing the DBimport process
+=================== ============================================================================================
+
+
+Relationships between objects
+-----------------------------
+
+There are different relationships created for the rdbms objects. In order for example a *rdbms_table* to exist in a *rdbms_db*, there is a relationship between them both. Those kind of relationships are documented in the tables above on each and every object where they exists. In addition to that, there is also relationships that gets created depending on the remote SQL configuration. This is a list of those relationships that gets created
+
+**Foreign Keys**
+
+There can be Foreign Keys on *rdbms_tables* that links two tables together in the same database. The information about the relationships comes from the remote SQL tables and is a reflection on how the remote tables are linked together. 
+
+
+.. note:: Index will also be a kind of relationship that gets created. Support for Index on rdbms object in Atlas will come in a future version of DBImport
+
+Graphical representation of what the relationships can look like in Atlas
+
+.. image:: img/atlas_relationship.jpg
 

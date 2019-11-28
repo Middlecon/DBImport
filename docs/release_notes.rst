@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v0.65
+v0.65 (not released)
 ------------------------------
 
 **Fixed issues**
