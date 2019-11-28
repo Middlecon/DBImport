@@ -145,13 +145,32 @@ In the configuration file for DBImport, you need to specify the address to the A
 
 DBImport uses it’s own schema in Atlas. This needs to be created manually. The json file for the schema is located under *atlas/dbimportProcess.json*. In order to create the schema, run the following commands in a session where you have a valid Kerberos ticket with admin permission in Atlas::
 
-        curl --negotiate -u : -i -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' "https://<ATLAS SERVER HOSTNAME>:<PORT>/api/atlas/v2/types/typedefs" -d "@<FULL_PATH_TO_DBIMPORT> /atlas/ dbimportProcess.json"
+        curl --negotiate -u : -i -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' "https://<ATLAS SERVER HOSTNAME>:<PORT>/api/atlas/v2/types/typedefs" -d "@<FULL_PATH_TO_DBIMPORT>/atlas/dbimportProcess.json"
 
 **Atlas process Pictures**
 
 To get the correct representation of the DBImport Lineage in Atlas, you need to copy the DBImport icon into the Atlas Server directory for lineage icons. The picture is located under *atlas/ DBImport_Process.png*. The target directory is *server/webapp/atlas/img/entity-icon* under Atlas installation directory. Example::
 
         cp /usr/local/dbimport/atlas/DBImport_Process.png /usr/hdp/current/atlas-server/server/webapp/atlas/img/entity-icon
+
+*DBImport Server*
+
+The server part of DBImport handles Atlas auto discovery of remote RDBMS schemas and the asynchronous copy of data between two or more DBImport instances. It also contains a simple REST interface in order to query the status of the DBImport Server for monitoring purposes. 
+
+Two directories is required for the DBImport server. One for log files and where the pid file should be written. These are configured in the DBImport configurarion file in the [Server] section. Please create these two directories and change permission to the user running the DBImport server. For default user and path, the following can be used::
+
+        mkdir /var/log/dbimport
+        mkdir /var/run/dbimport
+        chown dbimport /var/log/dbimport
+        chown dbimport /var/run/dbimport
+        chmod 700 /var/log/dbimport
+        chmod 700 /var/run/dbimport
+
+**distcp configuration for multi instance ingestion**
+
+The DBImport server uses *distcp* in the background to copy files between Hadoop clusters. This is done in parallel and the number of parallel sessions in controlled by the *distCP_threads* under the [Server] section in the configuration file. 
+
+If the number of *distcp* commands running in parallel gets to high, the log file will be hard to read as the output come in one file. This behavior can be changed so that each thread log in its own file. *distCP_separate_logs* controls this.
 
 
 Upgrading
