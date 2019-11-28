@@ -1,10 +1,27 @@
 Release Notes
 =============
 
+v0.65
+------------------------------
+
+**Fixed issues**
+
+  - Issue #61: Import from View on MSSQL failes with no columns
+
+**Changed behavior**
+
+  - Hive connection supports multiple servers.
+
+**New Features**
+
+  - Atlas Integration
+  - Import from MongoDB is supported with Spark as import tool 
+
 v0.64
 ------------------------------
 
 **Fixed issues**
+
   - Issue #59: Export update_table failes because table is not empty
 
 **New Features**
@@ -15,6 +32,7 @@ v0.63
 ------------------------------
 
 **Fixed issues**
+
   - Issue #60: Export tries to alter column types FLOAT(*)
 
 **Improvments**

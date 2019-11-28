@@ -15,7 +15,7 @@ To install DBImport, please follow the steps on this page. That will setup DBImp
 
  #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. Please install these python packages::
 
-        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python JPype1==0.6.3 jaydebeapi py4j pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons
+        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python JPype1==0.6.3 jaydebeapi py4j pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons flask-restful flask-jsonpify flask-sqlalchemy waitress paste webargs pymongo
 
 
 Base configuration
@@ -121,6 +121,12 @@ Verified Spark settings for HDP 3.1.4::
         executor_memory = 2688M
         hdp_version = 3.1.4.0-315
         hive_library = HiveWarehouseSession
+
+*Python version for Spark*
+
+Both the local DBImport code and the spark code must run with the same python version. In order to do so, set the PYSPARK_PYTHON variable to the python version you are running before you execute the import or exports::
+
+    export PYSPARK_PYTHON=python3.6
 
 
 Upgrading
