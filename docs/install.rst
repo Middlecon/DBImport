@@ -90,6 +90,8 @@ The usual way to change this is the following
   - Make the same change on all nodes in the cluster. 
   - Restart affected services (HDFS, Yarn and so on)
 
+.. note:: If you dont want to create a seperate topology file and configuration, you can of course just change the first row in the default topology file on all nodes in the cluster
+
 Once that is changed, you need to update the Spark settings in the configuration file. These two different versions have been testad and works on HDP 2.6.5 and HDP 3.1.4
 
 Verified Spark settings for HDP 2.6.5::
@@ -127,6 +129,29 @@ Verified Spark settings for HDP 3.1.4::
 Both the local DBImport code and the spark code must run with the same python version. In order to do so, set the PYSPARK_PYTHON variable to the python version you are running before you execute the import or exports::
 
     export PYSPARK_PYTHON=python3.6
+
+Atlas
+--------------------
+
+There are three things you need to configure in order to use the Atlas integration.
+
+.. note:: DBImport requires Atlas version 1.1.0 or higher
+
+**DBImport configuration file**
+
+In the configuration file for DBImport, you need to specify the address to the Atlas server. If Atlas is running with SSL, you also need to configure the certificate path for the CA file. See the default configuration file for syntax on these properties.
+
+**Atlas Schema**
+
+DBImport uses it’s own schema in Atlas. This needs to be created manually. The json file for the schema is located under *atlas/dbimportProcess.json*. In order to create the schema, run the following commands in a session where you have a valid Kerberos ticket with admin permission in Atlas::
+
+        curl --negotiate -u : -i -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' "https://<ATLAS SERVER HOSTNAME>:<PORT>/api/atlas/v2/types/typedefs" -d "@<FULL_PATH_TO_DBIMPORT> /atlas/ dbimportProcess.json"
+
+**Atlas process Pictures**
+
+To get the correct representation of the DBImport Lineage in Atlas, you need to copy the DBImport icon into the Atlas Server directory for lineage icons. The picture is located under *atlas/ DBImport_Process.png*. The target directory is *server/webapp/atlas/img/entity-icon* under Atlas installation directory. Example::
+
+        cp /usr/local/dbimport/atlas/DBImport_Process.png /usr/hdp/current/atlas-server/server/webapp/atlas/img/entity-icon
 
 
 Upgrading
