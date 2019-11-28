@@ -28,12 +28,42 @@ from mysql.connector import errorcode
 from common.Singleton import Singleton
 from common.Exceptions import *
 from common import constants as constant
+from common import sparkUDF as sparkUDF 
 from DBImportConfig import import_config
 from DBImportOperation import common_operations
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import time
+import base64
+
+#class sparkUDF():
+#	def encode_array(self, s):
+#		try:
+#			s_new = []
+#			for struct in s:
+#				s_new.append(list(map(self.encode_binary, struct)))
+#			return s_new
+#		except TypeError:
+#			return self.encode_binary(s)
+#
+#	def check_binary(self, s):
+#		for b in s:
+#			if not is_bin(b):
+#				return False
+#		return True
+#
+#	def encode_binary(self, s):
+#		try:
+#			if is_bin(s[0]) and self.check_binary(s[1]):
+#				base_64 = base64.b64encode(s[1]).decode('UTF-8')
+#				return [s[0], base_64]
+#		except:
+#			pass
+#		return s
+#
+#	def squared(s):
+#		return s * s
 
 class operation(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
@@ -55,12 +85,8 @@ class operation(object, metaclass=Singleton):
 
 		self.globalHiveConfigurationSet = False
 
-#		try:
-			# Initialize the two core classes. import_config will initialize common_config aswell
 		self.import_config = import_config.config(Hive_DB, Hive_Table)
 		self.common_operations = common_operations.operation(Hive_DB, Hive_Table)
-#		except:
-#			sys.exit(1)
 
 		if Hive_DB != None and Hive_Table != None:
 			self.setHiveTable(Hive_DB, Hive_Table)
@@ -163,6 +189,14 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
+	def getMongoRowCount(self):
+		try:
+			self.import_config.getMongoRowCount()
+		except:
+			logging.exception("Fatal error when reading Mongo row count")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
 	def getImportViewRowCountAsSource(self, incr=False):
 		whereStatement = None
 		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
@@ -259,7 +293,10 @@ class operation(object, metaclass=Singleton):
 
 	def getSourceTableSchema(self):
 		try:
-			self.import_config.getJDBCTableDefinition()
+			if self.import_config.mongoImport == False:
+				# Mongo gets is TableDefinition from the spark code. We cant use the getJDBCTableDefinition() for Mongo
+				self.import_config.getJDBCTableDefinition()
+
 			self.import_config.updateLastUpdateFromSource()
 			self.import_config.removeFKforTable()
 			self.import_config.saveColumnData()
@@ -279,9 +316,12 @@ class operation(object, metaclass=Singleton):
 		""" This is the main function to search for tables/view on source database and add them to import_tables """
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource()")
 		errorDuringAdd = False
+		self.import_config.lookupConnectionAlias(connection_alias=dbalias)
 
-		self.import_config.common_config.lookupConnectionAlias(connection_alias=dbalias)
-		sourceDF = self.import_config.common_config.getJDBCtablesAndViews(schemaFilter=schemaFilter, tableFilter=tableFilter )
+		if self.import_config.mongoImport == False:
+			sourceDF = self.import_config.common_config.getJDBCtablesAndViews(schemaFilter=schemaFilter, tableFilter=tableFilter )
+		else:
+			sourceDF = self.import_config.common_config.getMongoCollections(collectionFilter=tableFilter )
 
 		if len(sourceDF) == 0:
 			print("There are no tables in the source database that we dont already have in DBImport")
@@ -372,6 +412,391 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
 
+	def convertSparkTypeToBinary(self, schema):
+		import pyspark.sql
+
+		if schema.__class__ == pyspark.sql.types.StructType:
+			return pyspark.sql.types.StructType([self.convertSparkTypeToBinary(f) for f in schema.fields])
+		if schema.__class__ == pyspark.sql.types.StructField:
+			return pyspark.sql.types.StructField(schema.name, self.convertSparkTypeToBinary(schema.dataType), schema.nullable)
+		if schema.__class__ == pyspark.sql.types.ArrayType:
+			return pyspark.sql.types.ArrayType(self.convertSparkTypeToBinary(schema.elementType))
+		if schema.__class__ == pyspark.sql.types.BinaryType:
+			return pyspark.sql.types.StringType()
+		return schema
+	
+	def convertSparkSchema(self, schema, forceDateAsString=False):
+		import pyspark.sql
+
+		if schema.__class__ == pyspark.sql.types.StructType:
+			return pyspark.sql.types.StructType([self.convertSparkSchema(f, forceDateAsString) for f in schema.fields])
+		if schema.__class__ == pyspark.sql.types.StructField:
+			return pyspark.sql.types.StructField(schema.name, self.convertSparkSchema(schema.dataType, forceDateAsString), schema.nullable)
+		if schema.__class__ == pyspark.sql.types.ArrayType:
+			return pyspark.sql.types.ArrayType(self.convertSparkSchema(schema.elementType, forceDateAsString))
+		if schema.__class__ == pyspark.sql.types.NullType:
+			return pyspark.sql.types.StringType()
+		if forceDateAsString:
+			if schema.__class__ in [pyspark.sql.types.DateType, pyspark.sql.types.TimestampType]:
+				return pyspark.sql.types.StringType()
+		return schema
+
+	def runSparkImportForMongo(self):
+		logging.debug("Executing import_operations.runSparkImportForMongo()")
+
+		self.sparkStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+		self.sparkStartUTS = int(time.time())
+		sparkQuery = ""
+
+		# Fetch the number of executors that should be used. 
+		# This is already handled in self.import_config.calculateJobMappers, so we use that 
+		# function for this even if we dont need the JobMappers
+		self.import_config.calculateJobMappers()
+
+		# Override Spark Executor memory if it's set on the import table configuration
+		if self.import_config.spark_executor_memory != None and self.import_config.spark_executor_memory.strip() != "":
+			self.import_config.common_config.sparkExecutorMemory = self.import_config.spark_executor_memory
+
+		logging.debug("")
+		logging.debug("=======================================================================")
+		logging.debug("Target HDFS: %s"%(self.import_config.sqoop_hdfs_location))
+		logging.debug("Spark Executor Memory: %s"%(self.import_config.common_config.sparkExecutorMemory))
+		logging.debug("Spark Max Executors: %s"%(self.import_config.sparkMaxExecutors))
+		logging.debug("Spark Dynamic Executors: %s"%(self.import_config.common_config.sparkDynamicAllocation))
+		logging.debug("=======================================================================")
+
+
+		# Create a valid PYSPARK_SUBMIT_ARGS string
+		sparkPysparkSubmitArgs = "--jars "
+		sparkJars = ""
+
+		firstLoop = True
+		if self.import_config.common_config.sparkJarFiles.strip() != "":
+			for jarFile in self.import_config.common_config.sparkJarFiles.split(","):
+				if firstLoop == False:
+					sparkPysparkSubmitArgs += ","
+					sparkJars += ","
+				sparkPysparkSubmitArgs += jarFile.strip()
+				sparkJars += jarFile.strip()
+				firstLoop = False
+
+		for jarFile in self.import_config.common_config.jdbc_classpath.split(":"):
+			if firstLoop == False:
+				sparkPysparkSubmitArgs += ","
+				sparkJars += ","
+			sparkPysparkSubmitArgs += jarFile.strip()
+			sparkJars += jarFile.strip()
+			firstLoop = False
+
+		if self.import_config.common_config.sparkPyFiles.strip() != "":
+			sparkPysparkSubmitArgs += " --py-files "
+			firstLoop = True
+			for pyFile in self.import_config.common_config.sparkPyFiles.split(","):
+				if firstLoop == False:
+					sparkPysparkSubmitArgs += ","
+				sparkPysparkSubmitArgs += pyFile.strip()
+				firstLoop = False
+
+		sparkPysparkSubmitArgs += " pyspark-shell"
+
+		# Setup the additional path required to find the libraries/modules
+		for path in self.import_config.common_config.sparkPathAppend.split(","):
+			sys.path.append(path.strip())
+
+		# Set required OS parameters
+		os.environ['HDP_VERSION'] = self.import_config.common_config.sparkHDPversion
+		os.environ['PYSPARK_SUBMIT_ARGS'] = sparkPysparkSubmitArgs
+
+#		dataTypes = {'Co2RequestId': 'struct<subType:tinyint,data:string>', 'Data': 'struct<Results:struct<Status:string,Result:array<struct<Mission:string,Payload:struct<UnitOfMeasure:string,Value:string>,FuelType:string,AverageSpeed:struct<UnitOfMeasure:string,Value:string>,FuelConsumption:array<struct<UnitOfMeasure:string,Value:string>>,CO2:array<struct<UnitOfMeasure:string,Value:string>>,Status:string>>>,Vehicle:struct<AverageRRC:string,AxleConfiguration:string,AxleRatio:string,CurbMassChassis:string,EngineDisplacement:string,EngineRatedPower:string,FuelType:string,GearsCount:string,GrossVehicleMass:string,LegislativeClass:string,Manufacturer:string,ManufacturerAddress:string,Model:string,Retarder:string,TransmissionMainCertificationMethod:string,TransmissionType:string,VIN:string,VehicleGroup:string>,_id:string>', 'SpecificationId': 'struct<subType:tinyint,data:string>', 'VectoRequestId': 'string', '_c': 'timestamp', '_id': 'struct<oid:string>', '_m': 'timestamp'}
+#		print(dataTypes)
+#
+#
+#		columnDict = {}
+#		for column in dataTypes:
+#			columnType = dataTypes[column]
+#
+#			for list1 in columnType.split('<'):
+#				for list2 in list1.split('>'):
+#					for list3 in list2.split(','):
+#						if len(list3.split(':')) == 2:
+#							columnType = re.sub(r'([<>,])' + list3 + '([<>,])', r'\1`%s`:%s\2'%(list3.split(':')[0], list3.split(':')[1]), columnType) 
+#			columnDict[column] = columnType
+#
+#		print(columnDict)
+#
+#
+#		raise daemonExit("Step 1")
+#		timestampString = str("{    \"$date\"        :            1544792537000           }")
+#		print(timestampString)
+#
+#		m = re.match('\{ *\"\$date\" *: *(-?\d+)\ *}', timestampString)
+#		print(m)
+#		num = ""
+#		if m:
+#			num += m.group(1)
+#			timestamp = datetime.utcfromtimestamp(int(num)/1000)
+#			print(timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'))
+#
+#		raise daemonExit("Step 1")
+
+
+		print(" _____________________ ")
+		print("|                     |")
+		print("| Spark Import starts |")
+		print("|_____________________|")
+		print("")
+
+		mongoUri = "mongodb://%s:%s@%s:%s/%s.%s"%(
+			self.import_config.common_config.jdbc_username,
+			self.import_config.common_config.jdbc_password,
+			self.import_config.common_config.jdbc_hostname,
+			self.import_config.common_config.jdbc_port,
+			self.import_config.common_config.jdbc_database,
+			self.import_config.source_table)
+		
+		# import all packages after the environment is set
+		from pyspark.context import SparkContext, SparkConf
+		import pyspark.sql
+		from pyspark.sql import SparkSession
+		from pyspark import HiveContext
+		from pyspark.context import SparkContext
+		import pyspark.sql.types 
+#		from pyspark.sql.types import __all__
+		from pyspark.sql.functions import udf
+#		import common.sparkUDF as sparkUDF 
+#		import sparkUDF 
+#		import pyspark.sql.functions 
+
+		conf = SparkConf()
+		conf.setMaster(self.import_config.common_config.sparkMaster)
+#		conf.set('spark.mongodb.input.uri', "mongodb://SPDatalakeReader:nREnqKhCepym9uuT@sesoco2254.global.scd.scania.com:27017/SalesportalDatabase.NewsAttachments")
+		conf.set('spark.mongodb.input.uri', mongoUri)
+		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
+		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
+		conf.set('spark.jars', sparkJars)
+		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
+		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
+		if self.import_config.common_config.sparkDynamicAllocation == True:
+			conf.set('spark.shuffle.service.enabled', 'true')
+			conf.set('spark.dynamicAllocation.enabled', 'true')
+			conf.set('spark.dynamicAllocation.minExecutors', '0')
+			conf.set('spark.dynamicAllocation.maxExecutors', str(self.import_config.sparkMaxExecutors))
+			logging.info("Number of executors is dynamic with a max value of %s executors"%(self.import_config.sparkMaxExecutors))
+		else:
+			conf.set('spark.dynamicAllocation.enabled', 'false')
+			conf.set('spark.shuffle.service.enabled', 'false')
+			if self.import_config.sqlSessions < self.import_config.sparkMaxExecutors:
+				conf.set('spark.executor.instances', str(self.import_config.sqlSessions))
+				logging.info("Number of executors is fixed at %s"%(self.import_config.sqlSessions))
+			else:
+				conf.set('spark.executor.instances', str(self.import_config.sparkMaxExecutors))
+				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
+
+		sys.stdout.flush()
+
+
+#		if self.import_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
+			# Configuration for HDP 3.x
+#			from pyspark_llap import HiveWarehouseSession
+#			sc = SparkContext(conf=conf)
+#			spark = SparkSession(sc)
+
+#		elif self.import_config.common_config.sparkHiveLibrary == "HiveContext":
+			# Configuration for HDP 2.x
+#			sc = SparkContext(conf=conf)
+
+		sc = SparkContext(conf=conf)
+		sc.addPyFile("%s/bin/common/sparkUDF.py"%(os.environ['DBIMPORT_HOME']))
+		from sparkUDF import base64EncodeArray
+		from sparkUDF import parseStructDate
+		sys.stdout.flush()
+
+		spark = SparkSession(sc)
+		spark.sql("set spark.sql.orc.impl=native")
+		sys.stdout.flush()
+
+		yarnApplicationID = sc.applicationId
+		logging.info("Yarn application started with id %s"%(yarnApplicationID))
+		sys.stdout.flush()
+		
+		print("Loading data from Mongo")
+		sys.stdout.flush()
+		df = spark.read.format("mongo").load()
+		sys.stdout.flush()
+
+
+		# The logic here is the following. 
+		# Read 2 schemas but one of the forces all data and timestamp columns into strings. In the DF where we are not forcing them to string
+		# we search for timestamp and date columns and saves them. Once we have them, we try to run a Spark SQL against that column to determine
+		# if the data in the column can be a timestamp or not.
+		# If we find out that the column is infact a timestamp, we convert the column first to a string based on unixtimestamp and later
+		# cast it to a timestamp. The result of this is that the DF with strings gets it's columns replace to timestamp where the data actually
+		# is a timestamp.
+		# Without this logic, the data would be strings for ever or would generate errors when the syntax is not a timestamp.
+
+		print("Loading Schema from Mongo")
+		sys.stdout.flush()
+		sparkSchema = self.convertSparkSchema(df.schema, forceDateAsString=False)
+		sparkSchemaString = self.convertSparkSchema(df.schema, forceDateAsString=True)
+		df = spark.read.format("mongo").schema(sparkSchema).load()
+		dfString = spark.read.format("mongo").schema(sparkSchemaString).load()
+		sys.stdout.flush()
+
+		# Save the datatypes. Will later be used to update import_columns table
+		print("Getting column types")
+		sys.stdout.flush()
+		dataTypes = dict(df.dtypes)
+		dataTypesString = dict(dfString.dtypes)
+
+		# Find what columns are timestamp or date columns
+		dateColumns = {}
+		for column, columnType in dataTypes.items():
+			if columnType.lower() in ["timestamp", "date"]:
+				dateColumns[column] = columnType
+
+		# Test the columns we just found to verify if it actually is a timestamp or not
+		dfString.createOrReplaceTempView("find_timestamp")
+		sys.stdout.flush()
+
+		incorrectDateColumns = []
+		correctDateColumns = {}
+		for column, columnType in dateColumns.items():
+			print("Checking if column '%s' really is a timestamp column and compatible with Hive"%(column))
+			sys.stdout.flush()
+
+			dfDate = spark.sql("SELECT %s FROM find_timestamp where %s is not null and CAST(%s as timestamp) is not null" % (column, column, column))
+			if len(dfDate.head(1)) != 0:
+				incorrectDateColumns.append(column)
+			else:
+				correctDateColumns[column] = columnType
+
+		# Convert the column in the DF based on the fact that it can be converted or not to a timestamp
+		udfParseStructDate = udf(parseStructDate, pyspark.sql.types.StringType())
+
+		for column in incorrectDateColumns:
+			print("Converting date/timestamp column '%s'"%(column))
+			sys.stdout.flush()
+			dfString = dfString.withColumn(column, udfParseStructDate(column))
+
+		for column, columnType in correctDateColumns.items():
+			print("Converting date/timestamp column '%s'"%(column))
+			sys.stdout.flush()
+			dfString = dfString.withColumn(column, udfParseStructDate(column))
+			dfString = dfString.withColumn(column, dfString[column].cast(columnType))
+
+		sys.stdout.flush()
+
+		# Find and convert binary fields into a Base64 encoded binary field
+		print("Finding binary columns")
+		sys.stdout.flush()
+		columns = dfString.columns
+		types = [f.dataType for f in dfString.schema.fields]
+		columnsAndTypes = list(zip(columns, types))
+
+		columnTypesBinary = {}
+		for column, columnType in columnsAndTypes:
+			if "struct<subType:tinyint,data:binary>" in dataTypes[column]:
+				columnTypesBinary[column] = self.convertSparkTypeToBinary(columnType)
+
+		for column, columnType in columnTypesBinary.items():
+			print("Converting binary column '%s'"%(column))
+			sys.stdout.flush()
+			udfBase64EncodeArray = udf(base64EncodeArray, columnType)
+			dfString = dfString.withColumn(column, udfBase64EncodeArray(column))
+
+		sys.stdout.flush()
+
+		# Get new dataTypes as we have updated and converted from binary to string
+		print("Getting updated column types after column changes")
+		sys.stdout.flush()
+		dataTypes = dict(dfString.dtypes)
+		sys.stdout.flush()
+
+		print("Writing data to HDFS as ORC")
+		sys.stdout.flush()
+		dfString.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
+		sys.stdout.flush()
+
+
+#		# Get the number of rows from the ORC files
+		print("Reading ORC files from HDFS to verify size and rows")
+		sys.stdout.flush()
+		hdfsDataDf = spark.read.format("orc").load(self.import_config.sqoop_hdfs_location)
+		rowsWrittenBySpark = hdfsDataDf.count()
+		sys.stdout.flush()
+		logging.info("Number of rows written by spark = %s"%(rowsWrittenBySpark))
+		sys.stdout.flush()
+
+		# Get size of all files on HDFS that spark wrote
+		hdfsCommandList = ['hdfs', 'dfs', '-du', '-s', self.import_config.sqoop_hdfs_location]
+		hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = hdfsProc.communicate()
+		stdOut = stdOut.decode('utf-8').rstrip()
+		stdErr = stdErr.decode('utf-8').rstrip()
+
+		sizeWrittenBySpark = stdOut.split()[0]
+		logging.info("Size of data written by spark = %s bytes"%(sizeWrittenBySpark))
+		sys.stdout.flush()
+
+		sc.stop()
+
+		print(" ________________________ ")
+		print("|                        |")
+		print("| Spark Import completed |")
+		print("|________________________|")
+		print("")
+		sys.stdout.flush()
+
+		columnDict = {}
+		for column in dataTypes:
+			columnType = dataTypes[column]
+
+			for list1 in columnType.split('<'):
+				for list2 in list1.split('>'):
+					for list3 in list2.split(','):
+						if len(list3.split(':')) == 2:
+							columnType = re.sub(r'([<>,])' + list3 + '([<>,])', r'\1`%s`:%s\2'%(list3.split(':')[0], list3.split(':')[1]), columnType) 
+			columnDict[column] = columnType
+
+
+		dataTypes = columnDict
+
+		# Create the colum pandasDF as we cant get that from the source as we do on normal JDBC sources
+		rows_list = []
+		for column in dataTypes:
+			line_dict = {}
+			line_dict["TABLE_COMMENT"] = None
+			line_dict["SOURCE_COLUMN_NAME"] = column
+			line_dict["SOURCE_COLUMN_TYPE"] = dataTypes[column]
+			line_dict["SOURCE_COLUMN_LENGTH"] = None
+			line_dict["SOURCE_COLUMN_COMMENT"] = None
+			line_dict["IS_NULLABLE"] = None
+			line_dict["TABLE_TYPE"] = None
+			line_dict["TABLE_CREATE_TIME"] = None
+			line_dict["DEFAULT_VALUE"] = None
+			rows_list.append(line_dict)
+		self.import_config.common_config.source_columns_df = pd.DataFrame(rows_list)
+		self.import_config.common_config.source_keys_df = result_df = pd.DataFrame()
+
+#		print(self.import_config.common_config.source_columns_df)
+
+		# Update import_columns with column information
+		self.getSourceTableSchema()
+
+#		# Save the number of rows from the source DF to the import_tables table
+#		self.import_config.saveSourceTableRowCount(rowsReadBySpark)
+
+		try:
+			self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
+		except:
+			logging.exception("Fatal error when saving spark statistics")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
+
+#		raise daemonExit("Step 1")
+		logging.debug("Executing import_operations.runSparkImportForMongo() - Finished")
+
+
 	def runSparkImport(self, PKOnlyImport):
 		logging.debug("Executing import_operations.runSparkImport()")
 
@@ -414,16 +839,11 @@ class operation(object, metaclass=Singleton):
 
 		# Create the SQL that will be used to fetch the data. This will be used on a "from" statement
 		if incrWhereStatement != "":
-			sparkQuery = "(%s where %s) as %s"%(self.import_config.getSQLtoReadFromSource(), incrWhereStatement, self.Hive_Table)
+			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), incrWhereStatement, self.Hive_Table)
 		elif self.import_config.sqoop_sql_where_addition != None and self.import_config.sqoop_sql_where_addition.strip() != "":
-			sparkQuery = "(%s where %s) as %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.sqoop_sql_where_addition, self.Hive_Table)
+			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.sqoop_sql_where_addition, self.Hive_Table)
 		else:
-			sparkQuery = "(%s) as %s"%(self.import_config.getSQLtoReadFromSource(), self.Hive_Table)
-
-		# Handle mappers, split-by with custom query
-#		if sparkQuery != "":
-#			if "split-by" not in self.import_config.sqoop_options.lower():
-#		self.import_config.generateSqoopSplitBy()
+			sparkQuery = "(%s) %s"%(self.import_config.getSQLtoReadFromSource(), self.Hive_Table)
 
 		# Override Spark Executor memory if it's set on the import table configuration
 		if self.import_config.spark_executor_memory != None and self.import_config.spark_executor_memory.strip() != "":
@@ -445,22 +865,26 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Spark Dynamic Executors: %s"%(self.import_config.common_config.sparkDynamicAllocation))
 		logging.debug("=======================================================================")
 
-#		raise daemonExit("Step 1")
-
 		# Create a valid PYSPARK_SUBMIT_ARGS string
 		sparkPysparkSubmitArgs = "--jars "
+		sparkJars = ""
+
 		firstLoop = True
 		if self.import_config.common_config.sparkJarFiles.strip() != "":
 			for jarFile in self.import_config.common_config.sparkJarFiles.split(","):
 				if firstLoop == False:
 					sparkPysparkSubmitArgs += ","
+					sparkJars += ","
 				sparkPysparkSubmitArgs += jarFile.strip()
+				sparkJars += jarFile.strip()
 				firstLoop = False
 
 		for jarFile in self.import_config.common_config.jdbc_classpath.split(":"):
 			if firstLoop == False:
 				sparkPysparkSubmitArgs += ","
+				sparkJars += ","
 			sparkPysparkSubmitArgs += jarFile.strip()
+			sparkJars += jarFile.strip()
 			firstLoop = False
 
 		if self.import_config.common_config.sparkPyFiles.strip() != "":
@@ -500,7 +924,7 @@ class operation(object, metaclass=Singleton):
 		conf.setMaster(self.import_config.common_config.sparkMaster)
 		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
 		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
-		conf.set('spark.jars', self.import_config.common_config.jdbc_classpath)
+		conf.set('spark.jars', sparkJars)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
 		if self.import_config.common_config.sparkDynamicAllocation == True:
@@ -519,17 +943,17 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.executor.instances', str(self.import_config.sparkMaxExecutors))
 				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
 
-		JDBCconnectionProperties = {}
-		JDBCconnectionProperties["user"] = self.import_config.common_config.jdbc_username
-		JDBCconnectionProperties["password"] = self.import_config.common_config.jdbc_password
-		JDBCconnectionProperties["driver"] = self.import_config.common_config.jdbc_driver
-		JDBCconnectionProperties["fetchsize"] = "10000"
-
-		if self.import_config.sqlSessions > 1:
-			JDBCconnectionProperties["partitionColumn"] = str(self.import_config.splitByColumn)
-			JDBCconnectionProperties["lowerBound"] = str(minMaxDict["min"])
-			JDBCconnectionProperties["upperBound"] = str(minMaxDict["max"])
-			JDBCconnectionProperties["numPartitions"] = str(self.import_config.sqlSessions)
+#		JDBCconnectionProperties = {}
+#		JDBCconnectionProperties["user"] = self.import_config.common_config.jdbc_username
+#		JDBCconnectionProperties["password"] = self.import_config.common_config.jdbc_password
+#		JDBCconnectionProperties["driver"] = self.import_config.common_config.jdbc_driver
+#		JDBCconnectionProperties["fetchsize"] = "10000"
+#
+#		if self.import_config.sqlSessions > 1:
+#			JDBCconnectionProperties["partitionColumn"] = str(self.import_config.splitByColumn)
+#			JDBCconnectionProperties["lowerBound"] = str(minMaxDict["min"])
+#			JDBCconnectionProperties["upperBound"] = str(minMaxDict["max"])
+#			JDBCconnectionProperties["numPartitions"] = str(self.import_config.sqlSessions)
 
 		sys.stdout.flush()
 		sc = SparkContext(conf=conf)
@@ -543,7 +967,32 @@ class operation(object, metaclass=Singleton):
 		
 		spark.sql("set spark.sql.orc.impl=native")
 
-		df = spark.read.jdbc(url=self.import_config.common_config.jdbc_url, table=sparkQuery, properties=JDBCconnectionProperties)
+		quoteAroundColumn = self.import_config.common_config.getQuoteAroundColumn()
+		partitionColumn = "%s%s%s"%(quoteAroundColumn, str(self.import_config.splitByColumn).lower(), quoteAroundColumn)
+
+		if self.import_config.sqlSessions < 2:
+			df = (spark.read.format("jdbc")
+				.option("driver", self.import_config.common_config.jdbc_driver)
+				.option("url", self.import_config.common_config.jdbc_url)
+				.option("dbtable", sparkQuery)
+				.option("user", self.import_config.common_config.jdbc_username)
+				.option("password", self.import_config.common_config.jdbc_password)
+				.option("fetchsize", "10000")
+				.load())
+		else:
+			df = (spark.read.format("jdbc")
+				.option("driver", self.import_config.common_config.jdbc_driver)
+				.option("url", self.import_config.common_config.jdbc_url)
+				.option("dbtable", sparkQuery)
+				.option("user", self.import_config.common_config.jdbc_username)
+				.option("password", self.import_config.common_config.jdbc_password)
+				.option("fetchsize", "10000")
+				.option("partitionColumn", partitionColumn)
+				.option("lowerBound", minMaxDict["min"])
+				.option("upperBound", minMaxDict["max"])
+				.option("numPartitions", self.import_config.sqlSessions)
+				.load())
+
 		sys.stdout.flush()
 		df.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
@@ -579,7 +1028,7 @@ class operation(object, metaclass=Singleton):
 			try:
 				self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
 			except:
-				logging.exception("Fatal error when saving sqoop statistics")
+				logging.exception("Fatal error when saving spark statistics")
 				self.import_config.remove_temporary_files()
 				sys.exit(1)
 
@@ -895,13 +1344,6 @@ class operation(object, metaclass=Singleton):
 					self.import_config.Hive_Import_DB, 
 					self.import_config.Hive_Import_View,
 					self.import_config.getSelectForImportView())
-#				query = "create view `%s`.`%s` as select "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
-#				query += "%s "%(self.import_config.getSelectForImportView())
-#				if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-#					# Add the specific Oracle FlashBack columns that we need to import
-#					query += ", `datalake_flashback_operation`"
-#					query += ", `datalake_flashback_startscn`"
-#				query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 
 				self.common_operations.executeHiveQuery(query)
 				self.common_operations.reconnectHiveMetaStore()
@@ -954,8 +1396,11 @@ class operation(object, metaclass=Singleton):
 			logging.info("Creating External Import Table")
 			query  = "create external table `%s`.`%s` ("%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 			columnsDF = self.import_config.getColumnsFromConfigDatabase() 
+
 			if self.import_config.importTool == "sqoop":
 				columnsDF = self.updateColumnsForImportTable(columnsDF)
+			elif self.import_config.importTool == "spark":
+				columnsDF = self.updateColumnsForImportTable(columnsDF, replaceNameOnly=True)
 
 			firstLoop = True
 			for index, row in columnsDF.iterrows():
@@ -1229,12 +1674,13 @@ class operation(object, metaclass=Singleton):
 			self.common_operations.executeHiveQuery(query)
 		
 
-	def updateColumnsForImportTable(self, columnsDF):
+	def updateColumnsForImportTable(self, columnsDF, replaceNameOnly = False):
 		""" Parquet import format from sqoop cant handle all datatypes correctly. So for the column definition, we need to change some. We also replace <SPACE> with underscore in the column name """
-		columnsDF["type"].replace(["date"], "string", inplace=True)
-		columnsDF["type"].replace(["timestamp"], "string", inplace=True)
-		columnsDF["type"].replace(["decimal(.*)"], "string", regex=True, inplace=True)
-		columnsDF["type"].replace(["bigint"], "string", regex=True, inplace=True)
+		if replaceNameOnly == False:
+			columnsDF["type"].replace(["date"], "string", inplace=True)
+			columnsDF["type"].replace(["timestamp"], "string", inplace=True)
+			columnsDF["type"].replace(["decimal(.*)"], "string", regex=True, inplace=True)
+			columnsDF["type"].replace(["bigint"], "string", regex=True, inplace=True)
 
 		# If you change any of the name replace rows, you also need to change the same data in function self.copyHiveTable() and import_definitions.saveColumnData()
 		columnsDF["name"].replace([" "], "_", regex=True, inplace=True)
@@ -1245,21 +1691,18 @@ class operation(object, metaclass=Singleton):
 		columnsDF["name"].replace(["å"], "a", regex=True, inplace=True)
 		columnsDF["name"].replace(["ä"], "a", regex=True, inplace=True)
 		columnsDF["name"].replace(["ö"], "o", regex=True, inplace=True)
+#		columnsDF["name"].replace(["#"], "hash", regex=True, inplace=True)
+#		columnsDF["name"].replace(["^_"], "underscore_", regex=True, inplace=True)
 
 		return columnsDF
 
-#	def addDatalakeImportColumn(self):
-#		""" Adding datalake_column to Hive Table if it does not exists """
-#		logging.debug("Executing import_operations.addDatalakeImportColumn()")
-#		columnsHive   = self.common_operations.getHiveColumns(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
-##		columnsHive   = self.common_operations.getColumnsFromHiveTable(self.Hive_DB, self.Hive_Table, excludeDataLakeColumns=False) 
-#		if len(columnsHive.loc[columnsHive['name'] == 'datalake_import']) == 0:
-#			query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
-#			self.common_operations.executeHiveQuery(query)
-#			self.common_operations.reconnectHiveMetaStore()
-#
-#		logging.debug("Executing import_operations.addDatalakeImportColumn() - Finished")
+	def updateColumnsForMongoTables(self, columnsDF):
+		""" Mongo Imports have both structs and arrays as columntypes. For this, the columnames needs a ` around them inside
+		the struct or array. If this is included in the columnType when doing a compare with Hive, there will be an alter table
+		at every import as the columntype is never the same """
 
+		columnsDF["type"].replace(["`"], "", regex=True, inplace=True)
+		return columnsDF
 
 	def updateHiveTable(self, hiveDB, hiveTable, restrictColumns=None, sourceIsParquetFile=False):
 		""" Update the target table based on the column information in the configuration database """
@@ -1272,6 +1715,18 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.importTool == "sqoop":
 			if hiveDB == self.import_config.Hive_Import_DB and hiveTable == self.import_config.Hive_Import_Table:
 				columnsConfig = self.updateColumnsForImportTable(columnsConfig)
+
+		# There is a difference between comparing column types and then updating Hive with that columntype. For example. Mongo import
+		# requires that ` is around the columns inside the structs and arrays. But Hive doesnt store that. So doing a compare will
+		# always fail due to that. So we need to compare without the ` around the column names. But  if there is a difference, we need to
+		# run the alter command WITH the `, otherwise the Hive query will fail. columnTypesChanged is used to identify that
+		columnTypesChanged = False
+		columnsConfigSaved = columnsConfig.copy()
+
+		# Update the column types if the import is a Mongo import
+		if self.import_config.mongoImport == True:
+			columnsConfig = self.updateColumnsForMongoTables(columnsConfig)
+			columnTypesChanged = True
 
 		# Check for missing columns
 		columnsConfigOnlyName = columnsConfig.filter(['name'])
@@ -1404,7 +1859,14 @@ class operation(object, metaclass=Singleton):
 
 		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'left_only'].iterrows():
 			# This will iterate over columns that had the type changed from the source
-			query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, row['name'], row['name'], row['type'])
+			columnName = row['name']
+			columnType = row['type']
+
+			if columnTypesChanged == True:
+				# This means that we compare with another value than will be used in the alter. We need to get the correct alter column type
+				columnType = columnsConfigSaved.loc[columnsConfigSaved['name'] == columnName]['type'].iloc[0]
+
+			query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, columnName, columnName, columnType)
 			self.common_operations.executeHiveQuery(query)
 
 			# Get the previous column type from the Pandas DF with right_only in Exist column
@@ -1418,13 +1880,21 @@ class operation(object, metaclass=Singleton):
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
 		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
-#		columnsHive = self.common_operations.getColumnsFromHiveTable(hiveDB, hiveTable, excludeDataLakeColumns=True) 
-		columnsHive['comment'].replace('', None, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
+		columnsHive['comment'].replace(['^$'], [None], regex=True, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
 		columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 
 		for index, row in columnsMerge.loc[columnsMerge['Exist'] == 'left_only'].iterrows():
 			if row['comment'] == None: row['comment'] = ""
-			query = "alter table `%s`.`%s` change column `%s` `%s` %s comment \"%s\""%(hiveDB, hiveTable, row['name'], row['name'], row['type'], row['comment'])
+
+			columnName = row['name']
+			columnType = row['type']
+			columnComment = row['comment']
+
+			if columnTypesChanged == True:
+				# This means that we compare with another value than will be used in the alter. We need to get the correct alter column type
+				columnType = columnsConfigSaved.loc[columnsConfigSaved['name'] == columnName]['type'].iloc[0]
+
+			query = "alter table `%s`.`%s` change column `%s` `%s` %s comment \"%s\""%(hiveDB, hiveTable, columnName, columnName, columnType, columnComment)
 
 			self.common_operations.executeHiveQuery(query)
 
@@ -1602,7 +2072,7 @@ class operation(object, metaclass=Singleton):
 		""" Copy one Hive table into another for the columns that have the same name """
 		logging.debug("Executing import_operations.copyHiveTable()")
 
-		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, sourceIsImportTable=True)
+		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, importTool = self.import_config.importTool, sourceIsImportTable=True)
 
 		firstLoop = True
 		columnDefinitionSource = ""

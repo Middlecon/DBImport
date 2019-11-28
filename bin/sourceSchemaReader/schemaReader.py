@@ -121,7 +121,11 @@ class source(object):
 #			query += "order by column_id "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -202,10 +206,15 @@ class source(object):
 			query += "  AND ALL_COL_COMMENTS.OWNER = ALL_OBJECTS.OWNER " 
 			query += "WHERE ALL_TAB_COLUMNS.OWNER = '%s' "%(schema)
 			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = '%s' "%(table)
+			query += "  AND ALL_OBJECTS.OBJECT_TYPE IN ('TABLE', 'VIEW') " 
 			query += "ORDER BY SCHEMA_NAME, ALL_TAB_COLUMNS.TABLE_NAME, ALL_TAB_COLUMNS.COLUMN_ID"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -279,7 +288,11 @@ class source(object):
 			query += "order by c.table_schema,c.table_name, c.ordinal_position "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -342,7 +355,12 @@ class source(object):
 			query += "ORDER BY ST.CREATOR, ST.NAME"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+				
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -406,7 +424,11 @@ class source(object):
 			query += "ORDER BY ST.TABLE_SCHEMA, SC.TABLE_NAME, SC.ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -471,7 +493,11 @@ class source(object):
 			query += "ORDER BY table_schema, table_name"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -526,7 +552,11 @@ class source(object):
 			query += "ORDER BY tab_tables.OWNER, tab_tables.TBL"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -556,7 +586,10 @@ class source(object):
 				if self.removeNewLine(row[7]) == "" or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
+					try:
+						line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
+					except UnicodeDecodeError:
+						line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7])
 
 				line_dict["IS_NULLABLE"] = row[8]
 
@@ -642,9 +675,12 @@ class source(object):
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
-#			print(JDBCCursor.fetchall())
 			rows_list = []
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
@@ -723,7 +759,11 @@ class source(object):
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME,CONSTRAINT_TYPE,CONSTRAINT_NAME,COL_KEY_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -787,10 +827,11 @@ class source(object):
 			query += "order by schema_name, table_name, CONSTRAINT_TYPE, COL_KEY_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
-
-#			print(JDBCCursor.fetchall())
-#			return ""
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -835,36 +876,79 @@ class source(object):
 
 			query += "UNION ALL " 
 
-			query += "select "
-			query += "	substr(TRIM(R.tabschema),1,12) as SCHEMA_NAME, " 
-			query += "	substr (TRIM(R.tabname),1,12) as TABLE_NAME,  " 
-			query += "	substr(TRIM(R.constname),1,12) as CONSTRAINT_NAME, " 
-			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
-			query += "	substr(LISTAGG(TRIM(R.FK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.FK_COLNAMES),1,20) as COL_NAME,  " 
-			query += "	SC.COLTYPE as COL_DATA_TYPE, " 
-			query += "	SC.LENGTH as COL_DATA_LENGTH, " 
-			query += "	SC.SCALE as COL_DATA_SCALE, " 
-			query += "	substr(TRIM(R.reftabschema),1,12) as REFERENCE_SCHEMA_NAME, " 
-			query += "	substr(TRIM(R.reftabname),1,12) as REFERENCE_TABLE_NAME, " 
-			query += "	substr(LISTAGG(TRIM(R.PK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.PK_COLNAMES),1,20) as REFERENCE_COL_NAME,  " 
-			query += "	cast(substr(LISTAGG(C.COLSEQ,', ') WITHIN GROUP (ORDER BY C.COLSEQ),1,1) as INT) as ORDINAL_POSITION " 
+#			query += "select "
+##			query += "	substr(TRIM(R.tabschema),1,12) as SCHEMA_NAME, " 
+##			query += "	substr (TRIM(R.tabname),1,12) as TABLE_NAME,  " 
+##			query += "	substr(TRIM(R.constname),1,12) as CONSTRAINT_NAME, " 
+#			query += "	TRIM(R.tabschema) as SCHEMA_NAME, " 
+#			query += "	TRIM(R.tabname) as TABLE_NAME,  " 
+#			query += "	TRIM(R.constname) as CONSTRAINT_NAME, " 
+#			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
+##			query += "	substr(LISTAGG(TRIM(R.FK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.FK_COLNAMES),1,20) as COL_NAME,  " 
+#			query += "	LISTAGG(TRIM(R.FK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.FK_COLNAMES) as COL_NAME,  " 
+#			query += "	SC.COLTYPE as COL_DATA_TYPE, " 
+#			query += "	SC.LENGTH as COL_DATA_LENGTH, " 
+#			query += "	SC.SCALE as COL_DATA_SCALE, " 
+##			query += "	substr(TRIM(R.reftabschema),1,12) as REFERENCE_SCHEMA_NAME, " 
+##			query += "	substr(TRIM(R.reftabname),1,12) as REFERENCE_TABLE_NAME, " 
+#			query += "	TRIM(R.reftabschema) as REFERENCE_SCHEMA_NAME, " 
+#			query += "	TRIM(R.reftabname) as REFERENCE_TABLE_NAME, " 
+##			query += "	substr(LISTAGG(TRIM(R.PK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.PK_COLNAMES),1,20) as REFERENCE_COL_NAME,  " 
+#			query += "	LISTAGG(TRIM(R.PK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.PK_COLNAMES) as REFERENCE_COL_NAME,  " 
+#			query += "	cast(substr(LISTAGG(C.COLSEQ,', ') WITHIN GROUP (ORDER BY C.COLSEQ),1,1) as INT) as ORDINAL_POSITION " 
+#			query += "FROM syscat.references R "
+#			query += "LEFT JOIN syscat.keycoluse C "
+#			query += "	ON R.constname = C.constname "
+#			query += "	AND R.tabschema = C.tabschema "
+#			query += "	AND R.tabname = C.tabname " 
+#			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC " 
+#			query += "	ON R.tabschema = SC.TBCREATOR "
+#			query += "	AND R.tabname = SC.TBNAME "
+#			query += "	AND TRIM(SC.NAME)= TRIM(R.FK_COLNAMES) "
+#			query += "WHERE " 
+#			query += "	R.tabschema = '%s' "%(schema)
+#			query += "	AND C.tabname = '%s' "%(table)
+#			query += "GROUP BY R.reftabschema, R.reftabname, R.tabschema, R.tabname, R.constname, SC.COLTYPE, SC.LENGTH, SC.SCALE "
+#			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
+
+			query =  "SELECT "
+			query += "  TRIM(R.tabschema) as SCHEMA_NAME, "
+			query += "  TRIM(R.tabname) as TABLE_NAME, "
+			query += "  TRIM(R.constname) as CONSTRAINT_NAME, "
+			query += "  'F' AS CONSTRAINT_TYPE, "
+			query += "  TRIM(C.COLNAME) as COL_NAME, "
+			query += "  SC.COLTYPE as COL_DATA_TYPE, "
+			query += "  SC.LENGTH as COL_DATA_LENGTH, "
+			query += "  SC.SCALE as COL_DATA_SCALE, "
+			query += "  TRIM(R.reftabschema) as REFERENCE_SCHEMA_NAME, "
+			query += "  TRIM(R.reftabname) as REFERENCE_TABLE_NAME, "
+			query += "  TRIM(Cref.COLNAME) as REFERENCE_COL_NAME, "
+			query += "  C.COLSEQ as ORDINAL_POSITION "
 			query += "FROM syscat.references R "
 			query += "LEFT JOIN syscat.keycoluse C "
-			query += "	ON R.constname = C.constname "
-			query += "	AND R.tabschema = C.tabschema "
-			query += "	AND R.tabname = C.tabname " 
-			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC " 
-			query += "	ON R.tabschema = SC.TBCREATOR "
-			query += "	AND R.tabname = SC.TBNAME "
-			query += "	AND TRIM(SC.NAME)= TRIM(R.FK_COLNAMES) "
-			query += "WHERE " 
+			query += "  ON R.constname = C.constname "
+#			query += "  AND R.tabschema = C.tabschema "
+#			query += "  AND R.tabname = C.tabname "
+			query += "LEFT JOIN syscat.keycoluse Cref "
+			query += "  ON R.refkeyname = Cref.constname "
+			query += "  AND C.COLSEQ = Cref.COLSEQ "
+#			query += "  AND R.reftabschema = Cref.tabschema "
+#			query += "  AND R.reftabname = Cref.tabname "
+			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC "
+			query += "  ON R.tabschema = SC.TBCREATOR "
+			query += "  AND R.tabname = SC.TBNAME "
+			query += "  AND TRIM(SC.NAME)= TRIM(R.FK_COLNAMES) "
+			query += "WHERE "
 			query += "	R.tabschema = '%s' "%(schema)
-			query += "	AND C.tabname = '%s' "%(table)
-			query += "GROUP BY R.reftabschema, R.reftabname, R.tabschema, R.tabname, R.constname, SC.COLTYPE, SC.LENGTH, SC.SCALE "
-			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
+			query += "	AND R.tabname = '%s' "%(table)
+			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -936,7 +1020,11 @@ class source(object):
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -1012,7 +1100,11 @@ class source(object):
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME,CONSTRAINT_TYPE "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
-			JDBCCursor.execute(query)
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():

@@ -28,6 +28,7 @@ import re
 import json
 import ssl
 import requests
+from itertools import zip_longest
 from requests_kerberos import HTTPKerberosAuth
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
@@ -50,6 +51,7 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select
 from sqlalchemy.orm import aliased, sessionmaker, Query
+import pymongo
 
 
 class config(object, metaclass=Singleton):
@@ -94,6 +96,8 @@ class config(object, metaclass=Singleton):
 		self.jdbc_oracle_sid = None
 		self.jdbc_oracle_servicename = None
 		self.jdbc_force_column_lowercase = None
+		self.mongoClient = None
+		self.mongoDB = None
 		self.kerberosInitiated = False
 
 		self.sparkPathAppend = None
@@ -119,6 +123,7 @@ class config(object, metaclass=Singleton):
 		self.atlasRestTypeDefDBImportProcess = None
 		self.atlasRestEntities = None
 		self.atlasRestUniqueAttributeType = None
+		self.atlasJdbcSourceSupport = None
 
 		self.sourceSchema = None
 
@@ -129,6 +134,10 @@ class config(object, metaclass=Singleton):
 		self.JDBCCursor = None
 
 		self.sourceSchema = schemaReader.source()
+
+		# SQLAlchemy connection variables
+		self.configDB = None
+		self.configDBSession = None
 
 		self.debugLogLevel = False
 		if logging.root.level == 10:        # DEBUG
@@ -238,21 +247,26 @@ class config(object, metaclass=Singleton):
 			dbAlias = self.dbAlias
 
 		# Fetch data from jdbc_connection table
-		query = "select contact_info, description, owner from jdbc_connections where dbalias = %s "
+		query = "select contact_info, description, owner, atlas_discovery, atlas_include_filter, atlas_exclude_filter, atlas_last_discovery from jdbc_connections where dbalias = %s "
 		logging.debug("Executing the following SQL: %s" % (query))
 		self.mysql_cursor.execute(query, (dbAlias, ))
 
 		if self.mysql_cursor.rowcount != 1:
-			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
-			logging.error("Rows returned: %d" % (self.mysql_cursor.rowcount) )
-			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
-			raise Exception
+			raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
+#			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
+#			logging.error("Rows returned: %d" % (self.mysql_cursor.rowcount) )
+#			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
+#			raise Exception
 
 		row = self.mysql_cursor.fetchone()
 		returnDict = {}
 		returnDict["contact_info"] = row[0]
 		returnDict["description"] = row[1]
 		returnDict["owner"] = row[2]
+		returnDict["atlas_discovery"] = row[3]
+		returnDict["atlas_include_filter"] = row[4]
+		returnDict["atlas_exclude_filter"] = row[5]
+		returnDict["atlas_last_discovery"] = row[6]
 
 		if returnDict["contact_info"] == None:	returnDict["contact_info"] = ""
 		if returnDict["description"] == None:	returnDict["description"] = ""
@@ -348,9 +362,9 @@ class config(object, metaclass=Singleton):
 			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
 			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
 			dbName = self.jdbc_database
-			instanceUri = "OpenEdge@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
-			instanceName = "OpenEdge"
-			instanceType = "OpenEdge"
+			instanceUri = "Progress@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "Progress"
+			instanceType = "Progress"
 
 		elif self.db_db2udb == True:
 			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
@@ -508,8 +522,11 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-100"]["typeName"] = "rdbms_table"
 		jsonData["referredEntities"]["-100"]["attributes"] = {}
 		jsonData["referredEntities"]["-100"]["attributes"]["qualifiedName"] = tableUri
-		jsonData["referredEntities"]["-100"]["attributes"]["uri"] = tableUri
 		jsonData["referredEntities"]["-100"]["attributes"]["name"] = tableName
+		if schemaName == "-":
+			jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = None
+		else:
+			jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = schemaName
 		jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = contactInfo
 		jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
 		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
@@ -526,7 +543,6 @@ class config(object, metaclass=Singleton):
 			jsonData["referredEntities"]["-101"]["typeName"] = "rdbms_table"
 			jsonData["referredEntities"]["-101"]["attributes"] = {}
 			jsonData["referredEntities"]["-101"]["attributes"]["qualifiedName"] = refTableUri
-			jsonData["referredEntities"]["-101"]["attributes"]["uri"] = refTableUri
 			jsonData["referredEntities"]["-101"]["attributes"]["name"] = refTableName
 			jsonData["referredEntities"]["-101"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
 
@@ -541,7 +557,6 @@ class config(object, metaclass=Singleton):
 			jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
 			jsonData["referredEntities"]["-200"]["attributes"] = {}
 			jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
-			jsonData["referredEntities"]["-200"]["attributes"]["uri"] = hdfsUri
 			jsonData["referredEntities"]["-200"]["attributes"]["name"] = hdfsPath
 			jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
 
@@ -550,7 +565,6 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
 		jsonData["referredEntities"]["-300"]["attributes"] = {}
 		jsonData["referredEntities"]["-300"]["attributes"]["qualifiedName"] = dbUri
-		jsonData["referredEntities"]["-300"]["attributes"]["uri"] = dbUri
 		jsonData["referredEntities"]["-300"]["attributes"]["name"] = dbName
 		jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = contactInfo
 		jsonData["referredEntities"]["-300"]["attributes"]["owner"] = owner
@@ -561,7 +575,6 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-400"]["typeName"] = "rdbms_instance"
 		jsonData["referredEntities"]["-400"]["attributes"] = {}
 		jsonData["referredEntities"]["-400"]["attributes"]["qualifiedName"] = instanceUri
-		jsonData["referredEntities"]["-400"]["attributes"]["uri"] = instanceUri
 		jsonData["referredEntities"]["-400"]["attributes"]["name"] = instanceName
 		jsonData["referredEntities"]["-400"]["attributes"]["rdbms_type"] = instanceType
 		jsonData["referredEntities"]["-400"]["attributes"]["hostname"] = self.jdbc_hostname
@@ -572,35 +585,39 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getAtlasReferredEntities() - Finished")
 
-	def checkAtlasSchema(self):
+	def checkAtlasSchema(self, logger=""):
 		""" Checks if the Atlas schema for DBImport is available and at the correct version. Returns True or False """
-		logging.debug("Executing common_config.checkAtlasSchema()")
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.checkAtlasSchema()")
 
 		# We only check the Atlas schema ones per execution. This will otherwise add more requests to Atlas for the same data
 		if self.atlasSchemaChecked == True:
 			return self.atlasEnabled
 
 		if self.atlasEnabled == True:
-			logging.info("Checking Atlas connection")
-			response = self.atlasGetData(URL=self.atlasRestTypeDefDBImportProcess)
-			statusCode = response["statusCode"]
-			responseData = json.loads(response["data"])
+			log.info("Checking Atlas connection")
+			response = self.atlasGetData(URL=self.atlasRestTypeDefDBImportProcess, logger=logger)
+			if response == None:
+				statusCode = "-1"
+			else:
+				statusCode = response["statusCode"]
+				responseData = json.loads(response["data"])
 
 		if self.atlasEnabled == True and statusCode == 404:
 			# The TypeDef was not found
-			logging.warning("The Atlas typeDef 'DBImport_Process' was not found. Did you run the Atlas setup for DBImport?")
+			log.warning("The Atlas typeDef 'DBImport_Process' was not found. Did you run the Atlas setup for DBImport?")
 			self.atlasEnabled = False
 
 		elif self.atlasEnabled == True and statusCode != 200:
-			logging.warning("Atlas communication failed with response %s"%(statusCode))
+			log.warning("Atlas communication failed with response %s"%(statusCode))
 			self.atlasEnabled = False
 
 		if self.atlasEnabled == True:
 			# if self.atlasEnabled = True at this stage, it means that we have a valid json response in DBImportProcessJSON
 			typeDefVersion = responseData["typeVersion"]
 			if typeDefVersion != "1.2":
-				logging.warning("The version for Atlas typeDef 'DBImport_Process' is not correct. Version required is 1.2 and version found is %s"%(typeDefVersion))
-				logging.warning("Atlas integration is Disabled")
+				log.warning("The version for Atlas typeDef 'DBImport_Process' is not correct. Version required is 1.2 and version found is %s"%(typeDefVersion))
+				log.warning("Atlas integration is Disabled")
 				self.atlasEnabled = False
 			else:
 				self.atlasSchemaChecked = True
@@ -609,20 +626,24 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.checkAtlasSchema() - Finished")
 
-	def atlasGetData(self, URL):
-		logging.debug("Executing common_config.atlasGetData()")
-		return self.atlasCommunicate(URL=URL, requestType="GET")
+	def atlasGetData(self, URL, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.atlasGetData()")
+		return self.atlasCommunicate(URL=URL, requestType="GET", logger=logger)
 
-	def atlasPostData(self, URL, data):
-		logging.debug("Executing common_config.atlasPostData()")
-		return self.atlasCommunicate(URL=URL, requestType="POST", data=data)
+	def atlasPostData(self, URL, data, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.atlasPostData()")
+		return self.atlasCommunicate(URL=URL, requestType="POST", data=data, logger=logger)
 
-	def atlasDeleteData(self, URL):
-		logging.debug("Executing common_config.atlasDeleteData()")
-		return self.atlasCommunicate(URL=URL, requestType="DELETE")
+	def atlasDeleteData(self, URL, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.atlasDeleteData()")
+		return self.atlasCommunicate(URL=URL, requestType="DELETE", logger=logger)
 
-	def atlasCommunicate(self, URL, requestType, data=None):
-		logging.debug("Executing common_config.atlasCommunicate()")
+	def atlasCommunicate(self, URL, requestType, data=None, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.atlasCommunicate()")
 
 		returnValue = None
 		if self.atlasEnabled == True:
@@ -653,37 +674,50 @@ class config(object, metaclass=Singleton):
 					raise ValueError 
 
 				returnValue = { "statusCode": response.status_code, "data": response.text }
-				logging.debug("Atlas statusCode = %s"%(response.status_code))
-				logging.debug("Atlas data = %s"%(response.text))
+				log.debug("Atlas statusCode = %s"%(response.status_code))
+				log.debug("Atlas data = %s"%(response.text))
 
-			except requests.exceptions.ConnectionError:
-				logging.error("Connection error when communicating with Atlas on %s"%(URL))
-				logging.warning("Atlas integration is Disabled")
-				self.common_config.atlasEnabled = False
-			except requests.exceptions.HTTPError:
-				logging.error("HTTP error when communicating with Atlas on %s"%(URL))
-				logging.warning("Atlas integration is Disabled")
-				self.common_config.atlasEnabled = False
-			except requests.exceptions.RequestException:
-				logging.error("RequestException error when communicating with Atlas on %s"%(URL))
-				logging.warning("Atlas integration is Disabled")
-				self.common_config.atlasEnabled = False
 			except requests.exceptions.SSLError:
-				logging.error("Atlas connection failed due to SSL validation. Please check Atlas connection configuration in config file")
-				logging.warning("Atlas integration is Disabled")
+				log.error("Atlas connection failed due to SSL validation. Please check Atlas connection configuration in config file")
+				log.warning("Atlas integration is Disabled")
+				log.debug("Atlas data: %s"%(data))
+				log.debug("Atlas requestType: %s"%(requestType))
+				self.atlasEnabled = False
+			except requests.exceptions.HTTPError:
+				log.error("HTTP error when communicating with Atlas on %s"%(URL))
+				log.warning("Atlas integration is Disabled")
+				log.debug("Atlas data: %s"%(data))
+				log.debug("Atlas requestType: %s"%(requestType))
+				self.atlasEnabled = False
+			except requests.exceptions.RequestException:
+				log.error("RequestException error when communicating with Atlas on %s"%(URL))
+				log.warning("Atlas integration is Disabled")
+				log.debug("Atlas data: %s"%(data))
+				log.debug("Atlas requestType: %s"%(requestType))
+				self.atlasEnabled = False
+			except requests.exceptions.ConnectionError:
+				log.error("Connection error when communicating with Atlas on %s"%(URL))
+				log.warning("Atlas integration is Disabled")
+				log.debug("Atlas data: %s"%(data))
+				log.debug("Atlas requestType: %s"%(requestType))
 				self.atlasEnabled = False
 			except ValueError:
-				logging.error("The used requstType (%s) for atlasCommunicate() is not supported"%(requestType))
-				logging.warning("Atlas integration is Disabled")
+				log.error("The used requstType (%s) for atlasCommunicate() is not supported"%(requestType))
+				log.warning("Atlas integration is Disabled")
+				log.debug("Atlas data: %s"%(data))
+				log.debug("Atlas requestType: %s"%(requestType))
 				self.atlasEnabled = False
-#			else:
-#				returnValue = response.text
 
-		logging.debug("Executing common_config.atlasCommunicate() - Finished")
+		log.debug("Executing common_config.atlasCommunicate() - Finished")
 		return returnValue
 
-	def connectSQLAlchemy(self):
+	def connectSQLAlchemy(self, exitIfFailure=True, logger=""):
+		log = logging.getLogger(logger)
 		""" Connects to the configuration database with SQLAlchemy """
+
+		if self.configDBSession != None:
+			# If we already have a connection, we just say that it's ok....
+			return True
 
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			configuration.get("Database", "mysql_username"),
@@ -699,13 +733,26 @@ class config(object, metaclass=Singleton):
 
 		except sa.exc.OperationalError as err:
 			logging.error("%s"%err)
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			if exitIfFailure == True:
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				self.configDBSession = None
+				self.configDB= None
+				return False
 		except:
 			print("Unexpected error: ")
 			print(sys.exc_info())
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			if exitIfFailure == True:
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				self.configDBSession = None
+				self.configDB= None
+				return False
+
+		else:
+			return True
 
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
@@ -882,6 +929,7 @@ class config(object, metaclass=Singleton):
 	
 		exit_after_function = False
 		self.dbAlias = connection_alias
+		self.atlasJdbcSourceSupport = False
 
 		# Fetch data from jdbc_connection table
 		query = "select jdbc_url, credentials from jdbc_connections where dbalias = %s "
@@ -889,17 +937,12 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor.execute(query, (connection_alias, ))
 
 		if self.mysql_cursor.rowcount != 1:
-			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
-			logging.error("Rows returned: %d" % (self.mysql_cursor.rowcount) )
-			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
-			raise Exception
+			raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
 
 		row = self.mysql_cursor.fetchone()
 
 		self.jdbc_url = row[0]
 
-#		if row[1] == "DBImport Slave Connection":
-#			decryptCredentials = False
 
 		if decryptCredentials == True and copySlave == False:
 			credentials = self.crypto.decrypt(row[1])
@@ -923,6 +966,7 @@ class config(object, metaclass=Singleton):
 
 		# Lookup Connection details based on JDBC STRING for all different types we support
 		if self.jdbc_url.startswith( 'jdbc:sqlserver:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "default")
@@ -968,6 +1012,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:jtds:sqlserver:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
 			self.jdbc_force_column_lowercase = True
@@ -988,6 +1033,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:oracle:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_oracle = True
 			self.jdbc_servertype = constant.ORACLE
 			self.jdbc_force_column_lowercase = False
@@ -1023,6 +1069,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:mysql:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_mysql = True
 			self.jdbc_servertype = constant.MYSQL
 			self.jdbc_force_column_lowercase = True
@@ -1044,6 +1091,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:postgresql:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_postgresql = True
 			self.jdbc_servertype = constant.POSTGRESQL
 			self.jdbc_force_column_lowercase = True
@@ -1065,6 +1113,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:datadirect:openedge:'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_progress = True
 			self.jdbc_servertype = constant.PROGRESS
 			self.jdbc_force_column_lowercase = True
@@ -1086,6 +1135,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:db2://'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_db2udb = True
 			self.jdbc_servertype = constant.DB2_UDB
 			self.jdbc_force_column_lowercase = False
@@ -1123,6 +1173,7 @@ class config(object, metaclass=Singleton):
 
 
 		if self.jdbc_url.startswith( 'jdbc:as400://'): 
+			self.atlasJdbcSourceSupport = True
 			self.db_db2as400 = True
 			self.jdbc_servertype = constant.DB2_AS400
 			self.jdbc_force_column_lowercase = False
@@ -1142,18 +1193,18 @@ class config(object, metaclass=Singleton):
 				logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
-
-
-		if self.jdbc_url.startswith( 'mongo:'): 
+		if self.jdbc_url.startswith( 'mongo://'): 
+			self.atlasJdbcSourceSupport = False
 			self.db_mongodb = True
 			self.jdbc_servertype = constant.MONGO
-			self.jdbc_driver = "no-jdbc-driver-for-mongodb"
-			self.jdbc_classpath = ""
+			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MongoDB", "default")
+#			self.jdbc_driver = "no-jdbc-driver-for-mongodb"
+#			self.jdbc_classpath = "/usr/share/java/mongo/mongo-spark-connector_2.11-2.3.3.jar:/usr/share/java/mongo/bson-3.11.2.jar:/usr/share/java/mongo/mongodb-driver-core-3.11.2.jar:/usr/share/java/mongo/mongo-java-driver-3.11.2.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
-			self.jdbc_hostname = self.jdbc_url.split(':')[1]
-			self.jdbc_port = self.jdbc_url.split(':')[2]
-			self.jdbc_database = self.jdbc_url.split(':')[3]
+			self.jdbc_hostname = self.jdbc_url[8:].split(':')[0]
+			self.jdbc_port = self.jdbc_url[8:].split(':')[1].split('/')[0]
+			self.jdbc_database = self.jdbc_url[8:].split('/')[1].strip()
 
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
@@ -1199,6 +1250,16 @@ class config(object, metaclass=Singleton):
 		if exit_after_function == True:
 			raise Exception
 
+#	def getMongoUri(self):
+#		mongoUri = "mongodb://%s:%s@%s:%s/"%(
+#			self.jdbc_username,
+#			self.jdbc_password,
+#			self.jdbc_hostname,
+#			self.jdbc_port)
+#	
+#		return mongoUri
+
+
 	def getJDBCTableDefinition(self, source_schema, source_table, printInfo=True):
 		logging.debug("Executing common_config.getJDBCTableDefinition()")
 		if printInfo == True:
@@ -1223,26 +1284,49 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getSourceTableDefinition() - Finished")
 
-	def connectToJDBC(self,):
+	def disconnectFromJDBC(self):
+		logging.debug("Disconnect from JDBC database")
+		try:
+			self.JDBCCursor.close()
+			self.JDBCConn.close()
+		except AttributeError:
+			pass
+		self.JDBCCursor = None
+		
+	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger=""):
+		log = logging.getLogger(logger)
+
+		if allJarFiles == True:
+			query = "select classpath from jdbc_connections_drivers"
+			log.debug("Executing the following SQL: %s" % (query))
+			self.mysql_cursor.execute(query, )
+
+			self.jdbc_classpath_for_python = []
+			for row in self.mysql_cursor.fetchall():
+				self.jdbc_classpath_for_python.append(row[0])
 
 		if self.JDBCCursor == None:
-			logging.debug("Connecting to database over JDBC")
-			logging.debug("	self.jdbc_username = %s"%(self.jdbc_username))
-			logging.debug("	self.jdbc_password = %s"%(self.jdbc_password))
-			logging.debug("	self.jdbc_driver = %s"%(self.jdbc_driver))
-			logging.debug("	self.jdbc_url = %s"%(self.jdbc_url))
-			logging.debug("	self.jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
-#			logging.debug("	self.jdbc_driver_for_python = %s"%(self.jdbc_driver_for_python))
+			log.debug("Connecting to database over JDBC")
+			log.debug("	self.jdbc_username = %s"%(self.jdbc_username))
+			log.debug("	self.jdbc_password = %s"%(self.jdbc_password))
+			log.debug("	self.jdbc_driver = %s"%(self.jdbc_driver))
+			log.debug("	self.jdbc_url = %s"%(self.jdbc_url))
+			log.debug("	self.jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
 
 			JDBCCredentials = [ self.jdbc_username, self.jdbc_password ]
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
 			except jpype.JavaException as exception:
-				print("Connection to database over JDBC failed with the following error:")
-				print(exception.message())
-				self.remove_temporary_files()
-				sys.exit(1)
+				log.error("Connection to database over JDBC failed with the following error:")
+				log.error(exception.message())
+				if exitIfFailure == True:
+					self.remove_temporary_files()
+					sys.exit(1)
+				else:
+					return False
+
+		return True
 
 	def getJDBCcolumnMaxValue(self, source_schema, source_table, column):
 		logging.debug("Executing common_config.getJDBCcolumnMaxValue()")
@@ -1569,7 +1653,7 @@ class config(object, metaclass=Singleton):
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors"):
+		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval"):
 			valueColumn = "valueInt"
 		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
@@ -1607,6 +1691,62 @@ class config(object, metaclass=Singleton):
 		logging.debug("Fetched configuration '%s' as '%s'"%(key, returnValue))
 		logging.debug("Executing common_config.getConfigValue() - Finished")
 		return returnValue
+
+	def connectToMongo(self, exitIfFailure=True, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.connectToMongo()")
+
+		if self.mongoClient != None:
+			return True
+
+		try:
+			self.mongoClient = pymongo.MongoClient("mongodb://%s:%s/"%(self.jdbc_hostname, self.jdbc_port))
+			self.mongoDB = self.mongoClient[self.jdbc_database.strip()]
+			self.mongoDB.authenticate(self.jdbc_username, self.jdbc_password)
+		except pymongo.errors.ServerSelectionTimeoutError:
+			log.error("Timeout Error when connecting to Mongo at %s.%s"%(self.jdbc_hostname, self.jdbc_port))
+			if exitIfFailure == True:
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				return False
+
+		return True
+
+		log.debug("Executing common_config.connectToMongo() - Finished")
+
+	def disconnectFromMongo(self):
+		logging.debug("Executing common_config.disconnectFromMongo()")
+
+		self.mongoClient.close()
+		self.mongoClient = None
+		self.mongoDB = None
+
+		logging.debug("Executing common_config.disconnectFromMongo() - Finished")
+
+	def getMongoCollections(self, collectionFilter=None):
+		logging.debug("Executing common_config.getMongoTables()")
+
+		# Connect to MongoDB and get a list of all collections
+		self.connectToMongo()
+		mongoCollections = self.mongoDB.list_collection_names()
+		self.disconnectFromMongo()
+
+		if collectionFilter == None:
+			collectionFilter = ""
+		collectionFilter = collectionFilter.replace('*', '.*')
+
+		collectionList = []
+		for collection in mongoCollections:
+			if re.search(collectionFilter, collection):
+				collectionDict = {"schema": "-"}
+				collectionDict["table"] = collection
+				collectionList.append(collectionDict)
+
+		result_df = pd.DataFrame(collectionList)
+
+		logging.debug("Executing common_config.getMongoTables() - Finished")
+		return result_df
 
 	def getJDBCtablesAndViews(self, schemaFilter=None, tableFilter=None):
 		logging.debug("Executing common_config.getJDBCtablesAndViews()")
@@ -1711,26 +1851,28 @@ class config(object, metaclass=Singleton):
 		return result_df
 
 
-	def updateAtlasWithRDBMSdata(self, schemaName, tableName):
+	def updateAtlasWithRDBMSdata(self, schemaName, tableName, printInfo=True, logger=""):
 		""" This will update Atlas metadata with the information about the remote table schema """
-		logging.debug("Executing common_config.updateAtlasWithSourceSchema()")
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.updateAtlasWithSourceSchema()")
 
 		if self.atlasEnabled == False:
-			return
+			return False
 
 		# Fetch the remote system schema if we havent before
 		if self.source_columns_df.empty == True:
 			self.getJDBCTableDefinition(source_schema = schemaName, 
 										source_table = tableName, 
-										printInfo = True)
+										printInfo = printInfo)
 
 		if self.source_columns_df.empty == True:
 			self.atlasEnabled = False
-			logging.warning("No columns could be found on the source system.")
-			return
+			log.warning("No columns could be found on the source system.")
+			return False
 		
 
-		logging.info("Updating Atlas with remote database schema")
+		if printInfo == True:
+			log.info("Updating Atlas with remote database schema")
 
 		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
 		jsonData = self.getAtlasRdbmsReferredEntities(	schemaName = schemaName,
@@ -1740,7 +1882,7 @@ class config(object, metaclass=Singleton):
 		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
 		returnDict = self.getAtlasRdbmsNames(schemaName = schemaName, tableName = tableName)
 		if returnDict == None:
-			return
+			return False
 
 		tableUri = returnDict["tableUri"]
 		dbUri = returnDict["dbUri"]
@@ -1779,7 +1921,7 @@ class config(object, metaclass=Singleton):
 					columnIsPrimaryKey = True
 
 			columnData["attributes"]["qualifiedName"] = columnUri
-			columnData["attributes"]["uri"] = columnUri
+#			columnData["attributes"]["uri"] = columnUri
 			columnData["attributes"]["owner"] = owner
 
 			if row['SOURCE_COLUMN_COMMENT'] != None and row['SOURCE_COLUMN_COMMENT'].strip() != "":
@@ -1801,15 +1943,19 @@ class config(object, metaclass=Singleton):
 
 			jsonData["entities"].append(columnData)
 
-		logging.debug("======================================")
-		logging.debug("JSON to send to Atlas!")
-		logging.debug(json.dumps(jsonData, indent=3))
-		logging.debug("======================================")
+		log.debug("======================================")
+		log.debug("JSON to send to Atlas!")
+		log.debug(json.dumps(jsonData, indent=3))
+		log.debug("======================================")
 
 		response = self.atlasPostData(URL = self.atlasRestEntities, data = json.dumps(jsonData))
+		if response == None:
+			return False
+
 		statusCode = response["statusCode"]
 		if statusCode != 200:
-			logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+			log.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+			log.warning("%s"%(response["data"]))
 			self.atlasEnabled == False
 
 		# We now have to find columns that exists in DBImport but not in the source anymore.
@@ -1818,11 +1964,14 @@ class config(object, metaclass=Singleton):
 		# Fetch the table from Atlas so we can check all columns configured on it
 		atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, tableUri)
 		response = self.atlasGetData(URL = atlasRestURL)
+		if response == None:
+			return False
+
 		statusCode = response["statusCode"]
 		responseData = json.loads(response["data"])
 
-#		logging.info("======================================")
-#		logging.info(json.dumps(responseData, indent=3))
+#		log.info("======================================")
+#		log.info(json.dumps(responseData, indent=3))
 
 		for jsonRefEntities in responseData["referredEntities"]:
 			jsonRefEntity = responseData["referredEntities"][jsonRefEntities]
@@ -1843,13 +1992,16 @@ class config(object, metaclass=Singleton):
 
 				if foundSourceColumn == False and jsonRefEntity["status"] == "ACTIVE":
 					# The column defined in Atlas cant be found on the source, and it's still marked as ACTIVE. Lets delete it!
-					logging.debug("Deleting Atlas column with qualifiedName = '%s'"%(columnQualifiedName))
+					log.debug("Deleting Atlas column with qualifiedName = '%s'"%(columnQualifiedName))
 
 					atlasRestURL = "%s/rdbms_column?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, columnQualifiedName)
 					response = self.atlasDeleteData(URL = atlasRestURL)
+					if response == None:
+						return False
+
 					statusCode = response["statusCode"]
 					if statusCode != 200:
-						logging.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
+						log.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
 						self.atlasEnabled == False
 
 		# Code to add Foreign Keys to table. This is done in a new JSON as we reference the table we just created. One JSON per FK
@@ -1859,8 +2011,10 @@ class config(object, metaclass=Singleton):
 			textPrinted = False
 			for fkName in self.source_keys_df.loc[self.source_keys_df['CONSTRAINT_TYPE'] == constant.FOREIGN_KEY][['CONSTRAINT_NAME']].CONSTRAINT_NAME.unique():
 				if textPrinted == False:
-					logging.info("Updating Atlas with remote database foreign keys")
+					if printInfo == True:
+						log.info("Updating Atlas with remote database foreign keys")
 					textPrinted = True
+
 
 				jsonData = None
 				columnCount = 0
@@ -1868,6 +2022,24 @@ class config(object, metaclass=Singleton):
 				for index, row in self.source_keys_df.loc[self.source_keys_df['CONSTRAINT_NAME'] == fkName].iterrows():
 					# Each 'row' now contains information about the column in the FK
 					if jsonData == None:
+						# The refered table must exists, or we will get a 404 error from Atlas.
+						# We do the check here and exit later depending on status of refTableExists
+						refSchemaName = row['REFERENCE_SCHEMA_NAME'].strip()
+						refTableName = row['REFERENCE_TABLE_NAME'].strip()
+						returnDict = self.getAtlasRdbmsNames(schemaName=refSchemaName, tableName=refTableName)
+						refTableUri = returnDict["tableUri"]
+
+						atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, refTableUri)
+						response = self.atlasGetData(URL = atlasRestURL)
+						if response == None:
+							return False
+
+						statusCode = response["statusCode"]
+						if statusCode == 200:
+							refTableExists = True
+						else:
+							refTableExists = False
+
 						# First time we loop through the columns and jsonData is empty. Lets create the base for the json
 						jsonData = self.getAtlasRdbmsReferredEntities(	schemaName = schemaName,
 																		tableName = tableName,
@@ -1880,7 +2052,6 @@ class config(object, metaclass=Singleton):
 						entitiesData["createdBy"] = "DBImport"
 						entitiesData["attributes"] = {}
 						entitiesData["attributes"]["qualifiedName"] = "%s.%s"%(fkName, tableUri) 
-						entitiesData["attributes"]["uri"] = "%s.%s"%(fkName, tableUri)
 						entitiesData["attributes"]["name"] = fkName
 						entitiesData["relationshipAttributes"] = {}
 						entitiesData["relationshipAttributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
@@ -1904,7 +2075,6 @@ class config(object, metaclass=Singleton):
 					jsonData["referredEntities"][uuidRef]["typeName"] = "rdbms_column"
 					jsonData["referredEntities"][uuidRef]["attributes"] = {}
 					jsonData["referredEntities"][uuidRef]["attributes"]["qualifiedName"] = sourceColumnUri
-					jsonData["referredEntities"][uuidRef]["attributes"]["uri"] = sourceColumnUri
 					jsonData["referredEntities"][uuidRef]["attributes"]["name"] = row['COL_NAME']
 					jsonData["referredEntities"][uuidRef]["attributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
 					columnCount = columnCount + 1
@@ -1925,7 +2095,6 @@ class config(object, metaclass=Singleton):
 					jsonData["referredEntities"][uuidRef]["typeName"] = "rdbms_column"
 					jsonData["referredEntities"][uuidRef]["attributes"] = {}
 					jsonData["referredEntities"][uuidRef]["attributes"]["qualifiedName"] = refColumnUri
-					jsonData["referredEntities"][uuidRef]["attributes"]["uri"] = refColumnUri
 					jsonData["referredEntities"][uuidRef]["attributes"]["name"] = row['REFERENCE_COL_NAME']
 					jsonData["referredEntities"][uuidRef]["attributes"]["table"] = { "guid": "-101", "typeName": "rdbms_table" }
 					columnCount = columnCount + 1
@@ -1939,12 +2108,185 @@ class config(object, metaclass=Singleton):
 				jsonData["entities"] = []
 				jsonData["entities"].append(entitiesData)
 
-				logging.debug(json.dumps(jsonData, indent=3))
+				if refTableExists == True:
+					log.debug(json.dumps(jsonData, indent=3))
 
-				response = self.atlasPostData(URL = self.atlasRestEntities, data = json.dumps(jsonData))
-				statusCode = response["statusCode"]
-				if statusCode != 200:
-					logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
-					self.atlasEnabled == False
+					response = self.atlasPostData(URL = self.atlasRestEntities, data = json.dumps(jsonData))
+					if response == None:
+						return False
 
-		logging.debug("Executing updateAtlasWithSourceSchema() - Finished")
+					statusCode = response["statusCode"]
+					if statusCode != 200:
+						log.warning("Request from Atlas when creating Foreign Keys was %s"%(statusCode))
+						log.warning("%s"%(response["data"]))
+						self.atlasEnabled == False
+					else:
+						log.debug("Creating/updating Atlas ForeignKey against %s.%s"%(refSchemaName, refTableName))
+				else:
+					log.warning("Foreign Key cant be created as refered table(%s.%s) does not exists in Atlas"%(refSchemaName, refTableName)) 
+
+		return True
+		log.debug("Executing common_config.updateAtlasWithSourceSchema() - Finished")
+
+	def discoverAtlasRdbms(self, dbAlias, logger=""):
+		""" Discover all RDBMS objects on the 'dbAlias' and populate Atlas with them """
+		log = logging.getLogger(logger)
+		log.debug("Executing common_config.discoverAtlasRdbms()")
+
+		# Get the correct connection information for the dbAlias
+		self.lookupConnectionAlias(dbAlias)
+
+		if self.checkAtlasSchema(logger=logger) == False:
+			return False
+
+		jdbcConnectionDict = self.getAtlasJdbcConnectionData(dbAlias = dbAlias)
+		self.atlasExcludeFilter = jdbcConnectionDict["atlas_exclude_filter"]
+		self.atlasIncludeFilter = jdbcConnectionDict["atlas_include_filter"]
+
+		if self.atlasIncludeFilter == None or self.atlasIncludeFilter == "":
+			self.atlasIncludeFilter = "*.*"
+
+		if self.atlasExcludeFilter == None:
+			self.atlasExcludeFilter = ""
+
+		tablesAndViewsDF = self.getJDBCtablesAndViews()
+
+		# Add all tables we can find to Atlas
+		for index, row in tablesAndViewsDF.iterrows():
+			updateAtlasWithTable = False
+			schema = row['schema'].lower()
+			table = row['table'].lower()
+
+			# Filter the schema.table so that only the included tables gets processed 
+			for include in self.atlasIncludeFilter.split(";"):
+				try:
+					includeSchema = include.split(".")[0].replace('*', '.*').lower()
+					includeTable = include.split(".")[1].replace('*', '.*').lower()
+					if re.search(includeSchema, schema) and re.search(includeTable, table):
+						updateAtlasWithTable = True
+						break
+				except IndexError: 
+					pass
+
+			# Filter the schema.table so we remove the excluded items
+			for exclude in self.atlasExcludeFilter.split(";"):
+				try:
+					excludeSchema = exclude.split(".")[0].replace('*', '.*').lower()
+					excludeTable = exclude.split(".")[1].replace('*', '.*').lower()
+					if re.search(excludeSchema, schema) and re.search(excludeTable, table):
+						updateAtlasWithTable = False
+						break
+				except IndexError: 
+					pass
+
+			if updateAtlasWithTable == False:
+				continue
+
+			# Clear the self.source_columns_df to force it to reload in the updateAtlasWithRDBMSdata function
+			self.source_columns_df = pd.DataFrame()
+			self.atlasEnabled = True		# This can be set to False in self.updateAtlasWithRDBMSdata depending on what it finds
+
+			schema = row['schema'].strip()
+			table = row['table'].strip()
+
+			if row['schema'] != "-":
+#				log.info("Creating/updating Atlas metadata for %s.%s for dbalias %s"%(row['schema'], row['table'], dbAlias))
+				log.info("Creating/updating Atlas table schema for %s.%s on dbalias %s"%(schema, table, dbAlias))
+			else:
+#				log.info("Creating/updating Atlas metadata for %s for dbalias %s"%(row['table'], dbAlias))
+				log.info("Creating/updating Atlas table schema for %s on dbalias %s"%(table, dbAlias))
+
+			result = self.updateAtlasWithRDBMSdata(schemaName = schema, tableName = table, printInfo = False, logger=logger)
+			if result == False:
+				return False
+
+		# Remove tables that exists in Atlas that we didnt find
+
+		# Get the unique names for the rdbms_db. No need for schema or table as we are only intressted in the dbUri result
+		returnDict = self.getAtlasRdbmsNames(schemaName = "", tableName = "")
+		dbUri = returnDict["dbUri"]
+
+		# query the rdbms_db object in Atlas
+		atlasRestURL = "%s/rdbms_db?minExtInfo=true&attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, dbUri)
+		response = self.atlasGetData(URL = atlasRestURL)
+		if response == None:
+			# If there is an error in self.atlasGetData(), we need to stop here as the response is None
+			return False
+
+		statusCode = response["statusCode"]
+		responseData = json.loads(response["data"])
+
+		# Fetch all tables defined on the rdbms_db object
+		tablesFoundInDBList = []
+		for tables in responseData["entity"]["attributes"]["tables"]:
+			guid = tables["guid"]
+			qualifiedName = responseData["referredEntities"][guid]["attributes"]["qualifiedName"]
+
+			if responseData["referredEntities"][guid]["status"] != "ACTIVE":
+				continue
+
+			if self.db_mysql == True:
+				table = qualifiedName.split('@')[0].split('.')[-1]
+				schema = "-"
+			else:
+				table = qualifiedName.split('@')[0].split('.')[-1]
+				schema = qualifiedName.split('@')[0].split('.')[-2]
+
+			processTableForDelete = False
+
+			# Filter the schema.table so that only the included tables gets processed 
+			for include in self.atlasIncludeFilter.split(";"):
+				try:
+					includeSchema = include.split(".")[0].replace('*', '.*')
+					includeTable = include.split(".")[1].replace('*', '.*')
+					if re.search(includeSchema, schema) and re.search(includeTable, table):
+						processTableForDelete = True
+						break
+				except IndexError: 
+					pass
+
+			# Filter the schema.table so we remove the excluded items
+			for exclude in self.atlasExcludeFilter.split(";"):
+				try:
+					excludeSchema = exclude.split(".")[0].replace('*', '.*')
+					excludeTable = exclude.split(".")[1].replace('*', '.*')
+					if re.search(excludeSchema, schema) and re.search(excludeTable, table):
+						processTableForDelete = False
+						break
+				except IndexError: 
+					pass
+
+			if processTableForDelete == False:
+				continue
+
+			tablesFoundInDBDict = {}
+			tablesFoundInDBDict["schema"] = schema
+			tablesFoundInDBDict["table"] = table
+			tablesFoundInDBDict["qualifiedName"] = qualifiedName
+			tablesFoundInDBList.append(tablesFoundInDBDict)
+
+		tablesFoundInDB = pd.DataFrame(tablesFoundInDBList)
+		if tablesFoundInDB.empty:
+			tablesFoundInDB = pd.DataFrame(columns=['schema', 'table'])
+
+		mergeDF = pd.merge(tablesAndViewsDF, tablesFoundInDB, on=None, how='outer', indicator='Exist')
+		for index, row in mergeDF.loc[mergeDF['Exist'] == 'right_only'].iterrows():
+			if row['schema'] != "-":
+				log.info("Deleting Atlas table for %s.%s on dbalias %s"%(row['schema'], row['table'], dbAlias))
+			else:
+				log.info("Deleting Atlas table for %s on dbalias %s"%(row['table'], dbAlias))
+
+			atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, row['qualifiedName'])
+			response = self.atlasDeleteData(URL = atlasRestURL)
+			if response == None:
+				return False
+
+			statusCode = response["statusCode"]
+			if statusCode != 200:
+				log.warning("Request from Atlas when deleting table was %s."%(statusCode))
+				log.warning(response["data"])
+
+		log.debug("Executing common_config.discoverAtlasRdbms() - Finished")
+		return True
+
+

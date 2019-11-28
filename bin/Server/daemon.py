@@ -47,16 +47,21 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func
 from sqlalchemy.orm import aliased, sessionmaker, Query
+from Server import atlasDiscovery
+from Server import restServer
 
 class distCP(threading.Thread):
-	def __init__(self, name, distCPreqQueue, distCPresQueue, threadStopEvent):
+	def __init__(self, name, distCPreqQueue, distCPresQueue, threadStopEvent, loggerName):
 		threading.Thread.__init__(self)
 		self.name = name
 		self.distCPreqQueue = distCPreqQueue
 		self.distCPresQueue = distCPresQueue
 		self.threadStopEvent = threadStopEvent
+		self.loggerName = loggerName
 
 	def run(self):
+		log = logging.getLogger(self.loggerName)
+		log.info("distCP %s started"%(self.name))
 		logging.debug("distCP %s started"%(self.name))
 		while not self.threadStopEvent.isSet():
 			distCPrequest = self.distCPreqQueue.get()
@@ -145,8 +150,9 @@ class serverDaemon(run.RunDaemon):
 
 	def run(self):
 		# This is the main event loop where the 'real' daemonwork happens
-		logging.debug("Executing daemon.serverDaemon.run()")
-		logging.info("Server initializing")
+		log = logging.getLogger("server")
+		log.debug("Executing daemon.serverDaemon.run()")
+		log.info("Server initializing")
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.debugLogLevel = False
@@ -167,17 +173,42 @@ class serverDaemon(run.RunDaemon):
 		self.distCPresQueue = Queue()
 		self.threadStopEvent = threading.Event()
 
+		# Start the Atlas Discovery Thread
+		self.atlasDiscoveryThread = atlasDiscovery.atlasDiscovery(self.threadStopEvent)
+		self.atlasDiscoveryThread.daemon = True
+		self.atlasDiscoveryThread.start()
+
+		# Start the REST Server Thread
+		self.restServerThread = restServer.restServer(self.threadStopEvent)
+		self.restServerThread.daemon = True
+		self.restServerThread.start()
+
 		# Start the distCP threads
+		if configuration.get("Server", "distCP_separate_logs").lower() == "true":
+			distCP_separate_logs = True
+		else:
+			distCP_separate_logs = False
+
 		distCPobjects = []
 		distCPthreads = int(configuration.get("Server", "distCP_threads"))
 		if distCPthreads == 0:
-			logging.error("'distCP_threads' configuration in configfile must be larger than 0")
+			log.error("'distCP_threads' configuration in configfile must be larger than 0")
 			sys.exit(1)
 
-		logging.info("Starting %s distCp threads"%(distCPthreads))
+		log.info("Starting %s distCp threads"%(distCPthreads))
+
 
 		for threadID in range(0, distCPthreads):
-			thread = distCP(str(threadID), self.distCPreqQueue, self.distCPresQueue, self.threadStopEvent)
+			if distCP_separate_logs == False:
+				distCPlogName = "distCP"
+			else:
+				distCPlogName = "distCP-thread%s"%(str(threadID))
+
+			thread = distCP(name = str(threadID), 
+							distCPreqQueue = self.distCPreqQueue, 
+							distCPresQueue = self.distCPresQueue, 
+							threadStopEvent = self.threadStopEvent, 
+							loggerName = distCPlogName)
 			thread.daemon = True
 			thread.start()
 			distCPobjects.append(thread)
@@ -188,8 +219,6 @@ class serverDaemon(run.RunDaemon):
 		self.configDatabase = configuration.get("Database", "mysql_database")
 		self.configUsername = configuration.get("Database", "mysql_username")
 		self.configPassword = configuration.get("Database", "mysql_password")
-
-#		self.connectDBImportDB()
 
 		# Set all rows that have copy_status = 1 to 0. This is needed in the startup as if they are 1 in this stage, it means that a previous
 		# server marked it as 1 but didnt finish the copy. We need to retry that copy here and now
@@ -206,13 +235,13 @@ class serverDaemon(run.RunDaemon):
 			session.commit()
 			session.close()
 
-			logging.debug("Init part of daemon.serverDaemon.run() completed")
+			log.debug("Init part of daemon.serverDaemon.run() completed")
 
-			logging.info("Server startup completed")
+			log.info("Server startup completed")
 
 		except SQLAlchemyError as e:
-			logging.error(str(e.__dict__['orig']))
-			logging.error("Server startup failed")
+			log.error(str(e.__dict__['orig']))
+			log.error("Server startup failed")
 			self.disconnectDBImportDB()
 
 			# As we require this operation to be completed successful before entering the main loop, we will exit if there is a problem
@@ -268,7 +297,7 @@ class serverDaemon(run.RunDaemon):
 					HDFSsourcePath = row['hdfs_source_path']
 					HDFStargetPath = row['hdfs_target_path']
 
-					logging.info("New sync request for table %s.%s"%(hiveDB, hiveTable))
+					log.info("New sync request for table %s.%s"%(hiveDB, hiveTable))
 
 					updateDict = {}
 					updateDict["copy_status"] = 1 
@@ -290,11 +319,11 @@ class serverDaemon(run.RunDaemon):
 					distCPrequest["HDFStargetPath"] = HDFStargetPath
 					self.distCPreqQueue.put(distCPrequest)
 
-					logging.debug("Status changed to 1 for table %s.%s and sent to distCP threads"%(hiveDB, hiveTable))
+					log.debug("Status changed to 1 for table %s.%s and sent to distCP threads"%(hiveDB, hiveTable))
 
 				session.close()
 			except SQLAlchemyError as e:
-				logging.error(str(e.__dict__['orig']))
+				log.error(str(e.__dict__['orig']))
 				session.rollback()
 				self.disconnectDBImportDB()
 
@@ -326,7 +355,7 @@ class serverDaemon(run.RunDaemon):
 					session.close()
 
 				except SQLAlchemyError as e:
-					logging.error(str(e.__dict__['orig']))
+					log.error(str(e.__dict__['orig']))
 					session.rollback()
 					self.disconnectDBImportDB()
 
@@ -352,7 +381,7 @@ class serverDaemon(run.RunDaemon):
 				session.close()
 
 			except SQLAlchemyError as e:
-				logging.error(str(e.__dict__['orig']))
+				log.error(str(e.__dict__['orig']))
 				session.rollback()
 				self.disconnectDBImportDB()
 
@@ -398,7 +427,7 @@ class serverDaemon(run.RunDaemon):
 						remoteSession.close()
 
 					except SQLAlchemyError as e:
-						logging.error(str(e.__dict__['orig']))
+						log.error(str(e.__dict__['orig']))
 						remoteSession.rollback()
 						self.disconnectRemoteSession(destination)
 
@@ -414,31 +443,34 @@ class serverDaemon(run.RunDaemon):
 							session.close()
 
 						except SQLAlchemyError as e:
-							logging.error(str(e.__dict__['orig']))
+							log.error(str(e.__dict__['orig']))
 							session.rollback()
 							self.disconnectDBImportDB()
 
 						else:
 
-							logging.info("Table %s.%s copied successfully to '%s'"%(hiveDB, hiveTable, destination))
+							log.info("Table %s.%s copied successfully to '%s'"%(hiveDB, hiveTable, destination))
 				
 			session.close()
-#			logging.info("Starting wait")
+#			log.info("Starting wait")
 			time.sleep(1)
 
-		logging.info("Server stopped")
-		logging.debug("Executing daemon.serverDaemon.run() - Finished")
+		log.info("Server stopped")
+		log.debug("Executing daemon.serverDaemon.run() - Finished")
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
+		log = logging.getLogger("server")
 
 		if self.configDBEngine != None:
-			logging.info("Disconnecting from DBImport database")
+			log.info("Disconnecting from DBImport database")
 			self.configDBEngine.dispose()
 			self.configDBEngine = None
+
 		self.configDBSession = None
 
 	def getDBImportSession(self):
+		log = logging.getLogger("server")
 		if self.configDBSession == None:
 			self.connectDBImportDB()
 
@@ -447,6 +479,7 @@ class serverDaemon(run.RunDaemon):
 
 	def connectDBImportDB(self):
 		# Esablish a SQLAlchemy connection to the DBImport database
+		log = logging.getLogger("server")
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			self.configUsername,
 			self.configPassword,
@@ -460,7 +493,7 @@ class serverDaemon(run.RunDaemon):
 			self.configDBSession = sessionmaker(bind=self.configDBEngine)
 
 		except sa.exc.OperationalError as err:
-			logging.error("%s"%err)
+			log.error("%s"%err)
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 		except:
@@ -469,32 +502,34 @@ class serverDaemon(run.RunDaemon):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
-		logging.info("Connected successful against DBImport database")
+		log.info("Connected successful against DBImport database")
 
 
 	def disconnectRemoteSession(self, instance):
 		""" Disconnects from the remote database and removes all sessions and engine """
+		log = logging.getLogger("server")
 
 		try:
 			engine = self.remoteDBImportEngines.get(instance)
 			if engine != None:
-				logging.info("Disconnecting from remote DBImport database for '%s'"%(instance))
+				log.info("Disconnecting from remote DBImport database for '%s'"%(instance))
 				engine.dispose()
 			self.remoteDBImportEngines.pop(instance)
 			self.remoteDBImportSessions.pop(instance)
 		except KeyError:
-			logging.debug("Cant remove DBImport session or engine. Key does not exist")
+			log.debug("Cant remove DBImport session or engine. Key does not exist")
 
 
 	def getDBImportRemoteSession(self, instance):
 		""" Connects to the remote configuration database with SQLAlchemy """
+		log = logging.getLogger("server")
 
 		# A dictionary of all remote DBImport configuration databases are keept in self.remoteDBImportSessions
 		# This will make only one sessions to the database and then save that for each and every connection after that
 		if instance in self.remoteDBImportSessions:
 			return self.remoteDBImportSessions.get(instance) 
 
-		logging.info("Connecting to remote DBImport database for '%s'"%(instance))
+		log.info("Connecting to remote DBImport database for '%s'"%(instance))
 
 		connectStatus = True
 		session = self.getDBImportSession()
@@ -510,21 +545,21 @@ class serverDaemon(run.RunDaemon):
 			.one())
 
 		if row[3] == None:
-			logging.warning("There is no credentials saved in 'dbimport_instance' for %s"%(instance))
+			log.warning("There is no credentials saved in 'dbimport_instance' for %s"%(instance))
 			return None
 
 		try:
 			db_credentials = self.crypto.decrypt(row[3])
 		except binascii.Error as err:
-			logging.warning("Decryption of credentials resulted in error with text: '%s'"%err)
+			log.warning("Decryption of credentials resulted in error with text: '%s'"%err)
 			return None
 		except:
-			logging.error("Unexpected warning: ")
-			logging.error(sys.exc_info())
+			log.error("Unexpected warning: ")
+			log.error(sys.exc_info())
 			return None
 
 		if db_credentials == None:
-			logging.warning("Cant decrypt username and password. Check private/public key in config file")
+			log.warning("Cant decrypt username and password. Check private/public key in config file")
 			return None
 
 		username = db_credentials.split(" ")[0]
@@ -543,11 +578,11 @@ class serverDaemon(run.RunDaemon):
 			remoteInstanceConfigDBSession = sessionmaker(bind=remoteInstanceConfigDBEngine)
 
 		except sa.exc.OperationalError as err:
-			logging.error("%s"%err)
+			log.error("%s"%err)
 			return None
 		except:
-			logging.error("Unexpected error: ")
-			logging.error(sys.exc_info())
+			log.error("Unexpected error: ")
+			log.error(sys.exc_info())
 			return None
 
 		self.remoteDBImportEngines[instance] = remoteInstanceConfigDBEngine 

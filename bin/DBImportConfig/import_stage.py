@@ -98,6 +98,13 @@ class stage(object):
 		elif stage == 1245: stageDescription = "Update Atlas"
 		elif stage == 1249: stageDescription = "Import Phase Completed"
 
+		# Import_Phase_MONGO_FULL
+		elif stage == 1310: stageDescription = "Clear table rowcount"
+		elif stage == 1315: stageDescription = "Spark import"
+		elif stage == 1320: stageDescription = "Get Mongo rowcount"
+		elif stage == 1325: stageDescription = "Validate Spark rowcount"
+		elif stage == 1349: stageDescription = "Import Phase Completed"
+
 		# Copy Phase
 		elif stage == 2000: stageDescription = "Copy data to remote DBImport instance (synchronous)"
 		elif stage == 2001: stageDescription = "Copy schema to remote DBImport instance (synchronous)"
@@ -214,6 +221,18 @@ class stage(object):
 		elif stage == 3452: stageDescription = "Get Import table rowcount"
 		elif stage == 3453: stageDescription = "Validate import table"
 
+		# Import_Phase_Mongo_FULL & ETL_Phase_TRUNCATEINSERT
+		elif stage == 3500: stageDescription = "Connecting to Hive"
+		elif stage == 3501: stageDescription = "Creating the import table in the staging database"
+		elif stage == 3502: stageDescription = "Get Import table rowcount"
+		elif stage == 3503: stageDescription = "Validate import table"
+		elif stage == 3504: stageDescription = "Removing Hive locks by force"
+		elif stage == 3505: stageDescription = "Creating the target table"
+		elif stage == 3506: stageDescription = "Truncate target table"
+		elif stage == 3507: stageDescription = "Copy rows from import to target table"
+		elif stage == 3508: stageDescription = "Update Hive statistics on target table"
+		elif stage == 3509: stageDescription = "Get Target table rowcount"
+		elif stage == 3510: stageDescription = "Validate target table"
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
 
 		return stageDescription
@@ -261,6 +280,13 @@ class stage(object):
 		elif stage == 1221: stageShortName = "validate_sqoop_import"
 		elif stage == 1245: stageShortName = "atlas_schema"
 		elif stage == 1249: stageShortName = "skip"
+
+		# Import_Phase_MONGO_FULL
+		elif stage == 1310: stageShortName = "skip"
+		elif stage == 1315: stageShortName = "skip"
+		elif stage == 1320: stageShortName = "skip"
+		elif stage == 1325: stageShortName = "skip"
+		elif stage == 1349: stageShortName = "skip"
 
 		# Copy Phase
 		elif stage == 2000: stageShortName = "copy_data"
@@ -377,6 +403,19 @@ class stage(object):
 		elif stage == 3451: stageShortName = "create_import_table"
 		elif stage == 3452: stageShortName = "get_import_rowcount"
 		elif stage == 3453: stageShortName = "validate_import_table"
+
+		# Import_Phase_Mongo_FULL & ETL_Phase_TRUNCATEINSERT
+		elif stage == 3500: stageShortName = "connect_to_hive"
+		elif stage == 3501: stageShortName = "create_import_table"
+		elif stage == 3502: stageShortName = "get_import_rowcount"
+		elif stage == 3503: stageShortName = "validate_import_table"
+		elif stage == 3504: stageShortName = "clear_hive_locks"
+		elif stage == 3505: stageShortName = "create_target_table"
+		elif stage == 3506: stageShortName = "truncate_target_table"
+		elif stage == 3507: stageShortName = "hive_import"
+		elif stage == 3508: stageShortName = "update_statistics"
+		elif stage == 3509: stageShortName = "get_target_rowcount"
+		elif stage == 3510: stageShortName = "validate_target_table"
 
 		elif stage == 9999: stageShortName = "skip"
 

@@ -534,3 +534,9 @@ class initialize(object):
 				description='The maximum number of executors to use during exports')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'atlas_discovery_interval').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='atlas_discovery_interval', 
+				valueInt='24', 
+				description='How many hours there should pass between each Atlas discovery of a jdbc connection')
+			self.configDB.execute(query)

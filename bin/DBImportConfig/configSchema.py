@@ -370,10 +370,10 @@ class exportTables(Base):
     target_rowcount = Column(BIGINT(20), comment='Number of rows in Target table. Dont change manually')
     incr_column = Column(String(256), comment='The column in the Hive table that will be used to identify new rows for the incremental export. Must be a timestamp column')
     incr_validation_method = Column(Enum('full', 'incr'), comment='full or incr. Full means that the validation will check to total number of rows up until maxvalue and compare source with target. Incr will only compare the rows between min and max value (the data that sqoop just wrote)', server_default=text("'full'"))
-    incr_minvalue = Column(String(25), comment='Used by incremental exports to keep track of progress. Dont change manually')
-    incr_maxvalue = Column(String(25), comment='Used by incremental exports to keep track of progress. Dont change manually')
-    incr_minvalue_pending = Column(String(25), comment='Used by incremental exports to keep track of progress. Dont change manually')
-    incr_maxvalue_pending = Column(String(25), comment='Used by incremental exports to keep track of progress. Dont change manually')
+    incr_minvalue = Column(String(32), comment='Used by incremental exports to keep track of progress. Dont change manually')
+    incr_maxvalue = Column(String(32), comment='Used by incremental exports to keep track of progress. Dont change manually')
+    incr_minvalue_pending = Column(String(32), comment='Used by incremental exports to keep track of progress. Dont change manually')
+    incr_maxvalue_pending = Column(String(32), comment='Used by incremental exports to keep track of progress. Dont change manually')
     sqoop_options = Column(String(1024), comment='Sqoop options to use during export.')
     sqoop_last_size = Column(BIGINT(20), comment='Used to track sqoop operation. Dont change manually')
     sqoop_last_rows = Column(BIGINT(20), comment='Used to track sqoop operation. Dont change manually')
@@ -723,7 +723,10 @@ class jdbcConnections(Base):
     contact_info = Column(String(255), comment='Contact information. Used by Atlas integration')
     description = Column(String(255), comment='Description. Used by Atlas integration')
     owner = Column(String(255), comment='Owner of system and/or data. Used by Atlas integration')
-
+    atlas_discovery = Column(TINYINT(4), nullable=False, comment='1 = Discover tables/views on this connection, 0 = Dont use Atlas discovery on this connection', server_default=text("'1'"))
+    atlas_include_filter = Column(String(256), comment='Include filter for Atlas discovery')
+    atlas_exclude_filter = Column(String(256), comment='Exclude filter for Atlas discovery')
+    atlas_last_discovery = Column(DateTime, comment='Time of last Atlas discovery')
 
 
 class jdbcConnectionsDrivers(Base):

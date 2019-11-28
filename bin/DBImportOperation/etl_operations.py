@@ -90,8 +90,9 @@ class operation(object, metaclass=Singleton):
 		""" Merge source table into Target table. Also populate a History Audit table if selected """
 		logging.debug("Executing etl_operations.mergeHiveTables()")
 
+
 		targetColumns = self.common_operations.getHiveColumns(hiveDB=targetDB, hiveTable=targetTable, includeType=False, includeComment=False)
-		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, sourceIsImportTable=True)
+		columnMerge = self.common_operations.getHiveColumnNameDiff(sourceDB=sourceDB, sourceTable=sourceTable, targetDB=targetDB, targetTable=targetTable, importTool = self.import_config.importTool, sourceIsImportTable=True)
 		if PKColumns == None:
 			PKColumns = self.common_operations.getPKfromTable(hiveDB=targetDB, hiveTable=targetTable, quotedColumns=False)
 

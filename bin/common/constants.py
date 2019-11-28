@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.65-rev1"
+VERSION = "0.65-rev4"
 
 # Database types
 MYSQL = "mysql"
@@ -9,13 +9,14 @@ POSTGRESQL = "postgresql"
 PROGRESS = "progress_db"
 DB2_UDB = "db2 udb"
 DB2_AS400 = "db2 as400"
-MONGO = "mongodb"
+MONGO = "mongo"
 
 # Key constraints
 PRIMARY_KEY = "P"
 FOREIGN_KEY = "F"
 
 # Phase defintions
+IMPORT_PHASE_MONGO_FULL = "mongo_full"
 IMPORT_PHASE_ORACLE_FLASHBACK = "oracle_flashback"
 IMPORT_PHASE_FULL = "full"
 IMPORT_PHASE_INCR = "incr"

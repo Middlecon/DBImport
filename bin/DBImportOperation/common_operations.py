@@ -25,6 +25,7 @@ import re
 from reprint import output
 import requests
 import puretransport
+import random
 from pyhive import hive
 from pyhive import exc
 from common.Singleton import Singleton
@@ -72,8 +73,9 @@ class operation(object, metaclass=Singleton):
 		self.common_config = common_config.config()
 
 		# Fetch configuration details about Hive LLAP
-		self.hive_hostname = configuration.get("Hive", "hostname")
-		self.hive_port = configuration.get("Hive", "port")
+#		self.hive_hostname = configuration.get("Hive", "hostname")
+#		self.hive_port = configuration.get("Hive", "port")
+		self.hive_servers = configuration.get("Hive", "servers")
 		self.hive_kerberos_service_name = configuration.get("Hive", "kerberos_service_name")
 		self.hive_kerberos_realm = configuration.get("Hive", "kerberos_realm")
 		self.hive_print_messages = self.common_config.getConfigValue(key = "hive_print_messages")
@@ -343,40 +345,71 @@ class operation(object, metaclass=Singleton):
 		else:
 			return False
 
-#	def checkFK(self, FKname):
-#		""" Checks if the ForeignKey with the specified name exists in Hive """
-#		logging.debug("Executing common_operations.checkFK()")
-#
-#		query = "select count(CONSTRAINT_NAME) from KEY_CONSTRAINTS where CONSTRAINT_TYPE = 1 and CONSTRAINT_NAME = %s"
-#		self.mysql_cursor.execute(query, (FKname.lower(), ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-#		if row[0] == 1:
-#			return True
-#		else:
-#			return False
-	
+	def disconnectFromHive(self):
+		logging.debug("Executing common_operations.disconnectFromHive()")
+		if self.hive_cursor != None:
+			self.hive_cursor.close()
+			self.hive_conn.close()
+			self.hive_cursor = None
+			self.hive_conn = None
+
+		logging.debug("Executing common_operations.disconnectFromHive() - Finished")
+
 	def connectToHive(self, forceSkipTest=False, quiet=False):
 		logging.debug("Executing common_operations.connectToHive()")
 
 		# Make sure we only connect if we havent done so before. Reason is that this function can be called from many different places
 		# due to the retry functionallity
 		if self.hive_cursor == None:
-			if quiet == False: logging.info("Connecting to Hive")
-			try:
-				# TODO: Remove error messages output from hive.connect. Check this by entering a wrong hostname or port
-				if self.hive_use_ssl == True:
-					transport = puretransport.transport_factory(host=self.hive_hostname, port = self.hive_port, kerberos_service_name = self.hive_kerberos_service_name, use_sasl=True, sasl_auth='GSSAPI', use_ssl=True, username='dummy', password='dummy')
-					self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
-				else:
-					self.hive_conn = hive.connect(host = self.hive_hostname, port = self.hive_port, database = "default", auth = "KERBEROS", kerberos_service_name = self.hive_kerberos_service_name, configuration = {'hive.llap.execution.mode': 'none'} )
-			except Exception as ex:
-				raise ValueError("Could not connect to Hive. Error message from driver is the following: \n%s"%(ex))
+			hiveServerList = self.hive_servers.split(",")
+			random.shuffle(hiveServerList)
 
-			self.hive_cursor = self.hive_conn.cursor()
+			for hive_server in hiveServerList:
+				hive_hostname = hive_server.split(":")[0]
+				hive_port = hive_server.split(":")[1]
 
-#			if self.test_hive_execution == True and forceSkipTest == False:
+				try:
+					if quiet == False: 
+						logging.info("Connecting to Hive at %s:%s"%(hive_hostname, hive_port))
+
+					if self.hive_use_ssl == True:
+						transport = puretransport.transport_factory(host=hive_hostname, 
+																	port = hive_port, 
+																	kerberos_service_name = self.hive_kerberos_service_name, 
+																	use_sasl=True, 
+																	sasl_auth='GSSAPI', 
+																	use_ssl=True, 
+																	username='dummy', 
+																	password='dummy')
+
+						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
+
+					else:
+						self.hive_conn = hive.connect(	host = hive_hostname, 
+														port = hive_port, 
+														database = "default", 
+														auth = "KERBEROS", 
+														kerberos_service_name = self.hive_kerberos_service_name, 
+														configuration = {'hive.llap.execution.mode': 'none'} )
+
+					self.hive_cursor = self.hive_conn.cursor()
+					self.hive_hostname = hive_hostname
+					self.hive_port = hive_port
+					
+				except TypeError:
+					logging.warning("Could not connect to Hive at %s:%s. This might be because the address was not resolvable in the DNS"%(hive_hostname, hive_port))
+				except hive.thrift.transport.TTransport.TTransportException:
+					logging.warning("Could not connect to Hive at %s:%s."%(hive_hostname, hive_port))
+				except: 
+					logging.warning("General connection error to Hive at %s:%s."%(hive_hostname, hive_port))
+					logging.warning(sys.exc_info())
+
+				if self.hive_cursor != None:
+					break
+
+			if self.hive_cursor == None:
+				raise ValueError("Could not connect to any Hive Server.")
+
 			if self.common_config.getConfigValue(key = "hive_validate_before_execution") == True and forceSkipTest == False:
 				self.testHiveQueryExecution()
 
@@ -388,9 +421,7 @@ class operation(object, metaclass=Singleton):
 
 		hiveTable = self.common_config.getConfigValue(key = "hive_validate_table")
 
-#		result_df = self.executeHiveQuery("select id, value, count(value) as counter from hadoop.dbimport_check_hive group by value, id")
 		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s group by id, value order by id"%(hiveTable))
-#		result_df = self.executeHiveQuery("select id, value, count(value) as counter from %s order by id"%(hiveTable))
 		reference_df = pd.DataFrame({'id':[1,2,3,4,5], 'value':['Hive', 'LLAP', 'is', 'working', 'fine'], 'counter':[1,1,1,1,1]})
 
 		if reference_df.equals(result_df) == False:
@@ -513,27 +544,38 @@ class operation(object, metaclass=Singleton):
 		if useDB == None:
 			useDB=""
 			
-		beelineConnectStr = "jdbc:hive2://%s:%s/%s;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, useDB, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+		# Connect to Hive to get a working server in the list of Hive servers
+		# This sets the self.hive_hostname and self.hive_port so that beeline can connect to a working Hive server
+		self.connectToHive(forceSkipTest = True, quiet=True)
+		self.disconnectFromHive()
+
+		if self.hive_use_ssl == False:
+			beelineConnectStr = "jdbc:hive2://%s:%s/%s;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, useDB, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+		else:
+			beelineConnectStr = "jdbc:hive2://%s:%s/%s;ssl=true;principal=%s/_HOST@%s"%(self.hive_hostname, self.hive_port, useDB, self.hive_kerberos_service_name, self.hive_kerberos_realm)
+
 		logging.debug("JDBC Connection String: %s"%(beelineConnectStr))
 
-		beelineCommand = ["beeline", "--silent=true", "-u", beelineConnectStr, "-f", hiveScriptFile]
+		beelineCommand = ["beeline", "--silent=false", "-u", beelineConnectStr, "-f", hiveScriptFile]
 
 		# Start Beeline
 		sh_session = subprocess.Popen(beelineCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-		# Print Stdout and stderr while sqoop is running
+		# Print Stdout and stderr while beeline is running
 		while sh_session.poll() == None:
 			row = sh_session.stdout.readline().decode('utf-8').rstrip()
 			if row != "":
 				print(row)
 				sys.stdout.flush()
 
-		# Print what is left in output after sqoop finished
+		# Print what is left in output after beeline finished
 		for row in sh_session.stdout.readlines():
 			row = row.decode('utf-8').rstrip()
 			if row != "":
 				print(row)
 				sys.stdout.flush()
+
+		return sh_session.returncode
 
 		logging.debug("Executing common_operations.executeBeelineScript() - Finished")
 
@@ -584,21 +626,6 @@ class operation(object, metaclass=Singleton):
 				.filter(DBS.NAME == hiveDB.lower())
 				.order_by(KEY_CONSTRAINTS.POSITION)
 				.all()):
-
-#		query  = "select c.COLUMN_NAME as column_name "
-#		query += "from KEY_CONSTRAINTS k "
-#		query += "   left join TBLS t on k.PARENT_TBL_ID = t.TBL_ID "
-#		query += "   left join COLUMNS_V2 c on k.PARENT_CD_ID = c.CD_ID and k.PARENT_INTEGER_IDX = c.INTEGER_IDX "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where k.CONSTRAINT_TYPE = 0 "
-#		query += "   and d.NAME = %s "
-#		query += "   and t.TBL_NAME = %s "
-#		query += "order by k.POSITION" 
-#
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		for row in self.mysql_cursor.fetchall():
 
 			if result != "":
 				result += ","
@@ -964,7 +991,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.isHiveTableView() - Finished")
 		return returnValue
 
-	def getHiveColumnNameDiff(self, sourceDB, sourceTable, targetDB, targetTable, sourceIsImportTable=False):
+	def getHiveColumnNameDiff(self, sourceDB, sourceTable, targetDB, targetTable, importTool, sourceIsImportTable=False ):
 		""" Returns a dataframe that includes the diff between the source and target table. If sourceIsImportTable=True, then there is additional columns that contains the correct name for the import table columns """
 		logging.debug("Executing common_operations.getHiveColumnNameDiff()")
 
@@ -987,8 +1014,8 @@ class operation(object, metaclass=Singleton):
 			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
 			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
 			targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash')
-#			targetColumns['name'] = targetColumns['name'].str.replace(r'^_', '')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_')
+			if importTool != "spark":
+				targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_')
 
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
 		logging.debug("\n%s"%(columnMerge))

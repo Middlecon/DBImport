@@ -524,6 +524,60 @@ def main(argv):
 				import_operation.setStage(1249)
 
 		# ******************************************
+		# * IMPORT_PHASE_MONGO_FULL
+		# ******************************************
+
+		if slaveTable == False and importPhase == constant.IMPORT_PHASE_MONGO_FULL and runImportPhase == True:
+			if stage >= 1300 and stage < 1349 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
+
+				newStage = 0
+#				if stage == 1221: newStage = 1211 
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
+
+
+#			# Fetch the source table schema. This is mandatory for all imports
+#			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+#				if import_operation.runStage(1210) == True: 
+#					import_operation.getSourceTableSchema()
+#
+			if runOnlyFunction == None: 
+				if import_operation.runStage(1310) == True: 
+					import_operation.clearTableRowCount()
+#
+			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
+#				if import_operation.import_config.importTool == "sqoop": 
+#					if import_operation.runStage(1212) == True:
+#						import_operation.runSqoopImport(False)
+#				if import_operation.import_config.importTool == "spark": 
+				if import_operation.runStage(1315) == True:
+					import_operation.runSparkImportForMongo()
+
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+				if import_operation.runStage(1320) == True: 
+					import_operation.getMongoRowCount()
+	
+			if import_operation.runStage(1325) == True: 
+				import_operation.validateSqoopRowCount()
+
+#				if import_operation.runStage(1311) == True: 
+#					import_operation.getSourceTableSchema()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(1349)
+
+		# ******************************************
 		# * Copy Phase                                   
 		# ******************************************
 
@@ -1447,6 +1501,100 @@ def main(argv):
 					import_operation.getImportTableRowCount()
 
 				if import_operation.runStage(3453) == True: 
+					import_operation.validateRowCount()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(9999)
+
+			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+				import_operation.convertStageStatisticsToJSON()
+				import_operation.saveStageStatistics()
+
+		# ******************************************
+		# * IMPORT_PHASE_MONGO_FULL & ETL_PHASE_TRUNCATEINSERT
+		# ******************************************
+
+		if importPhase == constant.IMPORT_PHASE_MONGO_FULL and etlPhase == constant.ETL_PHASE_TRUNCATEINSERT and runETLPhase == True:
+			stage = import_operation.getStage()
+			if stage > 0 and stage != 1349 and stage != 2099 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
+
+				newStage = 0
+#				if stage == 3503: newStage = 3500 
+#				if stage == 3505: newStage = 3504
+#				if stage == 3506: newStage = 3504
+#				if stage == 3500: newStage = 3504
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
+
+
+			if runImportPhase == False and stage < 1349:
+				logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+				logging.error("Please run a import phase first and make sure it completes successfully")
+				import_operation.remove_temporary_files()
+				sys.exit(0)
+
+			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+				if import_operation.runStage(3500) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+				if import_operation.runStage(3501) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createExternalImportTable()
+					import_operation.updateExternalImportTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+				if import_operation.runStage(3502) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.getImportTableRowCount()
+
+				if import_operation.runStage(3503) == True: 
+					import_operation.validateRowCount()
+
+			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+				if import_operation.runStage(3504) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.removeHiveLocks()
+
+			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+				if import_operation.runStage(3505) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createTargetTable()
+					import_operation.updateTargetTable()
+					import_operation.addHiveDBImportColumns(mergeOperation=False)
+					import_operation.updatePKonTargetTable()
+					import_operation.updateFKonTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "truncateTargetTable":
+				if import_operation.runStage(3506) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.truncateTargetTable()
+		
+			if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
+				if import_operation.runStage(3507) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.loadDataFromImportToTargetTable()
+
+				if import_operation.runStage(3508) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.updateStatisticsOnTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+				if import_operation.runStage(3509) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.getTargetTableRowCount()
+
+				if import_operation.runStage(3510) == True: 
 					import_operation.validateRowCount()
 
 			if runOnlyFunction == None:

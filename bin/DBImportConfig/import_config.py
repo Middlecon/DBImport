@@ -23,6 +23,7 @@ import math
 import ssl
 import requests
 import getpass
+import urllib
 from requests_kerberos import HTTPKerberosAuth
 from ConfigReader import configuration
 import mysql.connector
@@ -35,6 +36,8 @@ from DBImportConfig import import_stage as stage
 from mysql.connector import errorcode
 from datetime import datetime
 import pandas as pd
+import numpy as np
+import pymongo
 
 class config(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
@@ -118,10 +121,9 @@ class config(object, metaclass=Singleton):
 		self.etlPhaseDescription = None
 
 		self.phaseThree = None
-
 		self.sqlSessions = None
-
 		self.fullExecutedCommand = None
+		self.mongoImport = None
 
 		self.common_config = common_config.config(Hive_DB, Hive_Table)
 		self.rest = rest.restInterface()
@@ -204,8 +206,20 @@ class config(object, metaclass=Singleton):
 			sqoop_mappers=self.sqoop_last_mappers
 		)
 
-	def lookupConnectionAlias(self):
-		self.common_config.lookupConnectionAlias(self.connection_alias, copySlave=self.copy_slave)
+	def lookupConnectionAlias(self, connection_alias=None):
+
+		if connection_alias == None:
+			connection_alias = self.connection_alias
+
+		# If this is called before getImportConfig is called, we dont know if it's a copy table or not. So we need to set this to false
+		# This happens during table discovery for ./manage --addImportTable
+		if self.copy_slave == None:
+			self.copy_slave = False
+
+		self.common_config.lookupConnectionAlias(connection_alias, copySlave=self.copy_slave)
+
+		# Save if the source is a MongoDB database to a local parameter
+		self.mongoImport = self.common_config.db_mongodb
 
 	def checkTimeWindow(self):
 		self.common_config.checkTimeWindow(self.connection_alias)
@@ -414,6 +428,7 @@ class config(object, metaclass=Singleton):
 
 		# Set correct import_types. We do this because of old names of import_type
 		if self.import_type != None:
+			logging.warning("Specifying the import type in the 'import_type' column is deprecated. Please use 'import_phase_type' and 'etl_phase_type'") 
 			if self.import_type == "merge_acid":
 				self.import_type = "incr_merge_direct"
 
@@ -428,19 +443,26 @@ class config(object, metaclass=Singleton):
 		else:
 			self.import_type = ""
 
-# IMPORT_PHASE_FULL = "Full"
-# IMPORT_PHASE_INCR = "Incremental"
-# ETL_PHASE_INSERT = "Insert"
-# ETL_PHASE_MERGEHISTORYAUDIT = "Merge History Audit"
+		# Get the connection details. This is needed in order to determine what kind of connection we talk about. 
+		self.lookupConnectionAlias()
 
 		if self.import_type in ("full", "full_direct") or (self.import_phase_type == "full" and self.etl_phase_type == "truncate_insert"):
-			self.import_type_description = "Full import of table to Hive"
-			self.importPhase             = constant.IMPORT_PHASE_FULL
-			self.copyPhase               = constant.COPY_PHASE_NONE
-			self.etlPhase                = constant.ETL_PHASE_TRUNCATEINSERT
-			self.importPhaseDescription  = "Full"
-			self.copyPhaseDescription    = "No cluster copy"
-			self.etlPhaseDescription     = "Truncate and insert"
+			if self.mongoImport == None or self.mongoImport == False:
+				self.import_type_description = "Full import of table to Hive"
+				self.importPhase             = constant.IMPORT_PHASE_FULL
+				self.copyPhase               = constant.COPY_PHASE_NONE
+				self.etlPhase                = constant.ETL_PHASE_TRUNCATEINSERT
+				self.importPhaseDescription  = "Full"
+				self.copyPhaseDescription    = "No cluster copy"
+				self.etlPhaseDescription     = "Truncate and insert"
+			else:
+				self.import_type_description = "Full import of Mongo collection to Hive"
+				self.importPhase             = constant.IMPORT_PHASE_MONGO_FULL
+				self.copyPhase               = constant.COPY_PHASE_NONE
+				self.etlPhase                = constant.ETL_PHASE_TRUNCATEINSERT
+				self.importPhaseDescription  = "Full"
+				self.copyPhaseDescription    = "No cluster copy"
+				self.etlPhaseDescription     = "Truncate and insert"
 
 		if self.import_type  == "full_insert" or (self.import_phase_type == "full" and self.etl_phase_type == "insert"):
 			self.import_type_description = "Full import of table to Hive. Data is appended to target"
@@ -535,6 +557,12 @@ class config(object, metaclass=Singleton):
 		if self.importPhase == None or self.etlPhase == None:
 			raise invalidConfiguration("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 
+		# Determine if it's a Mongo import or not
+		if self.importPhase == constant.IMPORT_PHASE_MONGO_FULL and self.importTool != "spark":
+			raise invalidConfiguration("Import of MongoDB is only supported by spark")
+#			self.mongoImport = True
+#		else:
+#			self.mongoImport = False
 
 		# Determine if it's an incremental import based on the importPhase
 		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
@@ -573,10 +601,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 		if self.mysql_cursor01.rowcount != 1:
-			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
-			logging.error("Rows returned: %d" % (self.mysql_cursor01.rowcount) )
-			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor01.statement) )
-			raise Exception
+			raise invalidConfiguration("The configured connection alias for this table cant be found in the 'jdbc_connections' table")
 
 		row = self.mysql_cursor01.fetchone()
 
@@ -587,8 +612,7 @@ class config(object, metaclass=Singleton):
 
 		if self.importPhase == constant.IMPORT_PHASE_FULL and self.etlPhase == constant.ETL_PHASE_INSERT:
 			if self.create_datalake_import_column == False:	
-				logging.error("Full Insert imports requires 'create_datalake_import' to be set in jdbc_connections table")
-				raise Exception
+				raise invalidConfiguration("Full Insert imports requires 'create_datalake_import' to be set in jdbc_connections table")
 
 		self.datalake_source_connection = row[1]
 
@@ -779,8 +803,6 @@ class config(object, metaclass=Singleton):
 		query += "	on t.dbalias = jc.dbalias "
 		query += "left join import_columns c "
 		query += "	on c.table_id = t.table_id "
-#		query += "	on c.hive_db = t.hive_db "
-#		query += "	and c.hive_table = t.hive_table "
 		query += "	and c.column_name = %s "
 		query += "where "
 		query += "	t.hive_db = %s "
@@ -847,10 +869,14 @@ class config(object, metaclass=Singleton):
 		self.sqoop_mapcolumnjava=[]
 		columnOrder = 0
 		self.sqoop_use_generated_sql = False
+		columnNameReserved = False
 
 		for index, row in self.common_config.source_columns_df.iterrows():
 			column_name = self.stripUnwantedCharColumnName(row['SOURCE_COLUMN_NAME'])
-			column_type = row['SOURCE_COLUMN_TYPE'].lower()
+			if self.mongoImport == False:
+				column_type = row['SOURCE_COLUMN_TYPE'].lower()
+			else:
+				column_type = row['SOURCE_COLUMN_TYPE']
 			source_column_type = column_type
 			source_column_name = row['SOURCE_COLUMN_NAME']
 			source_column_comment = self.stripUnwantedCharComment(row['SOURCE_COLUMN_COMMENT'])
@@ -1118,14 +1144,16 @@ class config(object, metaclass=Singleton):
 						self.sqlGeneratedSqoopQuery += quote + source_column_name + quote + " as " + quote + column_name_parquet_supported + quote
 
 					if self.isColumnNameReservedInSqoop(column_name_parquet_supported) == True:
-						raise invalidConfiguration("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(column_name_parquet_supported))
+						columnNameReserved = True
+						logging.warning("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(column_name_parquet_supported))
 
 					self.sqoop_use_generated_sql = True
 				else:
 					self.sqlGeneratedSqoopQuery += quote + source_column_name + quote
 
 					if self.isColumnNameReservedInSqoop(source_column_name) == True:
-						raise invalidConfiguration("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(source_column_name))
+						columnNameReserved = True
+						logging.warning("The column '%s' is a reserved column namn in Sqoop. Please rename the column in 'column_name_override'"%(source_column_name))
 
 			# Run a query to see if the column already exists. Will be used to determine if we do an insert or update
 #			query = "select column_id from import_columns where table_id = %s and source_column_name = %s "
@@ -1170,34 +1198,42 @@ class config(object, metaclass=Singleton):
 				self.mysql_cursor01.execute(query, (self.Hive_DB, self.Hive_Table, column_name.lower(), columnOrder, column_type, source_column_type, self.common_config.jdbc_servertype, sqoop_column_type, self.startDate, source_column_comment, self.table_id, source_column_name))
 				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-				if self.common_config.post_column_data == True:
-					jsonData = {}
-					jsonData["type"] = "column_data"
-					jsonData["date"] = self.startDate 
-					jsonData["source_database_server_type"] = self.common_config.jdbc_servertype 
-					jsonData["source_database_server"] = self.common_config.jdbc_hostname
-					jsonData["source_database"] = self.common_config.jdbc_database
-					jsonData["source_schema"] = self.source_schema
-					jsonData["source_table"] = self.source_table
-					jsonData["hive_db"] = self.Hive_DB
-					jsonData["hive_table"] = self.Hive_Table
-					jsonData["column"] = column_name.lower()
-					jsonData["source_column"] = source_column_name
-					jsonData["source_column_type"] = source_column_type
-					jsonData["column_type"] = column_type
+
+			if self.common_config.post_column_data == True:
+				jsonData = {}
+				jsonData["type"] = "column_data"
+				jsonData["date"] = self.startDate 
+				jsonData["source_database_server_type"] = self.common_config.jdbc_servertype 
+				jsonData["source_database_server"] = self.common_config.jdbc_hostname
+				jsonData["source_database"] = self.common_config.jdbc_database
+				jsonData["source_schema"] = self.source_schema
+				jsonData["source_table"] = self.source_table
+				jsonData["hive_db"] = self.Hive_DB
+				jsonData["hive_table"] = self.Hive_Table
+				jsonData["column"] = column_name.lower()
+				jsonData["source_column"] = source_column_name
+				jsonData["source_column_type"] = source_column_type
+				jsonData["column_type"] = column_type
 	
-					logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
-					response = self.rest.sendData(json.dumps(jsonData))
-					if response != 200:
-						# There was something wrong with the REST call. So we save it to the database and handle it later
-						logging.debug("REST call failed!")
-						logging.debug("Saving the JSON to the json_to_rest table instead")
-						query = "insert into json_to_rest (type, status, jsondata) values ('import_column', 0, %s)"
-						self.mysql_cursor01.execute(query, (json.dumps(jsonData), ))
-						logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+				logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
+				response = self.rest.sendData(json.dumps(jsonData))
+				if response != 200:
+					# There was something wrong with the REST call. So we save it to the database and handle it later
+					logging.debug("REST call failed!")
+					logging.debug("Saving the JSON to the json_to_rest table instead")
+					query = "insert into json_to_rest (type, status, jsondata) values ('import_column', 0, %s)"
+					self.mysql_cursor01.execute(query, (json.dumps(jsonData), ))
+					logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 				
 		# Commit all the changes to the import_column column
 		self.mysql_conn.commit()
+
+		# Some columnnames are reserved. But in order to change them, we need the information inside import_columns. So we just mark
+		# the columns with columnNameReserved = True and saves the data. After the save we check if it's equal to True
+		# and raise an exception. This way, the user have a chance to fix the problem 
+
+		if columnNameReserved == True:
+			raise invalidConfiguration("There are columns with reserved words. DBImport cant continue until that is handled")
 
 		# Add the source the to the generated sql query
 		self.sqlGeneratedSqoopQuery += " from %s"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
@@ -1452,18 +1488,15 @@ class config(object, metaclass=Singleton):
 
 		# Create a valid self.generatedSqoopOptions value
 		self.generatedSqoopOptions = None
+#		if len(self.sqoop_mapcolumnjava) > 0 and self.importTool == "sqoop":
 		if len(self.sqoop_mapcolumnjava) > 0:
 			self.generatedSqoopOptions = "--map-column-java "
 			for column_map in self.sqoop_mapcolumnjava:
 				column, value=column_map.split("=")
 
 				column = self.convertHiveColumnNameReservedWords(column)
-#				column = self.getParquetColumnName(column)
-#				if column.startswith('_') == True:
-#					raise invalidConfiguration("A column that needs to be in the '--map-column-java' option to sqoop cant start with a '_'. Please change the name of the column '%s' and restart the import"%(column))
 
 				self.generatedSqoopOptions += ("%s=%s,"%(self.getParquetColumnName(column), value)) 
-				# self.generatedSqoopOptions += ("%s=%s,"%(column, value)) 
 			# Remove the last ","
 			self.generatedSqoopOptions = self.generatedSqoopOptions[:-1]
 			
@@ -1492,9 +1525,10 @@ class config(object, metaclass=Singleton):
 
 	def calculateJobMappers(self):
 		""" Based on previous sqoop size, the number of mappers for sqoop will be calculated. Formula is sqoop_size / 128MB. """
-
 		logging.debug("Executing import_config.calculateJobMappers()")
-		logging.info("Calculating the number of SQL sessions in the source system that the import will use")
+
+		if self.mongoImport == False:
+			logging.info("Calculating the number of SQL sessions in the source system that the import will use")
 
 		sqlSessionsMin = 1
 		sqlSessionsMax = None
@@ -1529,9 +1563,11 @@ class config(object, metaclass=Singleton):
 
 			if sqlSessionsMax !=  None and sqlSessionsMax > 0: 
 				self.sparkMaxExecutors = sqlSessionsMax 
-#			if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
-#			if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
 
+		if self.mongoImport == True:
+			# If it's a Mongo import, we dont need to find the number of mappers based on size. This is handled by the Mongo API
+			self.sqlSessions = sparkDefaultExecutors
+			return
 
 		hdfsBlocksize = int(self.common_config.getConfigValue(key = "hdfs_blocksize"))
 		if hdfsBlocksize == None or hdfsBlocksize == 0:
@@ -1817,6 +1853,18 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.getJDBCTableRowCount() - Finished")
 
+	def getMongoRowCount(self):
+		logging.debug("Executing import_config.getMongoRowCount()")
+
+		self.common_config.connectToMongo()
+		mongoCollection = self.common_config.mongoDB[self.source_table]
+		mongoCollectionCount = mongoCollection.count()
+		self.common_config.disconnectFromMongo()
+
+		self.saveSourceTableRowCount(rowCount = mongoCollectionCount)
+
+		logging.debug("Executing import_config.getMongoRowCount() - Finished")
+
 	def saveSourceTableRowCount(self, rowCount, incr=False):
 		logging.debug("Executing import_config.saveSourceTableRowCount()")
 		logging.info("Saving the number of rows in the Source Table to the configuration database")
@@ -2070,16 +2118,16 @@ class config(object, metaclass=Singleton):
 					logging.debug("validateSqoop == True & self.import_is_incremental == False")
 					# Sqoop validation for full imports
 					query  = "select source_rowcount from import_tables where table_id = %s "
-					validateTextTarget = "Sqoop import"
+					validateTextTarget = "%s import"%(self.importTool.capitalize() )
 					validateTextSource = "Source table"
 					validateText = validateTextTarget
 				else:
 					logging.debug("validateSqoop == True & else")
 					# Sqoop validation for incremental imports
 					query  = "select source_rowcount_incr from import_tables where table_id = %s "
-					validateTextTarget = "Sqoop import (incr)"
+					validateTextTarget = "%s import (incr)"%(self.importTool.capitalize() )
 					validateTextSource = "Source table (incr)"
-					validateText = "Sqoop import"
+					validateText = "%s import"%(self.importTool.capitalize() )
 			self.mysql_cursor01.execute(query, (self.table_id, ))
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -2324,13 +2372,35 @@ class config(object, metaclass=Singleton):
 	def getMinMaxBoundaryValues(self):
 		""" Returns a dictionary with two values called min and max that contains the boundary values """
 		logging.debug("Executing import_config.getMinMaxBoundaryValues()")
+
+		returnDict = {}
+		if self.mongoImport == True:
+			returnDict["min"] = None
+			returnDict["max"] = None
+			return returnDict
+
 		self.generateSqoopBoundaryQuery()
 
 		logging.info("Getting boundary MIN and MAX values")
 		minMaxValues = self.common_config.executeJDBCquery(self.sqoopBoundaryQuery)
-		returnDict = {}
-		returnDict["min"] = minMaxValues.iloc[0].values[0]
-		returnDict["max"] = minMaxValues.iloc[0].values[1]
+
+		minValue = minMaxValues.iloc[0].values[0] 
+		maxValue = minMaxValues.iloc[0].values[1] 
+
+		if isinstance(minValue, np.float64) == True:
+			if minValue < 0 and maxValue > 0:
+				minValue = np.int64(minValue) - 1
+			else:
+				minValue = np.int64(minValue)
+
+		if isinstance(maxValue, np.float64) == True:
+			if maxValue < 0:
+				maxValue = np.int64(maxValue) - 1 
+			else:
+				maxValue = np.int64(maxValue) + 1
+
+		returnDict["min"] = minValue
+		returnDict["max"] = maxValue
 
 		logging.debug("Executing import_config.getMinMaxBoundaryValues() - Finished")
 		return returnDict
@@ -2400,7 +2470,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.isExternalViewRequired()")
 		returnValue = False
 
-		if self.generatedSqoopOptions != None:
+		if self.importTool == "spark":
+			returnValue = False
+
+		elif self.generatedSqoopOptions != None:
 			returnValue = True
 
 		logging.debug("Executing import_config.isExternalViewRequired() - Finished")

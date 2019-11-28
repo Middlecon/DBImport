@@ -825,6 +825,7 @@ class initialize(object):
 					airflowTasks.task_dependency_in_main,
 					airflowTasks.task_config,
 					airflowTasks.jdbc_dbalias,
+					airflowTasks.hive_db,
 					airflowTasks.sensor_poke_interval,
 					airflowTasks.sensor_timeout_minutes,
 					airflowTasks.sensor_connection
@@ -992,13 +993,14 @@ class initialize(object):
 				self.DAGfile.write("\n")
 				
 			if row['task_type'] == "Hive SQL Script":
-#				logging.error("'Hive SQL Script' task type is not supported in this version of DBIMport")
-#				self.DAGfile.close()
-#				self.common_config.remove_temporary_files()
-#				sys.exit(1)
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
-				self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s ',\n"%(self.dbimportCommandPath, row['task_config']))
+
+				if row['hive_db'] != None and row['hive_db'].strip() != '':
+					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s --hiveDB=%s ',\n"%(self.dbimportCommandPath, row['task_config'], row['hive_db']))
+				else:
+					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s ',\n"%(self.dbimportCommandPath, row['task_config']))
+
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':

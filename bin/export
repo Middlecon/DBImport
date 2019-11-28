@@ -308,7 +308,7 @@ def main(argv):
 				print("| Last execution failed on stage %s                     |"%(stage))
 				if newStage != 0:
 					print("| Will restart from stage %s                            |"%(newStage))
-					import_operation.setStage(newStage, force=True)
+					export_operation.setStage(newStage, force=True)
 				print("|________________________________________________________|")
 				print("")
 				print("")

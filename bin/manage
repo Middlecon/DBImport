@@ -20,6 +20,7 @@ import sys
 import getopt
 import logging
 from common import constants as constant
+from common.Exceptions import *
 from DBImportConfig import common_config
 from DBImportConfig import rest
 from DBImportOperation import common_operations
@@ -252,7 +253,7 @@ def print_airflow_help():
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptInstance", "destination=" ])
+		opts, args = getopt.getopt(argv, "yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptInstance", "destination=", "discoverAtlasRdbms" ])
 	except getopt.GetoptError:
 		if "--runJDBCQuery" in argv:
 			print_runJDBCQuery_help()
@@ -284,6 +285,10 @@ def main(argv):
 	copyDestination = None
 	quietMode = False
 	hiveScript = None
+	commonConfig = None
+	import_operation = None
+	export_operation = None
+	copy_operation = None
 
 	if  len(opts) == 0:
 		printMainHelp()
@@ -366,6 +371,8 @@ def main(argv):
 			operation = "testConnection"
 		elif opt == "--encryptInstance":
 			operation = "encryptInstance"
+		elif opt == "--discoverAtlasRdbms":
+			operation = "discoverAtlasRdbms"
 
 
 	if operation == None:
@@ -416,6 +423,9 @@ def main(argv):
 	if airflowAutoDAGonly == True and (airflowDAG != None or displayHelp == True):
 		print_airflow_help()
 
+	if operation == "discoverAtlasRdbms" and (connectionAlias == None or displayHelp == True):
+		print_runJDBCQuery_help()
+
 	if quietMode == False:
 		printHeader()
 
@@ -425,307 +435,353 @@ def main(argv):
 	else:
 		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
 
-	if operation == "runHiveScript":
-		commonOperation = common_operations.operation()
-		commonOperation.common_config.checkKerberosTicket()
-		commonOperation.executeBeelineScript(hiveScriptFile=hiveScript, useDB=Hive_DB)
-		commonOperation.common_config.remove_temporary_files()
 
-	if operation == "runHiveQuery":
-		commonOperation = common_operations.operation()
-		commonOperation.common_config.checkKerberosTicket()
-		commonOperation.connectToHive(forceSkipTest=True, quiet=quietMode)
-		result = commonOperation.executeHiveQuery(query=jdbcQuery, quiet=quietMode)
-		if result.empty == True:
-			print("SQL generated no output")
-		else:
-			blankIndex=[''] * len(result)
-			result.index=blankIndex
-			print(result)
-		commonOperation.common_config.remove_temporary_files()
+	# Actual operation is started here and is handled in one big Try block
+	try:
+		if operation == "runHiveScript":
+			commonOperation = common_operations.operation()
+			commonOperation.common_config.checkKerberosTicket()
+			returnCode = commonOperation.executeBeelineScript(hiveScriptFile=hiveScript, useDB=Hive_DB)
+			if returnCode != 0:
+				raise SQLerror("Hive Query Error")
+			commonOperation.common_config.remove_temporary_files()
 
-	if operation == "runJDBCQuery":
-		commonConfig = common_config.config()
-		if commonConfig.checkConnectionAlias(connectionAlias) == False:
-			logging.error("The specified database connection does not exist.")
-			sys.exit(1)
-		commonConfig.lookupConnectionAlias(connectionAlias)
-		commonConfig.connectToJDBC()
-		result = commonConfig.executeJDBCquery(query=jdbcQuery)
-		if result.empty == True:
-			print("SQL generated no output")
-		else:
-			blankIndex=[''] * len(result)
-			result.index=blankIndex
-			print(result)
-		commonConfig.remove_temporary_files()
-
-	if operation == "clearImportStage":
-		import_operation = import_operations.operation(Hive_DB, Hive_Table)
-		import_operation.clearStage()
-		logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
-		import_operation.remove_temporary_files()
-
-	if operation == "checkAirflowExecution":
-		airflow = Airflow.initialize()
-		airflow.checkExecution()
-		airflow.common_config.remove_temporary_files()
-
-	if operation == "airflowGenerate":
-		airflow = Airflow.initialize()
-		if airflowAutoDAGonly == False and airflowDAG == None:
-			print ("You havent specified --airflowAutoDAGonly or a name of a DAG. That means that you want to generate ALL Airflow DAG")
-			print ("More information about valid options can be found if executed with --help")
-			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
+		if operation == "runHiveQuery":
+			commonOperation = common_operations.operation()
+			commonOperation.common_config.checkKerberosTicket()
+			commonOperation.connectToHive(forceSkipTest=True, quiet=quietMode)
+			result = commonOperation.executeHiveQuery(query=jdbcQuery, quiet=quietMode)
+			if result.empty == True:
+				print("SQL generated no output")
+			else:
+				blankIndex=[''] * len(result)
+				result.index=blankIndex
+				print(result)
+			commonOperation.common_config.remove_temporary_files()
+	
+		if operation == "discoverAtlasRdbms":
+			commonConfig = common_config.config()
+			if commonConfig.checkConnectionAlias(connectionAlias) == False:
+				logging.error("The specified database connection does not exist.")
 				sys.exit(1)
+			commonConfig.discoverAtlasRdbms(connectionAlias)
 
-			if answer.lower() != "y":
-				logging.info("No generation of Airflow DAG's will happen")
+		if operation == "runJDBCQuery":
+			commonConfig = common_config.config()
+			if commonConfig.checkConnectionAlias(connectionAlias) == False:
+				logging.error("The specified database connection does not exist.")
 				sys.exit(1)
+			commonConfig.lookupConnectionAlias(connectionAlias)
+			commonConfig.connectToJDBC()
+			result = commonConfig.executeJDBCquery(query=jdbcQuery)
+			if result.empty == True:
+				print("SQL generated no output")
+			else:
+				blankIndex=[''] * len(result)
+				result.index=blankIndex
+				print(result)
+			commonConfig.remove_temporary_files()
 
-		airflow.generateDAG(name=airflowDAG, autoDAGonly=airflowAutoDAGonly, writeDAG=airflowWriteDAG)
-		airflow.common_config.remove_temporary_files()
-
-	if operation == "encryptInstance":
-		print("This function will encrypt a username and password for the specified DBImport Instance. Any previous username/password will be overwritten")
-		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
-
-		try:
-			DBImportInstance = input("DBImport Instance: ")
-		except KeyboardInterrupt:
-			print ("")
-			logging.warning("Aborting command by user request")
-			sys.exit(1)
-
-		copyOperation = copy_operations.operation()
-		if copyOperation.checkDBImportInstance(instance = DBImportInstance) == False:
-			logging.error("The specified DBImport instance does not exist.")
-			sys.exit(1)
-
-		try:
-			username = input("Username: ")
-			password = input("Password: ")
-		except KeyboardInterrupt:
-			print ("")
-			logging.warning("Aborting command by user request")
-			sys.exit(1)
-
-		copyOperation.encryptUserPassword(instance = DBImportInstance, username = username, password = password)
-		copyOperation.remove_temporary_files()
-
-	if operation == "encryptCredentials":
-		print("This function will encrypt a username and password for the specified Database Connection. Any previous username/password will be overwritten")
-		print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
-		try:
-			connectionAlias = input("DataBase Connection (dbalias): ")
-		except KeyboardInterrupt:
-			print ("")
-			logging.warning("Aborting command by user request")
-			sys.exit(1)
-
-		commonConfig = common_config.config()
-		if commonConfig.checkConnectionAlias(connectionAlias) == False:
-			logging.error("The specified database connection does not exist.")
-			sys.exit(1)
-
-		try:
-			username = input("Username: ")
-			password = input("Password: ")
-		except KeyboardInterrupt:
-			print ("")
-			logging.warning("Aborting command by user request")
-			sys.exit(1)
-
-		commonConfig.encryptUserPassword(connectionAlias, username, password)
-		commonConfig.remove_temporary_files()
-
-	if operation == "sendJSONstatistics":
-		rest.postSQLDataToREST()
-
-	if operation == "repairAllIncrementalImports":
-		print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")
-		print("it will fetch the max value from the hive table and update the MySQL database. This value will then be used")
-		print("used as the starting point for the next sqoop import.")
-		print("")
-		if autoYesAnswer == False:
-			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
-				sys.exit(1)
-		else:
-			answer = "y"
-
-		if answer.lower() == "y":
-			import_operation = import_operations.operation()
-			import_operation.repairAllIncrementalImports()
-			import_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
-
-
-	if operation == "repairIncrementalImport":
-		print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
-		print("and the hive table. The tool will connect to the hive database and read the max value for the column")
-		print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
-		print("")
-		if autoYesAnswer == False:
-			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
-				sys.exit(1)
-		else:
-			answer = "y"
-
-		if answer.lower() == "y":
+		if operation == "clearImportStage":
 			import_operation = import_operations.operation(Hive_DB, Hive_Table)
-			import_operation.resetIncrMaxValue()
 			import_operation.clearStage()
+			logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
 			import_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
 
-	if operation == "resetIncrementalImport":
-		import_operation = import_operations.operation(Hive_DB, Hive_Table)
-		if import_operation.import_config.common_config.checkKerberosTicket() == False:
-			logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
-			import_operation.remove_temporary_files()
-			sys.exit(1)
+		if operation == "checkAirflowExecution":
+			airflow = Airflow.initialize()
+			airflow.checkExecution()
+			airflow.common_config.remove_temporary_files()
 
-		print("This command will truncate the Target Table and force the next import to be a full import.")
-		print("")
-		if autoYesAnswer == False:
+		if operation == "airflowGenerate":
+			airflow = Airflow.initialize()
+			if airflowAutoDAGonly == False and airflowDAG == None:
+				print ("You havent specified --airflowAutoDAGonly or a name of a DAG. That means that you want to generate ALL Airflow DAG")
+				print ("More information about valid options can be found if executed with --help")
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+
+				if answer.lower() != "y":
+					logging.info("No generation of Airflow DAG's will happen")
+					sys.exit(1)
+
+			airflow.generateDAG(name=airflowDAG, autoDAGonly=airflowAutoDAGonly, writeDAG=airflowWriteDAG)
+			airflow.common_config.remove_temporary_files()
+
+		if operation == "encryptInstance":
+			print("This function will encrypt a username and password for the specified DBImport Instance. Any previous username/password will be overwritten")
+			print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
+
 			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
+				DBImportInstance = input("DBImport Instance: ")
 			except KeyboardInterrupt:
 				print ("")
 				logging.warning("Aborting command by user request")
 				sys.exit(1)
-		else:
-			answer = "y"
 
-		if answer.lower() == "y":
-			import_operation.resetIncrMinMaxValues(maxValue=None)
-			import_operation.truncateTargetTable()
-			import_operation.clearStage()
-			import_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
+			copyOperation = copy_operations.operation()
+			if copyOperation.checkDBImportInstance(instance = DBImportInstance) == False:
+				logging.error("The specified DBImport instance does not exist.")
+				sys.exit(1)
 
-	if operation == "resetIncrementalExport":
-		print("This command will truncate the Target Table and force the next export to be a full export.")
-		print("")
-		if autoYesAnswer == False:
 			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
+				username = input("Username: ")
+				password = input("Password: ")
 			except KeyboardInterrupt:
 				print ("")
 				logging.warning("Aborting command by user request")
 				sys.exit(1)
-		else:
-			answer = "y"
 
-		if answer.lower() == "y":
+			copyOperation.encryptUserPassword(instance = DBImportInstance, username = username, password = password)
+			copyOperation.remove_temporary_files()
+
+		if operation == "encryptCredentials":
+			print("This function will encrypt a username and password for the specified Database Connection. Any previous username/password will be overwritten")
+			print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
+			try:
+				connectionAlias = input("DataBase Connection (dbalias): ")
+			except KeyboardInterrupt:
+				print ("")
+				logging.warning("Aborting command by user request")
+				sys.exit(1)
+
+			commonConfig = common_config.config()
+			if commonConfig.checkConnectionAlias(connectionAlias) == False:
+				logging.error("The specified database connection does not exist.")
+				sys.exit(1)
+
+			try:
+				username = input("Username: ")
+				password = input("Password: ")
+			except KeyboardInterrupt:
+				print ("")
+				logging.warning("Aborting command by user request")
+				sys.exit(1)
+
+			commonConfig.encryptUserPassword(connectionAlias, username, password)
+			commonConfig.remove_temporary_files()
+
+		if operation == "sendJSONstatistics":
+			rest.postSQLDataToREST()
+
+		if operation == "repairAllIncrementalImports":
+			print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")
+			print("it will fetch the max value from the hive table and update the MySQL database. This value will then be used")
+			print("used as the starting point for the next sqoop import.")
+			print("")
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				import_operation = import_operations.operation()
+				import_operation.repairAllIncrementalImports()
+				import_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+
+		if operation == "repairIncrementalImport":
+			print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
+			print("and the hive table. The tool will connect to the hive database and read the max value for the column")
+			print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
+			print("")
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				import_operation = import_operations.operation(Hive_DB, Hive_Table)
+				import_operation.resetIncrMaxValue()
+				import_operation.clearStage()
+				import_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+		if operation == "resetIncrementalImport":
+			import_operation = import_operations.operation(Hive_DB, Hive_Table)
+			if import_operation.import_config.common_config.checkKerberosTicket() == False:
+				logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
+				import_operation.remove_temporary_files()
+				sys.exit(1)
+
+			print("This command will truncate the Target Table and force the next import to be a full import.")
+			print("")
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				import_operation.resetIncrMinMaxValues(maxValue=None)
+				import_operation.truncateTargetTable()
+				import_operation.clearStage()
+				import_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+		if operation == "resetIncrementalExport":
+			print("This command will truncate the Target Table and force the next export to be a full export.")
+			print("")
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
+				export_operation.truncateJDBCTable()
+				export_operation.resetIncrMinMaxValues(maxValue=None)
+				export_operation.clearStage()
+				export_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+		if operation == "repairIncrementalExport":
+			print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
+			print ("Target Table and use that as the max value for the next export.")
+			print("")
+	
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
+				export_operation.resetMaxValueFromTarget()
+				export_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+		if operation == "dropExportTable":
+			print("This command will drop the Target Table and if it's an incremental export, force the next export to be a full export.")
+			print("")
+
+			if autoYesAnswer == False:
+				try:
+					answer = input("Are you sure you want to do this? (y/N): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
+			else:
+				answer = "y"
+
+			if answer.lower() == "y":
+				export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
+				export_operation.dropJDBCTable()
+				export_operation.resetIncrMinMaxValues(maxValue=None)
+				export_operation.clearStage()
+				export_operation.remove_temporary_files()
+			else:
+				logging.info("Didnt answer 'y'. No actions performed")
+
+		if operation == "clearExportStage":
 			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
-			export_operation.truncateJDBCTable()
-			export_operation.resetIncrMinMaxValues(maxValue=None)
 			export_operation.clearStage()
+			logging.info("Stage information cleared")
+
 			export_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
 
-	if operation == "repairIncrementalExport":
-		print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
-		print ("Target Table and use that as the max value for the next export.")
-		print("")
-
-		if autoYesAnswer == False:
-			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
-				sys.exit(1)
-		else:
-			answer = "y"
-
-		if answer.lower() == "y":
-			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
-			export_operation.resetMaxValueFromTarget()
-			export_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
-
-	if operation == "dropExportTable":
-		print("This command will drop the Target Table and if it's an incremental export, force the next export to be a full export.")
-		print("")
-
-		if autoYesAnswer == False:
-			try:
-				answer = input("Are you sure you want to do this? (y/N): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
-				sys.exit(1)
-		else:
-			answer = "y"
-
-		if answer.lower() == "y":
-			export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
-			export_operation.dropJDBCTable()
-			export_operation.resetIncrMinMaxValues(maxValue=None)
-			export_operation.clearStage()
-			export_operation.remove_temporary_files()
-		else:
-			logging.info("Didnt answer 'y'. No actions performed")
-
-	if operation == "clearExportStage":
-		export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
-		export_operation.clearStage()
-		logging.info("Stage information cleared")
-
-		export_operation.remove_temporary_files()
-
-	if operation == "addImportTable":
-		import_operation = import_operations.operation()
-		import_operation.discoverAndAddTablesFromSource(
-			dbalias=connectionAlias, 
-			hiveDB=Hive_DB, 
-			schemaFilter=jdbcSchema, 
-			tableFilter=jdbcTable,
-			addSchemaToTable=addSchemaToTable,
-			addCustomText=addCustomText,
-			addCounterToTable=addCounterToTable,
-			counterStart=counterStart)
+		if operation == "addImportTable":
+			import_operation = import_operations.operation()
+			import_operation.discoverAndAddTablesFromSource(
+				dbalias=connectionAlias, 
+				hiveDB=Hive_DB, 
+				schemaFilter=jdbcSchema, 
+				tableFilter=jdbcTable,
+				addSchemaToTable=addSchemaToTable,
+				addCustomText=addCustomText,
+				addCounterToTable=addCounterToTable,
+				counterStart=counterStart)
 		
-	if operation == "addExportTable":
-		export_operation = export_operations.operation()
-		export_operation.discoverAndAddTablesFromHive(
-			dbFilter=Hive_DB, 
-			tableFilter=Hive_Table,
-			dbalias=connectionAlias, 
-			schema=jdbcSchema, 
-			addDBToTable=addDBToTable,
-			addCustomText=addCustomText,
-			addCounterToTable=addCounterToTable,
-			counterStart=counterStart)
+		if operation == "addExportTable":
+			export_operation = export_operations.operation()
+			export_operation.discoverAndAddTablesFromHive(
+				dbFilter=Hive_DB, 
+				tableFilter=Hive_Table,
+				dbalias=connectionAlias, 
+				schema=jdbcSchema, 
+				addDBToTable=addDBToTable,
+				addCustomText=addCustomText,
+				addCounterToTable=addCounterToTable,
+				counterStart=counterStart)
 		
-	if operation == "testConnection":
-		commonConfig = common_config.config()
-		if commonConfig.checkConnectionAlias(connectionAlias) == False:
-			logging.error("The specified database connection does not exist.")
-			sys.exit(1)
-		commonConfig.lookupConnectionAlias(connectionAlias)
-		commonConfig.connectToJDBC()
-		print("Connected successfully")
-		commonConfig.remove_temporary_files()
+		if operation == "testConnection":
+			commonConfig = common_config.config()
+			if commonConfig.checkConnectionAlias(connectionAlias) == False:
+				logging.error("The specified database connection does not exist.")
+				sys.exit(1)
+			commonConfig.lookupConnectionAlias(connectionAlias)
+			commonConfig.connectToJDBC()
+			print("Connected successfully")
+			commonConfig.remove_temporary_files()
+
+	# Error handling for the entire stage block
+	except invalidConfiguration as errMsg:
+		logging.error(errMsg)
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except daemonExit as errMsg:
+		logging.error("Program exit because requested to do so by developer. %s"%(errMsg))
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except SQLerror:
+		logging.error("SQL Error detected")
+		if commonConfig != None:
+			commonConfig.remove_temporary_files()
+		elif import_operation != None:
+			import_operation.import_config.remove_temporary_files()
+		elif export_operation != None:
+			export_operation.import_config.remove_temporary_files()
+		elif copy_operation != None:
+			copy_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except:
+		if commonConfig != None:
+			commonConfig.remove_temporary_files()
+		elif import_operation != None:
+			import_operation.import_config.remove_temporary_files()
+		elif export_operation != None:
+			export_operation.import_config.remove_temporary_files()
+		elif copy_operation != None:
+			copy_operation.import_config.remove_temporary_files()
+		raise
+		sys.exit(1)
+
+	sys.exit(0)
 
 
 if __name__ == "__main__":
