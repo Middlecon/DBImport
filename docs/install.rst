@@ -75,8 +75,8 @@ In order to connect to a specific database type, the path to the JDBC JAR file m
 
 Thats it. DBImport is now installed and ready for usage. If this is your first time working with DBImport, the :doc:`quickstart` guide can help you to get up to speed fast.
 
-Support for Spark and Python3
------------------------------
+Support for Spark
+-----------------
 
 If you are planning to use Spark there might be an incombability problem with python2 vs python3 and the topology script file in HDFS. 
 
@@ -153,7 +153,8 @@ To get the correct representation of the DBImport Lineage in Atlas, you need to 
 
         cp /usr/local/dbimport/atlas/DBImport_Process.png /usr/hdp/current/atlas-server/server/webapp/atlas/img/entity-icon
 
-*DBImport Server*
+DBImport Server
+--------------------
 
 The server part of DBImport handles Atlas auto discovery of remote RDBMS schemas and the asynchronous copy of data between two or more DBImport instances. It also contains a simple REST interface in order to query the status of the DBImport Server for monitoring purposes. 
 
