@@ -71,6 +71,7 @@ Content
     quickstart
     configuration
     airflow
+    atlas
     import_methods
     export_methods
     database
