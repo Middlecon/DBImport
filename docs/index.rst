@@ -70,6 +70,7 @@ Content
     install
     quickstart
     configuration
+    multi_cluster
     airflow
     atlas
     import_methods
