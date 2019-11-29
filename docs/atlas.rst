@@ -114,3 +114,9 @@ Graphical representation of what the relationships can look like in Atlas
 
 .. image:: img/atlas_relationship.jpg
 
+Lineage
+-------
+
+One of the important functions of Atlas is to show the Lineage, the graphical representation of how data is flowing through your system. DBImport creates Lineage for all Imports and Exports. This will connect the rdbms objects in the remote SQL databases with the Hadoop environment. Nothing is needed to configure in order to use this functionality. All you need to do is to make sure Atlas integration is enabled and a Lineage as in the example below will be created in Atlas. 
+
+.. image:: img/atlas_lineage.jpg
