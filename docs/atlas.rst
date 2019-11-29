@@ -113,7 +113,7 @@ There can be Foreign Keys on *rdbms_tables* that links two tables together in th
 Graphical representation of what the relationships can look like in Atlas
 
 .. image:: img/atlas_relationship.jpg
-  :width: 200
+  :width: 350
 
 Lineage
 -------
