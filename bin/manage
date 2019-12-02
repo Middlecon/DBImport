@@ -22,6 +22,7 @@ import logging
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
+from DBImportConfig import import_config
 from DBImportConfig import rest
 from DBImportOperation import common_operations
 from DBImportOperation import import_operations
@@ -286,6 +287,7 @@ def main(argv):
 	quietMode = False
 	hiveScript = None
 	commonConfig = None
+	importConfig = None
 	import_operation = None
 	export_operation = None
 	copy_operation = None
@@ -483,10 +485,14 @@ def main(argv):
 			commonConfig.remove_temporary_files()
 
 		if operation == "clearImportStage":
-			import_operation = import_operations.operation(Hive_DB, Hive_Table)
-			import_operation.clearStage()
+#			import_operation = import_operations.operation(Hive_DB, Hive_Table)
+#			import_operation.clearStage()
+#			logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
+#			import_operation.remove_temporary_files()
+			importConfig = import_config.config(Hive_DB, Hive_Table)
+			importConfig.clearStage()
 			logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
-			import_operation.remove_temporary_files()
+			importConfig.remove_temporary_files()
 
 		if operation == "checkAirflowExecution":
 			airflow = Airflow.initialize()
@@ -762,6 +768,8 @@ def main(argv):
 		logging.error("SQL Error detected")
 		if commonConfig != None:
 			commonConfig.remove_temporary_files()
+		if importConfig != None:
+			importConfig.remove_temporary_files()
 		elif import_operation != None:
 			import_operation.import_config.remove_temporary_files()
 		elif export_operation != None:
@@ -772,6 +780,8 @@ def main(argv):
 	except:
 		if commonConfig != None:
 			commonConfig.remove_temporary_files()
+		if importConfig != None:
+			importConfig.remove_temporary_files()
 		elif import_operation != None:
 			import_operation.import_config.remove_temporary_files()
 		elif export_operation != None:

@@ -62,7 +62,9 @@ class distCP(threading.Thread):
 	def run(self):
 		log = logging.getLogger(self.loggerName)
 		log.info("distCP %s started"%(self.name))
-		logging.debug("distCP %s started"%(self.name))
+		
+		yarnQueue = configuration.get("Server", "distCP_yarnqueue")
+
 		while not self.threadStopEvent.isSet():
 			distCPrequest = self.distCPreqQueue.get()
 			if distCPrequest is None:
@@ -77,25 +79,25 @@ class distCP(threading.Thread):
 			HDFSsourcePath = distCPrequest.get('HDFSsourcePath')
 			HDFStargetPath = distCPrequest.get('HDFStargetPath')
 
-			logging.info("Thread %s: Starting a new distCP copy with the following paramaters"%(self.name))
-			logging.info("Thread %s: --------------------------------------------------------"%(self.name))
-			logging.info("Thread %s: tableID = %s"%(self.name, tableID))
-			logging.info("Thread %s: hiveDB = %s"%(self.name, hiveDB))
-			logging.info("Thread %s: hiveTable = %s"%(self.name, hiveTable))
-			logging.info("Thread %s: destination = %s"%(self.name, destination))
-			logging.info("Thread %s: HDFSsourcePath = %s"%(self.name, HDFSsourcePath))
-			logging.info("Thread %s: HDFStargetPath = %s"%(self.name, HDFStargetPath))
-			logging.info("Thread %s: --------------------------------------------------------"%(self.name))
+			log.info("Thread %s: Starting a new distCP copy with the following paramaters"%(self.name))
+			log.info("Thread %s: --------------------------------------------------------"%(self.name))
+			log.info("Thread %s: tableID = %s"%(self.name, tableID))
+			log.info("Thread %s: hiveDB = %s"%(self.name, hiveDB))
+			log.info("Thread %s: hiveTable = %s"%(self.name, hiveTable))
+			log.info("Thread %s: destination = %s"%(self.name, destination))
+			log.info("Thread %s: HDFSsourcePath = %s"%(self.name, HDFSsourcePath))
+			log.info("Thread %s: HDFStargetPath = %s"%(self.name, HDFStargetPath))
+			log.info("Thread %s: --------------------------------------------------------"%(self.name))
 
-			distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete",
+			distcpCommand = ["hadoop", "distcp", "-D", "mapreduce.job.queuename=%s"%(yarnQueue), "-overwrite", "-delete",
 				"%s"%(HDFSsourcePath),
 				"%s"%(HDFStargetPath)]
 
-			logging.info("Thread %s:  ______________________ "%(self.name))
-			logging.info("Thread %s: |                      |"%(self.name))
-			logging.info("Thread %s: | Hadoop distCp starts |"%(self.name))
-			logging.info("Thread %s: |______________________|"%(self.name))
-			logging.info("Thread %s: "%(self.name))
+			log.info("Thread %s:  ______________________ "%(self.name))
+			log.info("Thread %s: |                      |"%(self.name))
+			log.info("Thread %s: | Hadoop distCp starts |"%(self.name))
+			log.info("Thread %s: |______________________|"%(self.name))
+			log.info("Thread %s: "%(self.name))
 
 			# Start distcp
 			sh_session = subprocess.Popen(distcpCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -105,7 +107,7 @@ class distCP(threading.Thread):
 			while sh_session.poll() == None:
 				row = sh_session.stdout.readline().decode('utf-8').rstrip()
 				if row != "":
-					logging.info("Thread %s: %s"%(self.name, row))
+					log.info("Thread %s: %s"%(self.name, row))
 					distCPoutput += row + "\n"
 					sys.stdout.flush()
 
@@ -113,25 +115,25 @@ class distCP(threading.Thread):
 			for row in sh_session.stdout.readlines():
 				row = row.decode('utf-8').rstrip()
 				if row != "":
-					logging.info("Thread %s: %s"%(self.name, row))
+					log.info("Thread %s: %s"%(self.name, row))
 					distCPoutput += row + "\n"
 					sys.stdout.flush()
 
-			logging.info("Thread %s:  _________________________ "%(self.name))
-			logging.info("Thread %s: |                         |"%(self.name))
-			logging.info("Thread %s: | Hadoop distCp completed |"%(self.name))
-			logging.info("Thread %s: |_________________________|"%(self.name))
-			logging.info("Thread %s: "%(self.name))
+			log.info("Thread %s:  _________________________ "%(self.name))
+			log.info("Thread %s: |                         |"%(self.name))
+			log.info("Thread %s: | Hadoop distCp completed |"%(self.name))
+			log.info("Thread %s: |_________________________|"%(self.name))
+			log.info("Thread %s: "%(self.name))
 
 			disCPresult = False
 			if " ERROR " in distCPoutput:
-				logging.error("Thread %s: ERROR detected during distCP copy."%(self.name)) 
+				log.error("Thread %s: ERROR detected during distCP copy."%(self.name)) 
 				failures = failures + 1
 			elif " completed successfully" in distCPoutput:
 				disCPresult = True
 				failures = 0
 			else:
-				logging.error("Thread %s: Unknown status of distCP. Marked as failure as it cant find that it was finished successful"%(self.name)) 
+				log.error("Thread %s: Unknown status of distCP. Marked as failure as it cant find that it was finished successful"%(self.name)) 
 				failures = failures + 1
 
 			distCPresponse = {}
@@ -144,7 +146,7 @@ class distCP(threading.Thread):
 
 			self.distCPresQueue.put(distCPresponse)
 
-		logging.info("distCP %s stopped"%(self.name))
+		log.info("distCP %s stopped"%(self.name))
 
 class serverDaemon(run.RunDaemon):
 

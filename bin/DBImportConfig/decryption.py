@@ -25,6 +25,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from subprocess import Popen, PIPE
 from ConfigReader import configuration
+from common.Exceptions import *
 import pandas as pd
 
 class crypto(object):
@@ -44,9 +45,8 @@ class crypto(object):
 			self.privateKeyFile = os.environ['DBIMPORT_HOME'] + "/" + self.privateKeyFile
 
 		if os.path.isfile(self.privateKeyFile) == False:
-			logging.error("The private key file cant be opened. ")
-			logging.error("Please check the path in the configuration file for settings Credentials/private_key")
-			raise Exception
+			raise invalidConfiguration("The private key file cant be opened.\n" +
+				"Please check the path in the configuration file for settings Credentials/private_key")
 
 		self.privateKeyString = open(self.privateKeyFile,"r").read()
 		self.privateKey = RSA.importKey(self.privateKeyString)
@@ -58,9 +58,8 @@ class crypto(object):
 			self.publicKeyFile = os.environ['DBIMPORT_HOME'] + "/" + self.publicKeyFile
 
 		if os.path.isfile(self.publicKeyFile) == False:
-			logging.error("The public key file cant be opened. ")
-			logging.error("Please check the path in the configuration file for settings Credentials/public_key")
-			raise Exception
+			raise invalidConfiguration("The public key file cant be opened.\n" +
+				"Please check the path in the configuration file for settings Credentials/public_key")
 
 		self.publicKeyString = open(self.publicKeyFile,"r").read()
 		self.publicKey = RSA.importKey(self.publicKeyString)

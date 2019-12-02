@@ -162,8 +162,6 @@ class config(object, metaclass=Singleton):
 			self.sparkDynamicAllocation = False
 
 		self.crypto = decryption.crypto()
-		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
-		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
 
 		# Get Atlas config
 		self.atlasAddress = configuration.get("Atlas", "address")
@@ -891,6 +889,26 @@ class config(object, metaclass=Singleton):
 
 	def encryptUserPassword(self, connection_alias, username, password):
 
+		# Fetch public/private key from jdbc_connection table if it exists
+		query = "select private_key_path, public_key_path from jdbc_connections where dbalias = %s "
+		logging.debug("Executing the following SQL: %s" % (query))
+		self.mysql_cursor.execute(query, (connection_alias, ))
+
+		if self.mysql_cursor.rowcount != 1:
+			raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
+
+		row = self.mysql_cursor.fetchone()
+
+		privateKeyFile = row[0]
+		publicKeyFile = row[1]
+
+		if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
+			self.crypto.setPrivateKeyFile(privateKeyFile)
+			self.crypto.setPublicKeyFile(publicKeyFile)
+		else:
+			self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+			self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
 		strToEncrypt = "%s %s\n"%(username, password)
 		encryptedStr = self.crypto.encrypt(strToEncrypt)
 
@@ -932,7 +950,7 @@ class config(object, metaclass=Singleton):
 		self.atlasJdbcSourceSupport = False
 
 		# Fetch data from jdbc_connection table
-		query = "select jdbc_url, credentials from jdbc_connections where dbalias = %s "
+		query = "select jdbc_url, credentials, private_key_path, public_key_path from jdbc_connections where dbalias = %s "
 		logging.debug("Executing the following SQL: %s" % (query))
 		self.mysql_cursor.execute(query, (connection_alias, ))
 
@@ -942,13 +960,20 @@ class config(object, metaclass=Singleton):
 		row = self.mysql_cursor.fetchone()
 
 		self.jdbc_url = row[0]
+		privateKeyFile = row[2]
+		publicKeyFile = row[3]
 
+		if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
+			self.crypto.setPrivateKeyFile(privateKeyFile)
+			self.crypto.setPublicKeyFile(publicKeyFile)
+		else:
+			self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+			self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
 
 		if decryptCredentials == True and copySlave == False:
 			credentials = self.crypto.decrypt(row[1])
 			if credentials == None:
-				logging.error("Cant decrypt username and password. Check private/public key in config file")
-				raise Exception
+				raise invalidConfiguration("Cant decrypt username and password. Check private/public key in config file")
 		
 			self.jdbc_username = credentials.split(" ")[0]
 			self.jdbc_password = credentials.split(" ")[1]

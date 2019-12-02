@@ -143,19 +143,20 @@ class restServer(threading.Thread):
 		restAddress = configuration.get("Server", "restServer_address")
 		restPort = configuration.get("Server", "restServer_port")
 
-		app = Flask("restServer")
-		api = Api(app)
-		api.add_resource(restRoot, '/')
-		api.add_resource(restStatus, '/status')
-		api.add_resource(restJdbcConnections, '/jdbc_connections')
+		if restAddress.strip() != "" and restPort.strip() != "":
+			app = Flask("restServer")
+			api = Api(app)
+			api.add_resource(restRoot, '/')
+			api.add_resource(restStatus, '/status')
+			api.add_resource(restJdbcConnections, '/jdbc_connections')
 
-		log.info("Starting RESTserver on %s:%s"%(restAddress, restPort))
-		serve(
-			TransLogger(app, setup_console_handler=False, logger=logging.getLogger("restServerAccess")), 
-			host=restAddress, 
-			port=restPort, 
-			ident="DBImport REST Server", 
-			url_scheme='https',
-			_quiet=True)
+			log.info("Starting RESTserver on %s:%s"%(restAddress, restPort))
+			serve(
+				TransLogger(app, setup_console_handler=False, logger=logging.getLogger("restServerAccess")), 
+				host=restAddress, 
+				port=restPort, 
+				ident="DBImport REST Server", 
+				url_scheme='https',
+				_quiet=True)
 
 

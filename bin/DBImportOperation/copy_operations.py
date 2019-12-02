@@ -174,6 +174,10 @@ class operation(object, metaclass=Singleton):
 			logging.warning("There is no credentials saved in 'dbimport_instance' for %s"%(instance))
 			return False
 
+		# Set the keys to the value in the configuration file. This is needed if the key was overridden in jdbc_connections
+		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
 		try:
 			db_credentials = self.crypto.decrypt(row[3])
 		except binascii.Error as err:

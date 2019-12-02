@@ -188,10 +188,32 @@ def main(argv):
 	print("")
 	print("")
 	
-	# Initiate the master class for all import operations
-	import_operation = import_operations.operation(Hive_DB, Hive_Table)
-	copy_operation = copy_operations.operation()
-	etl_operation = etl_operations.operation()
+	import_operation = None
+	try:
+		# Initiate the master class for all import operations
+		import_operation = import_operations.operation(Hive_DB, Hive_Table)
+		copy_operation = copy_operations.operation()
+		etl_operation = etl_operations.operation()
+	except KeyboardInterrupt:
+		logging.error("Program exit because requested by user.")
+		if import_operation != None:
+			import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except invalidConfiguration as errMsg:
+		logging.error(errMsg)
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except daemonExit as errMsg:
+		logging.error("Program exit because requested to do so by developer. %s"%(errMsg))
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except FileExistsError:
+		sys.exit(1)
+	except:
+		import_operation.import_config.remove_temporary_files()
+		raise
+		sys.exit(1)
+
 
 	copyDestinations = copy_operation.getCopyDestinations(hiveDB = Hive_DB, hiveTable = Hive_Table)
 

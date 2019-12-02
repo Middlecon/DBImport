@@ -23,15 +23,24 @@ def get(section, key):
 	try:
 		return config[section][key]
 	except KeyError:
-		print ("[%s] '%s' Key was not found in configuration file. Please check settings"%(section,key))
+		print("[%s] '%s' Key was not found in configuration file. Please check settings"%(section,key))
 		sys.exit(1)
-
 
 try:
 	DBImport_Home = os.environ['DBIMPORT_HOME']
+	configFile = DBImport_Home + '/conf/dbimport.cfg'
 except KeyError:
-	print ("Error: System Environment Variable DBIMPORT_HOME is not set")
+	print("Error: System Environment Variable DBIMPORT_HOME is not set")
 	sys.exit(1)
  
+try:
+	configFile = os.environ['DBIMPORT_CONFIGFILE']
+except KeyError:
+	pass
+ 
+if os.path.exists(configFile) == False:
+	print("Error: Configuration file can't be found on '%s'"%(configFile))
+	sys.exit(1)
+
 config = configparser.ConfigParser()
-config.read(DBImport_Home + '/conf/dbimport.cfg')
+config.read(configFile)
