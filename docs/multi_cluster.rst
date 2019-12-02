@@ -61,9 +61,10 @@ On the cluster where you configured the remote connection, you can now start the
 
 The main difference in the remote DBImport instance will be a setting in the column *copy_slave* in the *import_tables*. If this is set to 1, the Import command on the remote system will  not execute a Sqoop or Spark import, but instead assume that the data on HDFS is fresh and loaded and will start the ETL phase directly.
 
-*How do I know that the data is fresh on HDFS?*
+**How do I know that the data is fresh on HDFS?**
 
 As soon as the data is copied to the remote DBImport instance, the value in the *copy_finished* column in *import_tables* are updated. So if you need to know if the data is fresh and updated, look at the values in there. This is also the column that the Airflow integration is using on the Sensors in order to start the import as soon as new data is available. See the Airflow integration for multi-cluster ingestion for more information on this.
 
         
+.. image:: img/multi-cluster_airflow.png
 
