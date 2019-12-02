@@ -65,6 +65,12 @@ The main difference in the remote DBImport instance will be a setting in the col
 
 As soon as the data is copied to the remote DBImport instance, the value in the *copy_finished* column in *import_tables* are updated. So if you need to know if the data is fresh and updated, look at the values in there. This is also the column that the Airflow integration is using on the Sensors in order to start the import as soon as new data is available. See the Airflow integration for multi-cluster ingestion for more information on this.
 
-        
+Airflow integration for multi-cluster ingestion
+-----------------------------------------------
+
+If you are running a multi-cluster ingestions, you need to execute the Airflow jobs on both clusters. The remote clusters Airflow DAG will look a bit different compared to the source. The reason is that there needs to be a sensor that verifies that new data is available on HDFS before the imports starts. This is done by select if there is a timestamp newer than the DAG start time in the *copy_finished* column in *import_tables*. That means that both DAGs in both Airflow instances must start at the same time, or that the Airflow DAG that will execute the Import with data just on HDFS must start before the DAG that is actually running the Sqoop or Spark command. 
+
+The DAG on the remote DBImport instance will look something like this. The difference is the sensor in gray. That Task will check if the value in *copy_finished* is larger than the DAG start time. If it is, it knows that the data is updated and will continue with the import. 
+
 .. image:: img/multi-cluster_airflow.png
 
