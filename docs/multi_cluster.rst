@@ -74,3 +74,22 @@ The DAG on the remote DBImport instance will look something like this. The diffe
 
 .. image:: img/multi-cluster_airflow.png
 
+Operations
+----------------
+
+**Copy DAG to remote DBImport instance**
+
+A very common operation is to make a remote copy of an entire DAG from the source instance to the remote instance. This is done with the following command::
+     ./copy –copyAirflowImportDAG --airflowDAG=<DAG NAME> --destination=<Remote DBImport Instance>
+     
+This will copy the DAG, the *import_tables* and *import_columns* data for tables imported by the DAG you are copying together with the required *jdbc_connections* entries to the remote DBImport instance. It will also set the *copy_slave* parameter to 1 for all the tables copied. That means that once the command is executed, the DAG on the remote DBImport instance can be generated and will execute at the same time as the source DBImport instance DAG. 
+
+**Copy tables between clusters**
+
+For History tables, Incremental tables and other custom tables (vbasically any table in Hive), you might need to copy just that specific table between two clusters. This can be done with Hive Import and Export together with a distcp. DBImport makes this process simple by adding the following two commands::
+
+      ./copy –exportAndCopyTable
+      ./copy –importCopiedTable
+
+Common settings for these two commands are *localHDFSpath* and *remoteHDFSpath*. This is needed to know where to export the data, copy the data and where to import from. The Hive Database and Hive Table will be added to these two paths and it’s very common to use the same setting as *hdfs_basedir* in the *configuration* table from each DBImport instance.
+
