@@ -2223,7 +2223,8 @@ class config(object, metaclass=Singleton):
 
 			result = self.updateAtlasWithRDBMSdata(schemaName = schema, tableName = table, printInfo = False, logger=logger)
 			if result == False:
-				return False
+				continue
+#				return False
 
 		# Remove tables that exists in Atlas that we didnt find
 

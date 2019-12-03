@@ -158,6 +158,7 @@ class atlasDiscovery(threading.Thread):
 
 					altasOperationFailed = False
 					if self.common_config.connectToJDBC(allJarFiles=True, exitIfFailure=False, logger=logger) == True:
+						self.common_config.atlasEnabled = True
 						response = self.common_config.discoverAtlasRdbms(dbAlias = dbAlias, logger=logger)
 						if response == False:
 							# Something went wrong when getting source system schema
