@@ -142,6 +142,7 @@ class restServer(threading.Thread):
 
 		restAddress = configuration.get("Server", "restServer_address")
 		restPort = configuration.get("Server", "restServer_port")
+		print(restPort)
 
 		if restAddress.strip() != "" and restPort.strip() != "":
 			app = Flask("restServer")

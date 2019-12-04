@@ -599,7 +599,14 @@ class config(object, metaclass=Singleton):
 				statusCode = "-1"
 			else:
 				statusCode = response["statusCode"]
-				responseData = json.loads(response["data"])
+				try:
+					responseData = json.loads(response["data"])
+				except json.decoder.JSONDecodeError as errMsg:
+					responseData = None
+					log.error("Atlas schema check for DBIMportProcess TypeDef did not return a valid JSON. Data returned:\n%s"%(response["data"]))
+					log.error(errMsg)
+					log.warning("Disable Atlas integration")
+					self.atlasEnabled = False
 
 		if self.atlasEnabled == True and statusCode == 404:
 			# The TypeDef was not found
