@@ -45,6 +45,7 @@ This object contains information about where the instance is running, what datab
 name                Name of the database
 instance            Links to the *rdbms_instance* object that the database belongs to
 tables              Links to the different tables available on the database. This will be *rdbms_table* objects
+prodOrOther         Gets populated by the *environment* column in *jdbc_connections* table
 owner               Gets populated by the *owner* column in *jdbc_connections* table
 description         Gets populated by the *description* column in *jdbc_connections* table
 contact_info        Gets populated by the *contact_info* column in *jdbc_connections* table

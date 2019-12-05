@@ -201,16 +201,19 @@ def main(argv):
 		sys.exit(1)
 	except invalidConfiguration as errMsg:
 		logging.error(errMsg)
-		import_operation.import_config.remove_temporary_files()
+		if import_operation != None:
+			import_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except daemonExit as errMsg:
 		logging.error("Program exit because requested to do so by developer. %s"%(errMsg))
-		import_operation.import_config.remove_temporary_files()
+		if import_operation != None:
+			import_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except FileExistsError:
 		sys.exit(1)
 	except:
-		import_operation.import_config.remove_temporary_files()
+		if import_operation != None:
+			import_operation.import_config.remove_temporary_files()
 		raise
 		sys.exit(1)
 

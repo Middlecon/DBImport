@@ -703,13 +703,21 @@ class importTables(Base):
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
 
 
+class jdbcConnectionsEnvironments(Base):
+    __tablename__ = 'jdbc_connections_environments'
+    __table_args__ = {'comment': 'Environments types. Used in jdbc_connections table to define what kind of connection type it is'}
+
+    environment = Column(String(32), primary_key=True, comment='Name of the Environment type')
+    description = Column(String(256), nullable=True, comment='Description of the Environment type')
+
+
 class jdbcConnections(Base):
     __tablename__ = 'jdbc_connections'
     __table_args__ = {'comment': 'Database connection definitions'}
 
     dbalias = Column(String(256), primary_key=True, comment='Name of the Database connection')
-    private_key_path = Column(String(128), comment='<NOT USED>')
-    public_key_path = Column(String(128), comment='<NOT USED>')
+    private_key_path = Column(String(128), comment='Custom PrivateKey to encrypt/decrypt the credentials field')
+    public_key_path = Column(String(128), comment='Custom PublicKey to encrypt/decrypt the credentials field')
     jdbc_url = Column(Text, nullable=False, comment='The JDBC URL String')
     credentials = Column(Text, comment='Encrypted fields for credentials.m Changed by the saveCredentialTool')
     datalake_source = Column(String(256), comment='This value will come in the dbimport_source column if present. Priority is table, connection')
@@ -727,12 +735,15 @@ class jdbcConnections(Base):
     atlas_include_filter = Column(String(256), comment='Include filter for Atlas discovery')
     atlas_exclude_filter = Column(String(256), comment='Exclude filter for Atlas discovery')
     atlas_last_discovery = Column(DateTime, comment='Time of last Atlas discovery')
+    environment = Column(String(32), ForeignKey('jdbc_connections_environments.environment'), nullable=True, comment="Name of the Environment type")
+
+    jdbc_connections_environments = relationship('jdbcConnectionsEnvironments')
 
 
 class jdbcConnectionsDrivers(Base):
     __tablename__ = 'jdbc_connections_drivers'
 
-    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
+    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
     version = Column(String(16), primary_key=True, nullable=False, comment='Free-text field with version. Has nothing to do with version of driver itself.')
     driver = Column(String(128), nullable=False, comment='Java class for JDBC driver')
     classpath = Column(String(255), nullable=False, comment='Full path to JDBC driver/jar file. If more than one file is required, separate them with : and no spaces')

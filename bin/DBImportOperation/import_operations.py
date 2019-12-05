@@ -101,18 +101,18 @@ class operation(object, metaclass=Singleton):
 		self.common_operations.setHiveTable(self.Hive_DB, self.Hive_Table)
 		self.import_config.setHiveTable(self.Hive_DB, self.Hive_Table)
 
-		try:
-			self.import_config.getImportConfig()
-			self.startDate = self.import_config.startDate
-			self.import_config.lookupConnectionAlias()
-		except invalidConfiguration as errMsg:
-			logging.error(errMsg)
-			self.import_config.remove_temporary_files()
-			sys.exit(1)
-		except:
-			self.import_config.remove_temporary_files()
-			raise
-			sys.exit(1)
+#		try:
+		self.import_config.getImportConfig()
+		self.startDate = self.import_config.startDate
+		self.import_config.lookupConnectionAlias()
+#		except invalidConfiguration as errMsg:
+#			logging.error(errMsg)
+#			self.import_config.remove_temporary_files()
+#			sys.exit(1)
+#		except:
+#			self.import_config.remove_temporary_files()
+#			raise
+#			sys.exit(1)
 
 	def remove_temporary_files(self):
 		self.import_config.remove_temporary_files()

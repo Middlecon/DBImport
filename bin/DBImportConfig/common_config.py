@@ -96,6 +96,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_oracle_sid = None
 		self.jdbc_oracle_servicename = None
 		self.jdbc_force_column_lowercase = None
+		self.jdbc_environment = None
 		self.mongoClient = None
 		self.mongoDB = None
 		self.kerberosInitiated = False
@@ -317,9 +318,15 @@ class config(object, metaclass=Singleton):
 		instanceUri = None
 		instanceName = None
 		instanceType = None
+		environmentType = None
 
 		if self.atlasEnabled == False:
 			return None
+
+		if self.jdbc_environment == None:
+			environmentType = "Unspecified"
+		else:
+			environmentType = self.jdbc_environment
 
 		if self.db_oracle == True:
 			if self.jdbc_oracle_sid != None and self.jdbc_oracle_sid != "None": oracleDB = self.jdbc_oracle_sid
@@ -392,6 +399,7 @@ class config(object, metaclass=Singleton):
 		returnDict["instanceUri"] = instanceUri
 		returnDict["instanceName"] = instanceName
 		returnDict["instanceType"] = instanceType
+		returnDict["environmentType"] = environmentType
 
 		return returnDict
 
@@ -491,6 +499,7 @@ class config(object, metaclass=Singleton):
 		instanceUri = returnDict["instanceUri"]
 		instanceName = returnDict["instanceName"]
 		instanceType = returnDict["instanceType"]
+		environmentType = returnDict["environmentType"]
 
 		if refSchemaName != "" and refTableName != "":
 			returnDict = self.getAtlasRdbmsNames(schemaName = refSchemaName, tableName = refTableName)
@@ -567,6 +576,7 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = contactInfo
 		jsonData["referredEntities"]["-300"]["attributes"]["owner"] = owner
 		jsonData["referredEntities"]["-300"]["attributes"]["description"] = description
+		jsonData["referredEntities"]["-300"]["attributes"]["prodOrOther"] = environmentType
 		jsonData["referredEntities"]["-300"]["attributes"]["instance"] = { "guid": "-400", "typeName": "rdbms_instance" }
 		jsonData["referredEntities"]["-400"] = {}
 		jsonData["referredEntities"]["-400"]["guid"] = "-400"
@@ -957,7 +967,7 @@ class config(object, metaclass=Singleton):
 		self.atlasJdbcSourceSupport = False
 
 		# Fetch data from jdbc_connection table
-		query = "select jdbc_url, credentials, private_key_path, public_key_path from jdbc_connections where dbalias = %s "
+		query = "select jdbc_url, credentials, private_key_path, public_key_path, environment from jdbc_connections where dbalias = %s "
 		logging.debug("Executing the following SQL: %s" % (query))
 		self.mysql_cursor.execute(query, (connection_alias, ))
 
@@ -969,6 +979,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_url = row[0]
 		privateKeyFile = row[2]
 		publicKeyFile = row[3]
+		self.jdbc_environment = row[4]
 
 		if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
 			self.crypto.setPrivateKeyFile(privateKeyFile)

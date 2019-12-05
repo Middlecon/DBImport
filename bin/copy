@@ -54,8 +54,10 @@ def printMainHelp():
 	print ("  --copyAirflowExportDAG            Copy an Airflow Export DAG to a remote DBImport instance")
 	print ("  --scheduleDAGasyncCopy            Schedule a asynchronous copy of all data for all tables in an Airflow DAG")
 	print ("  --scheduleTableAsyncCopy          Schedule a asynchronous copy of one or more tables")
-	print ("  --exportAndCopyTable              Exports a Hive table to HDFS and distcp files to another cluster")
-	print ("  --importCopiedTable               Imports a Hive table that was previous exported and copied with --exportAndCopyTable ")
+	print ("  --exportTable                     Exports a Hive table to HDFS")
+	print ("  --importTable                     Imports a Hive table that was previous exported with --exportTable ")
+	print ("  --copyFilesToCluster              DistCP files to another cluster")
+	print ("  --copyFilesFromCluster            DistCP files from another cluster")
 	print ("")
 	print ("General parameters to all commands:")
 	print ("  --help             Show this help message and exit")
@@ -121,37 +123,61 @@ def print_scheduleTableAsyncCopy_help():
 	print ("")
 	sys.exit(1)
 
-def print_exportAndCopyTable_help():
+def print_exportTable_help():
 	printHeader()
-	print ("Exports a Hive table to HDFS and distcp files to another cluster. This can be used regardless if table exists in")
-	print ("the DBImport configuration database")
+	print ("Exports a Hive table to HDFS . This can be used regardless if table exists in the DBImport configuration database")
 	print ("")
 	print ("Required parameters:")
 	print ("  -h [Hive Database], --hiveDB=[Hive Database]   Hive database name")
 	print ("  -t [Hive Table], --hiveTable=[Hive Table]      Hive table name")
-	print ("  --destination=[Destination]                    Name of the destination to where you want to copy the data")
-	print ("  --localHDFSpath=[HDFS Path]                    Local HDFS directory where to export the table to. DB and Table will be added")
-	print ("  --remoteHDFSpath=[HDFS Path]                   Remote HDFS directory where to copy the data. DB and Table will be added")
+	print ("  --localHDFSpath=[HDFS Path]                    HDFS directory where to export the table to. DB and Table will be added")
 	print ("")
 	print ("Optional parameters:")
 	print ("  --concatenateTable     This will force a concatenation of the table before export. May improve performance")
 	print ("")
 	sys.exit(1)
 
-def print_importCopiedTable_help():
+def print_copyTableToCluster_help():
 	printHeader()
-	print ("Imports a Hive table that was previous exported and copied with --exportAndCopyTable")
+	print ("DistCP files to another cluster")
 	print ("")
 	print ("Required parameters:")
 	print ("  -h [Hive Database], --hiveDB=[Hive Database]   Hive database name")
 	print ("  -t [Hive Table], --hiveTable=[Hive Table]      Hive table name")
-	print ("  --localHDFSpath=[HDFS Path]                    Local HDFS directory where data exists")
+	print ("  --remoteInstance=[Instance]                    Name of the remote DBImport instance")
+	print ("  --localHDFSpath=[HDFS Path]                    Local HDFS directory where to copy the data from. DB and Table will be added")
+	print ("  --remoteHDFSpath=[HDFS Path]                   Remote HDFS directory where to copy the data to. DB and Table will be added")
+	print ("")
+	sys.exit(1)
+
+def print_copyTableFromCluster_help():
+	printHeader()
+	print ("DistCP files from another cluster")
+	print ("")
+	print ("Required parameters:")
+	print ("  -h [Hive Database], --hiveDB=[Hive Database]   Hive database name")
+	print ("  -t [Hive Table], --hiveTable=[Hive Table]      Hive table name")
+	print ("  --remoteInstance=[Instance]                    Name of the remote DBImport instance")
+	print ("  --localHDFSpath=[HDFS Path]                    Local HDFS directory where to copy the data to. DB and Table will be added")
+	print ("  --remoteHDFSpath=[HDFS Path]                   Remote HDFS directory where to copy the data from. DB and Table will be added")
+	print ("")
+	sys.exit(1)
+
+
+def print_importTable_help():
+	printHeader()
+	print ("Imports a Hive table that was previous exported")
+	print ("")
+	print ("Required parameters:")
+	print ("  -h [Hive Database], --hiveDB=[Hive Database]   Hive database name")
+	print ("  -t [Hive Table], --hiveTable=[Hive Table]      Hive table name")
+	print ("  --localHDFSpath=[HDFS Path]                    HDFS directory where data exists. DB and Table will be added")
 	print ("")
 	sys.exit(1)
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "debug", "airflowDAG=", "copyAirflowImportDAG", "copyAirflowExportDAG", "destination=", "scheduleDAGasyncCopy", "includeIncrImports", "concatenateTable", "exportAndCopyTable", "importCopiedTable", "localHDFSpath=", "remoteHDFSpath=", "scheduleTableAsyncCopy", "noSlave", "setAutoRegenerateDAG" ])
+		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "debug", "airflowDAG=", "copyAirflowImportDAG", "copyAirflowExportDAG", "remoteInstance=", "destination=", "scheduleDAGasyncCopy", "includeIncrImports", "concatenateTable", "exportTable", "importTable", "copyTableToCluster", "copyTableFromCluster", "HDFSpath", "localHDFSpath=", "remoteHDFSpath=", "scheduleTableAsyncCopy", "noSlave", "setAutoRegenerateDAG" ])
 	except getopt.GetoptError:
 		printMainHelp()
 
@@ -163,9 +189,11 @@ def main(argv):
 	autoYesAnswer = False
 	airflowDAG = None
 	copyDestination = None
+	remoteInstance = None
 	quietMode = False
 	includeIncrImports = False
 	concatenateTable = False
+	HDFSpath = None
 	localHDFSpath = None
 	remoteHDFSpath = None
 	copyDAGnoSlave = None
@@ -197,6 +225,8 @@ def main(argv):
 			counterStart = str(arg)
 		elif opt == "--destination":
 			copyDestination = str(arg)
+		elif opt == "--remoteInstance":
+			remoteInstance = str(arg)
 		elif opt == "--airflowDAG":
 			airflowDAG = str(arg)
 		elif opt == "--noSlave":
@@ -213,10 +243,14 @@ def main(argv):
 			operation = "scheduleDAGasyncCopy"
 		elif opt == "--scheduleTableAsyncCopy":
 			operation = "scheduleTableAsyncCopy"
-		elif opt == "--exportAndCopyTable":
-			operation = "exportAndCopyTable"
-		elif opt == "--importCopiedTable":
-			operation = "importCopiedTable"
+		elif opt == "--exportTable":
+			operation = "exportTable"
+		elif opt == "--importTable":
+			operation = "importTable"
+		elif opt == "--copyTableToCluster":
+			operation = "copyTableToCluster"
+		elif opt == "--copyTableFromCluster":
+			operation = "copyTableFromCluster"
 
 
 	if operation == None:
@@ -234,11 +268,17 @@ def main(argv):
 	if operation == "scheduleTableAsyncCopy" and (Hive_DB == None or Hive_Table == None or copyDestination == None or displayHelp == True):
 		print_scheduleTableAsyncCopy_help()
 
-	if operation == "exportAndCopyTable" and (localHDFSpath == None or remoteHDFSpath == None or copyDestination == None or Hive_DB == None or Hive_Table == None or displayHelp == True):
-		print_exportAndCopyTable_help()
+	if operation == "exportTable" and (localHDFSpath == None or Hive_DB == None or Hive_Table == None or displayHelp == True):
+		print_exportTable_help()
 
-	if operation == "importCopiedTable" and (localHDFSpath == None or Hive_DB == None or Hive_Table == None or displayHelp == True):
-		print_importCopiedTable_help()
+	if operation == "importTable" and (localHDFSpath == None or Hive_DB == None or Hive_Table == None or displayHelp == True):
+		print_importTable_help()
+
+	if operation == "copyTableToCluster" and (localHDFSpath == None or remoteHDFSpath == None or remoteInstance == None or displayHelp == True):
+		print_copyTableToCluster_help()
+
+	if operation == "copyTableFromCluster" and (localHDFSpath == None or remoteHDFSpath == None or remoteInstance == None or displayHelp == True):
+		print_copyTableFromCluster_help()
 
 	if quietMode == False:
 		printHeader()
@@ -249,17 +289,38 @@ def main(argv):
 	else:
 		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
 
-	if operation == "exportAndCopyTable":
+	if operation == "exportTable":
 		copyOperation = copy_operations.operation()
 		import_operation = import_operations.operation()
 		if concatenateTable == True:
 			import_operation.concatenateTable(hiveDB=Hive_DB, hiveTable=Hive_Table)
 
-		copyOperation.exportAndCopyTable(hiveDB=Hive_DB, hiveTable=Hive_Table, copyDestination = copyDestination, localHDFSpath = localHDFSpath, remoteHDFSpath = remoteHDFSpath)
+		copyOperation.exportTable(hiveDB=Hive_DB, hiveTable=Hive_Table, localHDFSpath = localHDFSpath)
+#		copyOperation.exportAndCopyTable(hiveDB=Hive_DB, hiveTable=Hive_Table, copyDestination = copyDestination, localHDFSpath = localHDFSpath, remoteHDFSpath = remoteHDFSpath)
 
 		import_operation.remove_temporary_files()
 
-	if operation == "importCopiedTable":
+	if operation == "copyTableFromCluster":
+		copyOperation = copy_operations.operation()
+		copyOperation.copyTableToFromCluster(	hiveDB=Hive_DB, 
+												hiveTable=Hive_Table, 
+												remoteInstance = remoteInstance, 
+												localHDFSpath = localHDFSpath, 
+												remoteHDFSpath = remoteHDFSpath,
+												fromClusterMode = True)
+		copyOperation.remove_temporary_files()
+
+	if operation == "copyTableToCluster":
+		copyOperation = copy_operations.operation()
+		copyOperation.copyTableToFromCluster(	hiveDB=Hive_DB, 
+												hiveTable=Hive_Table, 
+												remoteInstance = remoteInstance, 
+												localHDFSpath = localHDFSpath, 
+												remoteHDFSpath = remoteHDFSpath,
+												fromClusterMode = False)
+		copyOperation.remove_temporary_files()
+
+	if operation == "importTable":
 		copyOperation = copy_operations.operation()
 		copyOperation.importCopiedTable(hiveDB=Hive_DB, hiveTable=Hive_Table, localHDFSpath = localHDFSpath)
 		copyOperation.remove_temporary_files()

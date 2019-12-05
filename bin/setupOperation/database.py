@@ -78,14 +78,15 @@ class initialize(object):
 
 		try:
 			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
+			self.configDB.connect()
+			self.configDBSession = sessionmaker(bind=self.configDB)
+
 		except sa.exc.OperationalError as err:
 			logging.error("%s"%err)
-#			self.remove_temporary_files()
 			sys.exit(1)
 		except:
 			print("Unexpected error: ")
 			print(sys.exc_info())
-#			self.remove_temporary_files()
 			sys.exit(1)
 
 		# Setup configuration for Alembic
@@ -256,6 +257,7 @@ class initialize(object):
 			return
 
 		alembicCommand.upgrade(self.alembicConfig, 'head')
+		self.createDefaultEnvironmentTypes()
 		self.updateConfigurationValues()
 
 		print("DBImport configuration database is created successfully")
@@ -264,7 +266,24 @@ class initialize(object):
 
 		print("Upgrading database to latest level")
 		alembicCommand.upgrade(self.alembicConfig, 'head')
+		self.createDefaultEnvironmentTypes()
 		self.updateConfigurationValues()
+
+	def createDefaultEnvironmentTypes(self):
+		session = self.configDBSession()
+
+		numberOfEnvironemntTypes = session.query(configSchema.jdbcConnectionsEnvironments.__table__).count()
+		if numberOfEnvironemntTypes == 0:
+			objectsToAdd =	[
+								configSchema.jdbcConnectionsEnvironments(environment = 'Production'),
+								configSchema.jdbcConnectionsEnvironments(environment = 'Integration Test'),
+								configSchema.jdbcConnectionsEnvironments(environment = 'System Test'),
+								configSchema.jdbcConnectionsEnvironments(environment = 'Development'),
+								configSchema.jdbcConnectionsEnvironments(environment = 'Sandbox')
+							]
+			session.add_all(objectsToAdd)
+			session.commit()
+
 
 	def updateConfigurationValues(self):
 		

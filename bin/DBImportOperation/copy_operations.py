@@ -1499,17 +1499,12 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing copy_operations.importCopiedTable() - Finished")
 
-	def exportAndCopyTable(self, copyDestination, localHDFSpath, remoteHDFSpath, hiveDB, hiveTable):
-		""" Export the Hive table and distcp the directory to another cluster """
-		logging.debug("Executing copy_operations.exportAndCopyTable()")
+	def exportTable(self, localHDFSpath, hiveDB, hiveTable):
+		""" Export the Hive table """
+		logging.debug("Executing copy_operations.exportTable()")
 
-		if copyDestination == None or self.checkDBImportInstance(instance = copyDestination) == False:
-			logging.error("The specified remote DBImport instance does not exist.")
-			self.remove_temporary_files()
-			sys.exit(1)
-
-		if localHDFSpath == None or remoteHDFSpath == None:
-			logging.error("You need to specify a local and remote HDFS path")
+		if localHDFSpath == None:
+			logging.error("You need to specify a local HDFS path")
 			self.remove_temporary_files()
 			sys.exit(1)
 
@@ -1517,7 +1512,7 @@ class operation(object, metaclass=Singleton):
 		if hiveTable == None: hiveTable = self.Hive_Table
 
 		localHDFSpath = (localHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
-		remoteHDFSpath = (remoteHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
+#		remoteHDFSpath = (remoteHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
 
 		logging.info("Deleting local HDFS directory before export")
 
@@ -1547,9 +1542,26 @@ class operation(object, metaclass=Singleton):
 		query = "export table `%s`.`%s` to '%s'"%(hiveDB, hiveTable, localHDFSpath)
 		self.common_operations.executeHiveQuery(query)
 
-		print("")
-		print("")
-		sourceHDFSaddress = self.common_operations.hdfs_address 
+		logging.debug("Executing copy_operations.exportTable() - Finished")
+
+	def copyTableToFromCluster(self, remoteInstance, localHDFSpath, remoteHDFSpath, hiveDB, hiveTable, fromClusterMode):
+		logging.debug("Executing copy_operations.copyTableToFromCluster()")
+
+		if remoteInstance == None or self.checkDBImportInstance(instance = remoteInstance) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		if localHDFSpath == None or remoteHDFSpath == None:
+			logging.error("You need to specify a local and remote HDFS path")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		if hiveDB == None: hiveDB = self.Hive_DB
+		if hiveTable == None: hiveTable = self.Hive_Table
+
+		localHDFSpath = (localHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
+		remoteHDFSpath = (remoteHDFSpath + "/"+ hiveDB + "/" + hiveTable).replace('$', '').replace(' ', '')
 
 		# Calculate the source and target HDFS directories
 		session = self.configDBSession()
@@ -1558,20 +1570,25 @@ class operation(object, metaclass=Singleton):
 		row = (session.query(
 				dbimportInstances.hdfs_address
 			)
-			.filter(dbimportInstances.name == copyDestination)
+			.filter(dbimportInstances.name == remoteInstance)
 			.one())
 	
-		targetHDFSaddress = row[0]
+		remoteHDFSaddress = row[0]
+		localHDFSaddress = self.common_operations.hdfs_address 
 
-		logging.debug("sourceHDFSaddress = %s"%(sourceHDFSaddress))
-		logging.debug("targetHDFSaddress = %s"%(targetHDFSaddress))
-		logging.debug("localHDFSpath = %s"%(localHDFSpath))
-		logging.debug("remoteHDFSpath = %s"%(remoteHDFSpath))
+		if fromClusterMode == True:
+			logging.info("Copy table directory from remote cluster")	
+			HDFSsourcePath = "%s%s"%(remoteHDFSaddress, remoteHDFSpath),
+			HDFStargetPath = "%s%s"%(localHDFSaddress, localHDFSpath),
 
-		HDFSsourcePath = "%s%s"%(sourceHDFSaddress, localHDFSpath),
-		HDFStargetPath = "%s%s"%(targetHDFSaddress, remoteHDFSpath),
+		else:
+			logging.info("Copy table directory to remote cluster")	
+			HDFSsourcePath = "%s%s"%(localHDFSaddress, localHDFSpath),
+			HDFStargetPath = "%s%s"%(remoteHDFSaddress, remoteHDFSpath),
 
-		logging.info("Copy exported directory to remote cluster")	
+		logging.debug("HDFSsourcePath = %s"%(HDFSsourcePath))
+		logging.debug("HDFStargetPath = %s"%(HDFStargetPath))
+
 		distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
 		"%s"%(HDFSsourcePath),
 		"%s"%(HDFStargetPath)]
@@ -1596,4 +1613,7 @@ class operation(object, metaclass=Singleton):
 				distCPoutput += row + "\n"
 				sys.stdout.flush()
 
-		logging.debug("Executing copy_operations.exportAndCopyTable() - Finished")
+		logging.debug("Executing copy_operations.copyTableToFromCluster() - Finished")
+
+
+
