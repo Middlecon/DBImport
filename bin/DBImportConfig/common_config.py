@@ -587,6 +587,7 @@ class config(object, metaclass=Singleton):
 		jsonData["referredEntities"]["-400"]["attributes"]["rdbms_type"] = instanceType
 		jsonData["referredEntities"]["-400"]["attributes"]["hostname"] = self.jdbc_hostname
 		jsonData["referredEntities"]["-400"]["attributes"]["port"] = self.jdbc_port
+		jsonData["referredEntities"]["-400"]["attributes"]["platform"] = ""
 		jsonData["referredEntities"]["-400"]["attributes"]["protocol"] = "jdbc"
 
 		return jsonData
