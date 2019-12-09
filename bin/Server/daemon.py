@@ -324,10 +324,15 @@ class serverDaemon(run.RunDaemon):
 					log.debug("Status changed to 1 for table %s.%s and sent to distCP threads"%(hiveDB, hiveTable))
 
 				session.close()
+
 			except SQLAlchemyError as e:
 				log.error(str(e.__dict__['orig']))
 				session.rollback()
 				self.disconnectDBImportDB()
+
+			except SQLerror:
+				self.disconnectDBImportDB()
+
 
 			# ------------------------------------------
 			# Read the response from the distCP threads
@@ -360,6 +365,10 @@ class serverDaemon(run.RunDaemon):
 					log.error(str(e.__dict__['orig']))
 					session.rollback()
 					self.disconnectDBImportDB()
+
+				except SQLerror:
+					self.disconnectDBImportDB()
+
 
 			# ------------------------------------------
 			# Fetch all rows from copyASyncStatus that contains the status 3 and update the remote DBImport instance database
@@ -449,8 +458,10 @@ class serverDaemon(run.RunDaemon):
 							session.rollback()
 							self.disconnectDBImportDB()
 
-						else:
+						except SQLerror:
+							self.disconnectDBImportDB()
 
+						else:
 							log.info("Table %s.%s copied successfully to '%s'"%(hiveDB, hiveTable, destination))
 				
 			session.close()
@@ -474,7 +485,8 @@ class serverDaemon(run.RunDaemon):
 	def getDBImportSession(self):
 		log = logging.getLogger("server")
 		if self.configDBSession == None:
-			self.connectDBImportDB()
+			if self.connectDBImportDB() == False:
+				raise SQLerror("Can't connect to DBImport database")
 
 		return self.configDBSession()	
 
@@ -496,15 +508,23 @@ class serverDaemon(run.RunDaemon):
 
 		except sa.exc.OperationalError as err:
 			log.error("%s"%err)
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			self.configDBSession = None
+			self.configDBEngine = None
+			return False
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
+
 		except:
 			print("Unexpected error: ")
 			print(sys.exc_info())
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			self.configDBSession = None
+			self.configDBEngine = None
+			return False
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
 
 		log.info("Connected successful against DBImport database")
+		return True
 
 
 	def disconnectRemoteSession(self, instance):
@@ -534,7 +554,13 @@ class serverDaemon(run.RunDaemon):
 		log.info("Connecting to remote DBImport database for '%s'"%(instance))
 
 		connectStatus = True
-		session = self.getDBImportSession()
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
 		dbimportInstances = aliased(configSchema.dbimportInstances)
 
 		row = (session.query(

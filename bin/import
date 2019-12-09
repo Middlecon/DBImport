@@ -611,11 +611,11 @@ def main(argv):
 			stage = import_operation.getStage()
 			if stage == 1049 or stage == 1149 or stage == 1249 or stage >= 2000 or runCopyPhaseByForce == True:
 				if runOnlyFunction == None or runOnlyFunction == "copyFiles": 
-					if import_operation.runStage(2000) == True: 
+					if import_operation.runStage(2001) == True: 
 						copy_operation.copyDataToDestinations()
 
 				if runOnlyFunction == None or runOnlyFunction == "copySchema": 
-					if import_operation.runStage(2001) == True: 
+					if import_operation.runStage(2002) == True: 
 						copy_operation.copyImportSchemaToDestinations()
 
 				if runOnlyFunction == None:

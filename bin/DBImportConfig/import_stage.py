@@ -106,8 +106,9 @@ class stage(object):
 		elif stage == 1349: stageDescription = "Import Phase Completed"
 
 		# Copy Phase
-		elif stage == 2000: stageDescription = "Copy data to remote DBImport instance (synchronous)"
-		elif stage == 2001: stageDescription = "Copy schema to remote DBImport instance (synchronous)"
+		elif stage == 2000: stageDescription = "Validating schema version on remote DBImport instance"
+		elif stage == 2001: stageDescription = "Copy data to remote DBImport instance"
+		elif stage == 2002: stageDescription = "Copy schema to remote DBImport instance"
 		elif stage == 2099: stageDescription = "Copy Phase Completed"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
@@ -289,8 +290,9 @@ class stage(object):
 		elif stage == 1349: stageShortName = "skip"
 
 		# Copy Phase
-		elif stage == 2000: stageShortName = "copy_data"
-		elif stage == 2001: stageShortName = "copy_schema"
+		elif stage == 2000: stageShortName = "skip"
+		elif stage == 2001: stageShortName = "copy_data"
+		elif stage == 2002: stageShortName = "copy_schema"
 		elif stage == 2099: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT

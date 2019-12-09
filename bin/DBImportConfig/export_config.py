@@ -1308,7 +1308,15 @@ class config(object, metaclass=Singleton):
 				logging.info("The export will use %s parallell SQL sessions in the source system."%(self.sqlSessions)) 
 
 		elif self.exportTool == "spark":
-			self.sqlSessions = 1
+			if self.sqoopMappers > 0: 
+				logging.info("Setting the number of executors to a fixed value")
+				logging.info("The export will use %s parallell SQL sessions in the source system."%(self.sqoopMappers)) 
+				self.sparkMaxExecutors = self.sqoopMappers
+				self.sqlSessions = self.sqoopMappers
+			else:
+				# If 'mappers' is set to -1, we just use the value from the default configuration
+				self.sqlSessions = self.sparkMaxExecutors
+
 # TODO: Add support for multiple splits for exports. Not supported bu Spark JDBC write implementation as of 2.3.2
 #			if self.sqoopMappers > 0:
 #				self.sqlSessions = self.sqoopMappers
