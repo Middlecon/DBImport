@@ -196,19 +196,9 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 	def truncateJDBCTable(self):
-		try:
-			if self.export_config.truncateTargetTable == True:
-				logging.info("Truncating Target Table")
-				self.export_config.common_config.truncateJDBCTable(schema=self.targetSchema, table=self.targetTable)
-		except invalidConfiguration as errMsg:
-			logging.error(errMsg)
-			self.export_config.remove_temporary_files()
-			sys.exit(1)
-		except:
-			logging.exception("Fatal error when truncating target table")
-			self.export_config.remove_temporary_files()
-			sys.exit(1)
-
+		if self.export_config.truncateTargetTable == True:
+			logging.info("Truncating Target Table")
+			self.export_config.common_config.truncateJDBCTable(schema=self.targetSchema, table=self.targetTable)
 
 	def createTargetTable(self):
 		try:
@@ -700,6 +690,9 @@ class operation(object, metaclass=Singleton):
 			forceColumnUppercase = True
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
+		if self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
 		else:
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
@@ -928,6 +921,9 @@ class operation(object, metaclass=Singleton):
 			forceColumnUppercase = True
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
+		if self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
 		else:
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
@@ -980,7 +976,7 @@ class operation(object, metaclass=Singleton):
 		sqoopTargetSchema = [] 
 		sqoopTargetTable = ""
 		sqoopDirectOption = ""
-		if self.export_config.common_config.db_mssql == True: 
+		if self.export_config.common_config.db_mssql == True or self.export_config.common_config.db_postgresql == True: 
 			sqoopTargetSchema = ["--", "--schema", targetSchema]
 			sqoopTargetTable = targetTable
 		if self.export_config.common_config.db_oracle == True: 

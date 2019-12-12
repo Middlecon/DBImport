@@ -735,9 +735,9 @@ class jdbcConnections(Base):
     atlas_include_filter = Column(String(256), comment='Include filter for Atlas discovery')
     atlas_exclude_filter = Column(String(256), comment='Exclude filter for Atlas discovery')
     atlas_last_discovery = Column(DateTime, comment='Time of last Atlas discovery')
-#    environment = Column(String(32), ForeignKey('jdbc_connections_environments.environment'), nullable=True, comment="Name of the Environment type")
+    environment = Column(String(32), ForeignKey('jdbc_connections_environments.environment'), nullable=True, comment="Name of the Environment type")
 
-#    jdbc_connections_environments = relationship('jdbcConnectionsEnvironments')
+    jdbc_connections_environments = relationship('jdbcConnectionsEnvironments')
 
 
 class jdbcConnectionsDrivers(Base):

@@ -1388,7 +1388,7 @@ class config(object, metaclass=Singleton):
 			query = "select max(%s) from %s"%(column, source_table)
 
 		if self.db_postgresql == True:
-			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
+			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema.lower(), source_table.lower())
 
 		if self.db_progress == True:
 			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
@@ -1425,8 +1425,11 @@ class config(object, metaclass=Singleton):
 		if self.db_mysql == True:
 			query = "truncate table %s"%(table)
 
+		if self.db_postgresql == True:
+			query = "truncate table %s.%s"%(schema.lower(), table.lower())
+
 		if query == None:
-			raise undevelopedFeature("There is no support for this database type in common_config.checkJDBCTable()") 
+			raise undevelopedFeature("There is no support for this database type in common_config.truncateJDBCTable()") 
 		
 		logging.debug("SQL Statement executed: %s" % (query) )
 		self.JDBCCursor.execute(query)
@@ -1449,6 +1452,9 @@ class config(object, metaclass=Singleton):
 			query = "select count(name) from SYSIBM.SYSTABLES where upper(creator) = '%s' and upper(name) = '%s'"%(schema.upper(), table.upper())
 		if self.db_mysql == True:
 			query = "select count(table_name) from information_schema.tables where table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, table)
+
+		if self.db_postgresql == True:
+			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema.lower(), table.lower())
 
 		if query == None:
 			raise undevelopedFeature("There is no support for this database type in common_config.checkJDBCTable()") 
@@ -1509,7 +1515,7 @@ class config(object, metaclass=Singleton):
 			query = "select count(1) from %s" % source_table
 
 		if self.db_postgresql == True:
-			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
+			query = "select count(1) from \"%s\".\"%s\""%(source_schema.lower(), source_table.lower())
 
 		if self.db_progress == True:
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
@@ -1536,6 +1542,7 @@ class config(object, metaclass=Singleton):
 
 		self.connectToJDBC()
 		query = "drop table %s"%(self.getJDBCsqlFromTable(schema=schema, table=table))
+		print(query)
 		self.JDBCCursor.execute(query)
 
 		logging.debug("Executing common_config.dropJDBCTable() - Finished")
@@ -1680,7 +1687,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.MSSQL:        fromTable = "[%s].[%s].[%s]"%(self.jdbc_database, schema, table)
 		if self.jdbc_servertype == constant.ORACLE:       fromTable = "\"%s\".\"%s\""%(schema.upper(), table.upper())
 		if self.jdbc_servertype == constant.MYSQL:        fromTable = "%s"%(table)
-		if self.jdbc_servertype == constant.POSTGRESQL:   fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.POSTGRESQL:   fromTable = "\"%s\".\"%s\""%(schema.lower(), table.lower())
 		if self.jdbc_servertype == constant.PROGRESS:     fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.DB2_UDB:      fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.DB2_AS400:    fromTable = "\"%s\".\"%s\""%(schema, table)

@@ -563,6 +563,17 @@ class config(object, metaclass=Singleton):
 				mapColumnJava = "String"
 			columnType = re.sub('^timestamp$', 'timestmp', columnType)
 
+		if self.common_config.db_postgresql == True:
+			if columnType == "string":
+				columnType = "text"
+				mapColumnJava = "String"
+			columnType = re.sub('^tinyint$', 'integer', columnType)
+			columnType = re.sub('^timestamp$', 'timestamp without time zone', columnType)
+			columnType = re.sub('^decimal\(', 'numeric(', columnType)
+			columnType = re.sub('^int$', 'integer', columnType)
+			columnType = re.sub('^char\(', 'character(', columnType)
+			columnType = re.sub('^varchar\(', 'character varying(', columnType)
+
 		if columnName == "_globalid":
 			print("===============================")
 			print(sourceDB)
@@ -588,6 +599,10 @@ class config(object, metaclass=Singleton):
 			forceUppercase = True
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
+
+		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
 
 		self.sqoop_mapcolumnjava=[]
 		firstLoop = True
@@ -618,10 +633,6 @@ class config(object, metaclass=Singleton):
 
 		columnsSource.drop('hiveColumnName', axis=1, inplace=True)
 		columnsSource.rename(columns={'targetColumnName':'name', 'columnType':'type'}, inplace=True)
-
-#		print(columnsSource)
-#		self.common_config.remove_temporary_files()
-#		sys.exit(1)
 
 		self.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable, printInfo=False)
 		columnsTarget = self.common_config.source_columns_df
@@ -827,10 +838,11 @@ class config(object, metaclass=Singleton):
 			if self.common_config.jdbc_servertype == constant.MYSQL:
 				query = "ALTER TABLE %s CHANGE COLUMN %s %s %s NULL"%(targetTable, row["name"], row["name"], row["type"])
 
+			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
+				query = "ALTER TABLE %s.%s ALTER COLUMN %s TYPE %s"%(targetSchema, targetTable, row["name"], row["type"])
+
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True
-
-#			query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, row['name'], row['name'], row['type'])
 
 			# Get the previous column type from the Pandas DF with right_only in Exist column
 			previous_columnType = (columnsMergeOnlyNameType.loc[
@@ -892,6 +904,9 @@ class config(object, metaclass=Singleton):
 			if self.common_config.jdbc_servertype == constant.MYSQL:
 				query = "ALTER TABLE %s CHANGE COLUMN %s %s %s NULL COMMENT '%s'"%(targetTable, row["name"], row["name"], row["type"], row['comment'])
 
+			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
+				query = "comment on column \"%s\".\"%s\".\"%s\" is '%s'"%(targetSchema, targetTable, row["name"], row["comment"])
+
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True
 
@@ -944,6 +959,12 @@ class config(object, metaclass=Singleton):
 			forceColumnUppercase = True
 			columnQuote = "\""
 			query  = "create table \"%s\".\"%s\" ("%(targetSchema, targetTable) 
+
+		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
+			query  = "create table %s.%s ("%(targetSchema, targetTable) 
+
 		else:
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
@@ -978,11 +999,11 @@ class config(object, metaclass=Singleton):
 				self.sqoop_mapcolumnjava.append(columnName + "=" + mapColumnJava)
 
 			query += "%s%s%s %s NULL "%(columnQuote, columnName, columnQuote, columnType)
-			if self.common_config.jdbc_servertype not in (constant.ORACLE, constant.MSSQL):
+			if self.common_config.jdbc_servertype not in (constant.ORACLE, constant.MSSQL, constant.POSTGRESQL):
 				if columnComment != None and columnComment.strip() != "":
 					query += "comment \"%s\""%(columnComment)
 		query += ")"
-				
+
 		self.common_config.executeJDBCquery(query)
 
 		logging.debug("Executing export_config.createTargetTable() - Finished")
@@ -1181,29 +1202,11 @@ class config(object, metaclass=Singleton):
 
 			row = self.mysql_cursor01.fetchone()
 			source_rowcount = row[0]
-#			if validateSqoop == False:
 			target_rowcount = row[1]
-#			else:
-#				target_rowcount = self.sqoop_last_rows
 			diffAllowed = 0
 			logging.debug("source_rowcount: %s"%(source_rowcount))
 			logging.debug("target_rowcount: %s"%(target_rowcount))
 
-#			if source_rowcount > 0:
-#				if self.validate_diff_allowed != None:
-#					diffAllowed = int(self.validate_diff_allowed)
-#				else:
-#					diffAllowed = int(source_rowcount*(50/(100*math.sqrt(source_rowcount))))
-#
-#			upperValidationLimit = source_rowcount + diffAllowed
-#			lowerValidationLimit = source_rowcount - diffAllowed
-
-#			logging.debug("upperValidationLimit: %s"%(upperValidationLimit))
-#			logging.debug("lowerValidationLimit: %s"%(lowerValidationLimit))
-#			logging.debug("diffAllowed: %s"%(diffAllowed))
-
-
-#			if target_rowcount > upperValidationLimit or target_rowcount < lowerValidationLimit:
 			if source_rowcount != target_rowcount:
 				logging.error("Validation failed! The %s exceedes the allowed limit compared to the %s table"%(validateTextSource,validateTextTarget ))
 				if target_rowcount > source_rowcount:
@@ -1212,9 +1215,6 @@ class config(object, metaclass=Singleton):
 					logging.info("Diff between tables: %s"%(source_rowcount - target_rowcount))
 				logging.info("%s rowcount: %s"%(validateTextSource, source_rowcount))
 				logging.info("%s rowcount: %s"%(validateTextTarget, target_rowcount))
-#				logging.info("Validation diff allowed: %s"%(diffAllowed))
-#				logging.info("Upper limit: %s"%(upperValidationLimit))
-#				logging.info("Lower limit: %s"%(lowerValidationLimit))
 				returnValue = False 
 			else:
 				logging.info("%s validation successful!"%(validateText))
@@ -1511,134 +1511,25 @@ class config(object, metaclass=Singleton):
 		if self.common_config.atlasEnabled == False:
 			return
 
-#		# Fetch the remote system schema again as it might have been updated in the export
-		self.common_config.getJDBCTableDefinition(source_schema = self.targetSchema, source_table = self.targetTable, printInfo=False)
+		targetSchema = self.targetSchema
+		targetTable = self.targetTable
 
-		self.common_config.updateAtlasWithRDBMSdata(schemaName = self.targetSchema,
-													tableName = self.targetTable 
+		if self.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
+			targetSchema = self.targetSchema.upper()
+			targetTable = self.targetTable.upper()
+
+		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
+
+		# Fetch the remote system schema again as it might have been updated in the export
+		self.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable, printInfo=False)
+
+		self.common_config.updateAtlasWithRDBMSdata(schemaName = targetSchema,
+													tableName = targetTable 
 													)
 
-#
-#		logging.info("Updating Atlas with target database schema")
-#
-#		tableComment = ""
-#
-#		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
-#		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = self.targetSchema,
-#																	tableName = self.targetTable, 
-#																	tableComment = tableComment
-#																	)
-#
-#		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
-#		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = self.targetSchema, tableName = self.targetTable)
-#		if returnDict == None:
-#			return
-#
-#		tableUri = returnDict["tableUri"]
-#		dbUri = returnDict["dbUri"]
-#		dbName = returnDict["dbName"]
-#		instanceUri = returnDict["instanceUri"]
-#		instanceName = returnDict["instanceName"]
-#		instanceType = returnDict["instanceType"]
-#
-#		# Get extended data from jdbc_connections table
-#		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
-#		contactInfo = jdbcConnectionDict["contact_info"]
-#		description = jdbcConnectionDict["description"]
-#		owner = jdbcConnectionDict["owner"]
-#
-#		jsonData["entities"] = []
-#				
-#		# Loop through the columns and add them to the JSON
-#		for index, row in self.common_config.source_columns_df.iterrows():
-#			columnData = {}
-#			columnData["typeName"] = "rdbms_column"
-#			columnData["createdBy"] = "DBImport"
-#			columnData["attributes"] = {}
-#
-#			columnName = row['SOURCE_COLUMN_NAME']
-#			columnUri = self.common_config.getAtlasRdbmsColumnURI(	schemaName = self.targetSchema, 
-#																	tableName = self.targetTable, 
-#																	columnName = columnName)
-#			if row['IS_NULLABLE'] == "YES":
-#				columnNullable = True
-#			else:
-#				columnNullable = False
-#
-#			columnIsPrimaryKey = False
-#			for keysIndex, keysRow in self.common_config.source_keys_df.iterrows():
-#				if keysRow['COL_NAME'] == columnName and keysRow['CONSTRAINT_TYPE'] == constant.PRIMARY_KEY:
-#					columnIsPrimaryKey = True
-#
-#			columnData["attributes"]["qualifiedName"] = columnUri
-#			columnData["attributes"]["uri"] = columnUri
-#			columnData["attributes"]["owner"] = owner
-#
-#			if row['SOURCE_COLUMN_COMMENT'] != None and row['SOURCE_COLUMN_COMMENT'].strip() != "":
-#				columnData["attributes"]["comment"] = row['SOURCE_COLUMN_COMMENT']
-#
-#			try:
-#				columnLength = int(str(row['SOURCE_COLUMN_LENGTH']).split('.')[0].split(':')[0])
-#			except ValueError:
-#				columnLength = None
-#
-#			if columnLength != None:
-#				columnData["attributes"]["length"] = str(columnLength)
-#
-#			columnData["attributes"]["name"] = columnName
-#			columnData["attributes"]["data_type"] = row['SOURCE_COLUMN_TYPE']
-#			columnData["attributes"]["isNullable"] = columnNullable
-#			columnData["attributes"]["isPrimaryKey"] = columnIsPrimaryKey
-#			columnData["attributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
-#
-#			jsonData["entities"].append(columnData)
-#
-#		response = self.common_config.atlasPostData(URL = self.common_config.atlasRestEntities, data = json.dumps(jsonData))
-#		statusCode = response["statusCode"]
-#		if statusCode != 200:
-#			logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
-#			self.common_config.atlasEnabled == False
-#
-#		# We now have to find columns that exists in DBImport but not in the source anymore.
-#		# These columns need to be deleted from Atlas
-#
-#		atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.common_config.atlasRestUniqueAttributeType, tableUri)
-#		response = self.common_config.atlasGetData(URL = atlasRestURL)
-#		statusCode = response["statusCode"]
-#		responseData = json.loads(response["data"])
-#
-#		for jsonRefEntities in responseData["referredEntities"]:
-#			jsonRefEntity = responseData["referredEntities"][jsonRefEntities]
-#			if jsonRefEntity["typeName"] == "rdbms_column":
-#				columnQualifiedName = jsonRefEntity["attributes"]["qualifiedName"]
-#				columnName = jsonRefEntity["attributes"]["name"]
-#
-#				# Loop through the source columns to see if it exists in there
-#				foundSourceColumn = False
-#				for index, row in self.common_config.source_columns_df.iterrows():
-#					sourceColumnName = row['SOURCE_COLUMN_NAME']
-#					sourceColumnUri = self.common_config.getAtlasRdbmsColumnURI(schemaName = self.targetSchema, 
-#																				tableName = self.targetTable, 
-#																				columnName = sourceColumnName)
-#					if sourceColumnName == columnName and sourceColumnUri == columnQualifiedName:
-#						foundSourceColumn = True
-#
-#				if foundSourceColumn == False and jsonRefEntity["status"] == "ACTIVE":
-#					# The column defined in Atlas cant be found on the source, and it's still marked as ACTIVE. Lets delete it!
-#					logging.debug("Deleting Atlas column with qualifiedName = '%s'"%(columnQualifiedName))
-#
-#					atlasRestURL = "%s/rdbms_column?attr:qualifiedName=%s"%(self.common_config.atlasRestUniqueAttributeType, columnQualifiedName)
-#					response = self.common_config.atlasDeleteData(URL = atlasRestURL)
-#					statusCode = response["statusCode"]
-#					if statusCode != 200:
-#						logging.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
-#						self.common_config.atlasEnabled == False
-#
-#
 		logging.debug("Executing export_config.updateAtlasWithSourceSchema() - Finished")
-
-
-
 
 
 	def updateAtlasWithExportLineage(self):
@@ -1651,16 +1542,25 @@ class config(object, metaclass=Singleton):
 		logging.info("Updating Atlas with export lineage")
 
 		tableComment = ""
-#		if self.table_comment != None:
-#			tableComment = self.table_comment.replace('\r', "\n")
+
+		targetSchema = self.targetSchema
+		targetTable = self.targetTable
+
+		if self.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
+			targetSchema = self.targetSchema.upper()
+			targetTable = self.targetTable.upper()
+
+		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+			targetSchema = self.targetSchema.lower()
+			targetTable = self.targetTable.lower()
 
 		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
-		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = self.targetSchema,
-																	tableName = self.targetTable
+		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = targetSchema,
+																	tableName = targetTable
 																	)
 
 		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
-		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = self.targetSchema, tableName = self.targetTable)
+		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = targetSchema, tableName = targetTable)
 		if returnDict == None:
 			return
 
@@ -1681,7 +1581,7 @@ class config(object, metaclass=Singleton):
 
 		startStopDict = self.stage.getStageStartStop(stage = self.exportTool)
 
-		processName = "%s.%s.%s@DBimport"%(self.connectionAlias, self.targetSchema, self.targetTable)
+		processName = "%s.%s.%s@DBimport"%(self.connectionAlias, targetSchema, targetTable)
 
 		if self.tempTableNeeded == True:
 			hiveQualifiedName = "%s.%s@%s"%(self.hiveExportTempDB, self.hiveExportTempTable, clusterName)

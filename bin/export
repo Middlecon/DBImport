@@ -403,6 +403,10 @@ def main(argv):
 
 			export_operation.clearStage()
 
+	except undevelopedFeature as errMsg:
+		logging.error(errMsg)
+		export_operation.export_config.remove_temporary_files()
+		sys.exit(1)
 	except invalidConfiguration as errMsg:
 		logging.error(errMsg)
 		export_operation.export_config.remove_temporary_files()
