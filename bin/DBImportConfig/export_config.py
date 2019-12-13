@@ -704,6 +704,9 @@ class config(object, metaclass=Singleton):
 
 					if self.common_config.jdbc_servertype == constant.MYSQL:
 						query = "ALTER TABLE %s CHANGE COLUMN %s %s %s"%(targetTable, rowInTarget["name"], rowInSource["name"], rowInSource["type"])
+					if self.common_config.jdbc_servertype == constant.POSTGRESQL:
+						query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
+
 					self.common_config.executeJDBCquery(query)
 					alterTableExecuted = True
 
@@ -737,6 +740,9 @@ class config(object, metaclass=Singleton):
 
 						if self.common_config.jdbc_servertype == constant.MYSQL:
 							query = "ALTER TABLE %s CHANGE COLUMN %s %s %s NULL"%(targetTable, rowInTarget["name"], rowInSource["name"], rowInSource["type"])
+						if self.common_config.jdbc_servertype == constant.POSTGRESQL:
+							query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
+						self.common_config.executeJDBCquery(query)
 						self.common_config.executeJDBCquery(query)
 						alterTableExecuted = True
 
@@ -779,6 +785,9 @@ class config(object, metaclass=Singleton):
 
 			if self.common_config.jdbc_servertype == constant.MYSQL:
 				query = "ALTER TABLE %s ADD COLUMN %s %s NULL"%(targetTable, fullRow["name"], fullRow["type"])
+
+			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
+				query = "ALTER TABLE %s.%s ADD COLUMN %s %s"%(targetSchema, targetTable, fullRow["name"], fullRow["type"])
 
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True

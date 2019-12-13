@@ -84,7 +84,7 @@ If you are planning to use Spark there might be an incombability problem with py
 
 The usual way to change this is the following
 
-  - change the *net.topology.script.file.name* to another filename in core-site.xml. In this example we will use * /etc/hadoop/conf/custom_topology_script.py*
+  - change the *net.topology.script.file.name* to another filename in core-site.xml. In this example we will use */etc/hadoop/conf/custom_topology_script.py*
   - cp /etc/hadoop/conf/ topology_script.py /etc/hadoop/conf/custom_topology_script.py
   - Change the first row from “#!/usr/bin/env python” to “#!/usr/bin/python2”
   - Make the same change on all nodes in the cluster. 
