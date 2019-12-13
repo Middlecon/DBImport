@@ -9,6 +9,7 @@ v0.65 (not released)
   - Issue #61: Import from View on MSSQL failes with no columns
   - Issue #62: DBImport Server connection retries against config database 
   - Issue #63: Control executors for Spark export
+  - Issue #64: Initial incremental export with 0 rows fails
 
 **Changed behavior**
 

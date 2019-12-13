@@ -346,13 +346,13 @@ def main(argv):
 					export_operation.fetchIncrMinMaxvalue()
 					if export_operation.isThereIncrDataToExport() == False:
 						logging.info("There is no new data to export in the Hive table")
-						export_operation.setStage(160)
 
 			if export_operation.isExportTempTableNeeded() == True:
 				if runOnlyFunction == None or runOnlyFunction == "insertDataIntoExportTempTable":
 					if export_operation.runStage(156) == True:
-						export_operation.connectToHive()
-						export_operation.insertDataIntoExportTempTable()
+						if export_operation.isThereIncrDataToExport() == False:
+							export_operation.connectToHive()
+							export_operation.insertDataIntoExportTempTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if export_operation.runStage(157) == True:
@@ -364,11 +364,13 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "exportData":
 				if export_operation.export_config.exportTool == "sqoop": 
 					if export_operation.runStage(159) == True:
-						export_operation.runSqoopExport()
+						if export_operation.isThereIncrDataToExport() == True:
+							export_operation.runSqoopExport()
 
 				if export_operation.export_config.exportTool == "spark": 
 					if export_operation.runStage(160) == True:
-						export_operation.runSparkExport()
+						if export_operation.isThereIncrDataToExport() == True:
+							export_operation.runSparkExport()
 
 			if runOnlyFunction == None or runOnlyFunction == "validate":
 				if export_operation.runStage(161) == True:

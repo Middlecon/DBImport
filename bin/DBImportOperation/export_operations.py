@@ -1147,7 +1147,7 @@ class operation(object, metaclass=Singleton):
 				whereStatement = self.export_config.getIncrWhereStatement(whereForTarget=True, excludeMinValue=False)
 			self.export_config.getJDBCTableRowCount(whereStatement=whereStatement)
 		except:
-			logging.exception("Fatal error when reading Hive table row count")
+			logging.exception("Fatal error when reading Target table row count")
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
