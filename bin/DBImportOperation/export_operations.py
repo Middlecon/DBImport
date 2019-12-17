@@ -637,6 +637,7 @@ class operation(object, metaclass=Singleton):
 	def insertDataIntoExportTempTable(self):
 		""" Insert data from the source Hive Table into the Export Temp Table """
 		logging.debug("Executing export_operations.insertDataIntoExportTempTable()")
+		logging.info("Inserting data into the the Export Temp table")
 
 		columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True)
 

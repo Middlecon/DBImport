@@ -350,7 +350,7 @@ def main(argv):
 			if export_operation.isExportTempTableNeeded() == True:
 				if runOnlyFunction == None or runOnlyFunction == "insertDataIntoExportTempTable":
 					if export_operation.runStage(156) == True:
-						if export_operation.isThereIncrDataToExport() == False:
+						if export_operation.isThereIncrDataToExport() == True:
 							export_operation.connectToHive()
 							export_operation.insertDataIntoExportTempTable()
 

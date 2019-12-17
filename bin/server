@@ -126,10 +126,12 @@ def main(argv):
 	d = daemon.serverDaemon(pidfile=pidfile)
 
 	if action == "start":
+		print("Starting DBImport Server")
 		d.start()
 	elif action == "noDaemon":
 		d.run()
 	elif action == "stop":
+		print("Stopping DBImport Server")
 		d.stop()
 	elif action == "restart":
 		d.restart()

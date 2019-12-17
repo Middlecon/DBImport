@@ -163,7 +163,11 @@ class serverDaemon(run.RunDaemon):
 			self.debugLogLevel = True
 
 		self.common_config = common_config.config()
+
 		self.crypto = self.common_config.crypto
+		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
 		self.remoteDBImportEngines = {}
 		self.remoteDBImportSessions = {}
 		self.remoteInstanceConfigDB = None
@@ -571,6 +575,8 @@ class serverDaemon(run.RunDaemon):
 			)
 			.filter(dbimportInstances.name == instance)
 			.one())
+
+		session.close()
 
 		if row[3] == None:
 			log.warning("There is no credentials saved in 'dbimport_instance' for %s"%(instance))

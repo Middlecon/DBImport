@@ -2008,6 +2008,7 @@ class config(object, metaclass=Singleton):
 			log.warning("Request from Atlas when updating source schema was %s."%(statusCode))
 			log.warning("%s"%(response["data"]))
 			self.atlasEnabled == False
+			return False
 
 		# We now have to find columns that exists in DBImport but not in the source anymore.
 		# These columns need to be deleted from Atlas
@@ -2020,6 +2021,12 @@ class config(object, metaclass=Singleton):
 
 		statusCode = response["statusCode"]
 		responseData = json.loads(response["data"])
+
+		if statusCode != 200:
+			log.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+			log.warning("%s"%(response["data"]))
+			self.atlasEnabled == False
+			return False
 
 #		log.info("======================================")
 #		log.info(json.dumps(responseData, indent=3))
@@ -2053,6 +2060,7 @@ class config(object, metaclass=Singleton):
 					statusCode = response["statusCode"]
 					if statusCode != 200:
 						log.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
+						log.warning("%s"%(response["data"]))
 						self.atlasEnabled == False
 
 		# Code to add Foreign Keys to table. This is done in a new JSON as we reference the table we just created. One JSON per FK
@@ -2267,6 +2275,12 @@ class config(object, metaclass=Singleton):
 
 		statusCode = response["statusCode"]
 		responseData = json.loads(response["data"])
+
+		if statusCode != 200:
+			log.warning("Request from Atlas when updating source schema was %s."%(statusCode))
+			log.warning("%s"%(response["data"]))
+			self.atlasEnabled == False
+			return False
 
 		# Fetch all tables defined on the rdbms_db object
 		tablesFoundInDBList = []

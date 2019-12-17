@@ -10,6 +10,7 @@ v0.65 (not released)
   - Issue #62: DBImport Server connection retries against config database 
   - Issue #63: Control executors for Spark export
   - Issue #64: Initial incremental export with 0 rows fails
+  - Issue #65: Python error when missing permissions in Atlas
 
 **Changed behavior**
 
