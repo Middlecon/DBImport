@@ -691,7 +691,7 @@ class operation(object, metaclass=Singleton):
 			forceColumnUppercase = True
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
-		if self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
+		elif self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
 			targetSchema = self.targetSchema.lower()
 			targetTable = self.targetTable.lower()
 		else:
@@ -922,7 +922,7 @@ class operation(object, metaclass=Singleton):
 			forceColumnUppercase = True
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
-		if self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
+		elif self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
 			targetSchema = self.targetSchema.lower()
 			targetTable = self.targetTable.lower()
 		else:

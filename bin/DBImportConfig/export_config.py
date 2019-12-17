@@ -704,6 +704,7 @@ class config(object, metaclass=Singleton):
 
 					if self.common_config.jdbc_servertype == constant.MYSQL:
 						query = "ALTER TABLE %s CHANGE COLUMN %s %s %s"%(targetTable, rowInTarget["name"], rowInSource["name"], rowInSource["type"])
+
 					if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 						query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
 
@@ -742,6 +743,7 @@ class config(object, metaclass=Singleton):
 							query = "ALTER TABLE %s CHANGE COLUMN %s %s %s NULL"%(targetTable, rowInTarget["name"], rowInSource["name"], rowInSource["type"])
 						if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 							query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
+
 						self.common_config.executeJDBCquery(query)
 						self.common_config.executeJDBCquery(query)
 						alterTableExecuted = True
@@ -969,7 +971,7 @@ class config(object, metaclass=Singleton):
 			columnQuote = "\""
 			query  = "create table \"%s\".\"%s\" ("%(targetSchema, targetTable) 
 
-		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+		elif self.common_config.jdbc_servertype in (constant.POSTGRESQL):
 			targetSchema = self.targetSchema.lower()
 			targetTable = self.targetTable.lower()
 			query  = "create table %s.%s ("%(targetSchema, targetTable) 

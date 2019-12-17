@@ -829,25 +829,36 @@ class config(object, metaclass=Singleton):
 			logging.error("Invalid TimeWindow configuration")
 			self.remove_temporary_files()
 			sys.exit(1)
-		elif timeWindowStart > timeWindowStop:
-			logging.error("The value in timewindow_start column is larger than the value in timewindow_stop.")
-			logging.error("Invalid TimeWindow configuration")
-			self.remove_temporary_files()
-			sys.exit(1)
+#		elif timeWindowStart > timeWindowStop:
+#			logging.error("The value in timewindow_start column is larger than the value in timewindow_stop.")
+#			logging.error("Invalid TimeWindow configuration")
+#			self.remove_temporary_files()
+#			sys.exit(1)
 		elif timeWindowStart == timeWindowStop:
 			logging.error("The value in timewindow_start column is the same as the value in timewindow_stop.")
 			logging.error("Invalid TimeWindow configuration")
 			self.remove_temporary_files()
 			sys.exit(1)
-		elif currentTime < timeWindowStart or currentTime > timeWindowStop:
-			logging.error("We are not allowed to run this import outside the configured Time Window")
-			logging.info("    Current time:     %s"%(currentTime))
-			logging.info("    TimeWindow Start: %s"%(timeWindowStart))
-			logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
-			self.remove_temporary_files()
-			sys.exit(1)
-		else:		
-			logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
+		elif timeWindowStart < timeWindowStop:
+			if currentTime < timeWindowStart or currentTime > timeWindowStop:
+				logging.error("We are not allowed to run this import outside the configured Time Window")
+				logging.info("    Current time:     %s"%(currentTime))
+				logging.info("    TimeWindow Start: %s"%(timeWindowStart))
+				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:		
+				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
+		elif timeWindowStart > timeWindowStop:
+			if currentTime < timeWindowStart and currentTime > timeWindowStop:
+				logging.error("We are not allowed to run this import outside the configured Time Window")
+				logging.info("    Current time:     %s"%(currentTime))
+				logging.info("    TimeWindow Start: %s"%(timeWindowStart))
+				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:		
+				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
  
 		logging.debug("    currentTime = %s"%(currentTime))
 		logging.debug("    timeWindowStart = %s"%(timeWindowStart))

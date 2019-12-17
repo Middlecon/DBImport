@@ -300,7 +300,6 @@ def main(argv):
 				if stage == 156: newStage = 154
 				if stage == 159: newStage = 150
 				if stage == 160: newStage = 150
-				if stage == 161: newStage = 150
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous export failed and this execution |")
