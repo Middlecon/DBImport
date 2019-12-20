@@ -184,8 +184,11 @@ class operation(object, metaclass=Singleton):
 	def dropJDBCTable(self):
 		try:
 			if self.export_config.truncateTargetTable == True:
-				logging.info("Dropping Target Table")
-				self.export_config.common_config.dropJDBCTable(schema=self.targetSchema, table=self.targetTable)
+				if self.export_config.common_config.checkJDBCTable(schema=self.targetSchema, table=self.targetTable) == True:
+					logging.info("Dropping Target Table")
+					self.export_config.common_config.dropJDBCTable(schema=self.targetSchema, table=self.targetTable)
+				else:
+					logging.warning("Nothing to drop. Target table does not exists")
 		except invalidConfiguration as errMsg:
 			logging.error(errMsg)
 			self.export_config.remove_temporary_files()

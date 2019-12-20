@@ -1497,10 +1497,11 @@ class config(object, metaclass=Singleton):
 		result_df = pd.DataFrame()
 		try:
 			result_df = pd.DataFrame(self.JDBCCursor.fetchall())
-			result_df_columns = []
-			for columns in self.JDBCCursor.description:
-				result_df_columns.append(columns[0])    # Name of the column is in the first position
-			result_df.columns = result_df_columns
+			if result_df.empty == False:
+				result_df_columns = []
+				for columns in self.JDBCCursor.description:
+					result_df_columns.append(columns[0])    # Name of the column is in the first position
+				result_df.columns = result_df_columns
 		except jaydebeapi.Error:
 			logging.debug("An error was raised during JDBCCursor.fetchall(). This happens during SQL operations that dont return any rows like 'create table'")
 			
@@ -1553,7 +1554,6 @@ class config(object, metaclass=Singleton):
 
 		self.connectToJDBC()
 		query = "drop table %s"%(self.getJDBCsqlFromTable(schema=schema, table=table))
-		print(query)
 		self.JDBCCursor.execute(query)
 
 		logging.debug("Executing common_config.dropJDBCTable() - Finished")
