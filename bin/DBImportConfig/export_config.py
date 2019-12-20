@@ -538,6 +538,10 @@ class config(object, metaclass=Singleton):
 			columnType = re.sub('^timestamp$', 'date', columnType)
 			columnType = re.sub('^text$', 'string', columnType)
 			columnType = re.sub('^int$', 'number', columnType)
+
+			# If the column is a NUMBER but with decimal 0, it will be read without the decimal. 
+			if re.search('^number\([0-9]*,0\)$', columnType): 
+				columnType = re.sub(',0\)$', ')', columnType)
 			
 			# Oracle only supports varchar up to 4000. After that it have to be a CLOB. This will rewrite the soure tabletype
 			# to string and will later be converted to clob.
@@ -608,6 +612,7 @@ class config(object, metaclass=Singleton):
 		firstLoop = True
 		alterTableExecuted = False
 
+
 		for index, row in columnsSource.iterrows():
 			columnType = row['columnType']
 			columnComment = row['comment']
@@ -618,15 +623,16 @@ class config(object, metaclass=Singleton):
 			else:
 				columnName = hiveColumnName
 
+			# Need to force it to lower so the self.convertColumnTypeForTargetTable works
+			columnType = columnType.lower()
+			columnType, mapcolumnjava = self.convertColumnTypeForTargetTable(hiveColumnName, columnType)
+
 			if forceUppercase == True:
 				columnName = columnName.upper()
+				columnType = columnType.upper()
 
-			columnType, mapcolumnjava = self.convertColumnTypeForTargetTable(hiveColumnName, columnType)
 			if mapcolumnjava != None:
 				self.sqoop_mapcolumnjava.append(columnName + "=" + mapcolumnjava)
-
-			if forceUppercase == True:
-				columnType = columnType.upper()
 
 			columnsSource.iloc[index, columnsSource.columns.get_loc('columnType')] = columnType 
 			columnsSource.iloc[index, columnsSource.columns.get_loc('targetColumnName')] = columnName 

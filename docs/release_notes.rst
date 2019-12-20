@@ -12,6 +12,7 @@ v0.65 (not released)
   - Issue #64: Initial incremental export with 0 rows fails
   - Issue #65: Python error when missing permissions in Atlas
   - Issue #66: Setting a timeslot where start is larger than stop gives a configuration error
+  - Issue #67: Unneeded column change during export to Oracle
 
 **Changed behavior**
 
