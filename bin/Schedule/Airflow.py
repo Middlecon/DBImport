@@ -471,7 +471,7 @@ class initialize(object):
 					else:
 						self.DAGfile.write("    priority_weight=0,\n")
 					self.DAGfile.write("    timeout=14400,\n")
-					self.DAGfile.write("    poke_interval=30,\n")
+					self.DAGfile.write("    poke_interval=300,\n")
 					self.DAGfile.write("    mode='reschedule',\n")
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
@@ -554,7 +554,7 @@ class initialize(object):
 					else:
 						self.DAGfile.write("    priority_weight=0,\n")
 					self.DAGfile.write("    timeout=14400,\n")
-					self.DAGfile.write("    poke_interval=30,\n")
+					self.DAGfile.write("    poke_interval=300,\n")
 					self.DAGfile.write("    mode='reschedule',\n")
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")

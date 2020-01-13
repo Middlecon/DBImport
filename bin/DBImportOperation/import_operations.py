@@ -1064,7 +1064,7 @@ class operation(object, metaclass=Singleton):
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_db2udb == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
+#			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_db2as400 == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"

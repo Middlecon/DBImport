@@ -285,7 +285,7 @@ class config(object, metaclass=Singleton):
 	def saveColumnData(self, columnsDF=None):
 		logging.debug("Executing export_config.saveColumnData()")
 		logging.info("Saving column data to MySQL table - export_columns")
-	
+
 		for index, row in columnsDF.iterrows():
 			columnName = row['name']
 			columnType = row['type']
@@ -546,12 +546,11 @@ class config(object, metaclass=Singleton):
 			# Oracle only supports varchar up to 4000. After that it have to be a CLOB. This will rewrite the soure tabletype
 			# to string and will later be converted to clob.
 			if columnType.startswith("varchar2("): 
+
+				columnType = re.sub(' char\)$', ')', columnType)
 				columnSize = int(columnType.split("(")[1].split(")")[0])
 				if columnSize > 4000:
-					columnType="string"
-#				else:
-#					# If it's under 4000 chars, then we create it as a varchar, but with varchar(10 char) instead of varchar(10)
-#					columnType = re.sub('\)$', ' char)', columnType)
+					columnType="clob"
 
 			if columnType == "string":
 				raise invalidConfiguration("Error: Exports of column '%s' with type 'string' to Oracle is not supported. Please set another columntype in 'target_column_type' or ignore this column in the export."%(columnName))

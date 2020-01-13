@@ -103,6 +103,7 @@ class config(object, metaclass=Singleton):
 		self.incr_validation_method = None
 		self.splitByColumn = ""	
 		self.sqoopBoundaryQuery = ""	
+		self.pk_column_override = None
 		self.pk_column_override_mergeonly = None
 		self.validate_source = None
 		self.copy_slave = None
@@ -2327,6 +2328,9 @@ class config(object, metaclass=Singleton):
 
 		self.splitByColumn = ""	
 
+		# Call self.getPKcolumns() to get a correct self.pk_column_override value
+		self.getPKcolumns()
+
 		if self.split_by_column != None and self.split_by_column.strip() != "" and "split-by" in self.sqoop_options.lower():
 			raise invalidConfiguration("Specifying both a '--split-by' in sqoop_options column and a value in 'split_by_column' is not supported. Please remove the '--split-by' statement in sqoop_options and rerun the import.")
 
@@ -2344,6 +2348,13 @@ class config(object, metaclass=Singleton):
 		elif self.generatedPKcolumns != None and self.generatedPKcolumns.strip() != "":
 			# If there is a primary key, we use that one to split on. If multi column PK, we take the first column
 			self.splitByColumn = self.generatedPKcolumns.split(",")[0]
+
+			if "split-by" not in self.sqoop_options.lower():
+				if self.sqoop_options != "": self.sqoop_options += " "
+				self.sqoop_options += "--split-by \"%s\""%(self.splitByColumn)		# This is needed, otherwise PK with space in them fail
+
+		elif self.pk_column_override != None and self.pk_column_override.strip() != "":
+			self.splitByColumn = self.pk_column_override.split(",")[0]
 
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "

@@ -18,6 +18,7 @@ v0.65 (not released)
 **Changed behavior**
 
   - Hive connection supports multiple servers.
+  - Poke interval for Multi-cluster sensors is changed from 30 sec to 5 min
 
 **New Features**
 
