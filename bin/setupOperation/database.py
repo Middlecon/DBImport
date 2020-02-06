@@ -559,3 +559,10 @@ class initialize(object):
 				valueInt='24', 
 				description='How many hours there should pass between each Atlas discovery of a jdbc connection')
 			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'import_process_empty').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_process_empty', 
+				valueInt='0', 
+				description='If 1, then the import will do a full processing of import even if they contain no data.')
+			self.configDB.execute(query)

@@ -217,6 +217,7 @@ def main(argv):
 		raise
 		sys.exit(1)
 
+	processEmptyTables = import_operation.import_config.common_config.getConfigValue(key = "import_process_empty")
 
 	copyDestinations = copy_operation.getCopyDestinations(hiveDB = Hive_DB, hiveTable = Hive_Table)
 
@@ -835,7 +836,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None:
-				if import_operation.import_config.sqoop_last_rows == 0:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3160)
 
@@ -1159,7 +1160,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None:
-				if import_operation.import_config.sqoop_last_rows == 0:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3310)
 
@@ -1270,7 +1271,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None:
-				if import_operation.import_config.sqoop_last_rows == 0:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3361)
 
@@ -1389,7 +1390,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None:
-				if import_operation.import_config.sqoop_last_rows == 0:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3410)
 
