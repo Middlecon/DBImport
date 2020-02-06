@@ -9,6 +9,7 @@ Committers
 Versions
 --------
 
+  - v0.64. Spark support for Import and Export
   - v0.63. Copy command
   - v0.62. Asynchronous copy mode for multi-cluster imports
   - v0.61. Bug-fix release
@@ -29,8 +30,7 @@ RoadMap
 -------
 
   1. Implement all existing function in Legacy DBImport into the Python version. - **Ongoing**
-  2. Spark support for imports
-  3. WebGui for administration of DBImport - **Alpha version available**
-  4. Custom queries and delta loads from source - **Partially implemented**
-  5. Support for more JDBC sources such as Netezza, TeraData, ExaData
-  6. Support for more than MySQL as configuration database for DBImport
+  2. WebGui for administration of DBImport - **Alpha version available**
+  3. Custom queries and delta loads from source - **Partially implemented**
+  4. Support for more JDBC sources such as Netezza, TeraData, ExaData
+  5. Support for more than MySQL as configuration database for DBImport

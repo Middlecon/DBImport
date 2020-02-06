@@ -1475,10 +1475,12 @@ class operation(object, metaclass=Singleton):
 					.filter(configSchema.importTables.table_id == remoteTableID)
 					.update(updateDict))
 				remoteSession.commit()
+				remoteSession.close()
 
 			else:
 				logging.warning("Connection failed! No data will be copied to instance '%s'"%(destination))
 
+		localSession.close()
 			
 	def importCopiedTable(self, localHDFSpath, hiveDB, hiveTable):
 		""" Import a table from the specified directory """

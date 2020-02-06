@@ -690,6 +690,7 @@ class config(object, metaclass=Singleton):
 					raise ValueError 
 
 				returnValue = { "statusCode": response.status_code, "data": response.text }
+				response.close()
 				log.debug("Atlas statusCode = %s"%(response.status_code))
 				log.debug("Atlas data = %s"%(response.text))
 
@@ -1139,7 +1140,7 @@ class config(object, metaclass=Singleton):
 			if self.jdbc_port.isdigit() == False: self.jdbc_port = "3306"
 
 			try:
-				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0]
+				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split('?')[0]
 			except:
 				logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True

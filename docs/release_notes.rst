@@ -14,6 +14,7 @@ v0.65 (not released)
   - Issue #66: Setting a timeslot where start is larger than stop gives a configuration error
   - Issue #67: Unneeded column change during export to Oracle
   - Issue #68: dropExportTable generates error if table does not exist
+  - Issue #69: schedule_interval columns with different size
 
 **Changed behavior**
 
