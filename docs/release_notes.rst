@@ -15,6 +15,7 @@ v0.65 (not released)
   - Issue #67: Unneeded column change during export to Oracle
   - Issue #68: dropExportTable generates error if table does not exist
   - Issue #69: schedule_interval columns with different size
+  - Issue #70: Support for authentication source for Mongo connections
 
 **Changed behavior**
 

@@ -99,6 +99,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_environment = None
 		self.mongoClient = None
 		self.mongoDB = None
+		self.mongoAuthSource = None
 		self.kerberosInitiated = False
 
 		self.sparkPathAppend = None
@@ -1260,7 +1261,13 @@ class config(object, metaclass=Singleton):
 
 			self.jdbc_hostname = self.jdbc_url[8:].split(':')[0]
 			self.jdbc_port = self.jdbc_url[8:].split(':')[1].split('/')[0]
-			self.jdbc_database = self.jdbc_url[8:].split('/')[1].strip()
+			self.jdbc_database = self.jdbc_url[8:].split('/')[1].split('?')[0].strip()
+
+			# Get all options in order to find authSource
+			mongoOptions = dict(x.split("=") for x in self.jdbc_url.split('?')[1].split("&"))
+			for k, v in mongoOptions.items():
+				if ( k.lower() == "authsource" ):
+					self.mongoAuthSource = v
 
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
@@ -1765,7 +1772,11 @@ class config(object, metaclass=Singleton):
 		try:
 			self.mongoClient = pymongo.MongoClient("mongodb://%s:%s/"%(self.jdbc_hostname, self.jdbc_port))
 			self.mongoDB = self.mongoClient[self.jdbc_database.strip()]
-			self.mongoDB.authenticate(self.jdbc_username, self.jdbc_password)
+			if ( self.mongoAuthSource == None ):
+				self.mongoDB.authenticate(self.jdbc_username, self.jdbc_password )
+			else:
+				self.mongoDB.authenticate(self.jdbc_username, self.jdbc_password, source=self.mongoAuthSource )
+
 		except pymongo.errors.ServerSelectionTimeoutError:
 			log.error("Timeout Error when connecting to Mongo at %s.%s"%(self.jdbc_hostname, self.jdbc_port))
 			if exitIfFailure == True:
