@@ -1359,6 +1359,10 @@ class config(object, metaclass=Singleton):
 	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger=""):
 		log = logging.getLogger(logger)
 
+		if self.db_mongodb == True:
+			# This is a MongoDB connection. Lets rediret to connectToMongo instead
+			return self.connectToMongo(exitIfFailure=exitIfFailure, logger=logger)
+
 		if allJarFiles == True:
 			query = "select classpath from jdbc_connections_drivers"
 			log.debug("Executing the following SQL: %s" % (query))

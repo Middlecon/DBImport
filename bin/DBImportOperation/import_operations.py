@@ -553,6 +553,9 @@ class operation(object, metaclass=Singleton):
 			self.import_config.common_config.jdbc_port,
 			self.import_config.common_config.jdbc_database,
 			self.import_config.source_table)
+
+		if self.import_config.common_config.mongoAuthSource != None: 
+			mongoUri = mongoUri + "?authSource=" + self.import_config.common_config.mongoAuthSource
 		
 		# import all packages after the environment is set
 		from pyspark.context import SparkContext, SparkConf
