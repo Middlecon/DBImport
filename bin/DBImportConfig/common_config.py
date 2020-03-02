@@ -1729,7 +1729,7 @@ class config(object, metaclass=Singleton):
 			boolValue = True
 		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval"):
 			valueColumn = "valueInt"
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))

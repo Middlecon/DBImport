@@ -455,6 +455,13 @@ class initialize(object):
 				description='Airflow path to staging DAG directory')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'airflow_dummy_task_queue').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dummy_task_queue', 
+				valueStr='', 
+				description='Queue to use for dummy tasks (stop, stage_one_complete and more)')
+			self.configDB.execute(query)
+
 		if result_df.empty or (result_df[0] == 'airflow_dag_file_group').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_file_group', 

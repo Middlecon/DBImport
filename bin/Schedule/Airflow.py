@@ -57,6 +57,7 @@ class initialize(object):
 		self.DAGstagingDirectory = self.common_config.getConfigValue("airflow_dag_staging_directory")
 		self.DAGfileGroup = self.common_config.getConfigValue("airflow_dag_file_group")
 		self.DAGfilePermission = self.common_config.getConfigValue("airflow_dag_file_permission")
+		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -668,6 +669,11 @@ class initialize(object):
 		self.postStartTask = "main_tasks_finished"
 		self.postStopTask = "stop"
 
+		if self.TaskQueueForDummy != None and self.TaskQueueForDummy.strip() != "" and self.TaskQueueForDummy.strip() != "default":
+			self.TaskQueueForDummy = self.TaskQueueForDummy.strip()
+		else:
+			self.TaskQueueForDummy = None
+
 		tasksBeforeMainExists = False
 		tasksAfterMainExists = False
 		tasksSensorsExists = False
@@ -712,11 +718,15 @@ class initialize(object):
 		self.DAGfile.write("\n")
 		self.DAGfile.write("start = BashOperator(\n")
 		self.DAGfile.write("    task_id='start',\n")
+		if self.TaskQueueForDummy != None:
+			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution ',\n"%(self.dbimportCommandPath))
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("stop = DummyOperator(\n")
 		self.DAGfile.write("    task_id='stop',\n")
+		if self.TaskQueueForDummy != None:
+			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("def always_trigger(context, dag_run_obj):\n")
@@ -726,6 +736,8 @@ class initialize(object):
 		if importPhaseFinishFirst == True:
 			self.DAGfile.write("Import_Phase_Finished = DummyOperator(\n")
 			self.DAGfile.write("    task_id='Import_Phase_Finished',\n")
+			if self.TaskQueueForDummy != None:
+				self.DAGfile.write("    queue: '%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -759,18 +771,24 @@ class initialize(object):
 		if tasksBeforeMainExists == True:
 			self.DAGfile.write("%s = DummyOperator(\n"%(self.preStopTask))
 			self.DAGfile.write("    task_id='%s',\n"%(self.preStopTask))
+			if self.TaskQueueForDummy != None:
+				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
 		if tasksAfterMainExists == True:
 			self.DAGfile.write("%s = DummyOperator(\n"%(self.postStartTask))
 			self.DAGfile.write("    task_id='%s',\n"%(self.postStartTask))
+			if self.TaskQueueForDummy != None:
+				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
 		if tasksSensorsExists == True:
 			self.DAGfile.write("%s = DummyOperator(\n"%(self.sensorStopTask))
 			self.DAGfile.write("    task_id='%s',\n"%(self.sensorStopTask))
+			if self.TaskQueueForDummy != None:
+				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
