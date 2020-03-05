@@ -1865,15 +1865,17 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.getMongoRowCount() - Finished")
 
-	def saveSourceTableRowCount(self, rowCount, incr=False):
+	def saveSourceTableRowCount(self, rowCount, incr=False, printInfo=True):
 		logging.debug("Executing import_config.saveSourceTableRowCount()")
-		logging.info("Saving the number of rows in the Source Table to the configuration database")
+		if printInfo == True:
+			logging.info("Saving the number of rows in the Source Table to the configuration database")
 
 		# Save the value to the database
 		if incr == False:
-			query = ("update import_tables set source_rowcount = %s where table_id = %s")
+			query = "update import_tables set source_rowcount = %s where table_id = %s"
 		else:
-			query = ("update import_tables set source_rowcount_incr = %s where table_id = %s")
+			query = "update import_tables set source_rowcount_incr = %s where table_id = %s"
+
 		self.mysql_cursor01.execute(query, (rowCount, self.table_id))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )

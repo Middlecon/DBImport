@@ -737,7 +737,7 @@ class initialize(object):
 			self.DAGfile.write("Import_Phase_Finished = DummyOperator(\n")
 			self.DAGfile.write("    task_id='Import_Phase_Finished',\n")
 			if self.TaskQueueForDummy != None:
-				self.DAGfile.write("    queue: '%s',\n"%(self.TaskQueueForDummy.strip()))
+				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 

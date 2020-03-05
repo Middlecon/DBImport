@@ -383,6 +383,7 @@ class operation(object, metaclass=Singleton):
 																	password='dummy')
 
 						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
+#						self.hive_conn = hive.connect(thrift_transport=transport)
 
 					else:
 						self.hive_conn = hive.connect(	host = hive_hostname, 
@@ -391,6 +392,11 @@ class operation(object, metaclass=Singleton):
 														auth = "KERBEROS", 
 														kerberos_service_name = self.hive_kerberos_service_name, 
 														configuration = {'hive.llap.execution.mode': 'none'} )
+#						self.hive_conn = hive.connect(	host = hive_hostname, 
+#														port = hive_port, 
+#														database = "default", 
+#														auth = "KERBEROS", 
+#														kerberos_service_name = self.hive_kerberos_service_name )
 
 					self.hive_cursor = self.hive_conn.cursor()
 					self.hive_hostname = hive_hostname

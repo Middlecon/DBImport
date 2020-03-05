@@ -830,6 +830,8 @@ class operation(object, metaclass=Singleton):
 					try:
 						logging.warning("There are no rows in the source table. As this is an incremental import, sqoop will not run")
 						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
+						self.import_config.saveSourceTableRowCount(rowCount=0, incr=False)
+						self.import_config.saveSourceTableRowCount(rowCount=0, incr=True, printInfo=False)
 					except:
 						logging.exception("Fatal error when saving sqoop statistics")
 						self.import_config.remove_temporary_files()
@@ -1160,6 +1162,8 @@ class operation(object, metaclass=Singleton):
 					try:
 						logging.warning("There are no rows in the source table. As this is an incremental import, sqoop will not run")
 						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
+						self.import_config.saveSourceTableRowCount(rowCount=0, incr=False)
+						self.import_config.saveSourceTableRowCount(rowCount=0, incr=True, printInfo=False)
 					except:
 						logging.exception("Fatal error when saving sqoop statistics")
 						self.import_config.remove_temporary_files()

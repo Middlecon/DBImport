@@ -458,7 +458,7 @@ class initialize(object):
 		if result_df.empty or (result_df[0] == 'airflow_dummy_task_queue').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dummy_task_queue', 
-				valueStr='', 
+				valueStr='default', 
 				description='Queue to use for dummy tasks (stop, stage_one_complete and more)')
 			self.configDB.execute(query)
 

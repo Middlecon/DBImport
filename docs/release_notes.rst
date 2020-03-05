@@ -17,6 +17,7 @@ v0.65 (not released)
   - Issue #69: schedule_interval columns with different size
   - Issue #70: Support for authentication source for Mongo connections
   - Issue #71: testConnection against Mongo does not work
+  - Issue #72: Incremental import of empty tables failes because no rows stored from source
 
 **Changed behavior**
 
