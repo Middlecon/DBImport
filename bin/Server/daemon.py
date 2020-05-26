@@ -89,7 +89,7 @@ class distCP(threading.Thread):
 			log.info("Thread %s: HDFStargetPath = %s"%(self.name, HDFStargetPath))
 			log.info("Thread %s: --------------------------------------------------------"%(self.name))
 
-			distcpCommand = ["hadoop", "distcp", "-D", "mapreduce.job.queuename=%s"%(yarnQueue), "-overwrite", "-delete",
+			distcpCommand = ["hadoop", "distcp", "-D", "yarn.timeline-service.enabled=false", "-D", "mapreduce.job.queuename=%s"%(yarnQueue), "-overwrite", "-delete",
 				"%s"%(HDFSsourcePath),
 				"%s"%(HDFStargetPath)]
 
@@ -254,6 +254,13 @@ class serverDaemon(run.RunDaemon):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
+		except SQLerror:
+			log.error("Server startup failed. Cant connect to config database")
+			self.disconnectDBImportDB()
+			self.common_config.remove_temporary_files()
+			sys.exit(1)
+
+
 		importTables = aliased(configSchema.importTables)
 		dbimportInstances = aliased(configSchema.dbimportInstances)
 		copyASyncStatus = aliased(configSchema.copyASyncStatus)
@@ -398,6 +405,9 @@ class serverDaemon(run.RunDaemon):
 			except SQLAlchemyError as e:
 				log.error(str(e.__dict__['orig']))
 				session.rollback()
+				self.disconnectDBImportDB()
+
+			except SQLerror:
 				self.disconnectDBImportDB()
 
 			else:

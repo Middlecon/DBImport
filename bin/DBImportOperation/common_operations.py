@@ -86,13 +86,12 @@ class operation(object, metaclass=Singleton):
 
 		self.hive_min_buckets = int(configuration.get("Hive", "min_buckets"))
 		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
+		self.hiveConnectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")
 
 		# HDFS Settings
 		self.hdfs_address = self.common_config.getConfigValue(key = "hdfs_address")
 		self.hdfs_basedir = self.common_config.getConfigValue(key = "hdfs_basedir")
 		self.hdfs_blocksize = self.common_config.getConfigValue(key = "hdfs_blocksize")
-
-		self.hiveConnectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")
 
 		try:
 			self.hiveMetaDB = sa.create_engine(self.hiveConnectStr, echo = self.debugLogLevel)
@@ -328,7 +327,7 @@ class operation(object, metaclass=Singleton):
 		try:
 			row = session.query(TBLS.TBL_TYPE).select_from(TBLS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
 		except sa.orm.exc.NoResultFound:
-			raise rowNotFound("Cant get TBLS.TBL_TYPE from Hive Meta Database"%(hiveDB))
+			raise rowNotFound("Cant get TBLS.TBL_TYPE from Hive Meta Database")
 
 #		query = "select t.TBL_TYPE from TBLS t left join DBS d on t.DB_ID = d.DB_ID where d.NAME = %s and t.TBL_NAME = %s"
 #		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
@@ -834,6 +833,15 @@ class operation(object, metaclass=Singleton):
 
 		self.executeHiveQuery("analyze table `%s`.`%s` compute statistics "%(hiveDB, hiveTable))
 		logging.debug("Executing common_operations.updateHiveTableStatistics() - Finished")
+
+	def runHiveMajorCompaction(self, hiveDB, hiveTable):
+		""" Force a major compaction on a Hive table """
+		logging.debug("Executing common_operations.runHiveMajorCompaction()")
+
+		if self.common_config.getConfigValue(key = "hive_major_compact_after_merge") == True:
+			logging.info("Running a Major compaction on Hive table")
+			self.executeHiveQuery("alter table `%s`.`%s` compact 'major' "%(hiveDB, hiveTable))
+		logging.debug("Executing common_operations.runHiveMajorCompaction() - Finished")
 
 
 	def convertHiveTableToACID(self, hiveDB, hiveTable, createDeleteColumn=False, createMergeColumns=False):

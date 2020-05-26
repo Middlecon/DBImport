@@ -37,34 +37,6 @@ import numpy as np
 import time
 import base64
 
-#class sparkUDF():
-#	def encode_array(self, s):
-#		try:
-#			s_new = []
-#			for struct in s:
-#				s_new.append(list(map(self.encode_binary, struct)))
-#			return s_new
-#		except TypeError:
-#			return self.encode_binary(s)
-#
-#	def check_binary(self, s):
-#		for b in s:
-#			if not is_bin(b):
-#				return False
-#		return True
-#
-#	def encode_binary(self, s):
-#		try:
-#			if is_bin(s[0]) and self.check_binary(s[1]):
-#				base_64 = base64.b64encode(s[1]).decode('UTF-8')
-#				return [s[0], base_64]
-#		except:
-#			pass
-#		return s
-#
-#	def squared(s):
-#		return s * s
-
 class operation(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
 		logging.debug("Executing import_operations.__init__()")
@@ -212,11 +184,13 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def getImportTableRowCount(self):
+	def getImportTableRowCount(self, excludeOracleFlashbackDeletes=False):
+
 		whereStatement = None
-#		if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-#			# Needed otherwise we will count rows that will be deleted and that will cause the validation to fail
-#			whereStatement = "datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
+
+		if excludeOracleFlashbackDeletes == True:
+			# Needed otherwise we will count rows that will be deleted and that will cause the validation to fail
+			whereStatement = "datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
 
 		try:
 			importTableRowCount = self.common_operations.getHiveTableRowCount(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table, whereStatement = whereStatement)
@@ -228,7 +202,14 @@ class operation(object, metaclass=Singleton):
 
 	def getTargetTableRowCount(self):
 		try:
-			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True)
+			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, ignoreSQLwhereAddition=True)
+
+#			if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+#				if whereStatement == None:
+#					whereStatement = "datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
+#				else:
+#					whereStatement += " and datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
+
 			if whereStatement == None and self.import_config.import_with_merge == True and self.import_config.soft_delete_during_merge == True:
 				whereStatement = "datalake_iud != 'D'"
 
@@ -564,21 +545,17 @@ class operation(object, metaclass=Singleton):
 		from pyspark import HiveContext
 		from pyspark.context import SparkContext
 		import pyspark.sql.types 
-#		from pyspark.sql.types import __all__
 		from pyspark.sql.functions import udf
-#		import common.sparkUDF as sparkUDF 
-#		import sparkUDF 
-#		import pyspark.sql.functions 
 
 		conf = SparkConf()
 		conf.setMaster(self.import_config.common_config.sparkMaster)
-#		conf.set('spark.mongodb.input.uri', "mongodb://SPDatalakeReader:nREnqKhCepym9uuT@sesoco2254.global.scd.scania.com:27017/SalesportalDatabase.NewsAttachments")
 		conf.set('spark.mongodb.input.uri', mongoUri)
 		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
 		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
 		conf.set('spark.jars', sparkJars)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
+		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		if self.import_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
@@ -845,8 +822,8 @@ class operation(object, metaclass=Singleton):
 		# Create the SQL that will be used to fetch the data. This will be used on a "from" statement
 		if incrWhereStatement != "":
 			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), incrWhereStatement, self.Hive_Table)
-		elif self.import_config.sqoop_sql_where_addition != None and self.import_config.sqoop_sql_where_addition.strip() != "":
-			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.sqoop_sql_where_addition, self.Hive_Table)
+		elif self.import_config.getSQLWhereAddition() != None:
+			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.getSQLWhereAddition(), self.Hive_Table)
 		else:
 			sparkQuery = "(%s) %s"%(self.import_config.getSQLtoReadFromSource(), self.Hive_Table)
 
@@ -923,6 +900,7 @@ class operation(object, metaclass=Singleton):
 		from pyspark import HiveContext
 		from pyspark.context import SparkContext
 		from pyspark.sql import Row
+		from pyspark.sql.functions import udf
 		import pyspark.sql.session
 
 		conf = SparkConf()
@@ -932,6 +910,7 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.jars', sparkJars)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
+		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		if self.import_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
@@ -966,6 +945,11 @@ class operation(object, metaclass=Singleton):
 		spark = SparkSession(sc)
 		sys.stdout.flush()
 
+		sc.addPyFile("%s/bin/common/sparkUDF2.py"%(os.environ['DBIMPORT_HOME']))
+#		from sparkUDF import hashColumn
+#		from sparkUDF import setSeedString
+		import sparkUDF2
+
 		yarnApplicationID = sc.applicationId
 		logging.info("Yarn application started with id %s"%(yarnApplicationID))
 		sys.stdout.flush()
@@ -998,6 +982,38 @@ class operation(object, metaclass=Singleton):
 				.option("numPartitions", self.import_config.sqlSessions)
 				.load())
 
+		# Anonymization of data in columns
+		sparkUDF = sparkUDF2.sparkUDFClass()
+		sparkUDF.setSeedString(self.import_config.common_config.getAnonymizationSeed())
+
+		udfHashColumn = udf(sparkUDF.hashColumn, pyspark.sql.types.StringType())
+		udfReplaceCharWithStar = udf(sparkUDF.replaceCharWithStar, pyspark.sql.types.StringType())
+		udfShowFirstFourCharacters = udf(sparkUDF.showFirstFourCharacters, pyspark.sql.types.StringType())
+
+		# Get a Pandas DF with columnames and anonymization function
+		anonymizationFunction = self.import_config.getAnonymizationFunction()
+#		anonymizationFunction = anonymizationFunction[anonymizationFunction.anonymization_function != 'None']
+
+		for index, row in anonymizationFunction.iterrows():
+			cName = row['source_column_name']
+			cFunction = row['anonymization_function']
+
+			logging.info("Anonymizing data in column '%s' with function '%s'"%(cName, cFunction))
+			sys.stdout.flush()
+
+			if cFunction == 'Hash':
+				df = df.withColumn(cName, udfHashColumn(cName))
+			elif cFunction == 'Replace with star':
+				df = df.withColumn(cName, udfReplaceCharWithStar(cName))
+			elif cFunction == 'Show first 4 chars':
+				df = df.withColumn(cName, udfShowFirstFourCharacters(cName))
+
+#		print(df.show())
+#		sc.stop()
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
+
+		# Write ORC files
 		sys.stdout.flush()
 		df.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
@@ -1044,6 +1060,12 @@ class operation(object, metaclass=Singleton):
 
 		self.sqoopStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 		self.sqoopStartUTS = int(time.time())
+
+		# Check if any column is anonymized. If it is, we need to exit as that is only supported with Spark
+		if self.import_config.isAnyColumnAnonymized() == True:
+			logging.error("There are column in this table that is configured for anonymization. Those functions are only supported by spark and not by sqoop.")
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
 
 		# Fetch the number of mappers that should be used
 		self.import_config.calculateJobMappers()
@@ -1093,7 +1115,7 @@ class operation(object, metaclass=Singleton):
 
 		# Handle the situation where the source dont have a PK and there is no split-by (force mappers to 1)
 		if self.import_config.generatedPKcolumns == None and "split-by" not in self.import_config.sqoop_options.lower():
-			logging.warning("There is no PrimaryKey in source system and no--split-by in the sqoop_options columns. This will force the import to use only 1 mapper")
+			logging.warning("There is no PrimaryKey in source system and no --split-by in the sqoop_options columns. This will force the import to use only 1 mapper")
 			self.import_config.sqlSessions = 1	
 	
 
@@ -1104,6 +1126,7 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand.extend(["-D", "mapreduce.map.memory.mb=%s"%(25000)])
 		sqoopCommand.extend(["-D", "mapreduce.reduce.memory.mb=%s"%(50000)])
 		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
+		sqoopCommand.extend(["-D", "yarn.timeline-service.enabled=false"]) 
 		sqoopCommand.extend(["-D", "org.apache.sqoop.splitter.allow_text_splitter=%s"%(self.import_config.sqoop_allow_text_splitter)])
 
 		if "split-by" not in self.import_config.sqoop_options.lower():
@@ -1178,21 +1201,22 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.extend(["--query", "%s %s AND $CONDITIONS "%(sqoopQuery, incrWhereStatement)])
 		elif sqoopQuery == "":
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-				sqoopCommand.extend(["--where", incrWhereStatement])
+				if self.import_config.getSQLWhereAddition() != None:
+					sqoopCommand.extend(["--where", "%s and %s"%(incrWhereStatement, self.import_config.getSQLWhereAddition())])
+				else:
+					sqoopCommand.extend(["--where", incrWhereStatement])
 			else:
-				if self.import_config.sqoop_sql_where_addition != None:
-					sqoopCommand.extend(["--where", self.import_config.sqoop_sql_where_addition.replace('"', '\'')])
+				if self.import_config.getSQLWhereAddition() != None:
+					sqoopCommand.extend(["--where", self.import_config.getSQLWhereAddition()])
 			sqoopCommand.extend(sqoopSourceSchema)
 		else:
 			if self.import_config.import_is_incremental == True and PKOnlyImport == False:
 				sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, incrWhereStatement)])
 			else:
-				if self.import_config.sqoop_sql_where_addition != None:
-					sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, self.import_config.sqoop_sql_where_addition.replace('"', '\''))])
+				if self.import_config.getSQLWhereAddition() != None:
+					sqoopCommand.extend(["--query", "%s where $CONDITIONS and %s"%(sqoopQuery, self.import_config.getSQLWhereAddition())])
 				else:
 					sqoopCommand.extend(["--query", "%s where $CONDITIONS"%(sqoopQuery)])
-
-#		print(sqoopQuery)
 
 		logging.info("Starting sqoop with the following command: %s"%(sqoopCommand))
 		sqoopOutput = ""
@@ -1260,7 +1284,8 @@ class operation(object, metaclass=Singleton):
 
 				if "java.sql.SQLException: ORA-30052:" in row:
 					# java.sql.SQLException: ORA-30052: invalid lower limit snapshot expression 
-					logging.error("The Oracle Flashback import has passed the valid timeframe for undo logging in Oracle. To recover from this failure, you need to do a full import.")
+					logging.error("The Oracle Flashback import has passed the valid timeframe for undo logging in Oracle. To recover from this failure, you need to do an initial load.")
+					logging.error("This is best done with './manage --resetCDCImport -h <Hive_DB> -t <Hive_Table>'")
 					self.remove_temporary_files()
 					sys.exit(1)
 
@@ -2045,6 +2070,10 @@ class operation(object, metaclass=Singleton):
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_PKonly_DB, self.import_config.Hive_Import_PKonly_Table)
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table)
 			self.common_operations.removeHiveLocksByForce(self.import_config.Hive_HistoryTemp_DB, self.import_config.Hive_HistoryTemp_Table)
+
+	def runHiveMajorCompaction(self,):
+		self.common_operations.connectToHive(forceSkipTest=True)
+		self.common_operations.runHiveMajorCompaction(self.Hive_DB, self.Hive_Table)
 
 	def truncateTargetTable(self,):
 		logging.info("Truncating Target table in Hive")

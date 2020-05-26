@@ -75,6 +75,7 @@ class config(object, metaclass=Singleton):
 		self.db_db2udb = False
 		self.db_db2as400 = False
 		self.db_mongodb = False
+		self.db_cachedb = False
 		self.jdbc_url = None
 		self.jdbc_hostname = None
 		self.jdbc_port = None
@@ -97,6 +98,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_oracle_servicename = None
 		self.jdbc_force_column_lowercase = None
 		self.jdbc_environment = None
+		self.seedFile = None
 		self.mongoClient = None
 		self.mongoDB = None
 		self.mongoAuthSource = None
@@ -128,6 +130,8 @@ class config(object, metaclass=Singleton):
 		self.atlasJdbcSourceSupport = None
 
 		self.sourceSchema = None
+
+		self.custom_max_query = None
 
 		self.source_columns_df = pd.DataFrame()
 		self.source_keys_df = pd.DataFrame()
@@ -188,6 +192,16 @@ class config(object, metaclass=Singleton):
 
 		# Sets and create a temporary directory
 		self.tempdir = "/tmp/dbimport." + str(os.getpid()) + ".tmp"
+
+		# If the temp dir exists, we just remove it as it's a leftover from another DBImport execution
+		try:
+			shutil.rmtree(self.tempdir)
+		except FileNotFoundError:
+			pass
+		except PermissionError:
+			logging.error("The temporary directory (%s) already exists but cant be removed due to permission error"%(self.tempdir))
+			sys.exit(1)
+
 		try:
 			os.mkdir(self.tempdir)
 		except OSError: 
@@ -1004,6 +1018,7 @@ class config(object, metaclass=Singleton):
 
 		if decryptCredentials == True and copySlave == False:
 			credentials = self.crypto.decrypt(row[1])
+			
 			if credentials == None:
 				raise invalidConfiguration("Cant decrypt username and password. Check private/public key in config file")
 		
@@ -1264,10 +1279,34 @@ class config(object, metaclass=Singleton):
 			self.jdbc_database = self.jdbc_url[8:].split('/')[1].split('?')[0].strip()
 
 			# Get all options in order to find authSource
-			mongoOptions = dict(x.split("=") for x in self.jdbc_url.split('?')[1].split("&"))
-			for k, v in mongoOptions.items():
-				if ( k.lower() == "authsource" ):
-					self.mongoAuthSource = v
+			try:
+				mongoOptions = dict(x.split("=") for x in self.jdbc_url.split('?')[1].split("&"))
+				for k, v in mongoOptions.items():
+					if ( k.lower() == "authsource" ):
+						self.mongoAuthSource = v
+			except IndexError:
+				pass
+
+		if self.jdbc_url.startswith( 'jdbc:Cache://'): 
+			self.atlasJdbcSourceSupport = True
+			self.db_cachedb = True
+			self.jdbc_servertype = constant.CACHEDB
+			self.jdbc_force_column_lowercase = False
+			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("CacheDB", "default")
+			self.jdbc_classpath_for_python = self.jdbc_classpath
+
+			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
+			try:
+				self.jdbc_port = self.jdbc_url[13:].split(':')[1].split('/')[0]
+			except:
+				self.jdbc_port = "1972"
+			if self.jdbc_port.isdigit() == False: self.jdbc_port = "1972"
+
+			try:
+				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split(':')[0]
+			except:
+				logging.error("Cant determine database based on jdbc_string")
+				exit_after_function = True
 
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
@@ -1287,6 +1326,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    db_db2udb = %s"%(self.db_db2udb))
 		logging.debug("    db_db2as400 = %s"%(self.db_db2as400))
 		logging.debug("    db_mongodb = %s"%(self.db_mongodb))
+		logging.debug("    db_cachedb = %s"%(self.db_cachedb))
 		logging.debug("    jdbc_servertype = %s"%(self.jdbc_servertype))
 		logging.debug("    jdbc_url = %s"%(self.jdbc_url))
 		logging.debug("    jdbc_username = %s"%(self.jdbc_username))
@@ -1349,11 +1389,29 @@ class config(object, metaclass=Singleton):
 
 	def disconnectFromJDBC(self):
 		logging.debug("Disconnect from JDBC database")
+
+		if self.db_mongodb == True:
+			# This is a MongoDB connection. Lets rediret to disconnectFromMongo instead
+			return self.disconnectFromMongo()
+
 		try:
 			self.JDBCCursor.close()
 			self.JDBCConn.close()
+
 		except AttributeError:
 			pass
+
+		except jpype.JavaException as exception:
+			logging.info("Disconnection to database over JDBC failed with the following error:")
+			logging.info(exception.message())
+			pass
+
+		except Exception as exception:
+			logging.info("Unknown error during disconnection to JDBC database:")
+			logging.info(exception.message())
+			pass
+
+
 		self.JDBCCursor = None
 		
 	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger=""):
@@ -1422,9 +1480,16 @@ class config(object, metaclass=Singleton):
 		if self.db_db2as400 == True:		
 			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
 
+		if self.custom_max_query != None:
+			# If a custom query is configured, we just use that instead and ignore the config above
+			query = self.custom_max_query
+			logging.info("Using a custom query to get Max value from source table (%s)"%(query))
+
 		self.JDBCCursor.execute(query)
 		logging.debug("SQL Statement executed: %s" % (query) )
 		row = self.JDBCCursor.fetchone()
+
+		logging.info("Max value that will be used in the incremental import is '%s'"%(row[0]))
 
 		return row[0]
 
@@ -1724,7 +1789,7 @@ class config(object, metaclass=Singleton):
 		returnValue = None
 		boolValue = False
 	
-		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty"):
+		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge"):
 			valueColumn = "valueInt"
 			boolValue = True
 		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval"):
@@ -2382,4 +2447,30 @@ class config(object, metaclass=Singleton):
 		log.debug("Executing common_config.discoverAtlasRdbms() - Finished")
 		return True
 
+	def getAnonymizationSeed(self):
+		logging.debug("Executing common_config.getAnonymizationSeed()")
 
+		# Set the default seed from the configuration file
+		seed = configuration.get("Anonymization", "seed")
+
+		query = "select seed_file from jdbc_connections where dbalias = %s "
+		logging.debug("Executing the following SQL: %s" % (query))
+		self.mysql_cursor.execute(query, (self.dbAlias, ))
+
+		row = self.mysql_cursor.fetchone()
+		seedFile = row[0]
+
+		if seedFile != None:
+			if os.path.exists(seedFile) == False:
+				logging.error("The connection have a seed file configured, but the tool is unable to find that file.")
+				self.remove_temporary_files()
+				sys.exit(1)
+
+			seed = open(seedFile,"r").read()
+
+		if len(seed) > 16:
+			logging.warning("The seed is longer that 16 characters. Will truncate the seed to only include the first 16 characters")
+			seed = seed[:16]
+
+		logging.debug("Executing common_config.getAnonymizationSeed() - Finished")
+		return seed

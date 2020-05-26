@@ -24,6 +24,7 @@ import ssl
 import requests
 import getpass
 import urllib
+import jpype
 from requests_kerberos import HTTPKerberosAuth
 from ConfigReader import configuration
 import mysql.connector
@@ -113,6 +114,9 @@ class config(object, metaclass=Singleton):
 		self.importTool = None
 		self.spark_executor_memory = None
 		self.split_by_column = None
+		self.splitAddedToSqoopOptions = False
+		self.custom_max_query = None
+		self.printSQLWhereAddition = True
 
 		self.importPhase = None
 		self.importPhaseDescription = None
@@ -268,7 +272,8 @@ class config(object, metaclass=Singleton):
 				"    create_foreign_keys, "
 				"    import_tool, "
 				"    spark_executor_memory, "
-				"    split_by_column "
+				"    split_by_column, "
+				"    custom_max_query "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -347,6 +352,8 @@ class config(object, metaclass=Singleton):
 		self.importTool = row[34]
 		self.spark_executor_memory = row[35]
 		self.split_by_column = row[36]
+		self.custom_max_query = row[37]
+		self.common_config.custom_max_query = self.custom_max_query
 
 		if self.importTool != "sqoop" and self.importTool != "spark":
 			raise invalidConfiguration("Only the values 'sqoop' or 'spark' is valid for column import_tool in import_tables.")
@@ -421,6 +428,9 @@ class config(object, metaclass=Singleton):
 				validCombination = True
 
 			if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge": 
+				validCombination = True
+
+			if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge_history_audit": 
 				validCombination = True
 
 			if validCombination == False:
@@ -538,6 +548,18 @@ class config(object, metaclass=Singleton):
 			self.importPhaseDescription  = "Oracle Flashback"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge"
+
+			if self.soft_delete_during_merge == True: 
+				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
+
+		if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge_history_audit":
+			self.import_type_description = "Import with the help of Oracle Flashback. Will also create a History table"
+			self.importPhase             = constant.IMPORT_PHASE_ORACLE_FLASHBACK
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEHISTORYAUDIT
+			self.importPhaseDescription  = "Oracle Flashback"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge History Audit"
 
 			if self.soft_delete_during_merge == True: 
 				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
@@ -850,9 +872,41 @@ class config(object, metaclass=Singleton):
 
 		return columnName
 
+	def isAnyColumnAnonymized(self, ):
+		columnDF = self.getAnonymizationFunction()
+
+		if columnDF.empty == True:
+			return False
+		else:
+			return True
+
+	def getAnonymizationFunction(self, ):
+		""" Reads all columns and returns a dict with column name and anonymization function """
+		logging.debug("Executing import_config.getAnonymizationFunction()")
+
+		query  = "select "
+		query += "	source_column_name, "
+		query += "	anonymization_function "
+		query += "from import_columns where table_id = %s and anonymization_function != 'None'"
+		self.mysql_cursor01.execute(query, (self.table_id, ))
+		logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
+
+		result_df = pd.DataFrame()
+		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
+		if result_df.empty == False:
+			# Set the correct column namnes in the DataFrame
+			result_df_columns = []
+			for columns in self.mysql_cursor01.description:
+				result_df_columns.append(columns[0])    # Name of the column is in the first position
+			result_df.columns = result_df_columns
+
+		logging.debug("Executing import_config.getAnonymizationFunction() - Finished")
+		return result_df
+
+
 	def saveColumnData(self, ):
-		# This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
-		# and insert/update the data in the import_columns table. This also takes care of column type conversions if it's needed
+		""" This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
+		and insert/update the data in the import_columns table. This also takes care of column type conversions if it's needed """
 		logging.debug("")
 		logging.debug("Executing import_config.saveColumnData()")
 		logging.info("Saving column data to MySQL table - import_columns")
@@ -888,7 +942,8 @@ class config(object, metaclass=Singleton):
 			query += "	include_in_import, "
 			query += "	column_name_override, "
 			query += "	column_type_override, "
-			query += "	sqoop_column_type_override "
+			query += "	sqoop_column_type_override, "
+			query += "	anonymization_function "
 			query += "from import_columns where table_id = %s and source_column_name = %s "
 			self.mysql_cursor01.execute(query, (self.table_id, source_column_name))
 			logging.debug("SQL Statement executed: \n%s" % (self.mysql_cursor01.statement) )
@@ -897,6 +952,7 @@ class config(object, metaclass=Singleton):
 			columnID = None
 			columnTypeOverride = None
 			sqoopColumnTypeOverride = None
+			anonymizationFunction = 'None'
 
 			columnRow = self.mysql_cursor01.fetchone()
 			if columnRow != None:
@@ -909,6 +965,8 @@ class config(object, metaclass=Singleton):
 					columnTypeOverride = columnRow[3].strip().lower()
 				if columnRow[4] != None and columnRow[4].strip() != "":
 					sqoopColumnTypeOverride = columnRow[4].strip().lower().capitalize() 
+
+				anonymizationFunction = columnRow[5]
 #					if sqoopColumnTypeOverride == "string": sqoopColumnTypeOverride = "String"
 #					if sqoopColumnTypeOverride == "integer": sqoopColumnTypeOverride = "Integer"
 
@@ -1102,6 +1160,10 @@ class config(object, metaclass=Singleton):
 				
 			if columnTypeOverride != None:
 				column_type = columnTypeOverride
+
+			# If the data in the column will be anonymized, we will set the column type to a string type.
+			if anonymizationFunction != 'None':
+				column_type = "string"
 
 			# As Parquet imports some column types wrong, we need to map them all to string
 			if column_type in ("timestamp", "date", "bigint"): 
@@ -1641,7 +1703,7 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.clearTableRowCount() - Finished")
 
-	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False):
+	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False, ignoreSQLwhereAddition=False):
 		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
 		logging.debug("Executing import_config.getIncrWhereStatement()")
 		logging.debug("forceIncr = %s"%(forceIncr))
@@ -1684,9 +1746,18 @@ class config(object, metaclass=Singleton):
 				# There is no MaxValue stored form previous imports. That means we need to do a full import up to SCN number
 				# It also means that this will only be executed by sqoop, as after sqoop there will be a maxvalue present
 				if whereForSourceTable == True or whereForSqoop == True:
-#					whereStatement  = "VERSIONS BETWEEN SCN 1310367330000 AND %s "%(self.sqoopIncrMaxvaluePending)
-					whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(self.sqoopIncrMaxvaluePending)
+					try:
+						self.sqoopIncrMinvaluePending = int(self.common_config.executeJDBCquery("SELECT OLDEST_FLASHBACK_SCN FROM V$FLASHBACK_DATABASE_LOG").iloc[0]['OLDEST_FLASHBACK_SCN'])
+						whereStatement = "VERSIONS BETWEEN SCN %s AND %s "%(self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending)
+					except SQLerror as errMsg:
+						# Some versions of Oracle dont have the V$FLASHBACK_DATABASE_LOG table. So it it's not found, we use the MINVALUE function instead
+						if "view does not exist" in str(errMsg):
+							whereStatement  = "VERSIONS BETWEEN SCN MINVALUE AND %s "%(self.sqoopIncrMaxvaluePending)
+						else:
+							raise SQLerror(str(errMsg))
+
 					whereStatement += "WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)"
+					
 			else:
 				if whereForSourceTable == True or whereForSqoop == True:
 					whereStatement  = "VERSIONS BETWEEN SCN %s AND %s "%(self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending)
@@ -1697,14 +1768,14 @@ class config(object, metaclass=Singleton):
 				else:
 					# This will be the where statement for the Target table in Hive
 					if self.sqoop_incr_validation_method == "incr":
-#						whereStatement = "datalake_update = (select max(datalake_update) from `%s`.`%s`) "%(self.Hive_DB, self.Hive_Table) 
 						whereStatement = "datalake_update = '%s' "%(self.sqoop_last_execution_timestamp) 
 
-			if self.sqoop_sql_where_addition != None and self.sqoop_sql_where_addition.strip() != "":
+			if self.getSQLWhereAddition() != None and ignoreSQLwhereAddition == False:
 				if whereStatement != None:
-					whereStatement += "AND %s "%(self.sqoop_sql_where_addition)
+					whereStatement += "AND %s "%(self.getSQLWhereAddition())
 				else:
-					whereStatement = "%s "%(self.sqoop_sql_where_addition)
+					whereStatement = "%s "%(self.getSQLWhereAddition())
+
 
 		else:
 			if whereForSqoop == True:
@@ -1761,8 +1832,9 @@ class config(object, metaclass=Singleton):
 
 			whereStatementSaved = whereStatement
 
-			if self.sqoop_sql_where_addition != None and self.sqoop_sql_where_addition.strip() != "":
-				whereStatement += "and %s "%(self.sqoop_sql_where_addition)
+#			if self.sqoop_sql_where_addition != None and self.sqoop_sql_where_addition.strip() != "":
+			if self.getSQLWhereAddition() != None and ignoreSQLwhereAddition == False:
+				whereStatement += "and %s "%(self.getSQLWhereAddition())
 
 			if ( self.sqoop_incr_validation_method == "incr" or forceIncr == True or whereForSqoop == True ) and self.sqoop_incr_lastvalue != None:
 				if self.sqoop_incr_mode == "lastmodified":
@@ -1825,9 +1897,9 @@ class config(object, metaclass=Singleton):
 				JDBCRowsIncr = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
 				logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
 		else:
-			if self.sqoop_sql_where_addition != None:
-				logging.debug("Where statement for full imports: %s"%(self.sqoop_sql_where_addition))
-				whereStatement = self.sqoop_sql_where_addition
+			if self.getSQLWhereAddition() != None:
+				logging.debug("Where statement for full imports: %s"%(self.getSQLWhereAddition()))
+				whereStatement = self.getSQLWhereAddition()
 			else:
 				whereStatement = ""
 
@@ -2059,6 +2131,30 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.getColumnsFromConfigDatabase() - Finished")
 		return result_df
 
+	def getSQLWhereAddition(self,):
+		""" Returns the SQL Where addition used by the sqoop and spark """
+
+		if self.sqoop_sql_where_addition == None or self.sqoop_sql_where_addition.strip() == "":
+			return None
+
+		sqlWhere = self.sqoop_sql_where_addition.replace('"', '\'')
+		printCustomSQL = False
+
+		if "${MIN_VALUE}" in sqlWhere:
+			printCustomSQL = True
+			sqlWhere = sqlWhere.replace("${MIN_VALUE}", str(self.sqoop_incr_lastvalue))
+
+		if "${MAX_VALUE}" in sqlWhere:
+			printCustomSQL = True
+			sqlWhere = sqlWhere.replace("${MAX_VALUE}", str(self.sqoopIncrMaxvaluePending))
+
+		if printCustomSQL == True and self.printSQLWhereAddition == True:
+			logging.info("Values have been replaced in the SQL where addition. New value is:")
+			self.printSQLWhereAddition = False
+			print(sqlWhere)
+
+		return sqlWhere
+
 	def getHiveTableComment(self,):
 		""" Returns the table comment stored in import_tables.comment """
 		logging.debug("Executing import_config.getHiveTableComment()")
@@ -2181,7 +2277,7 @@ class config(object, metaclass=Singleton):
 				logging.info("%s validation successful!"%(validateText))
 				logging.info("%s rowcount: %s"%(validateTextSource, source_rowcount))
 				logging.info("%s rowcount: %s"%(validateTextTarget, target_rowcount))
-				logging.info("")
+				print()
 				returnValue = True 
 
 		else:
@@ -2333,14 +2429,27 @@ class config(object, metaclass=Singleton):
 		# Call self.getPKcolumns() to get a correct self.pk_column_override value
 		self.getPKcolumns()
 
-		if self.split_by_column != None and self.split_by_column.strip() != "" and "split-by" in self.sqoop_options.lower():
+		logging.debug("self.split_by_column: %s"%(self.split_by_column))
+		logging.debug("self.sqoop_options: %s"%(self.sqoop_options))
+		logging.debug("self.generatedPKcolumns: %s"%(self.generatedPKcolumns))
+		logging.debug("self.splitAddedToSqoopOptions: %s"%(self.splitAddedToSqoopOptions))
+
+		# self.splitAddedToSqoopOptions is needed as this code is executed many times during an import. And the --split-by is inserted into self.sqoop_options
+		# and we dont want a warning for that when the code did it by it self
+
+		if self.split_by_column != None and self.split_by_column.strip() != "" and "split-by" in self.sqoop_options.lower() and self.splitAddedToSqoopOptions == False:
 			raise invalidConfiguration("Specifying both a '--split-by' in sqoop_options column and a value in 'split_by_column' is not supported. Please remove the '--split-by' statement in sqoop_options and rerun the import.")
 
 		if self.split_by_column != None and self.split_by_column.strip() != "":
 			# self.split_by_column comes from configuration database
 			self.splitByColumn = self.split_by_column
 
-		elif "split-by" in self.sqoop_options.lower():
+			if "split-by" not in self.sqoop_options.lower():
+				if self.sqoop_options != "": self.sqoop_options += " "
+				self.sqoop_options += "--split-by \"%s\""%(self.splitByColumn)
+				self.splitAddedToSqoopOptions = True
+
+		elif "split-by" in self.sqoop_options.lower() and self.splitByColumn == "" and self.splitAddedToSqoopOptions == False:
 			# Try to read the column from the --split-by config in sqoop_options
 			for id, value in enumerate(self.sqoop_options.split(" ")):
 				if value == "--split-by":
@@ -2354,6 +2463,7 @@ class config(object, metaclass=Singleton):
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
 				self.sqoop_options += "--split-by \"%s\""%(self.splitByColumn)		# This is needed, otherwise PK with space in them fail
+				self.splitAddedToSqoopOptions = True
 
 		elif self.pk_column_override != None and self.pk_column_override.strip() != "":
 			self.splitByColumn = self.pk_column_override.split(",")[0]
@@ -2361,6 +2471,7 @@ class config(object, metaclass=Singleton):
 			if "split-by" not in self.sqoop_options.lower():
 				if self.sqoop_options != "": self.sqoop_options += " "
 				self.sqoop_options += "--split-by \"%s\""%(self.splitByColumn)		# This is needed, otherwise PK with space in them fail
+				self.splitAddedToSqoopOptions = True
 
 		logging.debug("Executing import_config.generateSqoopSplitBy() - Finished")
 
@@ -2368,10 +2479,10 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.generateSqoopBoundaryQuery()")
 		self.generateSqoopSplitBy()
 
-		if "split-by" in self.sqoop_options.lower():
-			for id, value in enumerate(self.sqoop_options.split(" ")):
-				if value == "--split-by":
-					self.splitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
+#		if "split-by" in self.sqoop_options.lower():
+#			for id, value in enumerate(self.sqoop_options.split(" ")):
+#				if value == "--split-by":
+#					self.splitByColumn = self.sqoop_options.split(" ")[id + 1].replace("\"", "")
 		
 		if self.splitByColumn != "":
 			self.sqoopBoundaryQuery = "select min(%s), max(%s) from %s"%(self.splitByColumn, self.splitByColumn, self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))

@@ -144,6 +144,7 @@ def main(argv):
 	print("")
 	print("Export Phase:             %s"%(exportPhaseDescription))
 	print("Export Tool:              %s"%(export_operation.export_config.exportTool))
+	print("JDBC Connection name:     %s"%(export_operation.export_config.common_config.dbAlias))
 	print("Hive database:            %s"%(export_operation.export_config.hiveDB))
 	print("Hive table:               %s"%(export_operation.export_config.hiveTable))
 	print("Target hostname:          %s"%(export_operation.export_config.common_config.jdbc_hostname))

@@ -10,6 +10,7 @@ PROGRESS = "progress_db"
 DB2_UDB = "db2 udb"
 DB2_AS400 = "db2 as400"
 MONGO = "mongo"
+CACHEDB = "cache"
 
 # Key constraints
 PRIMARY_KEY = "P"

@@ -30,6 +30,9 @@ v0.65 (not released)
   - Atlas Integration
   - Import from MongoDB is supported with Spark as import tool 
   - Export to PostgreSQL
+  - Oracle CDC Import supports History table
+  - Can force a major compaction after an Import that uses Hive Merge
+  - Support for anonymization of columns during import
 
 v0.64
 ------------------------------

@@ -162,6 +162,7 @@ class stage(object):
 		elif stage == 3209: stageDescription = "Update Hive statistics on target table"
 		elif stage == 3210: stageDescription = "Get Target table rowcount"
 		elif stage == 3211: stageDescription = "Validate target table"
+		elif stage == 3212: stageDescription = "Running major compaction on Target table"
 
 		# Import_Phase_FULL & ETL_Phase_MERGEONLY
 		elif stage == 3250: stageDescription = "Connecting to Hive"
@@ -175,6 +176,7 @@ class stage(object):
 		elif stage == 3258: stageDescription = "Update Hive statistics on target table"
 		elif stage == 3259: stageDescription = "Get Target table rowcount"
 		elif stage == 3260: stageDescription = "Validate target table"
+		elif stage == 3261: stageDescription = "Running major compaction on Target table"
 
 		# Import_Phase_INCR & ETL_Phase_MERGEONLY
 		elif stage == 3300: stageDescription = "Connecting to Hive"
@@ -188,6 +190,7 @@ class stage(object):
 		elif stage == 3308: stageDescription = "Get Target table rowcount"
 		elif stage == 3309: stageDescription = "Validate target table"
 		elif stage == 3310: stageDescription = "Saving pending incremental values"
+		elif stage == 3311: stageDescription = "Running major compaction on Target table"
 
 		# Import_Phase_INCR & ETL_Phase_MERGEHISTORYAUDIT
 		elif stage == 3350: stageDescription = "Connecting to Hive"
@@ -202,6 +205,7 @@ class stage(object):
 		elif stage == 3359: stageDescription = "Get Target table rowcount"
 		elif stage == 3360: stageDescription = "Validate target table"
 		elif stage == 3361: stageDescription = "Saving pending incremental values"
+		elif stage == 3362: stageDescription = "Running major compaction on Target table"
 
 		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEONLY
 		elif stage == 3400: stageDescription = "Connecting to Hive"
@@ -215,6 +219,7 @@ class stage(object):
 		elif stage == 3408: stageDescription = "Get Target table rowcount"
 		elif stage == 3409: stageDescription = "Validate target table"
 		elif stage == 3410: stageDescription = "Saving pending incremental values"
+		elif stage == 3411: stageDescription = "Running major compaction on Target table"
 
 		# Import_Phase_FULL & ETL_Phase_NONE
 		elif stage == 3450: stageDescription = "Connecting to Hive"
@@ -235,6 +240,21 @@ class stage(object):
 		elif stage == 3509: stageDescription = "Get Target table rowcount"
 		elif stage == 3510: stageDescription = "Validate target table"
 		elif stage == 9999: stageDescription = "DBImport completed successfully"
+
+		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEHISTORYAUDIT
+		elif stage == 3550: stageDescription = "Connecting to Hive"
+		elif stage == 3551: stageDescription = "Creating the import table in the staging database"
+		elif stage == 3552: stageDescription = "Get Import table rowcount"
+		elif stage == 3553: stageDescription = "Validate import table"
+		elif stage == 3554: stageDescription = "Removing Hive locks by force"
+		elif stage == 3555: stageDescription = "Creating the target table"
+		elif stage == 3556: stageDescription = "Creating the history table"
+		elif stage == 3557: stageDescription = "Merge Import table with Target table"
+		elif stage == 3558: stageDescription = "Update Hive statistics on target table"
+		elif stage == 3559: stageDescription = "Get Target table rowcount"
+		elif stage == 3560: stageDescription = "Validate target table"
+		elif stage == 3561: stageDescription = "Saving pending incremental values"
+		elif stage == 3562: stageDescription = "Running major compaction on Target table"
 
 		return stageDescription
 
@@ -346,6 +366,7 @@ class stage(object):
 		elif stage == 3209: stageShortName = "update_statistics"
 		elif stage == 3210: stageShortName = "get_target_rowcount"
 		elif stage == 3211: stageShortName = "validate_target_table"
+		elif stage == 3212: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_MERGEONLY
 		elif stage == 3250: stageShortName = "connect_to_hive"
@@ -359,6 +380,7 @@ class stage(object):
 		elif stage == 3258: stageShortName = "update_statistics"
 		elif stage == 3259: stageShortName = "get_target_rowcount"
 		elif stage == 3260: stageShortName = "validate_target_table"
+		elif stage == 3261: stageShortName = "skip"
 
 		# Import_Phase_INCR & ETL_Phase_MERGEONLY
 		elif stage == 3300: stageShortName = "connect_to_hive"
@@ -372,6 +394,7 @@ class stage(object):
 		elif stage == 3308: stageShortName = "get_target_rowcount"
 		elif stage == 3309: stageShortName = "validate_target_table"
 		elif stage == 3310: stageShortName = "skip"
+		elif stage == 3311: stageShortName = "skip"
 
 		# Import_Phase_INCR & ETL_Phase_MERGEHISTORYAUDIT
 		elif stage == 3350: stageShortName = "connect_to_hive"
@@ -386,6 +409,7 @@ class stage(object):
 		elif stage == 3359: stageShortName = "get_target_rowcount"
 		elif stage == 3360: stageShortName = "validate_target_table"
 		elif stage == 3361: stageShortName = "skip"
+		elif stage == 3362: stageShortName = "skip"
 
 		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEONLY
 		elif stage == 3400: stageShortName = "connect_to_hive"
@@ -399,6 +423,7 @@ class stage(object):
 		elif stage == 3408: stageShortName = "get_target_rowcount"
 		elif stage == 3409: stageShortName = "validate_target_table"
 		elif stage == 3410: stageShortName = "skip"
+		elif stage == 3411: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_TRUNCATEINSERT
 		elif stage == 3450: stageShortName = "connect_to_hive"
@@ -418,6 +443,21 @@ class stage(object):
 		elif stage == 3508: stageShortName = "update_statistics"
 		elif stage == 3509: stageShortName = "get_target_rowcount"
 		elif stage == 3510: stageShortName = "validate_target_table"
+
+		# Import_Phase_ORACLE_FLASHBACK & ETL_Phase_MERGEHISTORYAUDIT
+		elif stage == 3550: stageShortName = "connect_to_hive"
+		elif stage == 3551: stageShortName = "create_import_table"
+		elif stage == 3552: stageShortName = "get_import_rowcount"
+		elif stage == 3553: stageShortName = "validate_import_table"
+		elif stage == 3554: stageShortName = "clear_hive_locks"
+		elif stage == 3555: stageShortName = "create_target_table"
+		elif stage == 3556: stageShortName = "create_history_table"
+		elif stage == 3557: stageShortName = "merge_table"
+		elif stage == 3558: stageShortName = "update_statistics"
+		elif stage == 3559: stageShortName = "get_target_rowcount"
+		elif stage == 3560: stageShortName = "validate_target_table"
+		elif stage == 3561: stageShortName = "skip"
+		elif stage == 3562: stageShortName = "skip"
 
 		elif stage == 9999: stageShortName = "skip"
 

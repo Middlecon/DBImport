@@ -86,7 +86,7 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing etl_operations.connectToHive() - Finished")
 
-	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None, oracleFlashbackSource=False, deleteNotUpdatedRows=False):
+	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None, oracleFlashbackSource=False, deleteNotUpdatedRows=False, oracleFlashbackImportTable=None):
 		""" Merge source table into Target table. Also populate a History Audit table if selected """
 		logging.debug("Executing etl_operations.mergeHiveTables()")
 
@@ -263,7 +263,7 @@ class operation(object, metaclass=Singleton):
 
 		# Statement to select all rows that was changed in the Target table and insert them to the History table
 
-		if createHistoryAudit == True and historyDB != None and historyTable != None:
+		if createHistoryAudit == True and historyDB != None and historyTable != None and oracleFlashbackSource == False:
 			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
 			query += "( "
 			firstIteration = True
@@ -296,12 +296,8 @@ class operation(object, metaclass=Singleton):
 			query += "\nfrom `%s`.`%s` \n"%(targetDB, targetTable)
 			query += "where datalake_update = '%s'"%(mergeTime)
 
-#			print("==============================================================")
-#			print(query)
-#			query = query.replace('\n', '')
 			self.common_operations.executeHiveQuery(query)
 
-#		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
 		if sourceIsIncremental == False and targetDeleteDB != None and targetDeleteTable != None:
 			# Start with truncating the History Delete table as we need to rebuild this one from scratch to determine what rows are deleted
 			query  = "truncate table `%s`.`%s`"%(targetDeleteDB, targetDeleteTable)
@@ -332,13 +328,47 @@ class operation(object, metaclass=Singleton):
 				else:
 					query += "and\n   S.`%s` is null "%(sourceColumn)
 
-#			print("==============================================================")
-#			print(query)
-#			query = query.replace('\n', '')
 			self.common_operations.executeHiveQuery(query)
 
+		if oracleFlashbackSource == True and createHistoryAudit == True:
+			# If it is a history merge with Oracle Flashback, we need to handle the deletes separatly	
+			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
+			query += "( "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   `datalake_source`"
+			query += ",\n   `datalake_iud`"
+			query += ",\n   `datalake_timestamp`"
+			query += "\n) \n"
+
+			query += "select "
+			firstIteration = True
+			for index, row in columnMerge.loc[columnMerge['Exist'] == 'both'].iterrows():
+				if firstIteration == True:
+					firstIteration = False
+					query += " \n"
+				else:
+					query += ", \n"
+				query += "   `%s`"%(row['targetName'])
+			if datalakeSourceExists == True:
+				query += ",\n   '%s'"%(datalakeSource)
+			query += ",\n   `datalake_flashback_operation` as `datalake_iud`"
+			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += "\nfrom `%s`.`%s`"%(sourceDB, oracleFlashbackImportTable)
+#			query += "\nwhere datalake_flashback_operation = 'D'"
+
+			self.common_operations.executeHiveQuery(query)
+
+
 			# Insert the deleted rows into the History table. Without this, it's impossible to see what values the column had before the delete
-		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
+		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
 			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
 			query += "( "
 			firstIteration = True

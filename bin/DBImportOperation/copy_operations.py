@@ -377,7 +377,7 @@ class operation(object, metaclass=Singleton):
 				if self.connectRemoteDBImportInstance(instance = destination):
 					logging.info("Copy HDFS data to instance '%s'"%(destination))
 	
-					distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
+					distcpCommand = ["hadoop", "distcp", "-D", "yarn.timeline-service.enabled=false", "-overwrite", "-delete", 
 						"%s%s"%(sourceHDFSaddress, sourceHDFSdir),
 						"%s%s"%(targetHDFSaddress, targetHDFSdir)]
 
@@ -1419,7 +1419,9 @@ class operation(object, metaclass=Singleton):
 							continue
 	
 						value = str(values[0])
-						if value == "None":
+						if value == "None" and name != "anonymization_function":
+							# The 'anonymization_function' column contains the text 'None' if it doesnt anonymize anything. 
+							# It's a Enum, so it's ok. But we need to handle it here
 							value = None
 	
 						updateDict["%s"%(name)] = value 

@@ -27,6 +27,7 @@ from ConfigReader import configuration
 from datetime import date, datetime, time, timedelta
 import pandas as pd
 from common import constants as constant
+from common.Exceptions import *
 from Schedule import airflowSchema
 from DBImportConfig import configSchema
 from DBImportConfig import common_config
@@ -277,8 +278,14 @@ class initialize(object):
 		for index, row in tables.iterrows():
 			if row['dbalias'] != previousConnectionAlias:
 				# We save the previousConnectionAlias just to avoid making lookups for every dbalias even if they are all the same
-				self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
-				previousConnectionAlias = row['dbalias']
+				try:
+					self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
+					previousConnectionAlias = row['dbalias']
+
+				except invalidConfiguration as errMsg:
+					logging.warning("The connection alias '%s' cant be found in the configuration database"%(row['dbalias']))
+					previousConnectionAlias = None
+					continue
 		
 			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname)
 
@@ -305,9 +312,8 @@ class initialize(object):
 				self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -a %s -S %s -T %s ',\n"%(dbexportClearStageCMD, row['dbalias'], row['target_schema'], row['target_table']))
 				self.DAGfile.write("    pool='%s',\n"%(exportPool))
-#				if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
-				self.DAGfile.write("    priority_weight=0,\n")
+				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -316,9 +322,8 @@ class initialize(object):
 			self.DAGfile.write("    task_id='%s',\n"%(taskID))
 			self.DAGfile.write("    bash_command='%s -a %s -S %s -T %s ',\n"%(dbexportCMD, row['dbalias'], row['target_schema'], row['target_table']))
 			self.DAGfile.write("    pool='%s',\n"%(exportPool))
-#			if row['airflow_priority'] != None and row['airflow_priority'] != '':
-#				self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 			self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    retries=%s,\n"%(retries))
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
@@ -450,7 +455,8 @@ class initialize(object):
 				self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportClearStageCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-				self.DAGfile.write("    priority_weight=0,\n")
+				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -463,15 +469,16 @@ class initialize(object):
 					self.DAGfile.write("    conn_id='DBImport',\n")
 					self.DAGfile.write("    sql=\"\"\"select count(*) from import_tables where hive_db = '%s' and hive_table = '%s' and "%(row['hive_db'], row['hive_table']))
 					self.DAGfile.write("copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
-#					self.DAGfile.write("copy_finished >= '{{ dag_run.start_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
 					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-					if DAG['finish_all_stage1_first'] == 1:
-						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
-						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
-						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
-					else:
-						self.DAGfile.write("    priority_weight=0,\n")
-					self.DAGfile.write("    timeout=14400,\n")
+#					if DAG['finish_all_stage1_first'] == 1:
+#						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
+#						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
+#						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+#					else:
+#						self.DAGfile.write("    priority_weight=0,\n")
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    timeout=18000,\n")
 					self.DAGfile.write("    poke_interval=300,\n")
 					self.DAGfile.write("    mode='reschedule',\n")
 					self.DAGfile.write("    dag=dag)\n")
@@ -481,12 +488,14 @@ class initialize(object):
 				self.DAGfile.write("    task_id='%s_import',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -h %s -t %s -I -C ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-				if DAG['finish_all_stage1_first'] == 1:
-					# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
-					# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
-					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
-				else:
-					self.DAGfile.write("    priority_weight=0,\n")
+#				if DAG['finish_all_stage1_first'] == 1:
+#					# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
+#					# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
+#					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+#				else:
+#					self.DAGfile.write("    priority_weight=0,\n")
+				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retriesImportPhase))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -496,6 +505,7 @@ class initialize(object):
 				self.DAGfile.write("    bash_command='%s -h %s -t %s -E ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retriesEtlPhase))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -548,13 +558,15 @@ class initialize(object):
 					self.DAGfile.write("copy_finished >= '{{ next_execution_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
 #					self.DAGfile.write("copy_finished >= '{{ dag_run.start_date.strftime('%Y-%m-%d %H:%M:%S.%f') }}'\"\"\",\n")
 					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-					if DAG['finish_all_stage1_first'] == 1:
-						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
-						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
-						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
-					else:
-						self.DAGfile.write("    priority_weight=0,\n")
-					self.DAGfile.write("    timeout=14400,\n")
+#					if DAG['finish_all_stage1_first'] == 1:
+#						# If all stage1 is to be completed first, then we need to have prio on the stage1 task aswell as 
+#						# the prio from stage 2 will all be summed up in 'stage1_complete' dummy task
+#						self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+#					else:
+#						self.DAGfile.write("    priority_weight=0,\n")
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    timeout=18000,\n")
 					self.DAGfile.write("    poke_interval=300,\n")
 					self.DAGfile.write("    mode='reschedule',\n")
 					self.DAGfile.write("    dag=dag)\n")
@@ -565,6 +577,7 @@ class initialize(object):
 				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
 				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -613,6 +626,8 @@ class initialize(object):
 				newPool = airflowSchema.slotPool(pool=pool, slots=24)
 				session.add(newPool)
 				session.commit()
+
+		session.close()
 
 
 	def generateCustomDAG(self, DAG):
@@ -721,12 +736,16 @@ class initialize(object):
 		if self.TaskQueueForDummy != None:
 			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution ',\n"%(self.dbimportCommandPath))
+		self.DAGfile.write("    priority_weight=100,\n")
+		self.DAGfile.write("    weight_rule='absolute',\n")
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("stop = DummyOperator(\n")
 		self.DAGfile.write("    task_id='stop',\n")
 		if self.TaskQueueForDummy != None:
 			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+		self.DAGfile.write("    priority_weight=100,\n")
+		self.DAGfile.write("    weight_rule='absolute',\n")
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("def always_trigger(context, dag_run_obj):\n")
@@ -738,6 +757,8 @@ class initialize(object):
 			self.DAGfile.write("    task_id='Import_Phase_Finished',\n")
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+			self.DAGfile.write("    priority_weight=100,\n")
+			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -773,6 +794,8 @@ class initialize(object):
 			self.DAGfile.write("    task_id='%s',\n"%(self.preStopTask))
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+			self.DAGfile.write("    priority_weight=100,\n")
+			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
@@ -781,6 +804,8 @@ class initialize(object):
 			self.DAGfile.write("    task_id='%s',\n"%(self.postStartTask))
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+			self.DAGfile.write("    priority_weight=100,\n")
+			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
@@ -789,6 +814,8 @@ class initialize(object):
 			self.DAGfile.write("    task_id='%s',\n"%(self.sensorStopTask))
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+			self.DAGfile.write("    priority_weight=100,\n")
+			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			
@@ -816,8 +843,17 @@ class initialize(object):
 
 	def closeDAGfile(self):
 		self.DAGfile.close()
-		os.chmod(self.DAGfilename, int(self.DAGfilePermission, 8))	
-		shutil.chown(self.DAGfilename, group=self.DAGfileGroup)
+
+		try:
+			os.chmod(self.DAGfilename, int(self.DAGfilePermission, 8))	
+		except PermissionError:
+			logging.warning("Could not change file mode to '%s'"%(self.DAGfilePermission))
+
+		try:
+			shutil.chown(self.DAGfilename, group=self.DAGfileGroup)
+		except PermissionError:
+			logging.warning("Could not change group owner of file to '%s'"%(self.DAGfileGroup))
+
 
 		if self.writeDAG == True:
 			shutil.copy(self.DAGfilename, self.DAGfilenameInAirflow)
@@ -827,6 +863,15 @@ class initialize(object):
 		else:
 			print("DAG file written to %s"%(self.DAGfilename))
 
+
+	def addFailureTask(self, taskName):
+		self.DAGfile.write("%s = BashOperator(\n"%(taskName))
+		self.DAGfile.write("    task_id='%s',\n"%(taskName))
+		self.DAGfile.write("    bash_command='exit 1 ',\n")
+		self.DAGfile.write("    priority_weight=1,\n")
+		self.DAGfile.write("    weight_rule='absolute',\n")
+		self.DAGfile.write("    dag=dag)\n")
+		self.DAGfile.write("\n")
 
 	def addTasksToDAGfile(self, dagName, mainDagSchedule):
 
@@ -850,6 +895,7 @@ class initialize(object):
 					)
 				.select_from(airflowTasks)
 				.filter(airflowTasks.dag_name == dagName)
+				.filter(airflowTasks.include_in_airflow == 1)
 				.all()).fillna('')
 
 		taskDependencies = ""
@@ -857,18 +903,20 @@ class initialize(object):
 
 		for index, row in tasks.iterrows():
 			sensorPokeInterval = row['sensor_poke_interval']
+			taskName = row['task_name']
 			if sensorPokeInterval == '':
 				# Default to 5 minutes
 				sensorPokeInterval = 300
 
 			sensorTimeoutSeconds = row['sensor_timeout_minutes']
 			if sensorTimeoutSeconds == '':
-				# Default to 4 hours
-				sensorTimeoutSeconds = "14400"	
+				# Default to 5 hours
+				sensorTimeoutSeconds = "18000"	
 			else:
 				sensorTimeoutSeconds = sensorTimeoutSeconds * 60
 
 			if row['task_type'] == "DAG Sensor":
+				addDagSensor = True
 				airflowCustomDags = aliased(configSchema.airflowCustomDags)
 				airflowEtlDags    = aliased(configSchema.airflowEtlDags)
 				airflowExportDags = aliased(configSchema.airflowExportDags)
@@ -908,10 +956,14 @@ class initialize(object):
 				timeDiff = "0"
 	
 				if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
-					logging.error("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
-					self.DAGfile.close()
-					self.common_config.remove_temporary_files()
-					sys.exit(1)
+					logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
+					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+					row['task_name'] = "%s_FAILURE"%(row['task_name'])
+					self.addFailureTask(row['task_name'])
+					addDagSensor = False
+#					self.DAGfile.close()
+#					self.common_config.remove_temporary_files()
+#					sys.exit(1)
 
 				if mainDagMatchHourMin != None:
 					# Time is in HH:MM format for both DAG's. So now we can calculate the diff in time between them
@@ -940,26 +992,35 @@ class initialize(object):
 					timeDiff = str(minusText + str(timeDiff.seconds))
 				else:
 					if mainDagSchedule != waitDagSchedule:
-						logging.error("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
-						self.DAGfile.close()
-						self.common_config.remove_temporary_files()
-						sys.exit(1)
+						logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
+						logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+						row['task_name'] = "%s_FAILURE"%(row['task_name'])
+						self.addFailureTask(row['task_name'])
+						addDagSensor = False
+#						self.DAGfile.close()
+#						self.common_config.remove_temporary_files()
+#						sys.exit(1)
 
-				self.DAGfile.write("%s = ExternalTaskSensor(\n"%(row['task_name']))
-				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
-				self.DAGfile.write("    external_dag_id='%s',\n"%(waitForDag))
-				self.DAGfile.write("    external_task_id='%s',\n"%(waitForTask))
-				self.DAGfile.write("    retries=0,\n")
-				self.DAGfile.write("    execution_delta=timedelta(seconds=%s),\n"%(timeDiff))
-				if row['airflow_pool'] != '':
-					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
-				if row['airflow_priority'] != '':
-					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
-				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
-				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
-				self.DAGfile.write("    mode='reschedule',\n")
-				self.DAGfile.write("    dag=dag)\n")
-				self.DAGfile.write("\n")
+				if addDagSensor == True:
+					self.DAGfile.write("%s = ExternalTaskSensor(\n"%(row['task_name']))
+					self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+					self.DAGfile.write("    external_dag_id='%s',\n"%(waitForDag))
+					self.DAGfile.write("    external_task_id='%s',\n"%(waitForTask))
+					self.DAGfile.write("    retries=0,\n")
+					self.DAGfile.write("    execution_delta=timedelta(seconds=%s),\n"%(timeDiff))
+					if row['airflow_pool'] != '':
+						self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
+					if row['airflow_priority'] != '':
+						self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					else:
+						self.DAGfile.write("    priority_weight=100,\n")
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
+					self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
+					self.DAGfile.write("    mode='reschedule',\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 
 			if row['task_type'] == "SQL Sensor":
 				if row['sensor_connection'] == '':
@@ -981,6 +1042,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=100,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
 				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
 				self.DAGfile.write("    mode='reschedule',\n")
@@ -995,6 +1060,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=100,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    python_callable=always_trigger,\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
@@ -1007,6 +1076,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=1,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 				
@@ -1023,6 +1096,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=1,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
@@ -1035,6 +1112,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=1,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 				
@@ -1047,6 +1128,10 @@ class initialize(object):
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
 					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+				else:
+					self.DAGfile.write("    priority_weight=1,\n")
+					self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
@@ -1144,8 +1229,8 @@ class initialize(object):
 
 			timeoutSeconds = row['timeout_minutes']
 			if timeoutSeconds == '':
-				# Default to 4 hours
-				timeoutSeconds = "14400"	
+				# Default to 5 hours
+				timeoutSeconds = "18000"	
 			else:
 				timeoutSeconds = timeoutSeconds * 60
 
@@ -1160,10 +1245,16 @@ class initialize(object):
 			timeDiff = "0"
 
 			if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
-				logging.error("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
-				self.DAGfile.close()
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
+				logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+				self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
+				self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
+				self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
+				self.DAGfile.write("\n")
+				continue
+#				self.DAGfile.close()
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 
 			if mainDagMatchHourMin != None:
 				# Time is in HH:MM format for both DAG's. So now we can calculate the diff in time between them
@@ -1196,10 +1287,16 @@ class initialize(object):
 #				print (timeDiff)
 			else:
 				if mainDagSchedule != waitDagSchedule:
-					logging.error("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
-					self.DAGfile.close()
-					self.common_config.remove_temporary_files()
-					sys.exit(1)
+					logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
+					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+					self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
+					self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
+					self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
+					self.DAGfile.write("\n")
+					continue
+#					self.DAGfile.close()
+#					self.common_config.remove_temporary_files()
+#					sys.exit(1)
 
 			self.DAGfile.write("%s = ExternalTaskSensor(\n"%(row['sensor_name']))
 			self.DAGfile.write("    task_id='%s',\n"%(row['sensor_name']))

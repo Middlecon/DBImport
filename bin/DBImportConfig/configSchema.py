@@ -123,9 +123,7 @@ class airflowImportDags(Base):
 
     dag_name = Column(String(64), primary_key=True, comment='Name of Airflow DAG.')
     schedule_interval = Column(String(32), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
-    filter_hive = Column(String(256), nullable=False, comment='Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE')
-    filter_hive_db_OLD = Column(String(256), comment='NOT USED: Filter string for HIVE_DB in import_tables')
-    filter_hive_table_OLD = Column(String(256), comment='NOT USED: Filter string for HIVE_TABLE in import_tables')
+    filter_hive = Column(String(1024), nullable=False, comment='Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE')
     use_python_dbimport = Column(TINYINT(4), nullable=False, server_default=text("'1'"), comment='Legacy use only. Always put this to 1')
     finish_all_stage1_first = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = All Import phase jobs will be completed first, and when all is successfull, the ETL phase start')
     run_import_and_etl_separate = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = The Import and ETL phase will run in separate Tasks. ')
@@ -701,6 +699,7 @@ class importTables(Base):
     copy_finished = Column(DateTime, comment='Time when last copy from Master DBImport instance was completed. Dont change manually')
     copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
+    custom_max_query = Column(String(256), comment='You can use a custom SQL query that will get the Max value from the source database. This Max value will be used in an inremental import to know how much to read in each execution')
 
 
 class jdbcConnectionsEnvironments(Base):
@@ -736,6 +735,7 @@ class jdbcConnections(Base):
     atlas_exclude_filter = Column(String(256), comment='Exclude filter for Atlas discovery')
     atlas_last_discovery = Column(DateTime, comment='Time of last Atlas discovery')
     environment = Column(String(32), ForeignKey('jdbc_connections_environments.environment'), nullable=True, comment="Name of the Environment type")
+    seed_file = Column(String(256), comment='File that will be used to fetch the custom seed that will be used for anonymization functions on data from the connection')
 
     jdbc_connections_environments = relationship('jdbcConnectionsEnvironments')
 
@@ -743,7 +743,7 @@ class jdbcConnections(Base):
 class jdbcConnectionsDrivers(Base):
     __tablename__ = 'jdbc_connections_drivers'
 
-    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
+    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB', 'CacheDB'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
     version = Column(String(16), primary_key=True, nullable=False, comment='Free-text field with version. Has nothing to do with version of driver itself.')
     driver = Column(String(128), nullable=False, comment='Java class for JDBC driver')
     classpath = Column(String(255), nullable=False, comment='Full path to JDBC driver/jar file. If more than one file is required, separate them with : and no spaces')
@@ -897,6 +897,7 @@ class importColumns(Base):
     last_update_from_source = Column(DateTime, nullable=False, comment='Timestamp of last schema update from source')
     comment = Column(Text, comment='The column comment from the source system')
     operator_notes = Column(Text, comment='Free text field to write a note about the column')
+    anonymization_function = Column(Enum('None', 'Hash', 'Replace with star', 'Show first 4 chars'), nullable=False, comment='What anonymization function should be used with the data in this column', server_default=text("'None'"))
 
     table = relationship('importTables')
 

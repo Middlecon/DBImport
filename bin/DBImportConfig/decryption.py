@@ -66,6 +66,9 @@ class crypto(object):
 
 	def decrypt(self, strToDecrypt):
 
+		if strToDecrypt == None:
+			return None
+
 		strDecrypted = self.privateKey.decrypt(base64.b64decode(strToDecrypt))
 
 		if len(strDecrypted) > 0 and bytes(strDecrypted[:1]) == b"\x02":

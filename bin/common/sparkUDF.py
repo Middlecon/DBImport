@@ -17,7 +17,13 @@
 
 import base64
 import re
+import hashlib
+import sys
 from datetime import datetime
+
+this = sys.modules[__name__]
+this.seedString = None
+seedString = 'testSeed'
 
 def _is_bin(ints):
 	try:
@@ -63,4 +69,24 @@ def parseStructDate(timestampString):
 		timestamp = datetime.utcfromtimestamp(int(num)/1000)
 		return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')
 	return timestampString
+
+
+def setSeedString(setValue):
+	global seedString
+	seedString = setValue
+	this.seedString = setValue
+	print(seedString)
+	print(this.seedString)
+
+def hashColumn(columnValue):
+	global seedString
+	sha_value = hashlib.sha3_512(columnValue.encode()).hexdigest()
+#	SeedString = None
+#	SeedString = 'testSeed'
+	h = hashlib.blake2b(digest_size=32, person=seedString.encode())
+	h.update(columnValue.encode())
+	hashedColumnContent = h.hexdigest()
+#	sha_value = hashlib.blake2b(columnValue.encode()).hexdigest()
+#	return sha_value
+	return this.seedString
 

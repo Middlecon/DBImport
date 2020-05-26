@@ -834,6 +834,8 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.jars', self.export_config.common_config.jdbc_classpath)
 		conf.set('spark.executor.memory', self.export_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.export_config.common_config.sparkYarnQueue)
+		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
+		conf.set('spark.hive.llap.execution.mode', 'none')
 		if self.export_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
@@ -994,6 +996,7 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand.extend(["sqoop", "export", "-D", "mapreduce.job.user.classpath.first=true"])
 		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])
 		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
+		sqoopCommand.extend(["-D", "yarn.timeline-service.enabled=false"])
 		# TODO: Add records to settings
 		sqoopCommand.extend(["-D", "sqoop.export.records.per.statement=10000"]) 
 		sqoopCommand.extend(["-D", "sqoop.export.records.per.transaction=1"]) 

@@ -353,6 +353,14 @@ class initialize(object):
 				classpath='add path to JAR file')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'CacheDB').any() == False:
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
+				database_type='CacheDB', 
+				version='default', 
+				driver='com.intersys.jdbc.CacheDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
 
 		query = sa.select([configSchema.configuration.configKey])
 		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
@@ -411,6 +419,13 @@ class initialize(object):
 				configKey='hive_remove_locks_by_force', 
 				valueInt='0', 
 				description='With 1, DBImport will remove Hive locks before import by force')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_major_compact_after_merge').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_major_compact_after_merge', 
+				valueInt='0', 
+				description='With 1, DBImport will run a major compaction after the merge operations is completed')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'hive_validate_before_execution').any() == False:
