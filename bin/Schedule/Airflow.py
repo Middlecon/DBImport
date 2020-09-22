@@ -337,7 +337,7 @@ class initialize(object):
 				self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 			self.DAGfile.write("\n")
 
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -602,7 +602,7 @@ class initialize(object):
 						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				self.DAGfile.write("\n")
 
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -652,9 +652,14 @@ class initialize(object):
 		defaultPool = DAG['dag_name']
 		usedPools.append(defaultPool)
 
+		if DAG['retries'] == None or DAG['retries'] == '':
+			retries = 5
+		else:
+			retries = int(DAG['retries'])
+
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool)
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -873,7 +878,7 @@ class initialize(object):
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 
-	def addTasksToDAGfile(self, dagName, mainDagSchedule):
+	def addTasksToDAGfile(self, dagName, mainDagSchedule, defaultRetries=0):
 
 		session = self.configDBSession()
 
@@ -1071,6 +1076,7 @@ class initialize(object):
 			if row['task_type'] == "shell script":
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 				self.DAGfile.write("    bash_command='%s ',\n"%(row['task_config']))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
@@ -1086,6 +1092,7 @@ class initialize(object):
 			if row['task_type'] == "Hive SQL Script":
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 
 				if row['hive_db'] != None and row['hive_db'].strip() != '':
 					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s --hiveDB=%s ',\n"%(self.dbimportCommandPath, row['task_config'], row['hive_db']))
@@ -1107,6 +1114,7 @@ class initialize(object):
 				jdbcSQL = row['task_config'].replace(r"'", "\\'")
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 				self.DAGfile.write("    bash_command='%sbin/manage --runHiveQuery=\"%s\" ',\n"%(self.dbimportCommandPath, jdbcSQL))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
@@ -1123,6 +1131,7 @@ class initialize(object):
 				jdbcSQL = row['task_config'].replace(r"'", "\\'")
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 				self.DAGfile.write("    bash_command='%sbin/manage --dbAlias=%s --runJDBCQuery=\"%s\" ',\n"%(self.dbimportCommandPath, row['jdbc_dbalias'], jdbcSQL))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
