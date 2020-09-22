@@ -94,7 +94,7 @@ class operation(object, metaclass=Singleton):
 		self.hdfs_blocksize = self.common_config.getConfigValue(key = "hdfs_blocksize")
 
 		try:
-			self.hiveMetaDB = sa.create_engine(self.hiveConnectStr, echo = self.debugLogLevel)
+			self.hiveMetaDB = sa.create_engine(self.hiveConnectStr, echo = self.debugLogLevel, pool_pre_ping=True)
 			self.hiveMetaDB.connect()
 			self.hiveMetaSession = sessionmaker(bind=self.hiveMetaDB)
 		except sa.exc.OperationalError as err:
@@ -459,6 +459,9 @@ class operation(object, metaclass=Singleton):
 			for message in logs:
 				if self.hive_print_messages == True:
 					print(message)
+				else:
+					if ( "Executing on YARN cluster with App id" in message ):
+						print(message)
 
 				if re.search('^ERROR ', message):	
 					logging.error("An ERROR occured in the Hive execution")
@@ -840,7 +843,13 @@ class operation(object, metaclass=Singleton):
 
 		if self.common_config.getConfigValue(key = "hive_major_compact_after_merge") == True:
 			logging.info("Running a Major compaction on Hive table")
-			self.executeHiveQuery("alter table `%s`.`%s` compact 'major' "%(hiveDB, hiveTable))
+			try:
+				self.executeHiveQuery("alter table `%s`.`%s` compact 'major' "%(hiveDB, hiveTable))
+			except:
+				logging.error("Major compaction failed with the following error message:")
+				logging.warning(sys.exc_info())
+				pass
+
 		logging.debug("Executing common_operations.runHiveMajorCompaction() - Finished")
 
 

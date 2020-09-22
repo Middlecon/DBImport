@@ -475,7 +475,7 @@ def main(argv):
 			else:
 				blankIndex=[''] * len(result)
 				result.index=blankIndex
-				print(result)
+				print(result.to_string())
 			commonOperation.common_config.remove_temporary_files()
 	
 		if operation == "discoverAtlasRdbms":
@@ -498,7 +498,7 @@ def main(argv):
 			else:
 				blankIndex=[''] * len(result)
 				result.index=blankIndex
-				print(result)
+				print(result.to_string())
 			commonConfig.remove_temporary_files()
 
 		if operation == "clearImportStage":
@@ -565,12 +565,13 @@ def main(argv):
 		if operation == "encryptCredentials":
 			print("This function will encrypt a username and password for the specified Database Connection. Any previous username/password will be overwritten")
 			print("There is no undo function for this, so if you want to cancel, please press Ctrl-C")
-			try:
-				connectionAlias = input("DataBase Connection (dbalias): ")
-			except KeyboardInterrupt:
-				print ("")
-				logging.warning("Aborting command by user request")
-				sys.exit(1)
+			if connectionAlias == None:
+				try:
+					connectionAlias = input("DataBase Connection (dbalias): ")
+				except KeyboardInterrupt:
+					print ("")
+					logging.warning("Aborting command by user request")
+					sys.exit(1)
 
 			commonConfig = common_config.config()
 			if commonConfig.checkConnectionAlias(connectionAlias) == False:

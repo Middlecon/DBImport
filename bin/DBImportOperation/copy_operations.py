@@ -210,7 +210,7 @@ class operation(object, metaclass=Singleton):
 				print(sys.exc_info())
 
 		try:
-			self.remoteInstanceConfigDBEngine = sa.create_engine(instanceConnectStr, echo = self.debugLogLevel)
+			self.remoteInstanceConfigDBEngine = sa.create_engine(instanceConnectStr, echo = self.debugLogLevel, pool_pre_ping=True)
 			self.remoteInstanceConfigDBEngine.connect()
 			self.remoteInstanceConfigDBSession = sessionmaker(bind=self.remoteInstanceConfigDBEngine)
 

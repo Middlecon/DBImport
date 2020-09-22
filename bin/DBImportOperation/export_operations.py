@@ -430,7 +430,12 @@ class operation(object, metaclass=Singleton):
 			# Target table does not exist. We just create it in that case
 			logging.info("Creating Export Temp table %s.%s in Hive"%(self.hiveExportTempDB, self.hiveExportTempTable))
 
-			columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True)
+			if self.export_config.exportTool == "sqoop":
+				columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=True)
+			else:
+				columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=False)
+
+#			columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True)
 			query  = "create table `%s`.`%s` ("%(self.hiveExportTempDB, self.hiveExportTempTable)
 
 			firstLoop = True
@@ -486,7 +491,11 @@ class operation(object, metaclass=Singleton):
 
 		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeIdx=False)
 
-		columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True)
+		if self.export_config.exportTool == "sqoop":
+			columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=True)
+		else:
+			columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=False)
+
 		columnsConfig.rename(columns={'hiveColumnName':'name', 'columnType':'type'}, inplace=True) 
 
 		for index, row in columnsConfig.iterrows():
@@ -748,16 +757,27 @@ class operation(object, metaclass=Singleton):
 					columnList +=("`%s`"%(columnName))
 				else:
 					# Rename of the column
-					columnList +=("`%s` as `%s`"%(columnName, targetColumnName))
+					if self.isExportTempTableNeeded() == True:
+						columnList +=("`%s`"%(targetColumnName))
+					else:
+						columnList +=("`%s` as `%s`"%(columnName, targetColumnName))
 
 				if columnName.startswith('_') or targetColumnName.startswith('_'):
 					# This might or might now be supported depending on spark version. Will check after spark is initialized
 					columnStartingWithUnderscoreFound = True
 
-		sparkQuery = "select %s from `%s`.`%s`"%(columnList, self.hiveDB, self.hiveTable)
-		if self.export_config.exportIsIncremental == True:
-			sparkQuery += " where "
-			sparkQuery += self.export_config.getIncrWhereStatement()
+		if self.isExportTempTableNeeded() == True:
+			hiveDB = self.hiveExportTempDB
+			hiveTable = self.hiveExportTempTable
+		else:
+			hiveDB = self.hiveDB
+			hiveTable = self.hiveTable
+
+		sparkQuery = "select %s from `%s`.`%s`"%(columnList, hiveDB, hiveTable)
+#		print(sparkQuery)
+#		if self.export_config.exportIsIncremental == True:
+#			sparkQuery += " where "
+#			sparkQuery += self.export_config.getIncrWhereStatement()
 
 		# Sets the correct spark table and schema that will be used to write to
 		sparkWriteTable = ""
@@ -810,8 +830,6 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Spark Dynamic Executors: %s"%(self.export_config.common_config.sparkDynamicAllocation))
 		logging.debug("=======================================================================")
 
-#		raise daemonExit("Step 1")
-
 		print(" _____________________ ")
 		print("|                     |")
 		print("| Spark Export starts |")
@@ -857,6 +875,8 @@ class operation(object, metaclass=Singleton):
 		JDBCconnectionProperties["password"] = self.export_config.common_config.jdbc_password
 		JDBCconnectionProperties["driver"] = self.export_config.common_config.jdbc_driver
 
+		logging.debug(conf.getAll())
+
 		if self.export_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
 			# Configuration for HDP 3.x
 			from pyspark_llap import HiveWarehouseSession
@@ -892,12 +912,15 @@ class operation(object, metaclass=Singleton):
 			# Get DataFrame for HDP 3.x
 			hive = HiveWarehouseSession.session(spark).build()
 			df = hive.executeQuery(sparkQuery)
-
 		elif self.export_config.common_config.sparkHiveLibrary == "HiveContext":
 			# Get DataFrame for HDP 2.x
 			df = HiveContext(sc).sql(sparkQuery)
 
+		if self.export_config.exportIsIncremental == True:
+			df = df.filter(self.export_config.getIncrWhereStatement())
+
 		sys.stdout.flush()
+#		df.show()
 
 		# Write data to target database
 		df.write.mode('append').jdbc(	url=self.export_config.common_config.jdbc_url, 

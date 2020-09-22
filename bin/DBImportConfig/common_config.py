@@ -253,6 +253,43 @@ class config(object, metaclass=Singleton):
 		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_config.__init__() - Finished")
 
+	def disconnectConfigDatabase(self):
+		""" Closing connection against config database. Only used during debug and development """
+		logging.debug("Connection against MySQL Config database have been closed")
+		self.mysql_cursor.close()
+		self.mysql_conn.close()
+
+	def reconnectConfigDatabase(self):
+		if self.mysql_conn.is_connected() == False:
+			logging.warn("Connection to MySQL have been lost. Reconnecting...")
+
+			# Fetch configuration about MySQL database and how to connect to it
+			mysql_hostname = configuration.get("Database", "mysql_hostname")
+			mysql_port =     configuration.get("Database", "mysql_port")
+			mysql_database = configuration.get("Database", "mysql_database")
+			mysql_username = configuration.get("Database", "mysql_username")
+			mysql_password = configuration.get("Database", "mysql_password")
+
+			# Esablish a connection to the DBImport database in MySQL
+			try:
+				self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
+													 port=mysql_port, 
+													 database=mysql_database, 
+													 user=mysql_username, 
+													 password=mysql_password)
+			except mysql.connector.Error as err:
+				if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+					logging.error("Something is wrong with your user name or password")
+				elif err.errno == errorcode.ER_BAD_DB_ERROR:
+					logging.error("Database does not exist")
+				else:
+					logging.error("%s"%err)
+				logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
+
 	def getAtlasJdbcConnectionData(self, dbAlias=None):
 		""" Reads the extended information in jdbc_connections needed by Atlas (contact_info, owner and more) """
 		logging.debug("Executing common_config.getAtlasJdbcConnectionData()")
@@ -759,7 +796,7 @@ class config(object, metaclass=Singleton):
 			configuration.get("Database", "mysql_database"))
 
 		try:
-			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
+			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel, pool_pre_ping=True)
 			self.configDB.connect()
 			self.configDBSession = sessionmaker(bind=self.configDB)
 
@@ -2474,3 +2511,29 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getAnonymizationSeed() - Finished")
 		return seed
+
+	def stripUnwantedCharComment(self, work_string):
+		if work_string == None: return
+		work_string = work_string.replace('`', '')
+		work_string = work_string.replace('\'', '')
+		work_string = work_string.replace(';', '')
+		work_string = work_string.replace('\n', '')
+		work_string = work_string.replace('\\', '')
+		work_string = work_string.replace('’', '')
+		work_string = work_string.replace('"', '')
+		return work_string.strip()
+
+	def stripUnwantedCharColumnName(self, work_string):
+		if work_string == None: return
+		work_string = work_string.replace('`', '')
+		work_string = work_string.replace('\'', '')
+		work_string = work_string.replace(';', '')
+		work_string = work_string.replace('\n', '')
+		work_string = work_string.replace('\\', '')
+		work_string = work_string.replace('’', '')
+		work_string = work_string.replace(':', '')
+		work_string = work_string.replace(',', '')
+		work_string = work_string.replace('.', '')
+		work_string = work_string.replace('"', '')
+		return work_string.strip()
+

@@ -51,6 +51,10 @@ class stage(object):
 
 		self.rest = rest.restInterface()
 
+	def setMySQLConnection(self, mysql_conn):
+		self.mysql_conn = mysql_conn
+		self.mysql_cursor = self.mysql_conn.cursor(buffered=False)
+
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
 		self.Hive_DB = Hive_DB.lower()

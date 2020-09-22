@@ -289,7 +289,8 @@ class config(object, metaclass=Singleton):
 		for index, row in columnsDF.iterrows():
 			columnName = row['name']
 			columnType = row['type']
-			columnComment = row['comment']
+#			columnComment = row['comment'].replace("\"", "'")
+			columnComment = self.common_config.stripUnwantedCharComment(row['comment'])
 			columnOrder = row['idx']
 
 			query = "select column_id from export_columns where table_id = %s and column_name = %s "
@@ -386,7 +387,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing export_config.resetMaxValueFromTarget() - Finished")
 
 
-	def getColumnsFromConfigDatabase(self, excludeColumns=False, forceColumnUppercase=False):
+	def getColumnsFromConfigDatabase(self, excludeColumns=False, forceColumnUppercase=False, getReplacedColumnTypes=True):
 		""" Reads the columns from the configuration database and returns the information in a Pandas DF with the columns name, type and comment """
 		logging.debug("Executing export_config.getColumnsFromConfigDatabase()")
 		hiveColumnDefinition = ""
@@ -398,8 +399,10 @@ class config(object, metaclass=Singleton):
 		else:
 			query += "	upper(c.column_name) as hiveColumnName, "
 			query += "	upper(c.target_column_name) as targetColumnName, "
-#		query += "	c.column_type as columnType, " 
-		query += "	if (c.target_column_type is not null and trim(c.target_column_type) != '', c.target_column_type, c.column_type) as columnType, "
+		if getReplacedColumnTypes == True:
+			query += "	if (c.target_column_type is not null and trim(c.target_column_type) != '', c.target_column_type, c.column_type) as columnType, "
+		else:
+			query += "	c.column_type as columnType, " 
 		query += " 	c.comment as comment "
 		query += "from export_tables t " 
 		query += "join export_columns c on t.table_id = c.table_id "

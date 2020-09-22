@@ -697,6 +697,7 @@ class source(object):
 				line_dict["COL_KEY_POSITION"] = row[10]
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
+
 	
 		if serverType == constant.ORACLE:
 			query  = "SELECT "
@@ -1148,6 +1149,9 @@ class source(object):
 					line_dict["COL_KEY_POSITION"] = colKeyPosition
 					rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
+
+		# In some cases, we get duplicate Foreign Keys. This removes all duplicate entries
+		result_df.drop_duplicates(keep="first", inplace=True)
 
 		logging.debug(result_df)
 		logging.debug("Executing schemaReader.readKeys() - Finished")

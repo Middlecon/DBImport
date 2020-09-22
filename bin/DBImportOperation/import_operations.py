@@ -727,6 +727,9 @@ class operation(object, metaclass=Singleton):
 		print("")
 		sys.stdout.flush()
 
+		# As the import can take a very long time on a large table, we need to verify that the MySQL connection against the configuration database is still valid
+		self.import_config.reconnectConfigDatabase()	
+
 		columnDict = {}
 		for column in dataTypes:
 			columnType = dataTypes[column]
@@ -1045,6 +1048,9 @@ class operation(object, metaclass=Singleton):
 		print("")
 		sys.stdout.flush()
 
+		# As the import can take a very long time on a large table, we need to verify that the MySQL connection against the configuration database is still valid
+		self.import_config.reconnectConfigDatabase()	
+
 		if PKOnlyImport == False:
 			try:
 				self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
@@ -1253,6 +1259,9 @@ class operation(object, metaclass=Singleton):
 		print("| Sqoop Import completed |")
 		print("|________________________|")
 		print("")
+
+		# As the import can take a very long time on a large table, we need to verify that the MySQL connection against the configuration database is still valid
+		self.import_config.reconnectConfigDatabase()	
 
 		# At this stage, the entire sqoop job is run and we fetched all data from the output. Lets parse and store it
 		if self.sqoopSize == None: self.sqoopSize = 0

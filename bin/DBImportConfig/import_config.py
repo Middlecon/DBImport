@@ -143,6 +143,23 @@ class config(object, metaclass=Singleton):
 		
 		logging.debug("Executing import_config.__init__() - Finished")
 
+	def reconnectConfigDatabase(self):
+		# During long imports, depending on connection timout, the connection against the config database might be closed. This checks if it is closed and reconnect if needed
+		if self.mysql_conn.is_connected() == False:
+
+			self.mysql_conn.close()
+			self.mysql_cursor01.close()
+			self.mysql_cursor02.close()
+
+			self.common_config.reconnectConfigDatabase()
+
+			self.mysql_conn = self.common_config.mysql_conn
+			self.mysql_cursor01 = self.mysql_conn.cursor(buffered=True)
+			self.mysql_cursor02 = self.mysql_conn.cursor(buffered=True)
+
+			self.stage.setMySQLConnection(self.mysql_conn)
+
+
 	def setHiveTable(self, Hive_DB, Hive_Table):
 		""" Sets the parameters to work against a new Hive database and table """
 		self.Hive_DB = Hive_DB.lower()
@@ -1532,9 +1549,18 @@ class config(object, metaclass=Singleton):
 							logging.debug("ref_table_id[0]:  %s"%(ref_table_id[0]))
 							logging.debug("ref_column_id:    %s"%(ref_column_id))
 							logging.debug("key_position:     %s"%(key_position))
-							self.mysql_cursor02.execute(query, (self.table_id, source_column_id, fk_index, ref_table_id[0], ref_column_id, key_position  ))
-							self.mysql_conn.commit()
-							logging.debug("SQL Statement executed: %s" % (self.mysql_cursor02.statement) )
+
+							try:
+								self.mysql_cursor02.execute(query, (self.table_id, source_column_id, fk_index, ref_table_id[0], ref_column_id, key_position  ))
+								self.mysql_conn.commit()
+								logging.debug("SQL Statement executed: %s" % (self.mysql_cursor02.statement) )
+							except mysql.connector.errors.IntegrityError as e:
+								if ( "Duplicate entry" in str(e) ):
+									logging.warning("Foreign Key cant be saved as name is not unique in DBImport Configuration Database")
+								else:
+									logging.error("Unknown error when saving ForeignKey data to DBIMport configuration database")
+									raise(e)
+
 
 		logging.debug("Executing import_config.saveKeyData() - Finished")
 
@@ -2503,6 +2529,15 @@ class config(object, metaclass=Singleton):
 			return returnDict
 
 		self.generateSqoopBoundaryQuery()
+		if self.sqoopBoundaryQuery == "":
+			logging.info("No columns to split on can be found. Forcing the number of sessions to 1")
+			self.sqlSessions = 1
+
+			logging.debug("self.sqoopBoundaryQuery is empty so generating a dummy MIN&MAX dict")
+			returnDict = {}
+			returnDict['min'] = "Unknown"
+			returnDict['max'] = "Unknown"
+			return returnDict
 
 		logging.info("Getting boundary MIN and MAX values")
 		minMaxValues = self.common_config.executeJDBCquery(self.sqoopBoundaryQuery)
