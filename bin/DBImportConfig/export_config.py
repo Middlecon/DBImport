@@ -75,6 +75,7 @@ class config(object, metaclass=Singleton):
 		self.incr_column = None
 		self.incr_maxvalue = None
 		self.incr_validation_method = None
+		self.sqlWhereAddition = None
 		self.truncateTargetTable = None
 		self.sqlSessions = None
 		self.sqoopMappers = None
@@ -167,7 +168,8 @@ class config(object, metaclass=Singleton):
 		query += "    truncate_target, "
 		query += "    incr_validation_method, "
 		query += "    hive_javaheap, "
-		query += "    export_tool "
+		query += "    export_tool, "
+		query += "    sql_where_addition "
 		query += "from export_tables "
 		query += "where "
 		query += "    dbalias = %s " 
@@ -195,8 +197,8 @@ class config(object, metaclass=Singleton):
 		truncate_target_table = row[10]
 		self.incr_validation_method = row[11]
 		self.hiveJavaHeap = row[12]
-
 		self.exportTool = row[13]
+		self.sqlWhereAddition = row[14]
 
 		if self.validateExport == 0:
 			self.validateExport = False
@@ -214,6 +216,11 @@ class config(object, metaclass=Singleton):
 		if self.exportTool != "sqoop" and self.exportTool != "spark":
 			logging.error("ERROR: Unsupported export Tool configured.")
 			raise invalidConfiguration("Unsupported export Tool configured (%s). Please check configuration"%(self.exportTool))
+
+		if self.exportTool == "sqoop":
+			if self.sqlWhereAddition != None and self.sqlWhereAddition.strip() != "":
+				logging.error("ERROR: Unsupported export configuration")
+				raise invalidConfiguration("Using a SQL Where configuration in 'sql_where_addition' column is not supported with sqoop exports")
 
 		if self.exportType == "full":
 			self.exportPhase             = constant.EXPORT_PHASE_FULL
@@ -259,6 +266,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    hiveJavaHeap = %s"%(self.hiveJavaHeap))
 		logging.debug("    hiveDB = %s"%(self.hiveDB))
 		logging.debug("    hiveTable = %s"%(self.hiveTable))
+		logging.debug("    sqlWhereAddition = %s"%(self.sqlWhereAddition))
 		logging.debug("    exportIsIncremental = %s"%(self.exportIsIncremental))
 		logging.debug("    datalakeSourceConnection = %s"%(self.datalakeSourceConnection))
 		logging.debug("    exportPhaseDescription = %s"%(self.exportPhaseDescription))

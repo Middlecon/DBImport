@@ -383,6 +383,17 @@ class initialize(object):
 		importTablesQuery = importTablesQuery.filter(sa.or_(*tableFilters))
 		tables = pd.DataFrame(importTablesQuery.with_session(session).all()).fillna('')
 
+		retries=int(DAG['retries'])
+		try:
+			retriesImportPhase = int(DAG['retries_stage1'])
+		except ValueError:
+			retriesImportPhase = retries
+
+		try:
+			retriesEtlPhase = int(DAG['retries_stage2'])
+		except ValueError:
+			retriesEtlPhase = retries
+
 		# in 'tables' we now have all the tables that will be part of the DAG
 		previousConnectionAlias = ""
 
@@ -420,17 +431,6 @@ class initialize(object):
 			# These are only for Legacy compability
 			dbimportCMD = "%sbin/import"%(self.dbimportCommandPath) 
 			dbimportClearStageCMD = "%sbin/manage --clearImportStage"%(self.dbimportCommandPath) 
-
-			retries=int(DAG['retries'])
-			try:
-				retriesImportPhase = int(DAG['retries_stage1'])
-			except ValueError:
-				retriesImportPhase = retries
-
-			try:
-				retriesEtlPhase = int(DAG['retries_stage2'])
-			except ValueError:
-				retriesEtlPhase = retries
 
 			taskID = row['hive_table'].replace(r'/', '_').replace(r'.', '_')
 

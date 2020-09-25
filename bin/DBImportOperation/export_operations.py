@@ -894,6 +894,7 @@ class operation(object, metaclass=Singleton):
 
 		# Determine Spark version and find incompatable exports
 		sparkVersion = sc.version
+		
 		if sparkVersion.endswith(self.export_config.common_config.sparkHDPversion):
 			sparkVersion = sparkVersion.replace('.%s'%(self.export_config.common_config.sparkHDPversion), '') 
 
@@ -918,6 +919,9 @@ class operation(object, metaclass=Singleton):
 
 		if self.export_config.exportIsIncremental == True:
 			df = df.filter(self.export_config.getIncrWhereStatement())
+
+		if self.export_config.sqlWhereAddition != None:
+			df = df.filter("(%s)" % (self.export_config.sqlWhereAddition))
 
 		sys.stdout.flush()
 #		df.show()
@@ -1153,6 +1157,12 @@ class operation(object, metaclass=Singleton):
 				# Needed to make sure that we are not validating against new rows that might have been saved in Hive
 				if self.export_config.exportIsIncremental == True:
 					whereStatement = self.export_config.getIncrWhereStatement(excludeMinValue=True)
+
+			if self.export_config.sqlWhereAddition != None:
+				if whereStatement == None:
+					whereStatement = self.export_config.sqlWhereAddition
+				else:
+					whereStatement += "and (%s)" % (self.export_config.sqlWhereAddition)
 
 			hiveTableRowCount = self.common_operations.getHiveTableRowCount(hiveDB, hiveTable, whereStatement=whereStatement)
 			self.export_config.saveHiveTableRowCount(hiveTableRowCount)

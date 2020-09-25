@@ -616,6 +616,12 @@ def main(argv):
 
 
 		if operation == "repairIncrementalImport":
+			import_operation = import_operations.operation(Hive_DB, Hive_Table)
+			if import_operation.import_config.common_config.checkKerberosTicket() == False:
+				logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
+				import_operation.remove_temporary_files()
+				sys.exit(1)
+
 			print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
 			print("and the hive table. The tool will connect to the hive database and read the max value for the column")
 			print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
@@ -631,7 +637,6 @@ def main(argv):
 				answer = "y"
 
 			if answer.lower() == "y":
-				import_operation = import_operations.operation(Hive_DB, Hive_Table)
 				import_operation.resetIncrMaxValue()
 				import_operation.clearStage()
 				import_operation.remove_temporary_files()
