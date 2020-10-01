@@ -135,24 +135,24 @@ Row count validation
 
 For imports, these are the configuration properties in import_tables that are used to configure row count validation
 
-validate_import        | Should the import be validated at all. 0 for no validation and 1 for validation. 
-validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
-validate_source        | Where should the source row count come from. There are two option. DBImport can execute a "select count(*) from ..." or just take the number of rows that spark or sqoop imported and use that as the number of rows in the source system. 
-                       | Both have it's advantages. Running the select count(*) statement will return the actual rows on the source systemen, regardless of how many rows sqoop or spark imported. But lets say it's a log table and the table is filled with new data all the time. Then the number of rows that was added between the select statement and the time for spark or sqoop to execute will most likely exceed the allowed number of difference in row count between source and Hive. In this case, it's better to use the 'sqoop' method. Then the number of rows in the source system will be what spark or sqoop imported. 
-                       | **Note**: Even if the setting is 'sqoop', it also works for spark. This is a legacy setting that was created when only sqoop was supported by DBImport.
-validate_diff_allowed  | The default setting is -1. That means that the number of rows that are allowed to diff is handled automaticly. If it's a large table with many rows, the allowed diff is larger than a small table. 
-                       | Setting this to a fixed value will only allow these many rows in diff. 
-                       | **Note**: Formula for auto settings is the following. *rowcount*(50/(100*math.sqrt(rowcount)))*
-incr_validation_method | If the import is an incremental import, then you have the option to choose if you are going to validate against the full number of rows or only validate the incremental rows that you are importing. There are cases when for example the source system only keeps a X number of days data in their tables. Then after X number of days of incremental imports, there will be more data in Hive compared to the source system. Then the 'full' ince_validation_method will fail as the total number of rows will be different. In this case, the 'incr' method should be used. What it basically does is to add the min and max values for the incremental load to the select count statement. So only the incrementally loaded rows are counted.
+  validate_import        | Should the import be validated at all. 0 for no validation and 1 for validation. 
+  validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
+  validate_source        | Where should the source row count come from. There are two option. DBImport can execute a "select count(*) from ..." or just take the number of rows that spark or sqoop imported and use that as the number of rows in the source system. 
+                         | Both have it's advantages. Running the select count(*) statement will return the actual rows on the source systemen, regardless of how many rows sqoop or spark imported. But lets say it's a log table and the table is filled with new data all the time. Then the number of rows that was added between the select statement and the time for spark or sqoop to execute will most likely exceed the allowed number of difference in row count between source and Hive. In this case, it's better to use the 'sqoop' method. Then the number of rows in the source system will be what spark or sqoop imported. 
+                         | **Note**: Even if the setting is 'sqoop', it also works for spark. This is a legacy setting that was created when only sqoop was supported by DBImport.
+  validate_diff_allowed  | The default setting is -1. That means that the number of rows that are allowed to diff is handled automaticly. If it's a large table with many rows, the allowed diff is larger than a small table. 
+                         | Setting this to a fixed value will only allow these many rows in diff. 
+                         | **Note**: Formula for auto settings is the following. *rowcount*(50/(100*math.sqrt(rowcount)))*
+  incr_validation_method | If the import is an incremental import, then you have the option to choose if you are going to validate against the full number of rows or only validate the incremental rows that you are importing. There are cases when for example the source system only keeps a X number of days data in their tables. Then after X number of days of incremental imports, there will be more data in Hive compared to the source system. Then the 'full' ince_validation_method will fail as the total number of rows will be different. In this case, the 'incr' method should be used. What it basically does is to add the min and max values for the incremental load to the select count statement. So only the incrementally loaded rows are counted.
 
 
 **Exports**
 
 For exports, these are the configuration properties in export_tables that are used to configure row count validation
 
-validate_export        | Should the export be validated at all. 0 for no validation and 1 for validation. 
-validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
-incr_validation_method | If the export is an incremental export, then you have the option to choose if you are going to validate against the full number of rows or only validate the incremental rows that you are exporting. 
+  validate_export        | Should the export be validated at all. 0 for no validation and 1 for validation. 
+  validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
+  incr_validation_method | If the export is an incremental export, then you have the option to choose if you are going to validate against the full number of rows or only validate the incremental rows that you are exporting. 
 
 
 custom SQL validation
@@ -178,19 +178,19 @@ ${TARGET_TABLE}    Replaced with target database table in exports
 
 These are the configuration properties in import_tables that are used to configure custom SQL validation
 
-validate_import                           | Should the import be validated at all. 0 for no validation and 1 for validation.
-validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
-validationCustomQuerySourceSQL            | The SQL query that will be executed in the source database
-validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. ${HIVE_DB} and ${HIVE_TABLE} variable must be used as the query will be executed on both the *Import Table* and *Target Table*
-validationCustomQueryValidateImportTable  | For certain imports, like incremental imports, running the custom sql against the *import table* have a large risk of returning the incorrect result. So for custom SQL imports, it's possible to disable the validation on the *import table* and only do the validation on the *target table*. Putting 0 in this column will disable validation on the *import table*
+  validate_import                           | Should the import be validated at all. 0 for no validation and 1 for validation.
+  validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
+  validationCustomQuerySourceSQL            | The SQL query that will be executed in the source database
+  validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. ${HIVE_DB} and ${HIVE_TABLE} variable must be used as the query will be executed on both the *Import Table* and *Target Table*
+  validationCustomQueryValidateImportTable  | For certain imports, like incremental imports, running the custom sql against the *import table* have a large risk of returning the incorrect result. So for custom SQL imports, it's possible to disable the validation on the *import table* and only do the validation on the *target table*. Putting 0 in this column will disable validation on the *import table*
 
 
 **Exports**
 
 These are the configuration properties in export_tables that are used to configure custom SQL validation
 
-validate_export                           | Should the export be validated at all. 0 for no validation and 1 for validation.
-validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
-validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. 
-validationCustomQueryTargetSQL            | The SQL query that will be executed in the target database
+  validate_export                           | Should the export be validated at all. -1 for no validation and 1 for validation.
+  validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
+  validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. 
+  validationCustomQueryTargetSQL            | The SQL query that will be executed in the target database
 
