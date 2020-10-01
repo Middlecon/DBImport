@@ -134,6 +134,8 @@ Row count validation
 **Imports**
 
 For imports, these are the configuration properties in import_tables that are used to configure row count validation
+1
+
 
   validate_import        | Should the import be validated at all. 0 for no validation and 1 for validation. 
   validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
@@ -149,6 +151,7 @@ For imports, these are the configuration properties in import_tables that are us
 **Exports**
 
 For exports, these are the configuration properties in export_tables that are used to configure row count validation
+
 
   validate_export        | Should the export be validated at all. 0 for no validation and 1 for validation. 
   validationMethod       | Validation method to use. For row count validation, you select, believe it or not, 'rowCount'
@@ -178,6 +181,7 @@ ${TARGET_TABLE}    Replaced with target database table in exports
 
 These are the configuration properties in import_tables that are used to configure custom SQL validation
 
+
   validate_import                          | Should the import be validated at all. 0 for no validation and 1 for validation.
   validationMethod                         | Validation method to use. For custom SQL validation, you select 'customQuery'
   validationCustomQuerySourceSQL           | The SQL query that will be executed in the source database
@@ -189,8 +193,10 @@ These are the configuration properties in import_tables that are used to configu
 
 These are the configuration properties in export_tables that are used to configure custom SQL validation
 
+
   validate_export | Should the export be validated at all. -1 for no validation and 1 for validation.
   validationMethod | Validation method to use. For custom SQL validation, you select 'customQuery'
   validationCustomQueryHiveSQL | The SQL query that will be executed in Hive. 
   validationCustomQueryTargetSQL | The SQL query that will be executed in the target database
+
 
