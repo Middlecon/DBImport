@@ -1154,6 +1154,8 @@ def main(argv):
 
 				newStage = 0
 				# TODO: Add correct restart points once incremental imports are working
+				if stage == 3303: newStage = 3302
+				if stage == 3306: newStage = 3304
 				if stage == 3309: newStage = 3304 
 				print(" ________________________________________________________ ")
 				print("|                                                        |")

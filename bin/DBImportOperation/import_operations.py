@@ -196,8 +196,8 @@ class operation(object, metaclass=Singleton):
 		resultJSON = resultDF.to_json(orient="values")
 		self.import_config.validationCustomQueryHiveValue = resultJSON
 
-		if len(self.validationCustomQueryHiveValue) > 512:
-			logging.warning("'%s' is to large." % (self.validationCustomQueryHiveValue))
+		if len(self.import_config.validationCustomQueryHiveValue) > 512:
+			logging.warning("'%s' is to large." % (self.import_config.validationCustomQueryHiveValue))
 			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
 
 		self.import_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON)
@@ -223,8 +223,8 @@ class operation(object, metaclass=Singleton):
 		resultJSON = resultDF.to_json(orient="values")
 		self.import_config.validationCustomQueryHiveValue = resultJSON
 
-		if len(self.validationCustomQueryHiveValue) > 512:
-			logging.warning("'%s' is to large." % (self.validationCustomQueryHiveValue))
+		if len(self.import_config.validationCustomQueryHiveValue) > 512:
+			logging.warning("'%s' is to large." % (self.import_config.validationCustomQueryHiveValue))
 			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
 
 		self.import_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON)
