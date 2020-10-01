@@ -178,19 +178,19 @@ ${TARGET_TABLE}    Replaced with target database table in exports
 
 These are the configuration properties in import_tables that are used to configure custom SQL validation
 
-  validate_import                           | Should the import be validated at all. 0 for no validation and 1 for validation.
-  validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
-  validationCustomQuerySourceSQL            | The SQL query that will be executed in the source database
-  validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. ${HIVE_DB} and ${HIVE_TABLE} variable must be used as the query will be executed on both the *Import Table* and *Target Table*
-  validationCustomQueryValidateImportTable  | For certain imports, like incremental imports, running the custom sql against the *import table* have a large risk of returning the incorrect result. So for custom SQL imports, it's possible to disable the validation on the *import table* and only do the validation on the *target table*. Putting 0 in this column will disable validation on the *import table*
+  validate_import                          | Should the import be validated at all. 0 for no validation and 1 for validation.
+  validationMethod                         | Validation method to use. For custom SQL validation, you select 'customQuery'
+  validationCustomQuerySourceSQL           | The SQL query that will be executed in the source database
+  validationCustomQueryHiveSQL             | The SQL query that will be executed in Hive. ${HIVE_DB} and ${HIVE_TABLE} variable must be used as the query will be executed on both the *Import Table* and *Target Table*
+  validationCustomQueryValidateImportTable | For certain imports, like incremental imports, running the custom sql against the *import table* have a large risk of returning the incorrect result. So for custom SQL imports, it's possible to disable the validation on the *import table* and only do the validation on the *target table*. Putting 0 in this column will disable validation on the *import table*
 
 
 **Exports**
 
 These are the configuration properties in export_tables that are used to configure custom SQL validation
 
-  validate_export                           | Should the export be validated at all. -1 for no validation and 1 for validation.
-  validationMethod                          | Validation method to use. For custom SQL validation, you select 'customQuery'
-  validationCustomQueryHiveSQL              | The SQL query that will be executed in Hive. 
-  validationCustomQueryTargetSQL            | The SQL query that will be executed in the target database
+  validate_export | Should the export be validated at all. -1 for no validation and 1 for validation.
+  validationMethod | Validation method to use. For custom SQL validation, you select 'customQuery'
+  validationCustomQueryHiveSQL | The SQL query that will be executed in Hive. 
+  validationCustomQueryTargetSQL | The SQL query that will be executed in the target database
 
