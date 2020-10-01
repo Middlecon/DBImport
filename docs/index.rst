@@ -44,10 +44,11 @@ So DBImport brings the following to the table
 -   Ability to create Audit change tables from both Full and Incremental Imports
 -   Tight integration with Apache Airflow for scheduling and parallel execution
 -   Full logging and statistics of all imports and exports to Hive
+-   Integration with Apache Atlas
 
 Ease of use
 -----------
-Let’s say that you have a source system with 1000 tables and you need to import these into Hive. With DBImport, these are thee steps you would have to do
+Let’s say that you have a source system with 1000 tables and you need to import these into Hive. With DBImport, these are the steps you would have to do
 
 1.  Create a connection to the source system. (enter hostname, port, username, password, database name and such)
 2.  Run one command that will connect to the source system and search for tables and views that you can import. You then get a list of the found items and a question if these are the tables you want to add to DBImport. Answer ‘Yes’ and the tables/views are now configured for import.

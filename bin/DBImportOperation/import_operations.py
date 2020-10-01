@@ -153,6 +153,88 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			raise
 
+	def getJDBCTableValidationData(self):
+		if self.import_config.validationMethod == "customQuery":
+			self.import_config.runCustomValidationQueryOnJDBCTable()
+		else:
+			self.getJDBCTableRowCount()
+
+	def validateImportTool(self):
+		if self.import_config.validationMethod == "customQuery":
+			logging.info("No validation of spark/sqoop import when running with a customQuery validation")
+			pass
+		else:
+			self.validateSqoopRowCount()
+
+	def getImportTableValidationData(self):
+		if self.import_config.validationMethod == "customQuery":
+			if self.import_config.validationCustomQueryValidateImportTable == True:
+				self.runCustomValidationQueryOnImportTable()
+			else:
+				logging.info("No validation of import table as that is disabled in configuration")
+		else:
+			self.getImportTableRowCount()
+
+	def getTargetTableValidationData(self):
+		if self.import_config.validationMethod == "customQuery":
+			self.runCustomValidationQueryOnTargetTable()
+		else:
+			self.getTargetTableRowCount()
+
+	def runCustomValidationQueryOnImportTable(self):
+		logging.debug("Executing import_operations.runCustomValidationQueryOnImportTable()")
+
+		logging.info("Executing custom validation query on Import table.")
+
+		query = self.import_config.validationCustomQueryHiveSQL
+		query = query.replace("${HIVE_DB}", self.import_config.Hive_Import_DB)
+		query = query.replace("${HIVE_TABLE}", self.import_config.Hive_Import_Table)
+
+		logging.debug("Validation Query on Import table: %s" % (query) )
+
+		resultDF = self.common_operations.executeHiveQuery(query)
+		resultJSON = resultDF.to_json(orient="values")
+		self.import_config.validationCustomQueryHiveValue = resultJSON
+
+		if len(self.validationCustomQueryHiveValue) > 512:
+			logging.warning("'%s' is to large." % (self.validationCustomQueryHiveValue))
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+
+		self.import_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON)
+
+		logging.debug("resultDF:")
+		logging.debug(resultDF)
+		logging.debug("resultJSON: %s" % (resultJSON))
+
+		logging.debug("Executing import_operations.runCustomValidationQueryOnImportTable() - Finished")
+
+	def runCustomValidationQueryOnTargetTable(self):
+		logging.debug("Executing import_operations.runCustomValidationQueryOnTargetTable()")
+
+		logging.info("Executing custom validation query on Target table.")
+
+		query = self.import_config.validationCustomQueryHiveSQL
+		query = query.replace("${HIVE_DB}", self.import_config.Hive_DB)
+		query = query.replace("${HIVE_TABLE}", self.import_config.Hive_Table)
+
+		logging.debug("Validation Query on Target table: %s" % (query) )
+
+		resultDF = self.common_operations.executeHiveQuery(query)
+		resultJSON = resultDF.to_json(orient="values")
+		self.import_config.validationCustomQueryHiveValue = resultJSON
+
+		if len(self.validationCustomQueryHiveValue) > 512:
+			logging.warning("'%s' is to large." % (self.validationCustomQueryHiveValue))
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+
+		self.import_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON)
+
+		logging.debug("resultDF:")
+		logging.debug(resultDF)
+		logging.debug("resultJSON: %s" % (resultJSON))
+
+		logging.debug("Executing import_operations.runCustomValidationQueryOnTargetTable() - Finished")
+
 	def getJDBCTableRowCount(self):
 		try:
 			self.import_config.getJDBCTableRowCount()
@@ -211,7 +293,7 @@ class operation(object, metaclass=Singleton):
 #					whereStatement += " and datalake_flashback_operation != 'D' or datalake_flashback_operation is null"
 
 			if whereStatement == None and self.import_config.import_with_merge == True and self.import_config.soft_delete_during_merge == True:
-				whereStatement = "datalake_iud != 'D'"
+				whereStatement = "datalake_iud != 'D' or datalake_iud is null"
 
 			if whereStatement == None and self.import_config.importPhase == constant.IMPORT_PHASE_FULL and self.import_config.etlPhase == constant.ETL_PHASE_INSERT:
 				whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
@@ -225,13 +307,32 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def clearTableRowCount(self):
+	def clearValidationData(self):
 		try:
-			self.import_config.clearTableRowCount()
+			self.import_config.clearValidationData()
 		except:
-			logging.exception("Fatal error when clearing row counts from previous imports")
+			logging.exception("Fatal error when clearing validation data from previous imports")
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
+
+	def validateImportTable(self):
+		if self.import_config.validationMethod == "customQuery":
+			if self.import_config.validationCustomQueryValidateImportTable == True:
+				if self.import_config.validateCustomQuery() == True:
+					logging.info("Import table validation successful!")
+		else:
+			if self.import_config.import_is_incremental == False:
+				self.validateRowCount()
+			else:
+				self.validateIncrRowCount()
+
+	def validateTargetTable(self):
+		if self.import_config.validationMethod == "customQuery":
+			if self.import_config.validateCustomQuery() == True:
+				logging.info("Target table validation successful!")
+		else:
+			self.validateRowCount()
+
 
 	def validateRowCount(self):
 		logging.debug("Executing import_operations.validateRowCount()")
@@ -488,39 +589,6 @@ class operation(object, metaclass=Singleton):
 		os.environ['HDP_VERSION'] = self.import_config.common_config.sparkHDPversion
 		os.environ['PYSPARK_SUBMIT_ARGS'] = sparkPysparkSubmitArgs
 
-#		dataTypes = {'Co2RequestId': 'struct<subType:tinyint,data:string>', 'Data': 'struct<Results:struct<Status:string,Result:array<struct<Mission:string,Payload:struct<UnitOfMeasure:string,Value:string>,FuelType:string,AverageSpeed:struct<UnitOfMeasure:string,Value:string>,FuelConsumption:array<struct<UnitOfMeasure:string,Value:string>>,CO2:array<struct<UnitOfMeasure:string,Value:string>>,Status:string>>>,Vehicle:struct<AverageRRC:string,AxleConfiguration:string,AxleRatio:string,CurbMassChassis:string,EngineDisplacement:string,EngineRatedPower:string,FuelType:string,GearsCount:string,GrossVehicleMass:string,LegislativeClass:string,Manufacturer:string,ManufacturerAddress:string,Model:string,Retarder:string,TransmissionMainCertificationMethod:string,TransmissionType:string,VIN:string,VehicleGroup:string>,_id:string>', 'SpecificationId': 'struct<subType:tinyint,data:string>', 'VectoRequestId': 'string', '_c': 'timestamp', '_id': 'struct<oid:string>', '_m': 'timestamp'}
-#		print(dataTypes)
-#
-#
-#		columnDict = {}
-#		for column in dataTypes:
-#			columnType = dataTypes[column]
-#
-#			for list1 in columnType.split('<'):
-#				for list2 in list1.split('>'):
-#					for list3 in list2.split(','):
-#						if len(list3.split(':')) == 2:
-#							columnType = re.sub(r'([<>,])' + list3 + '([<>,])', r'\1`%s`:%s\2'%(list3.split(':')[0], list3.split(':')[1]), columnType) 
-#			columnDict[column] = columnType
-#
-#		print(columnDict)
-#
-#
-#		raise daemonExit("Step 1")
-#		timestampString = str("{    \"$date\"        :            1544792537000           }")
-#		print(timestampString)
-#
-#		m = re.match('\{ *\"\$date\" *: *(-?\d+)\ *}', timestampString)
-#		print(m)
-#		num = ""
-#		if m:
-#			num += m.group(1)
-#			timestamp = datetime.utcfromtimestamp(int(num)/1000)
-#			print(timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'))
-#
-#		raise daemonExit("Step 1")
-
-
 		print(" _____________________ ")
 		print("|                     |")
 		print("| Spark Import starts |")
@@ -573,17 +641,6 @@ class operation(object, metaclass=Singleton):
 				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
 
 		sys.stdout.flush()
-
-
-#		if self.import_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
-			# Configuration for HDP 3.x
-#			from pyspark_llap import HiveWarehouseSession
-#			sc = SparkContext(conf=conf)
-#			spark = SparkSession(sc)
-
-#		elif self.import_config.common_config.sparkHiveLibrary == "HiveContext":
-			# Configuration for HDP 2.x
-#			sc = SparkContext(conf=conf)
 
 		sc = SparkContext(conf=conf)
 		sc.addPyFile("%s/bin/common/sparkUDF.py"%(os.environ['DBIMPORT_HOME']))
@@ -697,8 +754,7 @@ class operation(object, metaclass=Singleton):
 		dfString.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
 
-
-#		# Get the number of rows from the ORC files
+		# Get the number of rows from the ORC files
 		print("Reading ORC files from HDFS to verify size and rows")
 		sys.stdout.flush()
 		hdfsDataDf = spark.read.format("orc").load(self.import_config.sqoop_hdfs_location)
@@ -761,13 +817,8 @@ class operation(object, metaclass=Singleton):
 		self.import_config.common_config.source_columns_df = pd.DataFrame(rows_list)
 		self.import_config.common_config.source_keys_df = result_df = pd.DataFrame()
 
-#		print(self.import_config.common_config.source_columns_df)
-
 		# Update import_columns with column information
 		self.getSourceTableSchema()
-
-#		# Save the number of rows from the source DF to the import_tables table
-#		self.import_config.saveSourceTableRowCount(rowsReadBySpark)
 
 		try:
 			self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
@@ -776,7 +827,6 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-#		raise daemonExit("Step 1")
 		logging.debug("Executing import_operations.runSparkImportForMongo() - Finished")
 
 
@@ -900,7 +950,7 @@ class operation(object, metaclass=Singleton):
 		# import all packages after the environment is set
 		from pyspark.context import SparkContext, SparkConf
 		from pyspark.sql import SparkSession
-		from pyspark import HiveContext
+#		from pyspark import HiveContext
 		from pyspark.context import SparkContext
 		from pyspark.sql import Row
 		from pyspark.sql.functions import udf
@@ -930,18 +980,6 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.executor.instances', str(self.import_config.sparkMaxExecutors))
 				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
 
-#		JDBCconnectionProperties = {}
-#		JDBCconnectionProperties["user"] = self.import_config.common_config.jdbc_username
-#		JDBCconnectionProperties["password"] = self.import_config.common_config.jdbc_password
-#		JDBCconnectionProperties["driver"] = self.import_config.common_config.jdbc_driver
-#		JDBCconnectionProperties["fetchsize"] = "10000"
-#
-#		if self.import_config.sqlSessions > 1:
-#			JDBCconnectionProperties["partitionColumn"] = str(self.import_config.splitByColumn)
-#			JDBCconnectionProperties["lowerBound"] = str(minMaxDict["min"])
-#			JDBCconnectionProperties["upperBound"] = str(minMaxDict["max"])
-#			JDBCconnectionProperties["numPartitions"] = str(self.import_config.sqlSessions)
-
 		sys.stdout.flush()
 		sc = SparkContext(conf=conf)
 		sys.stdout.flush()
@@ -949,8 +987,6 @@ class operation(object, metaclass=Singleton):
 		sys.stdout.flush()
 
 		sc.addPyFile("%s/bin/common/sparkUDF2.py"%(os.environ['DBIMPORT_HOME']))
-#		from sparkUDF import hashColumn
-#		from sparkUDF import setSeedString
 		import sparkUDF2
 
 		yarnApplicationID = sc.applicationId
@@ -1921,7 +1957,13 @@ class operation(object, metaclass=Singleton):
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
 		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
-		columnsHive['comment'].replace(['^$'], [None], regex=True, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
+
+		try:
+			columnsHive['comment'].replace(['^$'], [None], regex=True, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
+		except ValueError:
+			# This exception will happen if all columns are None.
+			pass
+
 		columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 
 		for index, row in columnsMerge.loc[columnsMerge['Exist'] == 'left_only'].iterrows():

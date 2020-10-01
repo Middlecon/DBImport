@@ -261,19 +261,6 @@ class operation(object, metaclass=Singleton):
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
-#	def getImportTableRowCount(self):
-#		try:
-#			whereStatement = None
-#			if self.export_config.exportIsIncremental == True:
-#				whereStatement = self.export_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True)
-#
-#			exportTableRowCount = self.common_operations.getHiveTableRowCount(self.export_config.Hive_Import_DB, self.export_config.Hive_Import_Table, whereStatement=whereStatement)
-#			self.export_config.saveHiveTableRowCount(exportTableRowCount)
-#		except:
-#			logging.exception("Fatal error when reading Hive table row count")
-#			self.export_config.remove_temporary_files()
-#			sys.exit(1)
-
 	def discoverAndAddTablesFromHive(self, dbalias, schema, dbFilter=None, tableFilter=None, addDBToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None):
 		""" This is the main function to search for tables/view in Hive and add them to export_tables """
 		logging.debug("Executing export_operations.discoverAndAddTablesFromHive()")
@@ -377,15 +364,15 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing export_operations.discoverAndAddTablesFromHive() - Finished")
 
 
-	def clearTableRowCount(self):
+	def clearValidationData(self):
 		try:
-			self.export_config.clearTableRowCount()
+			self.export_config.clearValidationData()
 		except invalidConfiguration as errMsg:
 			logging.error(errMsg)
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 		except:
-			logging.exception("Fatal error when clearing row counts from previous exports")
+			logging.exception("Fatal error when clearing validation data from previous exports")
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
@@ -774,10 +761,6 @@ class operation(object, metaclass=Singleton):
 			hiveTable = self.hiveTable
 
 		sparkQuery = "select %s from `%s`.`%s`"%(columnList, hiveDB, hiveTable)
-#		print(sparkQuery)
-#		if self.export_config.exportIsIncremental == True:
-#			sparkQuery += " where "
-#			sparkQuery += self.export_config.getIncrWhereStatement()
 
 		# Sets the correct spark table and schema that will be used to write to
 		sparkWriteTable = ""
@@ -1144,6 +1127,34 @@ class operation(object, metaclass=Singleton):
 			self.sqoopMappers = int(row.split("=")[1])
 
 
+	def getHiveTableValidationData(self):
+		if self.export_config.validateExport == False:
+			return
+
+		if self.export_config.validationMethod == constant.VALIDATION_METHOD_ROWCOUNT:
+			self.getHiveTableRowCount()
+		else: 
+			self.runCustomValidationQueryOnHiveTable()
+
+	def getTargetTableValidationData(self):
+		if self.export_config.validateExport == False:
+			return
+
+		if self.export_config.validationMethod == constant.VALIDATION_METHOD_ROWCOUNT:
+			self.getTargetTableRowCount()
+		else: 
+			self.export_config.runCustomValidationQueryOnJDBCTable()
+
+	def validateExport(self):
+		if self.export_config.validateExport == False:
+			logging.info("Validation disabled for this export")
+			return
+
+		if self.export_config.validationMethod == constant.VALIDATION_METHOD_ROWCOUNT:
+			self.validateRowCount()
+		else: 
+			self.export_config.validateCustomQuery()
+
 	def getHiveTableRowCount(self):
 		try:
 			whereStatement = None
@@ -1162,7 +1173,7 @@ class operation(object, metaclass=Singleton):
 				if whereStatement == None:
 					whereStatement = self.export_config.sqlWhereAddition
 				else:
-					whereStatement += "and (%s)" % (self.export_config.sqlWhereAddition)
+					whereStatement += " and (%s)" % (self.export_config.sqlWhereAddition)
 
 			hiveTableRowCount = self.common_operations.getHiveTableRowCount(hiveDB, hiveTable, whereStatement=whereStatement)
 			self.export_config.saveHiveTableRowCount(hiveTableRowCount)
@@ -1170,6 +1181,40 @@ class operation(object, metaclass=Singleton):
 			logging.exception("Fatal error when reading Hive table row count")
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
+
+	def runCustomValidationQueryOnHiveTable(self):
+		logging.debug("Executing export_operations.runCustomValidationQueryOnTargetTable()")
+
+		logging.info("Executing custom validation query on Hive table.")
+
+		query = self.export_config.validationCustomQueryHiveSQL
+		query = query.replace("${HIVE_DB}", self.export_config.hiveDB)
+		query = query.replace("${HIVE_TABLE}", self.export_config.hiveTable)
+
+		if self.export_config.sqlWhereAddition != None:
+			if " where " in query:
+				query += " and (%s)" % (self.export_config.sqlWhereAddition)
+			else:
+				query += " where %s" % (self.export_config.sqlWhereAddition)
+
+		logging.debug("Validation Query on Hive table: %s" % (query) )
+
+		resultDF = self.common_operations.executeHiveQuery(query)
+		resultJSON = resultDF.to_json(orient="values")
+		self.export_config.validationCustomQueryHiveValue = resultJSON
+
+		if len(self.validationCustomQueryHiveValue) > 512:
+			logging.warning("'%s' is to large." % (self.validationCustomQueryHiveValue))
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+
+		self.export_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON, printInfo=False)
+
+		logging.debug("resultDF:")
+		logging.debug(resultDF)
+		logging.debug("resultJSON: %s" % (resultJSON))
+
+		logging.debug("Executing export_operations.runCustomValidationQueryOnTargetTable() - Finished")
+
 
 	def isThereIncrDataToExport(self):
 		try:
@@ -1190,6 +1235,7 @@ class operation(object, metaclass=Singleton):
 			logging.exception("Fatal error when reading Target table row count")
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
+
 
 	def validateRowCount(self):
 		try:

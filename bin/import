@@ -406,12 +406,12 @@ def main(argv):
 
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1011) == True: 
-					import_operation.clearTableRowCount()
+					import_operation.clearValidationData()
 
 			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1012) == True: 
-						import_operation.getJDBCTableRowCount()
+						import_operation.getJDBCTableValidationData()
 	
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
@@ -422,7 +422,7 @@ def main(argv):
 						import_operation.runSparkImport(False)
 
 				if import_operation.runStage(1020) == True: 
-					import_operation.validateSqoopRowCount()
+					import_operation.validateImportTool()
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1045) == True: 
@@ -464,7 +464,7 @@ def main(argv):
 
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1111) == True: 
-					import_operation.clearTableRowCount()
+					import_operation.clearValidationData()
 
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
@@ -483,11 +483,11 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1120) == True: 
-						import_operation.getJDBCTableRowCount()
+						import_operation.getJDBCTableValidationData()
 	
 			if runOnlyFunction == None:
 				if import_operation.runStage(1121) == True: 
-					import_operation.validateSqoopRowCount()
+					import_operation.validateImportTool()
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1145) == True: 
@@ -528,7 +528,7 @@ def main(argv):
 
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1211) == True: 
-					import_operation.clearTableRowCount()
+					import_operation.clearValidationData()
 
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
@@ -541,10 +541,10 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1220) == True: 
-						import_operation.getJDBCTableRowCount()
+						import_operation.getJDBCTableValidationData()
 	
 				if import_operation.runStage(1221) == True: 
-					import_operation.validateSqoopRowCount()
+					import_operation.validateImportTool()
 	
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1245) == True: 
@@ -577,21 +577,11 @@ def main(argv):
 				print("")
 				sys.stdout.flush()
 
-
-#			# Fetch the source table schema. This is mandatory for all imports
-#			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
-#				if import_operation.runStage(1210) == True: 
-#					import_operation.getSourceTableSchema()
-#
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1310) == True: 
-					import_operation.clearTableRowCount()
-#
+					import_operation.clearValidationData()
+
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
-#				if import_operation.import_config.importTool == "sqoop": 
-#					if import_operation.runStage(1212) == True:
-#						import_operation.runSqoopImport(False)
-#				if import_operation.import_config.importTool == "spark": 
 				if import_operation.runStage(1315) == True:
 					import_operation.runSparkImportForMongo()
 
@@ -603,9 +593,6 @@ def main(argv):
 	
 			if import_operation.runStage(1325) == True: 
 				import_operation.validateSqoopRowCount()
-
-#				if import_operation.runStage(1311) == True: 
-#					import_operation.getSourceTableSchema()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(1349)
@@ -676,10 +663,10 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
 				if import_operation.runStage(3052) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
-					import_operation.getImportTableRowCount()
+					import_operation.getImportTableValidationData()
 
 				if import_operation.runStage(3053) == True: 
-					import_operation.validateRowCount()
+					import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3054) == True: 
@@ -713,10 +700,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3059) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3060) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -770,10 +757,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3102) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3103) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3104) == True: 
@@ -802,10 +789,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3108) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3109) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -847,6 +834,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3160)
 
@@ -863,10 +851,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3152) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3153) == True: 
-						import_operation.validateIncrRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3154) == True: 
@@ -895,10 +883,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3158) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3159) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3160) == True: 
@@ -957,10 +945,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3202) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3203) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3204) == True: 
@@ -1021,10 +1009,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3210) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3211) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3212) == True: 
@@ -1083,10 +1071,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3252) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3253) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3254) == True: 
@@ -1139,10 +1127,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3259) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3260) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3261) == True: 
@@ -1188,6 +1176,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3310)
 
@@ -1206,10 +1195,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3302) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3303) == True: 
-						import_operation.validateIncrRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3304) == True: 
@@ -1254,10 +1243,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3308) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3309) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3310) == True: 
@@ -1307,6 +1296,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3361)
 
@@ -1325,10 +1315,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3352) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3353) == True: 
-						import_operation.validateIncrRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3354) == True: 
@@ -1381,10 +1371,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3359) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3360) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3361) == True: 
@@ -1434,6 +1424,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3410)
 
@@ -1452,10 +1443,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3402) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3403) == True: 
-						import_operation.validateIncrRowCount()
+						import_operation.validateImportTable()
 						import_operation.getImportViewRowCountAsSource(incr=True)
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
@@ -1512,10 +1503,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3408) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3409) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3410) == True: 
@@ -1576,10 +1567,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3452) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3453) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1635,10 +1626,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3502) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3503) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3504) == True: 
@@ -1672,10 +1663,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3509) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3510) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1717,6 +1708,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
 					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
 					import_operation.setStage(3561)
 
@@ -1735,10 +1727,10 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3552) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getImportTableRowCount()
+						import_operation.getImportTableValidationData()
 
 					if import_operation.runStage(3553) == True: 
-						import_operation.validateIncrRowCount()
+						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
 				if import_operation.runStage(3554) == True: 
@@ -1800,10 +1792,10 @@ def main(argv):
 					if import_operation.runStage(3559) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
 						import_operation.getImportViewRowCountAsSource(incr = True)
-						import_operation.getTargetTableRowCount()
+						import_operation.getTargetTableValidationData()
 
 					if import_operation.runStage(3560) == True: 
-						import_operation.validateRowCount()
+						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3561) == True: 
@@ -1851,6 +1843,13 @@ def main(argv):
 		import_operation.remove_temporary_files()
 
 	# Error handling for the entire stage block
+	except SQLerror as errMsg:
+		logging.error(errMsg)
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
+	except validationError as errMsg:
+		import_operation.import_config.remove_temporary_files()
+		sys.exit(1)
 	except invalidConfiguration as errMsg:
 		logging.error(errMsg)
 		import_operation.import_config.remove_temporary_files()

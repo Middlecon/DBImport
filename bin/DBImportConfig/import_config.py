@@ -118,6 +118,13 @@ class config(object, metaclass=Singleton):
 		self.custom_max_query = None
 		self.printSQLWhereAddition = True
 
+		self.validationMethod = None
+		self.validationCustomQuerySourceSQL = None
+		self.validationCustomQueryHiveSQL = None
+		self.validationCustomQuerySourceValue = None
+		self.validationCustomQueryHiveValue = None
+		self.validationCustomQueryValidateImportTable = True
+
 		self.importPhase = None
 		self.importPhaseDescription = None
 		self.copyPhase = None
@@ -290,7 +297,13 @@ class config(object, metaclass=Singleton):
 				"    import_tool, "
 				"    spark_executor_memory, "
 				"    split_by_column, "
-				"    custom_max_query "
+				"    custom_max_query, "
+				"    validationMethod, "
+				"    validationCustomQuerySourceSQL, "
+				"    validationCustomQueryHiveSQL, "
+				"    validationCustomQueryValidateImportTable, "
+				"    validationCustomQuerySourceValue, "
+				"    validationCustomQueryHiveValue "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -372,6 +385,28 @@ class config(object, metaclass=Singleton):
 		self.custom_max_query = row[37]
 		self.common_config.custom_max_query = self.custom_max_query
 
+		self.validationMethod = row[38]
+		self.validationCustomQuerySourceSQL = row[39]
+		self.validationCustomQueryHiveSQL =row[40]
+
+		if row[41] == 1: 
+			self.validationCustomQueryValidateImportTable = True
+		else:
+			self.validationCustomQueryValidateImportTable = False
+
+		self.validationCustomQuerySourceValue = row[42]
+		self.validationCustomQueryHiveValue = row[43]
+
+
+		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
+			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
+
+		if self.validationMethod == "customQuery":
+			# Check settings to make sure all data is available before starting the import
+			if "${HIVE_DB}" not in self.validationCustomQueryHiveSQL or "${HIVE_TABLE}" not in self.validationCustomQueryHiveSQL:
+				raise invalidConfiguration("When using customQuery as the validation method, the Hive query must have the strings ${HIVE_DB} and ${HIVE_TABLE} instead of the actual database and table names. This is needed as validation happens on both import and target table.")
+
+
 		if self.importTool != "sqoop" and self.importTool != "spark":
 			raise invalidConfiguration("Only the values 'sqoop' or 'spark' is valid for column import_tool in import_tables.")
 
@@ -433,6 +468,9 @@ class config(object, metaclass=Singleton):
 				validCombination = True
 
 			if self.import_phase_type == "full" and self.etl_phase_type == "merge_history_audit": 
+				validCombination = True
+
+			if self.import_phase_type == "full" and self.etl_phase_type == "none": 
 				validCombination = True
 
 			if self.import_phase_type == "incr" and self.etl_phase_type == "insert": 
@@ -521,6 +559,15 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge"
 
+		if self.import_phase_type == "full" and self.etl_phase_type == "none":
+			self.import_type_description = "Full import with no ETL phace"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_NONE
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "No ETL phase"
+
 		if self.import_type == "full_merge_direct_history" or (self.import_phase_type == "full" and self.etl_phase_type == "merge_history_audit"):
 			self.import_type_description = "Full import and merge of Hive table. Will also create a History table"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
@@ -569,6 +616,9 @@ class config(object, metaclass=Singleton):
 			if self.soft_delete_during_merge == True: 
 				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
 
+			if self.importTool != "sqoop":
+				raise invalidConfiguration("Oracle Flashback only supports imports with sqoop in this version")
+
 		if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge_history_audit":
 			self.import_type_description = "Import with the help of Oracle Flashback. Will also create a History table"
 			self.importPhase             = constant.IMPORT_PHASE_ORACLE_FLASHBACK
@@ -581,15 +631,16 @@ class config(object, metaclass=Singleton):
 			if self.soft_delete_during_merge == True: 
 				raise invalidConfiguration("Oracle Flashback imports doesnt support 'Soft delete during Merge'. Please check configuration")
 
+			if self.importTool != "sqoop":
+				raise invalidConfiguration("Oracle Flashback only supports imports with sqoop in this version")
+
+		# Check Mongo validation methods
+		if self.mongoImport == True and self.validationMethod == constant.VALIDATION_METHOD_CUSTOMQUERY:
+			raise invalidConfiguration("Mongo Import only supports %s as a validation method" % ( constant.VALIDATION_METHOD_ROWCOUNT ))
+
 		# If this is a slave table, we will disable the import phase as thats already done on the Master instance
 		if self.copy_slave == True:
 			self.importPhaseDescription  = "No Import phase (slave table)"
-
-#		if self.import_type == "incr_merge_delete":
-#			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system."
-
-#		if self.import_type == "incr_merge_delete_history":
-#			self.import_type_description = "Incremental & merge import of table to Hive with text files on HDFS. Handle deletes in source system and will also create a History table."
 
 		# Check to see that we have a valid import type
 		# This will only happen if the old 'import_type' column is used. For the import_phase_type we already check if we have a valid combo
@@ -599,9 +650,6 @@ class config(object, metaclass=Singleton):
 		# Determine if it's a Mongo import or not
 		if self.importPhase == constant.IMPORT_PHASE_MONGO_FULL and self.importTool != "spark":
 			raise invalidConfiguration("Import of MongoDB is only supported by spark")
-#			self.mongoImport = True
-#		else:
-#			self.mongoImport = False
 
 		# Determine if it's an incremental import based on the importPhase
 		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
@@ -1718,16 +1766,19 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.calculateJobMappers() - Finished")
 
-	def clearTableRowCount(self):
-		logging.debug("Executing import_config.clearTableRowCount()")
-		logging.info("Clearing rowcounts from previous imports")
+	def clearValidationData(self):
+		logging.debug("Executing import_config.clearValidationData()")
+		logging.info("Clearing validation data from previous imports")
 
-		query = ("update import_tables set source_rowcount = NULL, source_rowcount_incr = NULL, hive_rowcount = NULL where table_id = %s")
+		self.validationCustomQuerySourceValue = None
+		self.validationCustomQueryHiveValue = None
+
+		query = ("update import_tables set source_rowcount = NULL, source_rowcount_incr = NULL, hive_rowcount = NULL, validationCustomQuerySourceValue = NULL, validationCustomQueryHiveValue = NULL where table_id = %s")
 		self.mysql_cursor01.execute(query, (self.table_id, ))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		logging.debug("Executing import_config.clearTableRowCount() - Finished")
+		logging.debug("Executing import_config.clearValidationData() - Finished")
 
 	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False, ignoreSQLwhereAddition=False):
 		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
@@ -1887,6 +1938,37 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.getIncrWhereStatement() - Finished")
 		return whereStatement
 
+	def runCustomValidationQueryOnJDBCTable(self):
+		logging.debug("Executing import_config.runCustomValidationQueryOnJDBCTable()")
+
+		logging.info("Executing custom validation query on source table.")
+
+		query = self.validationCustomQuerySourceSQL
+		query = query.replace("${SOURCE_SCHEMA}", self.source_schema)
+		query = query.replace("${SOURCE_TABLE}", self.source_table)
+
+		if self.getSQLWhereAddition() != None:
+			query += " where %s"%(self.getSQLWhereAddition())
+
+		logging.debug("Validation Query on JDBC table: %s" % (query) )
+
+		resultDF = self.common_config.executeJDBCquery(query)
+		resultJSON = resultDF.to_json(orient="values")
+		self.validationCustomQuerySourceValue = resultJSON
+
+		if len(self.validationCustomQuerySourceValue) > 512:
+			logging.warning("'%s' is to large." % (self.validationCustomQuerySourceValue))
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+
+		self.saveCustomSQLValidationSourceValue(jsonValue = resultJSON)
+
+		logging.debug("resultDF:")
+		logging.debug(resultDF)
+		logging.debug("resultJSON: %s" % (resultJSON))
+
+		logging.debug("Executing import_config.runCustomValidationQueryOnJDBCTable() - Finished")
+		
+
 	def getJDBCTableRowCount(self):
 		logging.debug("Executing import_config.getJDBCTableRowCount()")
 
@@ -1963,11 +2045,41 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.getMongoRowCount() - Finished")
 
+	def saveCustomSQLValidationSourceValue(self, jsonValue, printInfo=True):
+		logging.debug("Executing import_config.saveCustomSQLValidationSourceValue()")
+		if printInfo == True:
+			logging.info("Saving the custom SQL validation data from Source Table to the configuration database")
+
+		query = "update import_tables set validationCustomQuerySourceValue = %s where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (jsonValue, self.table_id))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		logging.debug("Executing import_config.saveCustomSQLValidationSourceValue() - Finished")
+
+	def saveCustomSQLValidationHiveValue(self, jsonValue, printInfo=True):
+		logging.debug("Executing import_config.saveCustomSQLValidationHiveValue()")
+		if printInfo == True:
+			logging.info("Saving the custom SQL validation data from Hive Table to the configuration database")
+
+		query = "update import_tables set validationCustomQueryHiveValue = %s where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (jsonValue, self.table_id))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		logging.debug("Executing import_config.saveCustomSQLValidationHiveValue() - Finished")
+
 	def saveSourceTableRowCount(self, rowCount, incr=False, printInfo=True):
 		logging.debug("Executing import_config.saveSourceTableRowCount()")
 		if printInfo == True:
 			logging.info("Saving the number of rows in the Source Table to the configuration database")
 
+		if self.validationMethod == constant.VALIDATION_METHOD_CUSTOMQUERY:
+			logging.debug("Executing import_config.saveSourceTableRowCount() - Finished (Because self.validationMethod = %s" % (constant.VALIDATION_METHOD_CUSTOMQUERY))
+			return
+		
 		# Save the value to the database
 		if incr == False:
 			query = "update import_tables set source_rowcount = %s where table_id = %s"
@@ -2041,7 +2153,7 @@ class config(object, metaclass=Singleton):
 			self.sqoop_last_mappers = sqoopMappers
 			queryParam.append(sqoopMappers)
 
-		if self.validate_source == "sqoop":
+		if self.validate_source == "sqoop" and self.validationMethod == "rowCount":
 			logging.info("Saving the imported row count as the number of rows in the source system.")
 			if self.import_is_incremental == True:
 				query += "  ,source_rowcount = NULL "
@@ -2199,6 +2311,22 @@ class config(object, metaclass=Singleton):
 				
 		logging.debug("Executing import_config.getHiveTableComment() - Finished")
 		return row[0]
+
+	def validateCustomQuery(self):
+		""" Validates the custom queries """
+		if self.validationCustomQuerySourceValue == None or self.validationCustomQueryHiveValue == None:
+			logging.error("Validation failed! One of the custom queries did not return a result")
+			logging.info("Result from source query: %s" % ( self.validationCustomQuerySourceValue ))
+			logging.info("Result from Hive query:   %s" % ( self.validationCustomQueryHiveValue ))
+			raise validationError()
+
+		if self.validationCustomQuerySourceValue != self.validationCustomQueryHiveValue:
+			logging.error("Validation failed! The custom queries did not return the same result")
+			logging.info("Result from source query: %s" % ( self.validationCustomQuerySourceValue ))
+			logging.info("Result from Hive query:   %s" % ( self.validationCustomQueryHiveValue ))
+			raise validationError()
+
+		return True
 
 	def validateRowCount(self, validateSqoop=False, incremental=False):
 		""" Validates the rows based on values stored in import_tables -> source_columns and target_columns. Returns True or False """

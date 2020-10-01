@@ -502,10 +502,6 @@ def main(argv):
 			commonConfig.remove_temporary_files()
 
 		if operation == "clearImportStage":
-#			import_operation = import_operations.operation(Hive_DB, Hive_Table)
-#			import_operation.clearStage()
-#			logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
-#			import_operation.remove_temporary_files()
 			importConfig = import_config.config(Hive_DB, Hive_Table)
 			importConfig.clearStage()
 			logging.info("Stage information cleared for %s.%s"%(Hive_DB, Hive_Table))
@@ -808,7 +804,16 @@ def main(argv):
 	# Error handling for the entire stage block
 	except invalidConfiguration as errMsg:
 		logging.error(errMsg)
-		import_operation.import_config.remove_temporary_files()
+		if commonConfig != None:
+			commonConfig.remove_temporary_files()
+		if importConfig != None:
+			importConfig.remove_temporary_files()
+		elif import_operation != None:
+			import_operation.import_config.remove_temporary_files()
+		elif export_operation != None:
+			export_operation.import_config.remove_temporary_files()
+		elif copy_operation != None:
+			copy_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except daemonExit as errMsg:
 		logging.error("Program exit because requested to do so by developer. %s"%(errMsg))

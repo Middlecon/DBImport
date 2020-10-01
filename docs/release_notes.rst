@@ -1,7 +1,19 @@
 Release Notes
 =============
 
-v0.65 (not released)
+v0.66 - Not released. Work in progress
+------------------------------
+
+**Fixed issues**
+
+  - Issue #74: Tasks from custom_dags is not using retries setting
+
+**New Features**
+
+  - Custom SQL validation
+
+
+v0.65
 ------------------------------
 
 **Fixed issues**
@@ -24,6 +36,7 @@ v0.65 (not released)
   - Hive connection supports multiple servers.
   - Poke interval for Multi-cluster sensors is changed from 30 sec to 5 min
   - You force DBImport to process all steps for incremental imports even if it contains no new data. 
+  - Encrypt password for jdbc connections supports '-a' as an argument for connection name
 
 **New Features**
 

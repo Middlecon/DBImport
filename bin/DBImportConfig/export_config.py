@@ -81,6 +81,12 @@ class config(object, metaclass=Singleton):
 		self.sqoopMappers = None
 		self.generatedSqoopOptions = None
 
+		self.validationMethod = None
+		self.validationCustomQueryHiveSQL = None
+		self.validationCustomQueryTargetSQL = None
+		self.validationCustomQueryHiveValue = None
+		self.validationCustomQueryTargetValue = None
+
 		# Initialize the stage class that will handle all stage operations for us
 		self.stage = export_stage.stage(self.mysql_conn, connectionAlias=connectionAlias, targetSchema=targetSchema, targetTable=targetTable)
 		
@@ -169,7 +175,12 @@ class config(object, metaclass=Singleton):
 		query += "    incr_validation_method, "
 		query += "    hive_javaheap, "
 		query += "    export_tool, "
-		query += "    sql_where_addition "
+		query += "    sql_where_addition, "
+		query += "    validationMethod, "
+		query += "    validationCustomQueryHiveSQL, "
+		query += "    validationCustomQueryTargetSQL, "
+		query += "    validationCustomQueryHiveValue, "
+		query += "    validationCustomQueryTargetValue "
 		query += "from export_tables "
 		query += "where "
 		query += "    dbalias = %s " 
@@ -199,6 +210,12 @@ class config(object, metaclass=Singleton):
 		self.hiveJavaHeap = row[12]
 		self.exportTool = row[13]
 		self.sqlWhereAddition = row[14]
+		self.validationMethod = row[15]
+		self.validationCustomQueryHiveSQL =row[16]
+		self.validationCustomQueryTargetSQL = row[17]
+		self.validationCustomQueryHiveValue = row[18]
+		self.validationCustomQueryTargetValue = row[19]
+
 
 		if self.validateExport == 0:
 			self.validateExport = False
@@ -209,6 +226,9 @@ class config(object, metaclass=Singleton):
 			self.truncateTargetTable = True
 		else:
 			self.truncateTargetTable = False
+
+		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT:
+			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in export_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
 
 		if self.incr_validation_method != "full" and self.incr_validation_method != "incr":
 			raise invalidConfiguration("Only the values 'full' or 'incr' is valid for column incr_validation_method in export_tables.")
@@ -274,6 +294,53 @@ class config(object, metaclass=Singleton):
 		logging.debug("    hiveExportTempDB = %s"%(self.hiveExportTempDB))
 		logging.debug("    hiveExportTempTable = %s"%(self.hiveExportTempTable))
 		logging.debug("Executing export_config.getExportConfig() - Finished")
+
+
+	def validateCustomQuery(self):
+		""" Validates the custom queries """
+		if self.validationCustomQueryTargetValue == None or self.validationCustomQueryHiveValue == None:
+			logging.error("Validation failed! One of the custom queries did not return a result")
+			logging.info("Result from Hive query:   %s" % ( self.validationCustomQueryHiveValue ))
+			logging.info("Result from target query: %s" % ( self.validationCustomQueryTargetValue ))
+			raise validationError()
+
+		if self.validationCustomQueryTargetValue != self.validationCustomQueryHiveValue:
+			logging.error("Validation failed! The custom queries did not return the same result")
+			logging.info("Result from Hive query:   %s" % ( self.validationCustomQueryHiveValue ))
+			logging.info("Result from target query: %s" % ( self.validationCustomQueryTargetValue ))
+			raise validationError()
+
+		logging.info("Custom query validation successful!")
+		return True
+
+
+	def saveCustomSQLValidationHiveValue(self, jsonValue, printInfo=True):
+		logging.debug("Executing export_config.saveCustomSQLValidationHiveValue()")
+		if printInfo == True:
+			logging.info("Saving the custom SQL validation data from Hive table to the configuration database")
+
+		query = "update export_tables set validationCustomQueryHiveValue = %s where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (jsonValue, self.tableID))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		logging.debug("Executing export_config.saveCustomSQLValidationHiveValue() - Finished")
+
+
+	def saveCustomSQLValidationTargetValue(self, jsonValue, printInfo=True):
+		logging.debug("Executing export_config.saveCustomSQLValidationTargetValue()")
+		if printInfo == True:
+			logging.info("Saving the custom SQL validation data from target table to the configuration database")
+
+		query = "update export_tables set validationCustomQueryTargetValue = %s where table_id = %s"
+
+		self.mysql_cursor01.execute(query, (jsonValue, self.tableID))
+		self.mysql_conn.commit()
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		logging.debug("Executing export_config.saveCustomSQLValidationTargetValue() - Finished")
+
 
 	def updateLastUpdateFromHive(self):
 		# This function will update the import_tables.last_update_from_source to the startDate from the common class. This will later
@@ -343,16 +410,19 @@ class config(object, metaclass=Singleton):
 		
 		logging.debug("Executing export_config.saveColumnData() - Finished")
 
-	def clearTableRowCount(self):
-		logging.debug("Executing export_config.clearTableRowCount()")
+	def clearValidationData(self):
+		logging.debug("Executing export_config.clearValidationData()")
 		logging.info("Clearing rowcounts from previous exports")
 
-		query = ("update export_tables set hive_rowcount = NULL, target_rowcount = NULL where table_id = %s")
+		self.validationCustomQueryHiveValue = None
+		self.validationCustomQueryTargetValue = None
+
+		query = ("update export_tables set hive_rowcount = NULL, target_rowcount = NULL, validationCustomQueryHiveValue = NULL, validationCustomQueryTargetValue = NULL where table_id = %s")
 		self.mysql_cursor01.execute(query, (self.tableID, ))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
-		logging.debug("Executing export_config.clearTableRowCount() - Finished")
+		logging.debug("Executing export_config.clearValidationData() - Finished")
 
 	def isExportTempTableNeeded(self, hiveTableIsTransactional, hiveTableIsView):
 		""" This function return True or False if a temptable is needed to export from """
@@ -1098,58 +1168,45 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing export_config.saveHiveTableRowCount() - Finished")
 
-#	def saveTargetTableRowCount(self, rowCount):
-#		logging.debug("Executing export_config.saveTargetTableRowCount()")
-#		logging.info("Saving the number of rows in the Target Table to the configuration database")
-#
-#		# Save the value to the database
-#		query = ("update export_tables set target_rowcount = %s where table_id = %s")
-#		self.mysql_cursor01.execute(query, (rowCount, self.tableID))
-#		self.mysql_conn.commit()
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
-#
-#		logging.debug("Executing export_config.saveTargetTableRowCount() - Finished")
+
+	def runCustomValidationQueryOnJDBCTable(self):
+		logging.debug("Executing export_config.runCustomValidationQueryOnJDBCTable()")
+
+		logging.info("Executing custom validation query on target table.")
+
+		query = self.validationCustomQueryTargetSQL
+		query = query.replace("${TARGET_SCHEMA}", self.targetSchema)
+		query = query.replace("${TARGET_TABLE}", self.targetTable)
+
+		logging.debug("Validation Query on JDBC table: %s" % (query) )
+
+		resultDF = self.common_config.executeJDBCquery(query)
+		resultJSON = resultDF.to_json(orient="values")
+		self.validationCustomQueryTargetValue = resultJSON
+
+		self.saveCustomSQLValidationTargetValue(jsonValue = resultJSON, printInfo=False)
+
+		if len(self.validationCustomQueryTargetValue) > 512:
+			logging.warning("'%s' is to large." % (self.validationCustomQueryTargetValue))
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+
+		logging.debug("resultDF:")
+		logging.debug(resultDF)
+		logging.debug("resultJSON: %s" % (resultJSON))
+
+		logging.debug("Executing export_config.runCustomValidationQueryOnJDBCTable() - Finished")
+
 
 	def getJDBCTableRowCount(self, whereStatement=None):
 		logging.debug("Executing export_config.getJDBCTableRowCount()")
 
-#		if self.validate_source == "sqoop":
-#			logging.debug("Executing export_config.getJDBCTableRowCount() - Finished (because self.validate_source == sqoop)")
-#			return
-
 		logging.info("Reading and saving number of rows in target table. This will later be used for validating the export")
 
 		JDBCRowsFull = None
-
-#		if self.export_is_incremental == True:
-#			whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
-#			logging.debug("Where statement for forceIncr = False: %s"%(whereStatement))
-#			JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
-#			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsFull))
-##
-#			whereStatement = self.getIncrWhereStatement(forceIncr = True, whereForSourceTable=True)
-#			logging.debug("Where statement for forceIncr = True: %s"%(whereStatement))
-#			JDBCRowsIncr = self.common_config.getJDBCTableRowCount(self.source_schema, self.source_table, whereStatement)
-#			logging.debug("Got %s rows from getJDBCTableRowCount()"%(JDBCRowsIncr))
-#
-#		else:
-#			if self.sqoop_sql_where_addition != None:
-#				whereStatement = " where %s"%(self.sqoop_sql_where_addition)
-#			else:
-#				whereStatement = ""
 		JDBCRowsFull = self.common_config.getJDBCTableRowCount(self.targetSchema, self.targetTable, whereStatement)
 
 		# Save the value to the database
 		query = "update export_tables set "
-
-#		if JDBCRowsIncr != None: 
-#			query += "source_rowcount_incr = %s "%(JDBCRowsIncr)
-#			logging.debug("Source table contains %s rows for the incremental part"%(JDBCRowsIncr))
-#
-#		if JDBCRowsFull != None: 
-#			if  JDBCRowsIncr != None: query += ", "
-#			query += "source_rowcount = %s "%(JDBCRowsFull)
-#			logging.debug("Source table contains %s rows"%(JDBCRowsFull))
 		query += "target_rowcount = %s "%(JDBCRowsFull)
 		query += "where table_id = %s"%(self.tableID)
 

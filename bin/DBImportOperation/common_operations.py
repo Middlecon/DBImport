@@ -444,7 +444,21 @@ class operation(object, metaclass=Singleton):
 		hiveQueryStartTime = time.monotonic()
 
 		# Execute the query in async mode
-		self.hive_cursor.execute(query, async_=True)
+		try:
+			self.hive_cursor.execute(query, async_=True)
+		except exc.OperationalError as errMsg:
+			SQLerrorMessagePosition = str(errMsg).find(" errorMessage=")
+			if SQLerrorMessagePosition > 0:
+				SQLerrorMessage = str(errMsg)[SQLerrorMessagePosition:]
+				firstQuotePosition = SQLerrorMessage.find("\"")
+				secondQuotePosition = SQLerrorMessage[firstQuotePosition + 1:].find("\"")
+				SQLerrorMessage = SQLerrorMessage[firstQuotePosition + 1:firstQuotePosition + secondQuotePosition + 1 ]
+#				logging.error(SQLerrorMessage)
+				raise SQLerror(SQLerrorMessage) 
+			else:
+				raise SQLerror(errMsg) 
+#				logging.error(errMsg)
+			
 		status = self.hive_cursor.poll().operationState
 		headers = self.hive_cursor.poll().progressUpdateResponse.headerNames
 

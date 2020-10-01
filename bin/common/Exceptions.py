@@ -22,3 +22,4 @@ class invalidConfiguration(Exception): pass
 class undevelopedFeature(Exception): pass
 class SQLerror(Exception): pass
 class daemonExit(Exception): pass
+class validationError(Exception): pass

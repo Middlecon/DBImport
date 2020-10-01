@@ -50,22 +50,29 @@ DBImport uses different tables in Hive depending on the operation it's performin
 Import Validation
 -----------------
 
-During import, both *full* and *incremental*, there will be three validations for each imported table. Validation in this context is basically a rowcount and comparing the number of rows between the two tables. There is no validation of the actual values inside the columns.
+During import, both *full* and *incremental*, there will be three validations for each imported table. Validation in this context is either a rowcount and comparing the number of rows between the two tables or a custom SQL query executed on both source and target table. Depending on what method for validation is used, the process is a bit different.
 
-  1. The first validation happens in *Stage1* and is done after sqoop is executed. It compares the number of rows in the source system against the number of rows that sqoop reported that it read. If this is an incremental import, then only the incremental values are compared. This means that the select statement against the source system includes the min and max values in a where statement
-  2. Second validation is done after the import table is created. This validates the number of rows in the Parquet files against the source system. If it is an incremental import, then only the imported rows are validates. Same way as the first validation.
+Row count valdation 
+
+  1. The first validation happens in the *import stage* and is done after sqoop/spark is executed. It compares the number of rows in the source system against the number of rows that sqoop or spark reported that it read. If this is an incremental import, then only the incremental values are compared. This means that the select statement against the source system includes the min and max values in a where statement
+  2. Second validation is done after the import table is created. This validates the number of rows in the Parquet or Orc files against the source system. If it is an incremental import, then only the imported rows are validates. Same way as the first validation.
   3. The last validation occurs after the target table is loaded. This might be a full or incremental validation based on the configuration for that specific table. Incremental validation works the same way as the other two validations and the Full validation is comparing the total amount of rows between source and target table regardless of how many rows was imported.
+
+custom SQL validation
+
+  1. Validation of sqoop or spark imported data is not possible with custom SQL validation. So this will be skipped here
+  2. Validation of *Import table* is done by running the custom SQL on the source system and another custom SQL on the *Import table*. The result is saved in a json and these two json documents are compared to each other.
+  3. The last validation is of the *Target table*. The custom SQL will be executed aginst *Target table* and the same query that was executed in step 2 against the source table will be used. The result is saved in a json and the two json documents are compared to each other.
 
 Export Validation
 -----------------
 
-For exports, there will be only one validation and that is at the end of the export. The number or rows in the Hive table is compared to the rows in the target table. If it's an incremental export, there is the possibility to only validate the exported rows and not the entire table.
+For exports, there will be only one validation and that is at the end of the export. There is also two different validation methods available for exports, same as for imports. It's a row count or executing a custom SQL on both tables and compare the result. 
 
 Sqoop and Spark
 -----------------
 
-Exports support both sqoop and spark as export tool. This is selectable on table level and you can run with different tools on different exports on the same installation. 
+DBImport support both sqoop and spark. This is selectable on table level and you can run with different tools on different import/exports on the same installation. 
 
 If you are running Hive 3.x, all tables in Hive are transactional tables. Sqoop cant export tables that are transactional tables. So if you are running Hive 3.x, you are forced to use spark for the export tool.
 
-Import still only supports sqoop, but it's on the roadmap to add spark as an option for imports as well.

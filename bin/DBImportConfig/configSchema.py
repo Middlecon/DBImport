@@ -349,8 +349,8 @@ class exportTables(Base):
     target_schema = Column(String(256), primary_key=True, nullable=False, comment='Schema on the target system')
     target_table = Column(String(256), primary_key=True, nullable=False, comment='Table on the target system')
     table_id = Column(Integer, nullable=False, unique=True, autoincrement=True, comment='Unique identifier of the table')
-    export_type = Column(String(16), nullable=False, comment='What export method to use. Only full and incr is supported.', server_default=text("'full'"))
-    export_tool = Column(Enum('spark', 'sqoop'), server_default=text("'sqoop'"), nullable=False, comment='What tool should be used for exporting data')
+    export_type = Column(Enum('full', 'incr'), nullable=False, comment='What export method to use', server_default=text("'full'"))
+    export_tool = Column(Enum('spark', 'sqoop'), server_default=text("'spark'"), nullable=False, comment='What tool should be used for exporting data')
     hive_db = Column(String(256), nullable=False, comment='Name of Hive Database that we export from')
     hive_table = Column(String(256), nullable=False, comment='Name of Hive Table that we export from')
     last_update_from_hive = Column(DateTime, comment='Timestamp of last schema update from Hive')
@@ -361,11 +361,16 @@ class exportTables(Base):
     source_is_view = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'0'"))
     source_is_acid = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'0'"))
     validate_export = Column(TINYINT(4), nullable=False, comment="1 = Validate the export once it's done. 0 = Disable validation", server_default=text("'1'"))
+    validationMethod = Column(Enum('customQuery', 'rowCount'), nullable=False, comment='Validation method to use', server_default=text("'rowCount'"))
+    validationCustomQueryHiveSQL = Column(String(256), comment='Custom SQL query for Hive table')
+    validationCustomQueryTargetSQL = Column(String(256), comment='Custom SQL query for target table')
     uppercase_columns = Column(TINYINT(4), nullable=False, comment='-1 = auto (Oracle = uppercase, other databases = lowercase)', server_default=text("'-1'"))
     truncate_target = Column(TINYINT(4), nullable=False, comment='1 = Truncate the target table before we export the data. Not used by incremental exports', server_default=text("'1'"))
     mappers = Column(TINYINT(4), nullable=False, comment="-1 = auto, 0 = invalid. Auto updated by 'export_main.sh'", server_default=text("'-1'"))
     hive_rowcount = Column(BIGINT(20), comment='Number of rows in Hive table. Dont change manually')
     target_rowcount = Column(BIGINT(20), comment='Number of rows in Target table. Dont change manually')
+    validationCustomQueryHiveValue = Column(String(512), comment='Used for validation. Dont change manually')
+    validationCustomQueryTargetValue = Column(String(512), comment='Used for validation. Dont change manually')
     incr_column = Column(String(256), comment='The column in the Hive table that will be used to identify new rows for the incremental export. Must be a timestamp column')
     incr_validation_method = Column(Enum('full', 'incr'), comment='full or incr. Full means that the validation will check to total number of rows up until maxvalue and compare source with target. Incr will only compare the rows between min and max value (the data that sqoop just wrote)', server_default=text("'full'"))
     incr_minvalue = Column(String(32), comment='Used by incremental exports to keep track of progress. Dont change manually')
@@ -380,6 +385,7 @@ class exportTables(Base):
     hive_javaheap = Column(BIGINT(20), comment='Heap size for Hive')
     create_target_table_sql = Column(Text, comment='SQL statement that was used to create the target table. Dont change manually')
     operator_notes = Column(Text, comment='Free text field to write a note about the export. ')
+
 
 
 class importFailureLog(Base):
@@ -650,7 +656,7 @@ class importTables(Base):
     source_table = Column(String(256), nullable=False, comment='Name of the table in the remote database')
     import_type = Column(String(32), nullable=True, comment='What import method to use')
     import_phase_type = Column(Enum('full', 'incr', 'oracle_flashback'), nullable=True, comment="What method to use for Import phase", server_default=text("'full'"))
-    etl_phase_type = Column(Enum('truncate_insert', 'insert', 'merge', 'merge_history_audit'), nullable=True, comment="What method to use for ETL phase", server_default=text("'truncate_insert'"))
+    etl_phase_type = Column(Enum('truncate_insert', 'insert', 'merge', 'merge_history_audit', 'none'), nullable=True, comment="What method to use for ETL phase", server_default=text("'truncate_insert'"))
     import_tool = Column(Enum('spark', 'sqoop'), server_default=text("'sqoop'"), nullable=False, comment='What tool should be used for importing data')
     last_update_from_source = Column(DateTime, comment='Timestamp of last schema update from source')
     sqoop_sql_where_addition = Column(String(1024), comment='Will be added AFTER the SQL WHERE. If it\'s an incr import, this will be after the incr limit statements. Example "orderId > 1000"')
@@ -658,15 +664,21 @@ class importTables(Base):
     include_in_airflow = Column(TINYINT(4), nullable=False, comment='Will the table be included in Airflow DAG when it matches the DAG selection', server_default=text("'1'"))
     airflow_priority = Column(TINYINT(4), comment='This will set priority_weight in Airflow')
     validate_import = Column(TINYINT(4), nullable=False, comment='Should the import be validated', server_default=text("'1'"))
+    validationMethod = Column(Enum('customQuery', 'rowCount'), nullable=False, comment='Validation method to use', server_default=text("'rowCount'"))
     validate_source = Column(Enum('query', 'sqoop'), comment="query = Run a 'select count(*) from ...' to get the number of rows in the source table. sqoop = Use the number of rows imported by sqoop as the number of rows in the source table", server_default=text("'query'"))
     validate_diff_allowed = Column(BIGINT(20), nullable=False, comment='-1 = auto calculated diff allowed. If a positiv number, this is the amount of rows that the diff is allowed to have', server_default=text("'-1'"))
+    validationCustomQuerySourceSQL = Column(String(256), comment='Custom SQL query for source table')
+    validationCustomQueryHiveSQL = Column(String(256), comment='Custom SQL query for Hive table')
+    validationCustomQueryValidateImportTable = Column(TINYINT(4), nullable=False, comment='1 = Validate Import table, 0 = Dont validate Import table', server_default=text("'1'"))
     truncate_hive = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'1'"))
     mappers = Column(TINYINT(4), nullable=False, comment="-1 = auto or positiv number for a fixed number of mappers. If Auto, then it's calculated based of last sqoop import size", server_default=text("'-1'"))
     soft_delete_during_merge = Column(TINYINT(4), nullable=False, comment='If 1, then the row will be marked as deleted instead of actually being removed from the table. Only used for Merge imports', server_default=text("'0'"))
     source_rowcount = Column(BIGINT(20), comment='Used for validation. Dont change manually')
     source_rowcount_incr = Column(BIGINT(20))
     hive_rowcount = Column(BIGINT(20), comment='Used for validation. Dont change manually')
-    incr_mode = Column(String(16), comment='append or lastmodified')
+    validationCustomQuerySourceValue = Column(String(512), comment='Used for validation. Dont change manually')
+    validationCustomQueryHiveValue = Column(String(512), comment='Used for validation. Dont change manually')
+    incr_mode = Column(Enum('append', 'lastmodified'), comment='Incremental import mode')
     incr_column = Column(String(256), comment='What column to use to identify new rows')
     incr_validation_method = Column(Enum('full', 'incr'), comment='full or incr. Full means that the validation will check to total number of rows up until maxvalue and compare source with target. Incr will only compare the rows between min and max value (the data that sqoop just wrote)', server_default=text("'full'"))
     incr_minvalue = Column(String(32), comment='Used for incremental imports. Dont change manually')
@@ -700,6 +712,10 @@ class importTables(Base):
     copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
     custom_max_query = Column(String(256), comment='You can use a custom SQL query that will get the Max value from the source database. This Max value will be used in an inremental import to know how much to read in each execution')
+
+
+
+
 
 
 class jdbcConnectionsEnvironments(Base):

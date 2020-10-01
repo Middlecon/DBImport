@@ -9,6 +9,7 @@ Committers
 Versions
 --------
 
+  - v0.65. Apache Atlas integration
   - v0.64. Spark support for Import and Export
   - v0.63. Copy command
   - v0.62. Asynchronous copy mode for multi-cluster imports
@@ -29,8 +30,6 @@ Versions
 RoadMap
 -------
 
-  1. Implement all existing function in Legacy DBImport into the Python version. - **Ongoing**
-  2. WebGui for administration of DBImport - **Alpha version available**
-  3. Custom queries and delta loads from source - **Partially implemented**
-  4. Support for more JDBC sources such as Netezza, TeraData, ExaData
-  5. Support for more than MySQL as configuration database for DBImport
+  1. WebGui for administration of DBImport - **Alpha version available**
+  2. Support for more JDBC sources such as Netezza, TeraData, ExaData
+  3. Support for more than MySQL as configuration database for DBImport

@@ -201,7 +201,7 @@ def main(argv):
 				if stage == 108: newStage = 106
 				if stage == 109: newStage = 100
 				if stage == 110: newStage = 100
-				if stage == 111: newStage = 100
+#				if stage == 111: newStage = 100
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous export failed and this execution |")
@@ -222,7 +222,7 @@ def main(argv):
 	
 			if runOnlyFunction == None:
 				if export_operation.runStage(101) == True:
-					export_operation.clearTableRowCount()
+					export_operation.clearValidationData()
 	
 			if runOnlyFunction == None:
 				if export_operation.runStage(102) == True:
@@ -271,9 +271,12 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "validate":
 				if export_operation.runStage(111) == True:
 					export_operation.connectToHive()
-					export_operation.getHiveTableRowCount()
-					export_operation.getTargetTableRowCount()
-					export_operation.validateRowCount()
+#					export_operation.getHiveTableRowCount()
+#					export_operation.getTargetTableRowCount()
+#					export_operation.validateRowCount()
+					export_operation.getHiveTableValidationData()
+					export_operation.getTargetTableValidationData()
+					export_operation.validateExport()
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
 				if export_operation.runStage(950) == True:
@@ -320,7 +323,7 @@ def main(argv):
 
 			if runOnlyFunction == None:
 				if export_operation.runStage(151) == True:
-					export_operation.clearTableRowCount()
+					export_operation.clearValidationData()
 
 			if runOnlyFunction == None:
 				if export_operation.runStage(152) == True:
@@ -375,9 +378,12 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "validate":
 				if export_operation.runStage(161) == True:
 					export_operation.connectToHive()
-					export_operation.getHiveTableRowCount()
-					export_operation.getTargetTableRowCount()
-					export_operation.validateRowCount()
+#					export_operation.getHiveTableRowCount()
+#					export_operation.getTargetTableRowCount()
+#					export_operation.validateRowCount()
+					export_operation.getHiveTableValidationData()
+					export_operation.getTargetTableValidationData()
+					export_operation.validateExport()
 
 			if runOnlyFunction == None: 
 				if export_operation.runStage(162) == True:
@@ -405,6 +411,14 @@ def main(argv):
 
 			export_operation.clearStage()
 
+	except SQLerror as errMsg:
+		logging.error(errMsg)
+		export_operation.export_config.remove_temporary_files()
+		sys.exit(1)
+	except validationError as errMsg:
+		logging.error(errMsg)
+		export_operation.export_config.remove_temporary_files()
+		sys.exit(1)
 	except undevelopedFeature as errMsg:
 		logging.error(errMsg)
 		export_operation.export_config.remove_temporary_files()
