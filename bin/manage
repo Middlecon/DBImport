@@ -811,7 +811,7 @@ def main(argv):
 		elif import_operation != None:
 			import_operation.import_config.remove_temporary_files()
 		elif export_operation != None:
-			export_operation.import_config.remove_temporary_files()
+			export_operation.export_config.remove_temporary_files()
 		elif copy_operation != None:
 			copy_operation.import_config.remove_temporary_files()
 		sys.exit(1)
@@ -829,7 +829,7 @@ def main(argv):
 		elif import_operation != None:
 			import_operation.import_config.remove_temporary_files()
 		elif export_operation != None:
-			export_operation.import_config.remove_temporary_files()
+			export_operation.export_config.remove_temporary_files()
 		elif copy_operation != None:
 			copy_operation.import_config.remove_temporary_files()
 		sys.exit(1)
@@ -841,7 +841,7 @@ def main(argv):
 		elif import_operation != None:
 			import_operation.import_config.remove_temporary_files()
 		elif export_operation != None:
-			export_operation.import_config.remove_temporary_files()
+			export_operation.export_config.remove_temporary_files()
 		elif copy_operation != None:
 			copy_operation.import_config.remove_temporary_files()
 		raise

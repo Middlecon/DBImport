@@ -818,6 +818,7 @@ class operation(object, metaclass=Singleton):
 		print("| Spark Export starts |")
 		print("|_____________________|")
 		print("")
+		logging.info("Exporting Hive table `%s`.`%s`"%(hiveDB, hiveTable))
 		sys.stdout.flush()
 
 		# import all packages after the environment is set
@@ -891,6 +892,7 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 		sys.stdout.flush()
+
 
 		if self.export_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
 			# Get DataFrame for HDP 3.x
@@ -1203,9 +1205,9 @@ class operation(object, metaclass=Singleton):
 		resultJSON = resultDF.to_json(orient="values")
 		self.export_config.validationCustomQueryHiveValue = resultJSON
 
-		if len(self.export_config.validationCustomQueryHiveValue) > 512:
+		if len(self.export_config.validationCustomQueryHiveValue) > 1024:
 			logging.warning("'%s' is to large." % (self.export_config.validationCustomQueryHiveValue))
-			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 1024 bytes. Change the query to create a result with less than 512 bytes")
 
 		self.export_config.saveCustomSQLValidationHiveValue(jsonValue = resultJSON, printInfo=False)
 

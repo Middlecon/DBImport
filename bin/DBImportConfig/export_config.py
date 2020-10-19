@@ -80,6 +80,7 @@ class config(object, metaclass=Singleton):
 		self.sqlSessions = None
 		self.sqoopMappers = None
 		self.generatedSqoopOptions = None
+		self.forceCreateTempTable = None
 
 		self.validationMethod = None
 		self.validationCustomQueryHiveSQL = None
@@ -180,7 +181,8 @@ class config(object, metaclass=Singleton):
 		query += "    validationCustomQueryHiveSQL, "
 		query += "    validationCustomQueryTargetSQL, "
 		query += "    validationCustomQueryHiveValue, "
-		query += "    validationCustomQueryTargetValue "
+		query += "    validationCustomQueryTargetValue, "
+		query += "    forceCreateTempTable "
 		query += "from export_tables "
 		query += "where "
 		query += "    dbalias = %s " 
@@ -215,7 +217,7 @@ class config(object, metaclass=Singleton):
 		self.validationCustomQueryTargetSQL = row[17]
 		self.validationCustomQueryHiveValue = row[18]
 		self.validationCustomQueryTargetValue = row[19]
-
+		self.forceCreateTempTable = row[20]
 
 		if self.validateExport == 0:
 			self.validateExport = False
@@ -226,6 +228,11 @@ class config(object, metaclass=Singleton):
 			self.truncateTargetTable = True
 		else:
 			self.truncateTargetTable = False
+
+		if self.forceCreateTempTable == 1:
+			self.forceCreateTempTable = True
+		else:
+			self.forceCreateTempTable = False
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT:
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in export_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
@@ -429,6 +436,11 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing export_config.isExportTempTableNeeded()")
 		
 		self.tempTableNeeded = False
+
+		if self.forceCreateTempTable == True:
+			logging.info("Temporary table usage is forced")
+			self.tempTableNeeded = True
+			return self.tempTableNeeded
 
 		if self.exportTool == "spark":
 			return self.tempTableNeeded
@@ -1186,9 +1198,9 @@ class config(object, metaclass=Singleton):
 
 		self.saveCustomSQLValidationTargetValue(jsonValue = resultJSON, printInfo=False)
 
-		if len(self.validationCustomQueryTargetValue) > 512:
+		if len(self.validationCustomQueryTargetValue) > 1024:
 			logging.warning("'%s' is to large." % (self.validationCustomQueryTargetValue))
-			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 1024 bytes. Change the query to create a result with less than 512 bytes")
 
 		logging.debug("resultDF:")
 		logging.debug(resultDF)
@@ -1559,7 +1571,7 @@ class config(object, metaclass=Singleton):
 
 	def addExportTable(self, hiveDB, hiveTable, dbalias, schema, table):
 		""" Add source table to export_tables """
-		logging.debug("Executing export_config.addImportTable()")
+		logging.debug("Executing export_config.addExportTable()")
 		returnValue = True
 
 		query = ("insert into export_tables "
@@ -1584,7 +1596,7 @@ class config(object, metaclass=Singleton):
 			logging.warning("Hive table %s.%s cant be added. The Connection name, Schema and Table already exists"%(hiveDB, hiveTable))
 			returnValue = False
 
-		logging.debug("Executing export_config.addImportTable() - Finished")
+		logging.debug("Executing export_config.addExportTable() - Finished")
 		return returnValue
 
 

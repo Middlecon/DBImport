@@ -1909,7 +1909,6 @@ class config(object, metaclass=Singleton):
 
 			whereStatementSaved = whereStatement
 
-#			if self.sqoop_sql_where_addition != None and self.sqoop_sql_where_addition.strip() != "":
 			if self.getSQLWhereAddition() != None and ignoreSQLwhereAddition == False:
 				whereStatement += "and %s "%(self.getSQLWhereAddition())
 
@@ -1947,8 +1946,8 @@ class config(object, metaclass=Singleton):
 		query = query.replace("${SOURCE_SCHEMA}", self.source_schema)
 		query = query.replace("${SOURCE_TABLE}", self.source_table)
 
-		if self.getSQLWhereAddition() != None:
-			query += " where %s"%(self.getSQLWhereAddition())
+#		if self.getSQLWhereAddition() != None:
+#			query += " where %s"%(self.getSQLWhereAddition())
 
 		logging.debug("Validation Query on JDBC table: %s" % (query) )
 
@@ -1956,9 +1955,9 @@ class config(object, metaclass=Singleton):
 		resultJSON = resultDF.to_json(orient="values")
 		self.validationCustomQuerySourceValue = resultJSON
 
-		if len(self.validationCustomQuerySourceValue) > 512:
+		if len(self.validationCustomQuerySourceValue) > 1024:
 			logging.warning("'%s' is to large." % (self.validationCustomQuerySourceValue))
-			raise invalidConfiguration("The size of the json document on the custom query exceeds 512 bytes. Change the query to create a result with less than 512 bytes")
+			raise invalidConfiguration("The size of the json document on the custom query exceeds 1024 bytes. Change the query to create a result with less than 512 bytes")
 
 		self.saveCustomSQLValidationSourceValue(jsonValue = resultJSON)
 
@@ -2733,7 +2732,7 @@ class config(object, metaclass=Singleton):
 				"    hive_table, "
 				"    dbalias, "
 				"    source_schema, "
-				"    source_table "
+				"    source_table  "
 				") values ( %s, %s, %s, %s, %s )")
 
 		logging.debug("hiveDB:    %s"%(hiveDB))

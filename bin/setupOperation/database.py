@@ -452,8 +452,15 @@ class initialize(object):
 		if result_df.empty or (result_df[0] == 'airflow_dbimport_commandpath').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dbimport_commandpath', 
-				valueStr='sudo -iu dbimport /usr/local/dbimport/', 
-				description='This is the path to DBImport. If sudo is required, this can be added here aswell. Must end with a /')
+				valueStr='sudo -iu ${SUDO_USER} /usr/local/dbimport/', 
+				description='This is the path to DBImport. If sudo is required, this can be added here aswell. Use the variable ${SUDO_USER} instead of hardcoding the sudo username. Must end with a /')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'airflow_sudo_user').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_sudo_user', 
+				valueStr='dbimport', 
+				description='What user will Airflow sudo to for executing DBImport. This value will replace the ${SUDO_USER} variable in airflow_dbimport_commandpath setting')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'airflow_dag_directory').any() == False:
