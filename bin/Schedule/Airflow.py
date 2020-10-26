@@ -288,7 +288,7 @@ class initialize(object):
 					previousConnectionAlias = None
 					continue
 		
-			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname)
+			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
 
 			# usedPools is later used to check if the pools that we just are available in Airflow
 			if exportPool not in usedPools:
@@ -404,7 +404,7 @@ class initialize(object):
 				self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
 				previousConnectionAlias = row['dbalias']
 		
-			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname)
+			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
 			etlPhasePool = DAG['dag_name']
 
 			if row['copy_slave'] == 1:
@@ -970,11 +970,8 @@ class initialize(object):
 					row['task_name'] = "%s_FAILURE"%(row['task_name'])
 					self.addFailureTask(row['task_name'])
 					addDagSensor = False
-#					self.DAGfile.close()
-#					self.common_config.remove_temporary_files()
-#					sys.exit(1)
 
-				if mainDagMatchHourMin != None:
+				if mainDagMatchHourMin != None and addDagSensor == True:
 					# Time is in HH:MM format for both DAG's. So now we can calculate the diff in time between them
 					noon = datetime.strptime('12:00', '%H:%M')
 					mainDagScheduleDateTime = datetime.strptime(mainDagSchedule, '%H:%M')
@@ -999,16 +996,13 @@ class initialize(object):
 						minusText = '-'
 
 					timeDiff = str(minusText + str(timeDiff.seconds))
-				else:
+				elif addDagSensor == True:
 					if mainDagSchedule != waitDagSchedule:
 						logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
 						logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 						row['task_name'] = "%s_FAILURE"%(row['task_name'])
 						self.addFailureTask(row['task_name'])
 						addDagSensor = False
-#						self.DAGfile.close()
-#						self.common_config.remove_temporary_files()
-#						sys.exit(1)
 
 				if addDagSensor == True:
 					self.DAGfile.write("%s = ExternalTaskSensor(\n"%(row['task_name']))

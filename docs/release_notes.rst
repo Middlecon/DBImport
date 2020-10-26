@@ -12,6 +12,7 @@ v0.66 - Not released. Work in progress
   - Issue #76: SQL 'where' in export_tables is not working
   - Issue #77: Default value of etl_phase_type in import_tables is missing
   - Issue #78: ResetIncrementalExport dont truncate table
+  - Issue #79: Airflow pool will get duplicate error if upper/lower case hostname differ
 
 **New Features**
 

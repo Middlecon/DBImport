@@ -859,9 +859,6 @@ class config(object, metaclass=Singleton):
 		logging.info("Checking if we are allowed to use this jdbc connection at this time")
 
 		self.timeZone = self.getConfigValue("timezone")
-#		print(self.timeZone)
-#		local_timezone = datetime.now(timezone(timedelta(0))).astimezone().tzinfo
-#		print(local_timezone)
 
 		query = "select timewindow_start, timewindow_stop from jdbc_connections where dbalias = %s"
 		self.mysql_cursor.execute(query, (connection_alias, ))
