@@ -708,7 +708,7 @@ def main(argv):
 
 			if answer.lower() == "y":
 				export_operation = export_operations.operation(connectionAlias=connectionAlias, targetSchema=jdbcSchema,targetTable=jdbcTable)
-				export_operation.truncateJDBCTable()
+				export_operation.truncateJDBCTable(force=True)
 				export_operation.resetIncrMinMaxValues(maxValue=None)
 				export_operation.clearStage()
 				export_operation.remove_temporary_files()

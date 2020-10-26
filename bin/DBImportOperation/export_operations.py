@@ -198,8 +198,8 @@ class operation(object, metaclass=Singleton):
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
-	def truncateJDBCTable(self):
-		if self.export_config.truncateTargetTable == True:
+	def truncateJDBCTable(self, force=False):
+		if self.export_config.truncateTargetTable == True or force == True:
 			logging.info("Truncating Target Table")
 			self.export_config.common_config.truncateJDBCTable(schema=self.targetSchema, table=self.targetTable)
 

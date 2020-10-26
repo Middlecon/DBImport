@@ -7,6 +7,10 @@ v0.66 - Not released. Work in progress
 **Fixed issues**
 
   - Issue #74: Tasks from custom_dags is not using retries setting
+  - Issue #75: Add alias argument to manage script for encryptCredentials
+  - Issue #76: SQL 'where' in export_tables is not working
+  - Issue #77: Default value of etl_phase_type in import_tables is missing
+  - Issue #78: ResetIncrementalExport dont truncate table
 
 **New Features**
 
