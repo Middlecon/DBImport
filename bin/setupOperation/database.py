@@ -484,6 +484,13 @@ class initialize(object):
 				description='Queue to use for dummy tasks (stop, stage_one_complete and more)')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'airflow_dag_file_permission').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_dag_file_permission', 
+				valueStr='660', 
+				description='File permission of created DAG file')
+			self.configDB.execute(query)
+
 		if result_df.empty or (result_df[0] == 'airflow_dag_file_group').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_file_group', 
@@ -491,11 +498,11 @@ class initialize(object):
 				description='Group owner of created DAG file')
 			self.configDB.execute(query)
 
-		if result_df.empty or (result_df[0] == 'airflow_dag_file_permission').any() == False:
+		if result_df.empty or (result_df[0] == 'timezone').any() == False:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='airflow_dag_file_permission', 
-				valueStr='660', 
-				description='File permission of created DAG file')
+				configKey='timezone', 
+				valueStr='UTC', 
+				description='The timezone that the configured times are meant for (example is Europe/Stockholm) ')
 			self.configDB.execute(query)
 
 		if result_df.empty or (result_df[0] == 'cluster_name').any() == False:

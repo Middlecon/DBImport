@@ -59,6 +59,7 @@ class initialize(object):
 		self.DAGfileGroup = self.common_config.getConfigValue("airflow_dag_file_group")
 		self.DAGfilePermission = self.common_config.getConfigValue("airflow_dag_file_permission")
 		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
+		self.timeZone = self.common_config.getConfigValue("timezone")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -713,13 +714,16 @@ class initialize(object):
 		self.DAGfile.write("from airflow.operators.sensors import ExternalTaskSensor\n")
 		self.DAGfile.write("from airflow.sensors.sql_sensor import SqlSensor\n")
 		self.DAGfile.write("from datetime import datetime, timedelta, timezone\n")
+		self.DAGfile.write("import pendulum\n")
 		self.DAGfile.write("\n")
 		self.DAGfile.write("Email_receiver = Variable.get(\"Email_receiver\")\n")
+		self.DAGfile.write("\n")
+		self.DAGfile.write("local_tz = pendulum.timezone(\"%s\")\n"%(self.timeZone))
 		self.DAGfile.write("\n")
 		self.DAGfile.write("default_args = {\n")
 		self.DAGfile.write("    'owner': 'airflow',\n")
 		self.DAGfile.write("    'depends_on_past': False,\n")
-		self.DAGfile.write("    'start_date': datetime(2017, 1, 1, 0, 0),\n")
+		self.DAGfile.write("    'start_date': datetime(2017, 1, 1, 0, 0, tzinfo=local_tz),\n")
 		self.DAGfile.write("    'max_active_runs': 1,\n")
 		self.DAGfile.write("    'email': Email_receiver,\n")
 		self.DAGfile.write("    'email_on_failure': False,\n")

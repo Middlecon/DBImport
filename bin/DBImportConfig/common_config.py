@@ -28,6 +28,7 @@ import re
 import json
 import ssl
 import requests
+import pendulum
 from itertools import zip_longest
 from requests_kerberos import HTTPKerberosAuth
 from Crypto.PublicKey import RSA
@@ -36,7 +37,7 @@ from subprocess import Popen, PIPE
 from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from dateutil import *
 from dateutil.tz import *
 import pandas as pd
@@ -857,20 +858,36 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.checkTimeWindow()")
 		logging.info("Checking if we are allowed to use this jdbc connection at this time")
 
+		self.timeZone = self.getConfigValue("timezone")
+#		print(self.timeZone)
+#		local_timezone = datetime.now(timezone(timedelta(0))).astimezone().tzinfo
+#		print(local_timezone)
+
 		query = "select timewindow_start, timewindow_stop from jdbc_connections where dbalias = %s"
 		self.mysql_cursor.execute(query, (connection_alias, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		row = self.mysql_cursor.fetchone()
-		currentTime = str(datetime.now().strftime('%H:%M:%S'))
+
+		currentTime = pendulum.now(self.timeZone)	# Get time in configured timeZone
 		timeWindowStart = None
 		timeWindowStop = None
 
-		if row[0] != None: timeWindowStart = str(row[0])
-		if row[1] != None: timeWindowStop = str(row[1])
+		if row[0] != None: 
+			timeWindowStart = currentTime.set(
+				hour=int(str(row[0]).split(":")[0]), 
+				minute=int(str(row[0]).split(":")[1]), 
+				second=int(str(row[0]).split(":")[2]))
 
-		if timeWindowStart != None and re.search('^[0-9]:', timeWindowStart): timeWindowStart = "0" + timeWindowStart
-		if timeWindowStop  != None and re.search('^[0-9]:', timeWindowStop):  timeWindowStop  = "0" + timeWindowStop
+		if row[1] != None:
+			timeWindowStop = currentTime.set(
+				hour=int(str(row[1]).split(":")[0]), 
+				minute=int(str(row[1]).split(":")[1]), 
+				second=int(str(row[1]).split(":")[2]))
+
+		if timeWindowStart != None and timeWindowStop != None and timeWindowStart > timeWindowStop:
+			# This happens if we pass midnight
+			timeWindowStop = timeWindowStop.add(days=1)
 
 		if timeWindowStart == None and timeWindowStop == None:
 			logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
@@ -882,11 +899,6 @@ class config(object, metaclass=Singleton):
 			logging.error("Invalid TimeWindow configuration")
 			self.remove_temporary_files()
 			sys.exit(1)
-#		elif timeWindowStart > timeWindowStop:
-#			logging.error("The value in timewindow_start column is larger than the value in timewindow_stop.")
-#			logging.error("Invalid TimeWindow configuration")
-#			self.remove_temporary_files()
-#			sys.exit(1)
 		elif timeWindowStart == timeWindowStop:
 			logging.error("The value in timewindow_start column is the same as the value in timewindow_stop.")
 			logging.error("Invalid TimeWindow configuration")
@@ -895,9 +907,9 @@ class config(object, metaclass=Singleton):
 		elif timeWindowStart < timeWindowStop:
 			if currentTime < timeWindowStart or currentTime > timeWindowStop:
 				logging.error("We are not allowed to run this import outside the configured Time Window")
-				logging.info("    Current time:     %s"%(currentTime))
-				logging.info("    TimeWindow Start: %s"%(timeWindowStart))
-				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
+				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
+				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
+				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
 				self.remove_temporary_files()
 				sys.exit(1)
 			else:		
@@ -905,17 +917,17 @@ class config(object, metaclass=Singleton):
 		elif timeWindowStart > timeWindowStop:
 			if currentTime < timeWindowStart and currentTime > timeWindowStop:
 				logging.error("We are not allowed to run this import outside the configured Time Window")
-				logging.info("    Current time:     %s"%(currentTime))
-				logging.info("    TimeWindow Start: %s"%(timeWindowStart))
-				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
+				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
+				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
+				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
 				self.remove_temporary_files()
 				sys.exit(1)
 			else:		
 				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
  
-		logging.debug("    currentTime = %s"%(currentTime))
-		logging.debug("    timeWindowStart = %s"%(timeWindowStart))
-		logging.debug("    timeWindowStop = %s"%(timeWindowStop))
+		logging.debug("    currentTime = %s"%(currentTime.to_time_string()))
+		logging.debug("    timeWindowStart = %s"%(timeWindowStart.to_time_string()))
+		logging.debug("    timeWindowStop = %s"%(timeWindowStop.to_time_string()))
 		logging.debug("Executing common_config.checkTimeWindow() - Finished")
 
 	def checkConnectionAlias(self, connection_alias):
@@ -1831,7 +1843,7 @@ class config(object, metaclass=Singleton):
 			boolValue = True
 		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval"):
 			valueColumn = "valueInt"
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))
