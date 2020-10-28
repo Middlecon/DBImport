@@ -54,6 +54,7 @@ class initialize(object):
 		self.common_config = common_config.config()
 
 		self.dbimportCommandPath = self.common_config.getConfigValue("airflow_dbimport_commandpath")
+		self.defaultSudoUser = self.common_config.getConfigValue("airflow_sudo_user")
 		self.DAGdirectory = self.common_config.getConfigValue("airflow_dag_directory")
 		self.DAGstagingDirectory = self.common_config.getConfigValue("airflow_dag_staging_directory")
 		self.DAGfileGroup = self.common_config.getConfigValue("airflow_dag_file_group")
@@ -138,6 +139,13 @@ class initialize(object):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
+	def getDBImportCommandPath(self, sudoUser=""):
+
+		if sudoUser == None or sudoUser == "":
+			sudoUser = self.defaultSudoUser
+
+		return self.dbimportCommandPath.replace("${SUDO_USER}", sudoUser)
+
 	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False):
 
 		self.writeDAG = writeDAG
@@ -155,7 +163,8 @@ class initialize(object):
 				airflowExportDags.filter_target_schema,
 				airflowExportDags.filter_target_table,
 				airflowExportDags.retries,
-				airflowExportDags.auto_regenerate_dag
+				airflowExportDags.auto_regenerate_dag,
+				airflowExportDags.sudo_user
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -171,7 +180,8 @@ class initialize(object):
 				airflowImportDags.pool_stage2,
 				airflowImportDags.run_import_and_etl_separate,
 				airflowImportDags.finish_all_stage1_first,
-				airflowImportDags.auto_regenerate_dag
+				airflowImportDags.auto_regenerate_dag,
+				airflowImportDags.sudo_user
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -184,7 +194,8 @@ class initialize(object):
 				airflowEtlDags.filter_source_db,
 				airflowEtlDags.filter_target_db,
 				airflowEtlDags.retries,
-				airflowEtlDags.auto_regenerate_dag
+				airflowEtlDags.auto_regenerate_dag,
+				airflowEtlDags.sudo_user
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -193,7 +204,8 @@ class initialize(object):
 				airflowCustomDags.dag_name,
 				airflowCustomDags.schedule_interval,
 				airflowCustomDags.retries,
-				airflowCustomDags.auto_regenerate_dag
+				airflowCustomDags.auto_regenerate_dag,
+				airflowCustomDags.sudo_user
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -236,16 +248,19 @@ class initialize(object):
 			self.common_config.remove_temporary_files()
 			sys.exit(1)
 
+		session.close()
+
 	def generateExportDAG(self, DAG):
 		""" Generates a Import DAG """
 
 		usedPools = []
 		tableFilters = []
 		defaultPool = DAG['dag_name']
+		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser)
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -295,8 +310,8 @@ class initialize(object):
 				usedPools.append(exportPool)
 	
 			taskID = row['target_table'].replace(r'/', '_').replace(r'.', '_')
-			dbexportCMD = "%sbin/export"%(self.dbimportCommandPath) 
-			dbexportClearStageCMD = "%sbin/manage --clearExportStage"%(self.dbimportCommandPath) 
+			dbexportCMD = "%sbin/export"%(self.getDBImportCommandPath(sudoUser = sudoUser)) 
+			dbexportClearStageCMD = "%sbin/manage --clearExportStage"%(self.getDBImportCommandPath(sudoUser = sudoUser)) 
 
 			airflowPriority = 1		# Default Airflow Priority
 			if row['airflow_priority'] != None and row['airflow_priority'] != '':
@@ -338,7 +353,7 @@ class initialize(object):
 				self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 			self.DAGfile.write("\n")
 
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -359,10 +374,11 @@ class initialize(object):
 		usedPools = []
 		tableFilters = []
 		defaultPool = DAG['dag_name']
+		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser)
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -429,9 +445,8 @@ class initialize(object):
 			if etlPhasePool not in usedPools:
 				usedPools.append(etlPhasePool)
 
-			# These are only for Legacy compability
-			dbimportCMD = "%sbin/import"%(self.dbimportCommandPath) 
-			dbimportClearStageCMD = "%sbin/manage --clearImportStage"%(self.dbimportCommandPath) 
+			dbimportCMD = "%sbin/import"%(self.getDBImportCommandPath(sudoUser = sudoUser)) 
+			dbimportClearStageCMD = "%sbin/manage --clearImportStage"%(self.getDBImportCommandPath(sudoUser = sudoUser)) 
 
 			taskID = row['hive_table'].replace(r'/', '_').replace(r'.', '_')
 
@@ -603,7 +618,7 @@ class initialize(object):
 						self.DAGfile.write("%s.set_downstream(%s)\n"%(taskID, self.mainStopTask))
 				self.DAGfile.write("\n")
 
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -651,6 +666,7 @@ class initialize(object):
 
 		usedPools = []
 		defaultPool = DAG['dag_name']
+		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
 		if DAG['retries'] == None or DAG['retries'] == '':
@@ -659,8 +675,8 @@ class initialize(object):
 			retries = int(DAG['retries'])
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool)
-		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser)
+		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
 		self.closeDAGfile()
@@ -678,7 +694,7 @@ class initialize(object):
 		return returnValue 
 
 
-	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False):
+	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser=""):
 		session = self.configDBSession()
 
 		self.sensorStartTask = "start"
@@ -744,7 +760,7 @@ class initialize(object):
 		self.DAGfile.write("    task_id='start',\n")
 		if self.TaskQueueForDummy != None:
 			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
-		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution ',\n"%(self.dbimportCommandPath))
+		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser)))
 		self.DAGfile.write("    priority_weight=100,\n")
 		self.DAGfile.write("    weight_rule='absolute',\n")
 		self.DAGfile.write("    dag=dag)\n")
@@ -841,6 +857,8 @@ class initialize(object):
 		if tasksAfterMainExists == True:
 			self.mainStopTask = self.postStartTask
 
+		session.close()
+
 		logging.debug("sensorStartTask = %s"%(self.sensorStartTask))
 		logging.debug("sensorStopTask = %s"%(self.sensorStopTask))
 		logging.debug("preStartTask = %s"%(self.preStartTask))
@@ -882,9 +900,11 @@ class initialize(object):
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
 
-	def addTasksToDAGfile(self, dagName, mainDagSchedule, defaultRetries=0):
+	def addTasksToDAGfile(self, dagName, mainDagSchedule, defaultRetries=0, defaultSudoUser=""):
 
 		session = self.configDBSession()
+
+		if defaultSudoUser == None: defaultSudoUser = ""
 
 		airflowTasks = aliased(configSchema.airflowTasks)
 
@@ -900,7 +920,8 @@ class initialize(object):
 					airflowTasks.hive_db,
 					airflowTasks.sensor_poke_interval,
 					airflowTasks.sensor_timeout_minutes,
-					airflowTasks.sensor_connection
+					airflowTasks.sensor_connection,
+					airflowTasks.sudo_user
 					)
 				.select_from(airflowTasks)
 				.filter(airflowTasks.dag_name == dagName)
@@ -913,6 +934,11 @@ class initialize(object):
 		for index, row in tasks.iterrows():
 			sensorPokeInterval = row['sensor_poke_interval']
 			taskName = row['task_name']
+
+			sudoUser = row['sudo_user']
+			if sudoUser == None or sudoUser == "":
+				sudoUser = defaultSudoUser
+
 			if sensorPokeInterval == '':
 				# Default to 5 minutes
 				sensorPokeInterval = 300
@@ -1093,9 +1119,9 @@ class initialize(object):
 				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 
 				if row['hive_db'] != None and row['hive_db'].strip() != '':
-					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s --hiveDB=%s ',\n"%(self.dbimportCommandPath, row['task_config'], row['hive_db']))
+					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s --hiveDB=%s ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), row['task_config'], row['hive_db']))
 				else:
-					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s ',\n"%(self.dbimportCommandPath, row['task_config']))
+					self.DAGfile.write("    bash_command='%sbin/manage --runHiveScript=%s ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), row['task_config']))
 
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
@@ -1113,7 +1139,7 @@ class initialize(object):
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
 				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
-				self.DAGfile.write("    bash_command='%sbin/manage --runHiveQuery=\"%s\" ',\n"%(self.dbimportCommandPath, jdbcSQL))
+				self.DAGfile.write("    bash_command='%sbin/manage --runHiveQuery=\"%s\" ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), jdbcSQL))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':
@@ -1130,7 +1156,7 @@ class initialize(object):
 				self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
 				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
 				self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
-				self.DAGfile.write("    bash_command='%sbin/manage --dbAlias=%s --runJDBCQuery=\"%s\" ',\n"%(self.dbimportCommandPath, row['jdbc_dbalias'], jdbcSQL))
+				self.DAGfile.write("    bash_command='%sbin/manage --dbAlias=%s --runJDBCQuery=\"%s\" ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), row['jdbc_dbalias'], jdbcSQL))
 				if row['airflow_pool'] != '':
 					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
 				if row['airflow_priority'] != '':

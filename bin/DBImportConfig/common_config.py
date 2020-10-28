@@ -865,22 +865,27 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		row = self.mysql_cursor.fetchone()
+		hour = row[0]
+		minute = row[1]
 
 		currentTime = pendulum.now(self.timeZone)	# Get time in configured timeZone
 		timeWindowStart = None
 		timeWindowStop = None
 
-		if row[0] != None: 
+		if hour != None: 
+			if hour == timedelta(days=1):
+				hour = timedelta(days=0)
+
 			timeWindowStart = currentTime.set(
-				hour=int(str(row[0]).split(":")[0]), 
-				minute=int(str(row[0]).split(":")[1]), 
-				second=int(str(row[0]).split(":")[2]))
+				hour=int(str(hour).split(":")[0]), 
+				minute=int(str(hour).split(":")[1]), 
+				second=int(str(hour).split(":")[2]))
 
 		if row[1] != None:
 			timeWindowStop = currentTime.set(
-				hour=int(str(row[1]).split(":")[0]), 
-				minute=int(str(row[1]).split(":")[1]), 
-				second=int(str(row[1]).split(":")[2]))
+				hour=int(str(minute).split(":")[0]), 
+				minute=int(str(minute).split(":")[1]), 
+				second=int(str(minute).split(":")[2]))
 
 		if timeWindowStart != None and timeWindowStop != None and timeWindowStart > timeWindowStop:
 			# This happens if we pass midnight
@@ -1840,7 +1845,7 @@ class config(object, metaclass=Singleton):
 			boolValue = True
 		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval"):
 			valueColumn = "valueInt"
-		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
+		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir"):
 			valueColumn = "valueStr"
 		else:
 			logging.error("There is no configuration with the name '%s'"%(key))
