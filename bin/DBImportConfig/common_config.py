@@ -31,6 +31,7 @@ import requests
 import pendulum
 from itertools import zip_longest
 from requests_kerberos import HTTPKerberosAuth
+from requests.auth import HTTPBasicAuth
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from subprocess import Popen, PIPE
@@ -129,6 +130,9 @@ class config(object, metaclass=Singleton):
 		self.atlasRestEntities = None
 		self.atlasRestUniqueAttributeType = None
 		self.atlasJdbcSourceSupport = None
+		self.atlasAuthentication = None
+		self.atlasUsername = None
+		self.atlasPassword = None
 
 		self.sourceSchema = None
 
@@ -190,6 +194,19 @@ class config(object, metaclass=Singleton):
 					self.atlasSSLverify = configuration.get("Atlas", "ssl_cert_path").strip()
 				else:
 					self.atlasSSLverify = True
+
+			# Get authentication configuration
+			if configuration.get("Atlas", "authentication_type").lower() == "username":
+				self.atlasUsername = configuration.get("Atlas", "username")
+				self.atlasPassword = configuration.get("Atlas", "password")
+				self.atlasAuthentication = HTTPBasicAuth(self.atlasUsername, self.atlasPassword)
+
+			elif configuration.get("Atlas", "authentication_type").lower() == "kerberos":
+				self.atlasAuthentication = HTTPKerberosAuth()
+
+			if self.atlasAuthentication == None:
+				logging.error("Atlas authentication is not configured correctly. Valid options are 'username' or 'kerberos'")
+				sys.exit(1)
 
 		# Sets and create a temporary directory
 		self.tempdir = "/tmp/dbimport." + str(os.getpid()) + ".tmp"
@@ -722,21 +739,21 @@ class config(object, metaclass=Singleton):
 						headers=self.atlasHeaders,
 						data=data,
 						timeout=self.atlasTimeout,
-						auth=HTTPKerberosAuth(),
+						auth=self.atlasAuthentication,
 						verify=self.atlasSSLverify)
 
 				elif requestType == "GET":
 					response = requests.get(URL,
 						headers=self.atlasHeaders,
 						timeout=self.atlasTimeout,
-						auth=HTTPKerberosAuth(),
+						auth=self.atlasAuthentication,
 						verify=self.atlasSSLverify)
 
 				elif requestType == "DELETE":
 					response = requests.delete(URL,
 						headers=self.atlasHeaders,
 						timeout=self.atlasTimeout,
-						auth=HTTPKerberosAuth(),
+						auth=self.atlasAuthentication,
 						verify=self.atlasSSLverify)
 
 				else:
