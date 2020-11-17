@@ -887,9 +887,14 @@ class config(object, metaclass=Singleton):
 				minute=int(str(minute).split(":")[1]), 
 				second=int(str(minute).split(":")[2]))
 
+		passedMidnight = False
 		if timeWindowStart != None and timeWindowStop != None and timeWindowStart > timeWindowStop:
 			# This happens if we pass midnight
 			timeWindowStop = timeWindowStop.add(days=1)
+			passedMidnight = True
+
+		logging.debug("timeWindowStart: %s"%(timeWindowStart))
+		logging.debug("timeWindowStop: %s"%(timeWindowStop))
 
 		if timeWindowStart == None and timeWindowStop == None:
 			logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
@@ -906,8 +911,26 @@ class config(object, metaclass=Singleton):
 			logging.error("Invalid TimeWindow configuration")
 			self.remove_temporary_files()
 			sys.exit(1)
-		elif timeWindowStart < timeWindowStop:
-			if currentTime < timeWindowStart or currentTime > timeWindowStop:
+#		elif timeWindowStart < timeWindowStop:
+		else:
+			allowedTime = False
+
+			if currentTime > timeWindowStart and currentTime < timeWindowStop:
+				allowedTime = True
+
+			if passedMidnight == True:
+			# If we passed midnight, it means that we added one day to the stop time. But depending on what time it is, and when the
+			# window starts, we might be on the previous days window and should be allowed to run. So we need to test for that aswell
+				timeWindowStart = timeWindowStart.add(days=-1)
+				timeWindowStop = timeWindowStop.add(days=-1)
+				logging.debug("timeWindowStart: %s"%(timeWindowStart))
+				logging.debug("timeWindowStop: %s"%(timeWindowStop))
+
+				if currentTime > timeWindowStart and currentTime < timeWindowStop:
+					allowedTime = True
+
+#			if currentTime < timeWindowStart or currentTime > timeWindowStop:
+			if allowedTime == False:
 				logging.error("We are not allowed to run this import outside the configured Time Window")
 				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
 				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
@@ -916,17 +939,24 @@ class config(object, metaclass=Singleton):
 				sys.exit(1)
 			else:		
 				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
-		elif timeWindowStart > timeWindowStop:
-			if currentTime < timeWindowStart and currentTime > timeWindowStop:
-				logging.error("We are not allowed to run this import outside the configured Time Window")
-				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
-				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
-				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
-				self.remove_temporary_files()
-				sys.exit(1)
-			else:		
-				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
+#		elif timeWindowStart > timeWindowStop:
+##			allowedTime = False
+#			print("SHOULD NEVER HAPPEN! Report to developer it it does")
+#
+#			if currentTime < timeWindowStart and currentTime > timeWindowStop:
+#			if allowedTime = False:
+#				logging.error("We are not allowed to run this import outside the configured Time Window")
+#				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
+#				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
+#				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
+#				self.remove_temporary_files()
+#				sys.exit(1)
+#			else:		
+#				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
  
+#		self.remove_temporary_files()
+#		sys.exit(1)
+
 		logging.debug("    currentTime = %s"%(currentTime.to_time_string()))
 		logging.debug("    timeWindowStart = %s"%(timeWindowStart.to_time_string()))
 		logging.debug("    timeWindowStop = %s"%(timeWindowStop.to_time_string()))

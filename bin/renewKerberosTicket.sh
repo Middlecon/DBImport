@@ -11,6 +11,10 @@ KERBEROS_PRINCIPAL="$(cat $CONFIG_FILE | grep "^principal=" | awk 'BEGIN{FS="="}
 if [ "$1" == "-renew" ]; then
 	echo "Renewing the kerberos ticket"
 	kinit -R
+	if [ $? -ne 0 ]; then
+		echo "Failure detected during renewal. Trying to create a new ticket"
+		kinit -kt $KEYTAB_FILE $KERBEROS_PRINCIPAL
+	fi
 	exit $?
 fi
 

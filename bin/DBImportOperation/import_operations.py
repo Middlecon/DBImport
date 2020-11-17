@@ -389,6 +389,9 @@ class operation(object, metaclass=Singleton):
 			logging.error(errMsg)
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
+		except SystemExit:
+			self.import_config.remove_temporary_files()
+			sys.exit(1)
 		except:
 			logging.exception("Fatal error when reading and/or processing source table schema")
 			self.import_config.remove_temporary_files()

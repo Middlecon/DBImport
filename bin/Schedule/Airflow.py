@@ -250,6 +250,12 @@ class initialize(object):
 
 		session.close()
 
+	def getAirflowHostPoolName(self):
+		hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
+		poolName = "DBImport_server_%s"%(hostname)
+		
+		return poolName[0:50]
+
 	def generateExportDAG(self, DAG):
 		""" Generates a Import DAG """
 
@@ -303,7 +309,8 @@ class initialize(object):
 					previousConnectionAlias = None
 					continue
 		
-			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
+#			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
+			exportPool = self.getAirflowHostPoolName()
 
 			# usedPools is later used to check if the pools that we just are available in Airflow
 			if exportPool not in usedPools:
@@ -420,8 +427,9 @@ class initialize(object):
 				self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
 				previousConnectionAlias = row['dbalias']
 		
-			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
-			etlPhasePool = DAG['dag_name']
+#			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
+			importPhasePool = self.getAirflowHostPoolName()
+			etlPhasePool = DAG['dag_name'][0:50]
 
 			if row['copy_slave'] == 1:
 				importPhaseAsSensor = True
@@ -660,9 +668,9 @@ class initialize(object):
 				.count())
 
 		if tasks == 0:
-			print("ERROR: There are no tasks defined 'in main' for DAG '%s'. This is required for a custom DAG"%(DAG["dag_name"]))
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			logging.warning("There are no tasks defined 'in main' for DAG '%s'. This is required for a custom DAG"%(DAG["dag_name"]))
+			session.close()
+			return
 
 		usedPools = []
 		defaultPool = DAG['dag_name']
@@ -980,10 +988,18 @@ class initialize(object):
 					waitDagSchedule = etlSensorSchedule[0]
 
 				if waitDagSchedule == '':
-					logging.error("Cant find schedule interval for DAG to wait for")
-					self.DAGfile.close()
-					self.common_config.remove_temporary_files()
-					sys.exit(1)
+					logging.warning("Issue on DAG '%s'"%(dagName))
+					logging.warning("There is no schedule interval for DAG to wait for")
+					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+
+					row['task_name'] = "%s_FAILURE"%(row['task_name'])
+					self.addFailureTask(row['task_name'])
+					addDagSensor = False
+#					continue
+#					logging.error("Cant find schedule interval for DAG to wait for")
+#					self.DAGfile.close()
+#					self.common_config.remove_temporary_files()
+#					sys.exit(1)
 
 				mainDagMatchHourMin = re.search('^[0-2][0-9]:[0-5][0-9]$', mainDagSchedule)
 				waitDagMatchHourMin = re.search('^[0-2][0-9]:[0-5][0-9]$', waitDagSchedule)
@@ -991,6 +1007,7 @@ class initialize(object):
 				timeDiff = "0"
 	
 				if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
+					logging.warning("Issue on DAG '%s'"%(dagName))
 					logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
 					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 					row['task_name'] = "%s_FAILURE"%(row['task_name'])
@@ -1024,6 +1041,7 @@ class initialize(object):
 					timeDiff = str(minusText + str(timeDiff.seconds))
 				elif addDagSensor == True:
 					if mainDagSchedule != waitDagSchedule:
+						logging.warning("Issue on DAG '%s'"%(dagName))
 						logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
 						logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 						row['task_name'] = "%s_FAILURE"%(row['task_name'])
@@ -1251,10 +1269,18 @@ class initialize(object):
 				waitDagSchedule = row["etl_schedule"]
 
 			if waitDagSchedule == '':
-				logging.error("Cant find schedule interval for DAG to wait for")
-				self.DAGfile.close()
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				logging.warning("Issue on DAG '%s'"%(dagName))
+				logging.warning("There is no schedule interval for DAG to wait for")
+				logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+				self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
+				self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
+				self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
+				self.DAGfile.write("\n")
+				continue
+#				logging.error("Cant find schedule interval for DAG to wait for")
+#				self.DAGfile.close()
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 
 			waitForTask = row['wait_for_task']
 			if waitForTask == '':
@@ -1278,6 +1304,7 @@ class initialize(object):
 			timeDiff = "0"
 
 			if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
+				logging.warning("Issue on DAG '%s'"%(dagName))
 				logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
 				logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 				self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
@@ -1320,6 +1347,7 @@ class initialize(object):
 #				print (timeDiff)
 			else:
 				if mainDagSchedule != waitDagSchedule:
+					logging.warning("Issue on DAG '%s'"%(dagName))
 					logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
 					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 					self.addFailureTask("%s_FAILURE"%(row['sensor_name']))

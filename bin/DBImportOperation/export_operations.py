@@ -837,7 +837,7 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.executor.memory', self.export_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.export_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
-		conf.set('spark.hive.llap.execution.mode', 'none')
+#		conf.set('spark.hive.llap.execution.mode', 'only')
 		if self.export_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
