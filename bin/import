@@ -63,6 +63,7 @@ def printHelp():
 	print ("                     - createStatistics")
 	print ("                     - copySchema")
 	print ("                     - copyFiles")
+	print ("                     - compaction")
 	sys.exit(1)
 	
 def printBox(messageList):
@@ -160,7 +161,7 @@ def main(argv):
 		runETLPhase = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas", "compaction"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -426,8 +427,9 @@ def main(argv):
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1045) == True: 
-					import_operation.updateAtlasWithSourceSchema()
-					import_operation.updateAtlasWithImportLineage()
+					import_operation.updateAtlasWithImportData()
+#					import_operation.updateAtlasWithSourceSchema()
+#					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1049)
@@ -491,8 +493,9 @@ def main(argv):
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1145) == True: 
-					import_operation.updateAtlasWithSourceSchema()
-					import_operation.updateAtlasWithImportLineage()
+					import_operation.updateAtlasWithImportData()
+#					import_operation.updateAtlasWithSourceSchema()
+#					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1149)
@@ -548,8 +551,9 @@ def main(argv):
 	
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1245) == True: 
-					import_operation.updateAtlasWithSourceSchema()
-					import_operation.updateAtlasWithImportLineage()
+					import_operation.updateAtlasWithImportData()
+#					import_operation.updateAtlasWithSourceSchema()
+#					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1249)
@@ -1014,9 +1018,11 @@ def main(argv):
 					if import_operation.runStage(3211) == True: 
 						import_operation.validateTargetTable()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3212) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1132,9 +1138,11 @@ def main(argv):
 					if import_operation.runStage(3260) == True: 
 						import_operation.validateTargetTable()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3261) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1254,9 +1262,11 @@ def main(argv):
 				if import_operation.runStage(3310) == True: 
 					import_operation.saveIncrPendingValues()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3311) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1382,9 +1392,11 @@ def main(argv):
 				if import_operation.runStage(3361) == True: 
 					import_operation.saveIncrPendingValues()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3362) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1514,9 +1526,11 @@ def main(argv):
 				if import_operation.runStage(3410) == True: 
 					import_operation.saveIncrPendingValues()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3411) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1803,9 +1817,11 @@ def main(argv):
 				if import_operation.runStage(3561) == True: 
 					import_operation.saveIncrPendingValues()
 
-			if runOnlyFunction == None:
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3562) == True: 
-					import_operation.runHiveMajorCompaction()
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+#					import_operation.runHiveMajorCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)

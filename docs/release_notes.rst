@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-v0.66 - Not released. Work in progress
+v0.66 
 ------------------------------
 
 **Fixed issues**
@@ -18,6 +18,7 @@ v0.66 - Not released. Work in progress
 
   - Custom SQL validation
   - Support for timezone
+  - Atlas integration performance from DBImport server has been improved and can now scale with multiple threads
 
 
 v0.65

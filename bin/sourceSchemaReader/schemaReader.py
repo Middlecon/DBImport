@@ -26,6 +26,7 @@ from common import constants as constant
 from mysql.connector import errorcode
 from datetime import datetime
 import pandas as pd
+import jaydebeapi
 
 class source(object):
 	def __init__(self):
@@ -44,6 +45,9 @@ class source(object):
 		query = None
 		result_df = pd.DataFrame()
 
+#		fetchAllData = False
+#		if database == None and schema == None and table == None:
+#			fetchAllData = True
 
 		if serverType == constant.MSSQL:
 			query  = "select "
@@ -85,40 +89,9 @@ class source(object):
 			query += "	AND colDesc.name = COL.COLUMN_NAME " 
 			query += "WHERE lower(TBL.TABLE_TYPE) in ('base table','view') "
 			query += "	AND COL.TABLE_SCHEMA = '%s' "%(schema)
-			query += "	AND COL.TABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "	AND COL.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY TBL.TABLE_SCHEMA, TBL.TABLE_NAME,COL.ordinal_position"
-
-#			query  = "select "
-#			query += "   sys_schemas.name as schemaName, "
-#			query += "   st.name as tableName, "
-#			query += "   cast((tableProp.value) as nvarchar(4000)) as tableDescription, "
-#			query += "   sc.name as columnName, "
-#			query += "   sys_types.name as columnType, "
-#			query += "   sc.max_length as columnLength, "
-#			query += "   cast((colProp.value) as nvarchar(4000)) as columnDescription, "
-#			query += "   sc.precision as columnPrecision, "
-#			query += "   sc.scale as columnPrecision, "
-#			query += "   sc.is_nullable as isNullable, "
-#			query += "   st.type as tableType, "
-#			query += "   st.create_date as createDate "
-#			query += "from sys.tables as st "
-#			query += "join sys.schemas as sys_schemas "
-#			query += "   on st.schema_id = sys_schemas.schema_id "
-#			query += "join sys.columns as sc "
-#			query += "   on st.object_id = sc.object_id "
-#			query += "join sys.types as sys_types "
-#			query += "   on sc.user_type_id = sys_types.user_type_id "
-#			query += "left join sys.extended_properties as colProp "
-#			query += "   ON colProp.major_id = sc.object_id "
-#			query += "   AND colProp.minor_id = sc.column_id "
-#			query += "   AND colProp.name = 'MS_Description' "
-#			query += "left join sys.extended_properties tableProp "
-#			query += "   ON tableProp.major_id = st.object_id "
-#			query += "   AND tableProp.minor_id = 0 "
-#			query += "   AND tableProp.name = 'MS_Description' "
-#			query += "where sys_schemas.name = '%s' "%(schema)
-#			query += "   and st.name = '%s' "%(table)
-#			query += "order by column_id "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
 			try:
@@ -131,12 +104,13 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[4] in ("numeric", "decimal"):
@@ -164,7 +138,7 @@ class source(object):
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["IS_NULLABLE"] = row[9]
 
 				line_dict["TABLE_TYPE"] = row[10]
@@ -179,6 +153,18 @@ class source(object):
 			result_df = pd.DataFrame(rows_list)
 
 		if serverType == constant.ORACLE:
+			# First determine if column ORIGIN_CON_ID exists in ALL_TAB_COMMENTS. If it does, we need to take that into consideration
+			oracle_OriginConId_exists = True
+			query = "SELECT ORIGIN_CON_ID FROM ALL_TAB_COMMENTS WHERE 1 = 0"
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				if "invalid identifier" in str(errMsg):
+					oracle_OriginConId_exists = False
+				else:
+					logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+					return result_df
+
 			query  = "SELECT "
 			query += "  ALL_TAB_COLUMNS.OWNER SCHEMA_NAME, "
 			query += "  ALL_TAB_COLUMNS.TABLE_NAME, "
@@ -195,18 +181,23 @@ class source(object):
 			query += "  ALL_OBJECTS.CREATED " 
 			query += "FROM ALL_TAB_COLUMNS ALL_TAB_COLUMNS " 
 			query += "LEFT JOIN ALL_TAB_COMMENTS ALL_TAB_COMMENTS " 
-			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_TAB_COMMENTS.TABLE_NAME " 
-			query += "  AND ALL_TAB_COMMENTS.OWNER = ALL_TAB_COLUMNS.OWNER " 
+			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_TAB_COMMENTS.OWNER " 
+			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_TAB_COMMENTS.TABLE_NAME " 
+			if oracle_OriginConId_exists == True:
+				query += "  AND ALL_TAB_COMMENTS.ORIGIN_CON_ID <= 1 "
 			query += "LEFT JOIN ALL_COL_COMMENTS ALL_COL_COMMENTS " 
-			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_COL_COMMENTS.TABLE_NAME " 
-			query += "  AND ALL_COL_COMMENTS.OWNER = ALL_TAB_COLUMNS.OWNER " 
+			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_COL_COMMENTS.OWNER " 
+			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_COL_COMMENTS.TABLE_NAME " 
 			query += "  AND ALL_TAB_COLUMNS.COLUMN_NAME = ALL_COL_COMMENTS.COLUMN_NAME " 
+			if oracle_OriginConId_exists == True:
+				query += "  AND ALL_COL_COMMENTS.ORIGIN_CON_ID <= 1 "
 			query += "LEFT JOIN ALL_OBJECTS ALL_OBJECTS " 
-			query += "  ON ALL_TAB_COLUMNS.TABLE_NAME = ALL_OBJECTS.OBJECT_NAME " 
-			query += "  AND ALL_COL_COMMENTS.OWNER = ALL_OBJECTS.OWNER " 
-			query += "WHERE ALL_TAB_COLUMNS.OWNER = '%s' "%(schema)
-			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = '%s' "%(table)
+			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_OBJECTS.OWNER " 
+			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_OBJECTS.OBJECT_NAME " 
 			query += "  AND ALL_OBJECTS.OBJECT_TYPE IN ('TABLE', 'VIEW') " 
+			query += "WHERE ALL_TAB_COLUMNS.OWNER = '%s' "%(schema)
+			if table != None:
+				query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, ALL_TAB_COLUMNS.TABLE_NAME, ALL_TAB_COLUMNS.COLUMN_ID"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -220,12 +211,13 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[5] == None:
@@ -252,7 +244,7 @@ class source(object):
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["IS_NULLABLE"] = row[10]
 
 				line_dict["TABLE_TYPE"] = row[11]
@@ -284,7 +276,9 @@ class source(object):
 			query += "from information_schema.columns c "
 			query += "left join information_schema.tables t " 
 			query += "   on c.table_schema = t.table_schema and c.table_name = t.table_name "
-			query += "where c.table_schema = '%s' and c.table_name = '%s' "%(database, table)
+			query += "where c.table_schema = '%s' "%(database)
+			if table != None:
+				query += "   and c.table_name = '%s' "%(table)
 			query += "order by c.table_schema,c.table_name, c.ordinal_position "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -298,11 +292,14 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[4] == "decimal":
@@ -317,7 +314,7 @@ class source(object):
 				if row[6] == None or row[6] == "":
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["IS_NULLABLE"] = row[7]
 
 				line_dict["TABLE_TYPE"] = row[10]
@@ -351,7 +348,8 @@ class source(object):
 			query += "	AND ST.CREATOR = SC.TBCREATOR "
 			query += "WHERE "
 			query += "	ST.CREATOR = '%s' "%(schema)
-			query += "	AND ST.NAME = '%s' "%(table)
+			if table != None:
+				query += "	AND ST.NAME = '%s' "%(table)
 			query += "ORDER BY ST.CREATOR, ST.NAME"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -366,10 +364,13 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[4] == "DECIMAL":
@@ -384,7 +385,7 @@ class source(object):
 				if row[7] == ""  or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 
 				line_dict["IS_NULLABLE"] = row[8]
 
@@ -420,7 +421,8 @@ class source(object):
 			query += "	AND ST.TABLE_NAME= SC.TABLE_NAME "
 			query += "WHERE "
 			query += "	ST.TABLE_SCHEMA = '%s' "%(schema)
-			query += "	AND SC.TABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "	AND SC.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY ST.TABLE_SCHEMA, SC.TABLE_NAME, SC.ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -434,12 +436,14 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[4] == "DECIMAL":
@@ -454,7 +458,7 @@ class source(object):
 				if self.removeNewLine(row[7]) == "" or row[7] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 
 				line_dict["IS_NULLABLE"] = row[8]
 
@@ -489,7 +493,8 @@ class source(object):
 			query += "	AND tab_tables.table_name = tab_columns.table_name "
 			query += "WHERE tab_columns.table_catalog = '%s' "%(database)
 			query += "	AND tab_columns.table_schema ='%s' "%(schema)
-			query += "	AND tab_columns.table_name = '%s' "%(table)
+			if table != None:
+				query += "	AND tab_columns.table_name = '%s' "%(table)
 			query += "ORDER BY table_schema, table_name"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -503,11 +508,14 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
 
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[5] == None:
@@ -520,7 +528,7 @@ class source(object):
 				if row[6] == "" or row[6] == None:
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
-					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 
 				line_dict["IS_NULLABLE"] = row[7]
 
@@ -548,7 +556,8 @@ class source(object):
 			query += "	AND tab_tables.OWNER = tab_columns.OWNER  "
 			query += "WHERE "
 			query += "	tab_columns.OWNER = '%s' "%(schema)
-			query += "	AND tab_columns.TBL = '%s' "%(table)
+			if table != None:
+				query += "	AND tab_columns.TBL = '%s' "%(table)
 			query += "ORDER BY tab_tables.OWNER, tab_tables.TBL"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -562,12 +571,14 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
-#				line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
 				if row[2] == "" or row[2] == None:
 					line_dict["TABLE_COMMENT"] = None
 				else:
-					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape')
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
 				if row[4] in ("decimal", "numeric"):
@@ -587,7 +598,7 @@ class source(object):
 					line_dict["SOURCE_COLUMN_COMMENT"] = None
 				else:
 					try:
-						line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape')
+						line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 					except UnicodeDecodeError:
 						line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7])
 
@@ -635,7 +646,8 @@ class source(object):
 			query += "	ON oParentColDtl.TABLE_NAME=PKnUTable.name " 
 			query += "	AND oParentColDtl.COLUMN_NAME=PKnUKEYCol.name " 
 			query += "WHERE oParentColDtl.TABLE_SCHEMA = '%s' "%(schema)
-			query += "	and PKnUTable.name = '%s' "%(table)
+			if table != None:
+				query += "	and PKnUTable.name = '%s' "%(table)
 			query += "	and PKnUKEY.type_desc = 'PRIMARY_KEY_CONSTRAINT' "
 
 			query += "UNION ALL " 
@@ -671,7 +683,8 @@ class source(object):
 			query += "	AND FKC.referenced_column_id=oReferenceCol.column_id " 
 			query += "INNER JOIN  sys.[tables] AS T  ON T.[object_id] = oReferenceCol.[object_id] "
 			query += "WHERE oParentColDtl.TABLE_SCHEMA = '%s' "%(schema)
-			query += "	and oParent.name = '%s' "%(table)
+			if table != None:
+				query += "	and oParent.name = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -685,8 +698,9 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#				line_dict["TABLE_NAME"] = line.split('|')[1]
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
@@ -704,7 +718,6 @@ class source(object):
 			query += "  DISTINCT  CAST (acc.OWNER AS VARCHAR(4000)) AS SCHEMA_NAME, "
 			query += "  CAST (acc.TABLE_NAME AS VARCHAR(4000)) AS  TABLE_NAME, " 
 			query += "  CAST(ac.CONSTRAINT_NAME AS VARCHAR(4000)) AS CONSTRAINT_NAME, " 
-#			query += "  CAST (ac.CONSTRAINT_TYPE AS VARCHAR(4000)) AS CONSTRAINT_TYPE, " 
 			query += "  '%s' AS CONSTRAINT_TYPE, "%(constant.PRIMARY_KEY)
 			query += "  CAST ( acc.COLUMN_NAME AS VARCHAR(4000)) AS COL_NAME, " 
 			query += "  CAST(atc.data_type AS VARCHAR(4000)) AS COL_NAME_DATA_TYPE, "
@@ -724,13 +737,13 @@ class source(object):
 			query += "  AND acc.COLUMN_NAME = atc.COLUMN_NAME "
 			query += "WHERE ac.CONSTRAINT_TYPE = 'P' "
 			query += "  AND acc.OWNER = '%s' "%(schema)
-			query += "  AND acc.TABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "  AND acc.TABLE_NAME = '%s' "%(table)
 			query += "UNION ALL " 
 			query += "select "
 			query += "  b.owner AS SCHEMA_NAME, " 
 			query += "  b.table_name AS  TABLE_NAME, " 
 			query += "  a.constraint_name AS CONSTRAINT_NAME, " 
-#			query += "  a.constraint_type AS CONSTRAINT_TYPE, " 
 			query += "  '%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
 			query += "  b.column_name AS COL_NAME , " 
 			query += "  atc.data_type AS COL_NAME_DATA_TYPE, " 
@@ -756,7 +769,8 @@ class source(object):
 			query += "where "
 			query += "  a.constraint_type = 'R' "
 			query += "  AND b.OWNER = '%s' "%(schema)
-			query += "  AND b.TABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "  AND b.TABLE_NAME = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME,CONSTRAINT_TYPE,CONSTRAINT_NAME,COL_KEY_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -770,8 +784,9 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#				line_dict["TABLE_NAME"] = line.split('|')[1]
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
@@ -802,7 +817,8 @@ class source(object):
 			query += "	kcu.referenced_table_name IS NULL " 
 			query += "	AND (CONSTRAINT_NAME='PRIMARY' OR CONSTRAINT_NAME='UNIQUE') "
 			query += "	AND kcu.CONSTRAINT_SCHEMA = '%s' "%(database)
-			query += "	AND kcu.table_name = '%s' "%(table)
+			if table != None:
+				query += "	AND kcu.table_name = '%s' "%(table)
 
 			query += "UNION "
 
@@ -824,7 +840,8 @@ class source(object):
 			query += "WHERE "
 			query += "	kcu.referenced_table_name IS NOT NULL " 
 			query += "	AND kcu.CONSTRAINT_SCHEMA = '%s' "%(database)
-			query += "	AND kcu.table_name = '%s' "%(table)
+			if table != None:
+				query += "	AND kcu.table_name = '%s' "%(table)
 			query += "order by schema_name, table_name, CONSTRAINT_TYPE, COL_KEY_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -838,8 +855,9 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#				line_dict["TABLE_NAME"] = line.split('|')[1]
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
@@ -873,44 +891,10 @@ class source(object):
 			query += "	SI.COLNAMES = CONCAT('+',SC.NAME) "
 			query += "	AND SI.uniquerule = 'P'"
 			query += "	AND SI.TBCREATOR = '%s' "%(schema)
-			query += "	AND SI.TBNAME = '%s' "%(table)
+			if table != None:
+				query += "	AND SI.TBNAME = '%s' "%(table)
 
 			query += "UNION ALL " 
-
-#			query += "select "
-##			query += "	substr(TRIM(R.tabschema),1,12) as SCHEMA_NAME, " 
-##			query += "	substr (TRIM(R.tabname),1,12) as TABLE_NAME,  " 
-##			query += "	substr(TRIM(R.constname),1,12) as CONSTRAINT_NAME, " 
-#			query += "	TRIM(R.tabschema) as SCHEMA_NAME, " 
-#			query += "	TRIM(R.tabname) as TABLE_NAME,  " 
-#			query += "	TRIM(R.constname) as CONSTRAINT_NAME, " 
-#			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
-##			query += "	substr(LISTAGG(TRIM(R.FK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.FK_COLNAMES),1,20) as COL_NAME,  " 
-#			query += "	LISTAGG(TRIM(R.FK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.FK_COLNAMES) as COL_NAME,  " 
-#			query += "	SC.COLTYPE as COL_DATA_TYPE, " 
-#			query += "	SC.LENGTH as COL_DATA_LENGTH, " 
-#			query += "	SC.SCALE as COL_DATA_SCALE, " 
-##			query += "	substr(TRIM(R.reftabschema),1,12) as REFERENCE_SCHEMA_NAME, " 
-##			query += "	substr(TRIM(R.reftabname),1,12) as REFERENCE_TABLE_NAME, " 
-#			query += "	TRIM(R.reftabschema) as REFERENCE_SCHEMA_NAME, " 
-#			query += "	TRIM(R.reftabname) as REFERENCE_TABLE_NAME, " 
-##			query += "	substr(LISTAGG(TRIM(R.PK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.PK_COLNAMES),1,20) as REFERENCE_COL_NAME,  " 
-#			query += "	LISTAGG(TRIM(R.PK_COLNAMES),', ') WITHIN GROUP (ORDER BY R.PK_COLNAMES) as REFERENCE_COL_NAME,  " 
-#			query += "	cast(substr(LISTAGG(C.COLSEQ,', ') WITHIN GROUP (ORDER BY C.COLSEQ),1,1) as INT) as ORDINAL_POSITION " 
-#			query += "FROM syscat.references R "
-#			query += "LEFT JOIN syscat.keycoluse C "
-#			query += "	ON R.constname = C.constname "
-#			query += "	AND R.tabschema = C.tabschema "
-#			query += "	AND R.tabname = C.tabname " 
-#			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC " 
-#			query += "	ON R.tabschema = SC.TBCREATOR "
-#			query += "	AND R.tabname = SC.TBNAME "
-#			query += "	AND TRIM(SC.NAME)= TRIM(R.FK_COLNAMES) "
-#			query += "WHERE " 
-#			query += "	R.tabschema = '%s' "%(schema)
-#			query += "	AND C.tabname = '%s' "%(table)
-#			query += "GROUP BY R.reftabschema, R.reftabname, R.tabschema, R.tabname, R.constname, SC.COLTYPE, SC.LENGTH, SC.SCALE "
-#			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
 
 			query =  "SELECT "
 			query += "  TRIM(R.tabschema) as SCHEMA_NAME, "
@@ -928,20 +912,17 @@ class source(object):
 			query += "FROM syscat.references R "
 			query += "LEFT JOIN syscat.keycoluse C "
 			query += "  ON R.constname = C.constname "
-#			query += "  AND R.tabschema = C.tabschema "
-#			query += "  AND R.tabname = C.tabname "
 			query += "LEFT JOIN syscat.keycoluse Cref "
 			query += "  ON R.refkeyname = Cref.constname "
 			query += "  AND C.COLSEQ = Cref.COLSEQ "
-#			query += "  AND R.reftabschema = Cref.tabschema "
-#			query += "  AND R.reftabname = Cref.tabname "
 			query += "LEFT JOIN SYSIBM.SYSCOLUMNS SC "
 			query += "  ON R.tabschema = SC.TBCREATOR "
 			query += "  AND R.tabname = SC.TBNAME "
 			query += "  AND TRIM(SC.NAME)= TRIM(R.FK_COLNAMES) "
 			query += "WHERE "
 			query += "	R.tabschema = '%s' "%(schema)
-			query += "	AND R.tabname = '%s' "%(table)
+			if table != None:
+				query += "	AND R.tabname = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -955,8 +936,9 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#				line_dict["TABLE_NAME"] = line.split('|')[1]
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
@@ -973,7 +955,6 @@ class source(object):
 			query += "	TRIM(SPK.TABLE_SCHEM) as SCHEMA_NAME, "
 			query += "	TRIM(SPK.TABLE_NAME) as TABLE_NAME, " 
 			query += "	TRIM(SPK.PK_NAME) as CONSTRAINT_NAME, "
-#			query += "	'PK' as CONSTRAINT_TYPE, " 
 			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.PRIMARY_KEY)
 			query += "	TRIM(SC.COLUMN_NAME) as COL_NAME, "
 			query += "	SC.TYPE_NAME as COL_DATA_TYPE, "
@@ -991,7 +972,8 @@ class source(object):
 			query += "	AND SPK.COLUMN_NAME=SC.COLUMN_NAME "
 			query += "WHERE " 
 			query += "	SPK.TABLE_SCHEM = '%s' "%(schema)
-			query += "	AND SPK.TABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "	AND SPK.TABLE_NAME = '%s' "%(table)
 
 			query += "UNION ALL " 
 
@@ -999,7 +981,6 @@ class source(object):
 			query += "	TRIM(SFK.FKTABLE_SCHEM) as SCHEMA_NAME, "
 			query += "	TRIM(SFK.FKTABLE_NAME) as TABLE_NAME, " 
 			query += "	TRIM(SFK.FK_NAME) as CONSTRAINT_NAME, "
-#			query += "	'FK' as CONSTRAINT_TYPE, " 
 			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
 			query += "	TRIM(SFK.FKCOLUMN_NAME) as COL_NAME, "
 			query += "	SC.TYPE_NAME as COL_DATA_TYPE, "
@@ -1017,7 +998,8 @@ class source(object):
 			query += "	AND SFK.FKCOLUMN_NAME = SC.COLUMN_NAME "
 			query += "WHERE " 
 			query += "	SFK.FKTABLE_SCHEM = '%s' "%(schema)
-			query += "	AND SFK.FKTABLE_NAME = '%s' "%(table)
+			if table != None:
+				query += "	AND SFK.FKTABLE_NAME = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -1031,8 +1013,9 @@ class source(object):
 			for row in JDBCCursor.fetchall():
 				logging.debug(row)
 				line_dict = {}
-#				line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#				line_dict["TABLE_NAME"] = line.split('|')[1]
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
@@ -1067,7 +1050,8 @@ class source(object):
 			query += "	AND pg_get_constraintdef(c.oid) LIKE 'PRIMARY KEY %' "
 			query += "	AND ist.table_catalog = '%s' "%(database)
 			query += "	AND kcu.constraint_schema ='%s' "%(schema)
-			query += "	AND kcu.table_name = '%s' "%(table)
+			if table != None:
+				query += "	AND kcu.table_name = '%s' "%(table)
 
 			query += "UNION " 
 
@@ -1097,7 +1081,8 @@ class source(object):
 			query += "	AND pg_get_constraintdef(c.oid) LIKE 'FOREIGN KEY %' "
 			query += "	AND ist.table_catalog = '%s' "%(database)
 			query += "	AND kcu.constraint_schema ='%s' "%(schema)
-			query += "	AND kcu.table_name = '%s' "%(table)
+			if table != None:
+				query += "	AND kcu.table_name = '%s' "%(table)
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME,CONSTRAINT_TYPE "
 
 			logging.debug("SQL Statement executed: %s" % (query) )
@@ -1137,8 +1122,9 @@ class source(object):
 					colName = colNameList[i]
 					refColName = refColNameList[i]
 
-#					line_dict["SCHEMA_NAME"] = line.split('|')[0]
-#					line_dict["TABLE_NAME"] = line.split('|')[1]
+					if table == None:
+						line_dict["SCHEMA_NAME"] = schemaName
+						line_dict["TABLE_NAME"] = tableName
 					line_dict["CONSTRAINT_NAME"] = constraintName
 					line_dict["CONSTRAINT_TYPE"] = constraintType
 					line_dict["COL_NAME"] = colName
@@ -1156,4 +1142,173 @@ class source(object):
 		logging.debug(result_df)
 		logging.debug("Executing schemaReader.readKeys() - Finished")
 		return result_df
+
+
+	def getJDBCtablesAndViews(self, JDBCCursor, serverType, database=None, schemaFilter=None, tableFilter=None):
+		logging.debug("Executing schemaReader.getJDBCtablesAndViews()")
+#		self.connectToJDBC()
+
+		if schemaFilter != None:
+			schemaFilter = schemaFilter.replace('*', '%')
+
+		if tableFilter != None:
+			tableFilter = tableFilter.replace('*', '%')
+
+		if serverType == constant.MSSQL:
+			query = "select TABLE_SCHEMA, TABLE_NAME from INFORMATION_SCHEMA.TABLES "
+			if schemaFilter != None:
+				query += "where TABLE_SCHEMA like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and TABLE_NAME like '%s' "%(tableFilter)
+				else:
+					query += "where TABLE_NAME like '%s' "%(tableFilter)
+			query += "order by TABLE_SCHEMA, TABLE_NAME"
+
+		if serverType == constant.ORACLE:
+			query  = "select OWNER, TABLE_NAME as NAME from all_tables "
+			if schemaFilter != None:
+				query += "where OWNER like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and TABLE_NAME like '%s' "%(tableFilter)
+				else:
+					query += "where TABLE_NAME like '%s' "%(tableFilter)
+
+			query += "union all "
+			query += "select OWNER, VIEW_NAME as NAME from all_views "
+			if schemaFilter != None:
+				query += "where OWNER like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and VIEW_NAME like '%s' "%(tableFilter)
+				else:
+					query += "where VIEW_NAME like '%s' "%(tableFilter)
+			query += "order by OWNER, NAME "
+
+		if serverType == constant.MYSQL:
+#			query = "select '-', table_name from INFORMATION_SCHEMA.tables where table_schema = '%s' "%(self.jdbc_database)
+			query = "select '-', table_name from INFORMATION_SCHEMA.tables where table_schema = '%s' "%(database)
+			if tableFilter != None:
+				query += "and table_name like '%s' "%(tableFilter)
+			query += "order by table_name"
+
+		if serverType == constant.POSTGRESQL:
+			query = "select TABLE_SCHEMA, TABLE_NAME from INFORMATION_SCHEMA.TABLES "
+			if schemaFilter != None:
+				query += "where TABLE_SCHEMA like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and TABLE_NAME like '%s' "%(tableFilter)
+				else:
+					query += "where TABLE_NAME like '%s' "%(tableFilter)
+			query += "order by TABLE_SCHEMA, TABLE_NAME"
+
+		if serverType == constant.PROGRESS:
+			query  = "select \"_Owner\", \"_File-Name\" from PUB.\"_File\" "
+			if schemaFilter != None:
+				query += "WHERE \"_Owner\" LIKE '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "AND \"_File-Name\" LIKE '%s' "%(tableFilter)
+				else:
+					query += "WHERE \"_File-Name\" LIKE '%s' "%(tableFilter)
+			query += "ORDER BY \"_Owner\", \"_File-Name\""
+
+		if serverType == constant.DB2_UDB:
+			query  = "SELECT CREATOR, NAME FROM SYSIBM.SYSTABLES "
+			if schemaFilter != None:
+				query += "WHERE CREATOR LIKE '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "AND NAME LIKE '%s' "%(tableFilter)
+				else:
+					query += "WHERE NAME LIKE '%s' "%(tableFilter)
+			query += "ORDER BY CREATOR, NAME"
+
+		if serverType == constant.DB2_AS400:
+			query  = "SELECT TABLE_SCHEM, TABLE_NAME FROM SYSIBM.SQLTABLES "
+			if schemaFilter != None:
+				query += "WHERE TABLE_SCHEM LIKE '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "AND TABLE_NAME LIKE '%s' "%(tableFilter)
+				else:
+					query += "WHERE TABLE_NAME LIKE '%s' "%(tableFilter)
+			query += "ORDER BY TABLE_SCHEM, TABLE_NAME"
+
+		logging.debug("SQL Statement executed: %s" % (query) )
+		JDBCCursor.execute(query)
+
+		result_df = pd.DataFrame(JDBCCursor.fetchall())
+		if len(result_df) > 0:
+			result_df.columns = ['schema', 'table']
+		else:
+			result_df = pd.DataFrame(columns=['schema', 'table'])
+
+		logging.debug("Executing schemaReader.getJDBCtablesAndViews() - Finished")
+		return result_df
+
+
+
+	def getJdbcTableType(self, serverType, tableTypeFromSource):
+		""" Returns the table type of the table """
+		logging.debug("Executing schemaReader.getJdbcTableType()")
+
+#		if self.source_columns_df.empty == True:
+		if tableTypeFromSource == None:
+			logging.warning("No metadata for tableType sent to getJdbcTableType()")
+			return None
+
+#		tableTypeFromSource = self.source_columns_df.iloc[0]["TABLE_TYPE"]
+		tableType = None
+
+
+		if serverType == constant.MSSQL:
+			# BASE TABLE, VIEW
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif serverType == constant.ORACLE:
+			# TABLE, VIEW
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif serverType == constant.MYSQL:
+			# BASE TABLE, VIEW, SYSTEM VIEW (for an INFORMATION_SCHEMA table)
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			else: tableType = "table"
+
+		elif serverType == constant.POSTGRESQL:
+			# BASE TABLE, VIEW, FOREIGN TABLE, LOCAL TEMPORARY
+			if tableTypeFromSource == "VIEW":	tableType = "view"
+			if tableTypeFromSource == "LOCAL TEMPORARY":	tableType = "temporary"
+			else: tableType = "table"
+
+		elif serverType == constant.PROGRESS:
+			# Unsure. Cant find documentation. 
+			# Verified	T=Table
+			# We assume	V=View
+			if tableTypeFromSource == "V":	tableType = "view"
+			else: tableType = "table"
+
+		elif serverType == constant.DB2_UDB or serverType == constant.DB2_AS400:
+			# A = Alias
+			# C = Clone Table
+			# D = Accelerator-only table
+			# G = Global temporary table
+			# H = History Table
+			# M = Materialized query table
+			# P = Table that was implicitly created for XML columns
+			# R = Archive table 
+			# T = Table
+			# V = View
+			# X = Auxiliary table
+			if tableTypeFromSource == "A":	tableType = "view"
+			if tableTypeFromSource == "V":	tableType = "view"
+			else: tableType = "table"
+
+
+		logging.debug("Executing schemaReader.getJdbcTableType() - Finished")
+		return tableType
 

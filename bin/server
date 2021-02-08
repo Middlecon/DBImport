@@ -113,9 +113,9 @@ def main(argv):
 		setupLogger(name="distCP", logfile=distCPlogfile, logFormat=logFormat, loggingLevel=loggingLevel)
 	else:
 		distCPthreads = int(configuration.get("Server", "distCP_threads"))
-		if distCPthreads == 0:
-			log.error("'distCP_threads' configuration in configfile must be larger than 0")
-			sys.exit(1)
+#		if distCPthreads == 0:
+#			log.error("'distCP_threads' configuration in configfile must be larger than 0")
+#			sys.exit(1)
 
 		for threadID in range(0, distCPthreads):
 			distCPlogName = "distCP-thread%s"%(str(threadID))

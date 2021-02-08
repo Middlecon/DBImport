@@ -716,10 +716,7 @@ class importTables(Base):
     copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
     custom_max_query = Column(String(256), comment='You can use a custom SQL query that will get the Max value from the source database. This Max value will be used in an inremental import to know how much to read in each execution')
-
-
-
-
+    mergeCompactionMethod = Column(Enum('default', 'none', 'minor', 'minor_and_wait', 'major', 'major_and_wait'), nullable=False, comment='Compaction method to use after import using merge is completed. Default means a major compaction if it is configured to do so in the configuration table', server_default=text("'default'"))
 
 
 class jdbcConnectionsEnvironments(Base):
@@ -941,3 +938,46 @@ class importForeignKeys(Base):
 
     fk_column = relationship('importColumns', primaryjoin='importForeignKeys.fk_column_id == importColumns.column_id')
     column = relationship('importColumns', primaryjoin='importForeignKeys.column_id == importColumns.column_id')
+
+class atlasColumnCache(Base):
+    __tablename__ = 'atlas_column_cache'
+    __table_args__ = (
+        {'comment': 'Atlas discovery uses this table to cache values in order to detect changes instead of putting a heavy load on the Atlas server.'}
+    )
+
+    hostname = Column(String(256), primary_key=True, nullable=False, comment='Hostname for the database')
+    port = Column(String(8), primary_key=True, nullable=False, comment='Port for the database')
+    database_name = Column(String(256), primary_key=True, nullable=False, comment='Database name')
+    schema_name = Column(String(256), primary_key=True, nullable=False, comment='Database schema')
+    table_name = Column(String(256), primary_key=True, nullable=False, comment='Database table')
+    column_name = Column(String(256), primary_key=True, nullable=True, comment='Name of the column')
+    column_type = Column(String(2048), nullable=True, comment='Type of the column')
+    column_length = Column(String(64), nullable=True, comment='Length of the column')
+    column_is_nullable = Column(String(16), nullable=True, comment='Is null values allowed in the column')
+    column_comment = Column(Text, nullable=True, comment='Comment on the column')
+    table_comment = Column(Text, nullable=True, comment='Comment on the table')
+    table_type = Column(String(256), nullable=True, comment='Table type. ')
+    table_create_time = Column(DateTime, nullable=True, comment='Timestamp for when the table was created')
+    default_value = Column(Text, nullable=True, comment='Default value of the column')
+
+
+class atlasKeyCache(Base):
+    __tablename__ = 'atlas_key_cache'
+    __table_args__ = (
+        {'comment': 'Atlas discovery uses this table to cache values in order to detect changes instead of putting a heavy load on the Atlas server.'}
+    )
+
+    hostname = Column(String(256), primary_key=True, nullable=False, comment='Hostname for the database')
+    port = Column(String(8), primary_key=True, nullable=False, comment='Port for the database')
+    database_name = Column(String(256), primary_key=True, nullable=False, comment='Database name')
+    schema_name = Column(String(256), primary_key=True, nullable=False, comment='Database schema')
+    table_name = Column(String(256), primary_key=True, nullable=False, comment='Database table')
+    constraint_name = Column(String(256), primary_key=True, nullable=True, comment='Name of the constraint')
+    constraint_type = Column(String(8), nullable=True, comment='Type of the constraint')
+    column_name = Column(String(256), primary_key=True, nullable=True, comment='Name of the column')
+    reference_schema_name = Column(String(256), nullable=True, comment='Name of the schema that is referenced')
+    reference_table_name = Column(String(256), nullable=True, comment='Name of the table that is referenced')
+    reference_column_name = Column(String(256), nullable=True, comment='Name of the column that is referenced')
+    col_key_position = Column(Integer, nullable=True, comment='Position of the key')
+
+

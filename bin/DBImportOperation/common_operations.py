@@ -851,6 +851,46 @@ class operation(object, metaclass=Singleton):
 		self.executeHiveQuery("analyze table `%s`.`%s` compute statistics "%(hiveDB, hiveTable))
 		logging.debug("Executing common_operations.updateHiveTableStatistics() - Finished")
 
+#	def runHiveCompaction(self, hiveDB, hiveTable):
+#		""" Force a compaction on a Hive table. The type of compaction is configured per table or a major as default """
+#		logging.debug("Executing common_operations.runHiveCompaction()")
+#
+#		compactionMethod = "none"
+#		andWait = False
+#		compactionDescription = ""
+#
+#		if self.common_config.mergeCompactionMethod == "default":
+#			if self.common_config.getConfigValue(key = "hive_major_compact_after_merge") == True:
+#				compactionMethod = "major"
+#				compactionDescription = compactionMethod
+#		else:
+#			compactionMethod = self.common_config.mergeCompactionMethod
+#			if self.common_config.mergeCompactionMethod == "minor_and_wait":
+#				compactionMethod = "minor"
+#				andWait = True
+#				compactionDescription = "minor and wait"
+#			elif self.common_config.mergeCompactionMethod == "major_and_wait":
+#				compactionMethod = "major"
+#				andWait = True
+#				compactionDescription = "major and wait"
+#			else:
+#				compactionMethod = self.common_config.mergeCompactionMethod
+#				compactionDescription = compactionMethod
+#
+#		if compactionMethod != "none":
+#			logging.info("Running a '%s' compaction on Hive table"%(compactionDescription))
+#			try:
+#				if andWait == False:
+#					self.executeHiveQuery("alter table `%s`.`%s` compact '%s' "%(hiveDB, hiveTable, compactionMethod))
+#				else:
+#					self.executeHiveQuery("alter table `%s`.`%s` compact '%s' and wait "%(hiveDB, hiveTable, compactionMethod))
+#			except:
+#				logging.error("Major compaction failed with the following error message:")
+#				logging.warning(sys.exc_info())
+#				pass
+#
+#		logging.debug("Executing common_operations.runHiveCompaction() - Finished")
+
 	def runHiveMajorCompaction(self, hiveDB, hiveTable):
 		""" Force a major compaction on a Hive table """
 		logging.debug("Executing common_operations.runHiveMajorCompaction()")

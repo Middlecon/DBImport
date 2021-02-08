@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.66 pre-release"
+VERSION = "0.66"
 
 # Database types
 MYSQL = "mysql"
@@ -33,3 +33,9 @@ EXPORT_PHASE_INCR = "incr"
 
 VALIDATION_METHOD_ROWCOUNT = "rowCount"
 VALIDATION_METHOD_CUSTOMQUERY = "customQuery"
+
+# General result
+RESULT_OK = "ok"
+RESULT_FAILED = "failed"
+RESULT_FOREIGN_KEY_FAILED = "fk_failed"
+

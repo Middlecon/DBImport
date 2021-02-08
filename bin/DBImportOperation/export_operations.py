@@ -30,6 +30,7 @@ from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import export_config
 from DBImportOperation import common_operations
+from DBImportOperation import atlas_operations
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
@@ -56,6 +57,8 @@ class operation(object, metaclass=Singleton):
 		self.sqoopMappers = None
 
 		self.globalHiveConfigurationSet = False
+
+		self.atlasOperation = atlas_operations.atlasOperation()
 
 		if connectionAlias == None and targetSchema == None and targetTable == None:
 			self.export_config = export_config.config()
@@ -149,13 +152,45 @@ class operation(object, metaclass=Singleton):
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
 
-	def updateAtlasWithTargetSchema(self):
-		if self.export_config.common_config.checkAtlasSchema() == True:
-			self.export_config.updateAtlasWithRDBMSdata()
+	def updateAtlasWithExportData(self):
+		if self.atlasOperation.checkAtlasSchema() == True:
+			targetSchema = self.export_config.targetSchema
+			targetTable = self.export_config.targetTable
 
-	def updateAtlasWithExportLineage(self):
-		if self.export_config.common_config.checkAtlasSchema() == True:
-			self.export_config.updateAtlasWithExportLineage()
+			if self.export_config.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
+				targetSchema = self.export_config.targetSchema.upper()
+				targetTable = self.export_config.targetTable.upper()
+
+			if self.export_config.common_config.jdbc_servertype in (constant.POSTGRESQL):
+				targetSchema = self.export_config.targetSchema.lower()
+				targetTable = self.export_config.targetTable.lower()
+
+			configObject = self.export_config.common_config.getAtlasDiscoverConfigObject()
+			self.atlasOperation.setConfiguration(configObject)
+
+			startStopDict = self.export_config.stage.getStageStartStop(stage = self.export_config.exportTool)
+
+			# Fetch the remote system schema again as it might have been updated in the export
+			self.export_config.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable, printInfo=False)
+			self.atlasOperation.source_columns_df = self.export_config.common_config.source_columns_df
+			self.atlasOperation.source_keys_df = self.export_config.common_config.source_keys_df
+
+			try:
+				self.atlasOperation.updateAtlasWithRDBMSdata(schemaName = targetSchema, tableName = targetTable)
+
+				self.atlasOperation.updateAtlasWithExportLineage(
+					hiveDB=self.hiveDB,
+					hiveTable=self.hiveTable,
+					hiveExportTempDB=self.export_config.hiveExportTempDB,
+					hiveExportTempTable=self.export_config.hiveExportTempTable,
+					targetSchema=targetSchema,
+					targetTable=targetTable,
+					tempTableNeeded=self.export_config.tempTableNeeded,
+					startStopDict=startStopDict,
+					fullExecutedCommand=self.export_config.fullExecutedCommand,
+					exportTool=self.export_config.exportTool)
+			except:
+				pass
 
 	def checkHiveDB(self, hiveDB):
 		try:
@@ -167,7 +202,7 @@ class operation(object, metaclass=Singleton):
 		except:
 			self.export_config.remove_temporary_files()
 			raise
-#
+
 	def getHiveTableSchema(self):
 		try:
 			self.export_config.updateLastUpdateFromHive()
@@ -837,7 +872,7 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.executor.memory', self.export_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.export_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
-#		conf.set('spark.hive.llap.execution.mode', 'only')
+		conf.set('spark.hive.llap.execution.mode', 'only')
 		if self.export_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')

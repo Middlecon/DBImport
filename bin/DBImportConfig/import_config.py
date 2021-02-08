@@ -116,6 +116,7 @@ class config(object, metaclass=Singleton):
 		self.split_by_column = None
 		self.splitAddedToSqoopOptions = False
 		self.custom_max_query = None
+		self.mergeCompactionMethod = None
 		self.printSQLWhereAddition = True
 
 		self.validationMethod = None
@@ -303,7 +304,8 @@ class config(object, metaclass=Singleton):
 				"    validationCustomQueryHiveSQL, "
 				"    validationCustomQueryValidateImportTable, "
 				"    validationCustomQuerySourceValue, "
-				"    validationCustomQueryHiveValue "
+				"    validationCustomQueryHiveValue, "
+				"    mergeCompactionMethod "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -396,7 +398,7 @@ class config(object, metaclass=Singleton):
 
 		self.validationCustomQuerySourceValue = row[42]
 		self.validationCustomQueryHiveValue = row[43]
-
+		self.mergeCompactionMethod = row[44]
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
@@ -2861,7 +2863,7 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.resetIncrMinMaxValues() - Finished")
 
-	def updateAtlasWithRDBMSdata(self):
+	def OLDupdateAtlasWithRDBMSdata(self):
 		""" This will update Atlas metadata with the information about the source schema """
 		logging.debug("Executing import_config.updateAtlasWithSourceSchema()")
 
@@ -3002,9 +3004,12 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.updateAtlasWithSourceSchema() - Finished")
 
 
-	def updateAtlasWithImportLineage(self):
+	def OLDupdateAtlasWithImportLineage(self):
 		""" This will update Atlas lineage for the import process """
 		logging.debug("Executing import_config.updateAtlasWithImportLineage()")
+
+
+#		updateAtlasWithImportLineage(self, Hive_DB, Hive_Table, startStopDict, fullExecutedCommand, importTool):
 
 		if self.common_config.atlasEnabled == False:
 			return

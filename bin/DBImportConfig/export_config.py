@@ -1600,7 +1600,7 @@ class config(object, metaclass=Singleton):
 		return returnValue
 
 
-	def updateAtlasWithRDBMSdata(self):
+	def OLDupdateAtlasWithRDBMSdata(self):
 		""" This will update Atlas metadata with the information about the target table schema """
 		logging.debug("Executing export_config.updateAtlasWithSourceSchema()")
 
@@ -1628,7 +1628,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing export_config.updateAtlasWithSourceSchema() - Finished")
 
 
-	def updateAtlasWithExportLineage(self):
+	def OLDupdateAtlasWithExportLineage(self):
 		""" This will update Atlas lineage for the export process """
 		logging.debug("Executing export_config.updateAtlasWithExportLineage()")
 

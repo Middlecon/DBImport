@@ -31,6 +31,7 @@ from common import constants as constant
 from common import sparkUDF as sparkUDF 
 from DBImportConfig import import_config
 from DBImportOperation import common_operations
+from DBImportOperation import atlas_operations
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
@@ -59,6 +60,7 @@ class operation(object, metaclass=Singleton):
 
 		self.import_config = import_config.config(Hive_DB, Hive_Table)
 		self.common_operations = common_operations.operation(Hive_DB, Hive_Table)
+		self.atlasOperation = atlas_operations.atlasOperation()
 
 		if Hive_DB != None and Hive_Table != None:
 			self.setHiveTable(Hive_DB, Hive_Table)
@@ -133,13 +135,34 @@ class operation(object, metaclass=Singleton):
 	def saveStageStatistics(self):
 		self.import_config.saveStageStatistics()
 	
-	def updateAtlasWithSourceSchema(self):
-		if self.import_config.common_config.checkAtlasSchema() == True:
-			self.import_config.updateAtlasWithRDBMSdata()
+	def updateAtlasWithImportData(self):
+		if self.atlasOperation.checkAtlasSchema() == True:
+			configObject = self.import_config.common_config.getAtlasDiscoverConfigObject()
+			self.atlasOperation.setConfiguration(configObject)
 
-	def updateAtlasWithImportLineage(self):
-		if self.import_config.common_config.checkAtlasSchema() == True:
-			self.import_config.updateAtlasWithImportLineage()
+			if self.import_config.common_config.source_columns_df.empty == True:
+				self.import_config.getJDBCTableDefinition()
+
+			self.atlasOperation.source_columns_df = self.import_config.common_config.source_columns_df
+			self.atlasOperation.source_keys_df = self.import_config.common_config.source_keys_df
+
+			startStopDict = self.import_config.stage.getStageStartStop(stage = self.import_config.importTool)
+
+			try:
+				self.atlasOperation.updateAtlasWithRDBMSdata(schemaName=self.import_config.source_schema, tableName=self.import_config.source_table)
+
+				self.atlasOperation.updateAtlasWithImportLineage(
+					Hive_DB=self.Hive_DB, 
+					sourceSchema=self.import_config.source_schema, 
+					sourceTable=self.import_config.source_table, 
+					sqoopHdfsLocation=self.import_config.sqoop_hdfs_location,
+					Hive_Table=self.Hive_Table, 
+					startStopDict=startStopDict,
+					fullExecutedCommand=self.import_config.fullExecutedCommand, 
+					importTool=self.import_config.importTool)
+			except:
+				pass
+
 			logging.info("")	# Just to get a blank row before connecting to Hive
 
 	def checkHiveDB(self, hiveDB):
@@ -2128,6 +2151,53 @@ class operation(object, metaclass=Singleton):
 	def runHiveMajorCompaction(self,):
 		self.common_operations.connectToHive(forceSkipTest=True)
 		self.common_operations.runHiveMajorCompaction(self.Hive_DB, self.Hive_Table)
+
+
+	def runHiveCompaction(self, ):
+		""" Force a compaction on a Hive table. The type of compaction is configured per table or a major as default """
+		logging.debug("Executing import_operations.runHiveCompaction()")
+
+		compactionMethod = "none"
+		andWait = False
+		compactionDescription = ""
+
+		if self.import_config.mergeCompactionMethod == "default":
+			if self.import_config.common_config.getConfigValue(key = "hive_major_compact_after_merge") == True:
+				compactionMethod = "major"
+				compactionDescription = compactionMethod
+		else:
+			if self.import_config.mergeCompactionMethod == "minor_and_wait":
+				compactionMethod = "minor"
+				andWait = True
+				compactionDescription = "minor and wait"
+			elif self.import_config.mergeCompactionMethod == "major_and_wait":
+				compactionMethod = "major"
+				andWait = True
+				compactionDescription = "major and wait"
+			else:
+				compactionMethod = self.import_config.mergeCompactionMethod
+				compactionDescription = compactionMethod
+
+		if compactionMethod != "none":
+			logging.info("Running a '%s' compaction on Hive table"%(compactionDescription))
+
+			try:
+				if andWait == False:
+					self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' "%(self.Hive_DB, self.Hive_Table, compactionMethod))
+				else:
+					self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' and wait "%(self.Hive_DB, self.Hive_Table, compactionMethod))
+			except:
+				logging.error("Major compaction failed with the following error message:")
+				logging.warning(sys.exc_info())
+			pass
+		else:
+			logging.info("Compaction is disabled for this import")
+
+		logging.debug("Executing import_operations.runHiveCompaction() - Finished")
+
+#	def runHiveCompaction(self,):
+#		self.common_operations.connectToHive(forceSkipTest=True)
+#		self.common_operations.runHiveCompaction(self.Hive_DB, self.Hive_Table)
 
 	def truncateTargetTable(self,):
 		logging.info("Truncating Target table in Hive")

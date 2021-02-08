@@ -42,6 +42,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from dateutil import *
 from dateutil.tz import *
 import pandas as pd
+import numpy as np
 from sourceSchemaReader import schemaReader
 from common.Singleton import Singleton
 from common import constants as constant
@@ -120,19 +121,19 @@ class config(object, metaclass=Singleton):
 		self.sparkHDPversion = None
 		self.sparkHiveLibrary = None
 
-		self.atlasEnabled = False
-		self.atlasSchemaChecked = False
-		self.atlasAddress = None
-		self.atlasHeaders = None
-		self.atlasTimeout = None
-		self.atlasSSLverify = None
-		self.atlasRestTypeDefDBImportProcess = None
-		self.atlasRestEntities = None
-		self.atlasRestUniqueAttributeType = None
-		self.atlasJdbcSourceSupport = None
-		self.atlasAuthentication = None
-		self.atlasUsername = None
-		self.atlasPassword = None
+#		self.atlasEnabled = False
+#		self.atlasSchemaChecked = False
+#		self.atlasAddress = None
+#		self.atlasHeaders = None
+#		self.atlasTimeout = None
+#		self.atlasSSLverify = None
+#		self.atlasRestTypeDefDBImportProcess = None
+#		self.atlasRestEntities = None
+#		self.atlasRestUniqueAttributeType = None
+#		self.atlasJdbcSourceSupport = None
+#		self.atlasAuthentication = None
+#		self.atlasUsername = None
+#		self.atlasPassword = None
 
 		self.sourceSchema = None
 
@@ -174,39 +175,39 @@ class config(object, metaclass=Singleton):
 
 		self.crypto = decryption.crypto()
 
-		# Get Atlas config
-		self.atlasAddress = configuration.get("Atlas", "address")
-		if self.atlasAddress != None and self.atlasAddress.strip() != "": 
-			self.atlasRestTypeDefDBImportProcess = "%s/api/atlas/v2/types/typedef/name/DBImport_Process"%(self.atlasAddress)
-			self.atlasRestEntities = "%s/api/atlas/v2/entity/bulk"%(self.atlasAddress)
-			self.atlasRestUniqueAttributeType = "%s/api/atlas/v2/entity/uniqueAttribute/type"%(self.atlasAddress)
-			self.atlasEnabled = True
-			self.atlasHeaders = {'Content-type': 'application/json', 'Accept': 'application/json'}
-			try:
-				self.atlasTimeout = int(configuration.get("Atlas", "timeout"))
-			except ValueError:
-				self.atlasTimeout = 5
-				logging.warning("Atlas timeout configuration does not contain a valid number. Setting the timeout to 5 seconds")
-			if configuration.get("Atlas", "ssl_verify").lower() == "false":
-				self.atlasSSLverify = False
-			else:
-				if configuration.get("Atlas", "ssl_cert_path").strip() != "":
-					self.atlasSSLverify = configuration.get("Atlas", "ssl_cert_path").strip()
-				else:
-					self.atlasSSLverify = True
-
-			# Get authentication configuration
-			if configuration.get("Atlas", "authentication_type").lower() == "username":
-				self.atlasUsername = configuration.get("Atlas", "username")
-				self.atlasPassword = configuration.get("Atlas", "password")
-				self.atlasAuthentication = HTTPBasicAuth(self.atlasUsername, self.atlasPassword)
-
-			elif configuration.get("Atlas", "authentication_type").lower() == "kerberos":
-				self.atlasAuthentication = HTTPKerberosAuth()
-
-			if self.atlasAuthentication == None:
-				logging.error("Atlas authentication is not configured correctly. Valid options are 'username' or 'kerberos'")
-				sys.exit(1)
+#		# Get Atlas config
+#		self.atlasAddress = configuration.get("Atlas", "address")
+#		if self.atlasAddress != None and self.atlasAddress.strip() != "": 
+#			self.atlasRestTypeDefDBImportProcess = "%s/api/atlas/v2/types/typedef/name/DBImport_Process"%(self.atlasAddress)
+#			self.atlasRestEntities = "%s/api/atlas/v2/entity/bulk"%(self.atlasAddress)
+#			self.atlasRestUniqueAttributeType = "%s/api/atlas/v2/entity/uniqueAttribute/type"%(self.atlasAddress)
+#			self.atlasEnabled = True
+#			self.atlasHeaders = {'Content-type': 'application/json', 'Accept': 'application/json'}
+#			try:
+#				self.atlasTimeout = int(configuration.get("Atlas", "timeout"))
+#			except ValueError:
+#				self.atlasTimeout = 5
+#				logging.warning("Atlas timeout configuration does not contain a valid number. Setting the timeout to 5 seconds")
+#			if configuration.get("Atlas", "ssl_verify").lower() == "false":
+#				self.atlasSSLverify = False
+#			else:
+#				if configuration.get("Atlas", "ssl_cert_path").strip() != "":
+#					self.atlasSSLverify = configuration.get("Atlas", "ssl_cert_path").strip()
+#				else:
+#					self.atlasSSLverify = True
+#
+#			# Get authentication configuration
+#			if configuration.get("Atlas", "authentication_type").lower() == "username":
+#				self.atlasUsername = configuration.get("Atlas", "username")
+#				self.atlasPassword = configuration.get("Atlas", "password")
+#				self.atlasAuthentication = HTTPBasicAuth(self.atlasUsername, self.atlasPassword)
+#
+#			elif configuration.get("Atlas", "authentication_type").lower() == "kerberos":
+#				self.atlasAuthentication = HTTPKerberosAuth()
+#
+#			if self.atlasAuthentication == None:
+#				logging.error("Atlas authentication is not configured correctly. Valid options are 'username' or 'kerberos'")
+#				sys.exit(1)
 
 		# Sets and create a temporary directory
 		self.tempdir = "/tmp/dbimport." + str(os.getpid()) + ".tmp"
@@ -322,10 +323,6 @@ class config(object, metaclass=Singleton):
 
 		if self.mysql_cursor.rowcount != 1:
 			raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
-#			logging.error("Error: Number of rows returned from query on 'jdbc_connections' was not one.")
-#			logging.error("Rows returned: %d" % (self.mysql_cursor.rowcount) )
-#			logging.error("SQL Statement that generated the error: %s" % (self.mysql_cursor.statement) )
-#			raise Exception
 
 		row = self.mysql_cursor.fetchone()
 		returnDict = {}
@@ -344,7 +341,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getAtlasJdbcConnectionData() - Finished")
 		return returnDict
 
-	def getAtlasRdbmsColumnURI(self, schemaName, tableName, columnName):
+	def OLDgetAtlasRdbmsColumnURI(self, schemaName, tableName, columnName):
 		""" Returns a string with the correct column URI for Atlas """
 
 		if self.atlasEnabled == False:
@@ -380,7 +377,7 @@ class config(object, metaclass=Singleton):
 
 		return columnUri
 
-	def getAtlasRdbmsNames(self, schemaName, tableName):
+	def OLDgetAtlasRdbmsNames(self, schemaName, tableName):
 		""" Returns a dict with the names needed for the rdbms_* configuration, depending on database type """
 
 		tableUri = None
@@ -552,7 +549,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJdbcTableType() - Finished")
 		return tableType
 
-	def getAtlasRdbmsReferredEntities(self, schemaName, tableName, refSchemaName = "", refTableName = "", hdfsPath = ""):
+	def OLDgetAtlasRdbmsReferredEntities(self, schemaName, tableName, refSchemaName = "", refTableName = "", hdfsPath = ""):
 		""" Returns a dict that contains the referredEntities part for the RDBMS update rest call """
 		logging.debug("Executing common_config.getAtlasReferredEntities()")
 
@@ -579,7 +576,6 @@ class config(object, metaclass=Singleton):
 			refTableUri = returnDict["tableUri"]
 
 		# TODO: Get the following information from dbimport and source system
-		# Foreign Keys
 		# Index
 
 		# Get extended data from jdbc_connections table
@@ -588,66 +584,69 @@ class config(object, metaclass=Singleton):
 		description = jdbcConnectionDict["description"]
 		owner = jdbcConnectionDict["owner"]
 
-		tableCreateTime = self.source_columns_df.iloc[0]["TABLE_CREATE_TIME"]
-		tableComment = self.source_columns_df.iloc[0]["TABLE_COMMENT"]
-		tableType = self.getJdbcTableType()
-
 		jsonData = {}
 		jsonData["referredEntities"] = {}
-		jsonData["referredEntities"]["-100"] = {}
-		jsonData["referredEntities"]["-100"]["guid"] = "-100"
-		jsonData["referredEntities"]["-100"]["typeName"] = "rdbms_table"
-		jsonData["referredEntities"]["-100"]["attributes"] = {}
-		jsonData["referredEntities"]["-100"]["attributes"]["qualifiedName"] = tableUri
-		jsonData["referredEntities"]["-100"]["attributes"]["name"] = tableName
-		if schemaName == "-":
-			jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = None
-		else:
-			jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = schemaName
-		jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = contactInfo
-		jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
-		jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
-		jsonData["referredEntities"]["-100"]["attributes"]["type"] = tableType
-		if tableCreateTime != None:
-			# Atlas only support fractions of a second with 3 digits. So we remove the last 3 as python %f gives 6 digits
-			# This datetime object from the source database needs to be in UTC. We might have to convert it
-			jsonData["referredEntities"]["-100"]["attributes"]["createTime"] = tableCreateTime.strftime('%Y-%m-%dT%H:%M:%S.%f')[0:-3] + "Z"
-		jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
+
+		if len(self.source_columns_df) > 0:
+			tableCreateTime = self.source_columns_df.iloc[0]["TABLE_CREATE_TIME"]
+			tableComment = self.source_columns_df.iloc[0]["TABLE_COMMENT"]
+			tableType = self.getJdbcTableType()
+
+			jsonData["referredEntities"]["-100"] = {}
+			jsonData["referredEntities"]["-100"]["guid"] = "-100"
+			jsonData["referredEntities"]["-100"]["typeName"] = "rdbms_table"
+			jsonData["referredEntities"]["-100"]["attributes"] = {}
+			jsonData["referredEntities"]["-100"]["attributes"]["qualifiedName"] = tableUri
+			jsonData["referredEntities"]["-100"]["attributes"]["name"] = tableName
+			if schemaName == "-":
+				jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = None
+			else:
+				jsonData["referredEntities"]["-100"]["attributes"]["name_path"] = schemaName
+			jsonData["referredEntities"]["-100"]["attributes"]["contact_info"] = contactInfo
+			jsonData["referredEntities"]["-100"]["attributes"]["owner"] = owner
+			jsonData["referredEntities"]["-100"]["attributes"]["comment"] = tableComment
+			jsonData["referredEntities"]["-100"]["attributes"]["type"] = tableType
+			if tableCreateTime != None:
+				# Atlas only support fractions of a second with 3 digits. So we remove the last 3 as python %f gives 6 digits
+				# This datetime object from the source database needs to be in UTC. We might have to convert it
+				jsonData["referredEntities"]["-100"]["attributes"]["createTime"] = tableCreateTime.strftime('%Y-%m-%dT%H:%M:%S.%f')[0:-3] + "Z"
+			jsonData["referredEntities"]["-100"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
 	
-		if refSchemaName != "" and refTableName != "":
-			jsonData["referredEntities"]["-101"] = {}
-			jsonData["referredEntities"]["-101"]["guid"] = "-101"
-			jsonData["referredEntities"]["-101"]["typeName"] = "rdbms_table"
-			jsonData["referredEntities"]["-101"]["attributes"] = {}
-			jsonData["referredEntities"]["-101"]["attributes"]["qualifiedName"] = refTableUri
-			jsonData["referredEntities"]["-101"]["attributes"]["name"] = refTableName
-			jsonData["referredEntities"]["-101"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
+			if refSchemaName != "" and refTableName != "":
+				jsonData["referredEntities"]["-101"] = {}
+				jsonData["referredEntities"]["-101"]["guid"] = "-101"
+				jsonData["referredEntities"]["-101"]["typeName"] = "rdbms_table"
+				jsonData["referredEntities"]["-101"]["attributes"] = {}
+				jsonData["referredEntities"]["-101"]["attributes"]["qualifiedName"] = refTableUri
+				jsonData["referredEntities"]["-101"]["attributes"]["name"] = refTableName
+				jsonData["referredEntities"]["-101"]["attributes"]["db"] = { "guid": "-300", "typeName": "rdbms_db" }
 
-		if hdfsPath != "":
-			hdfsAddress = self.getConfigValue(key = "hdfs_address")
-			clusterName = self.getConfigValue(key = "cluster_name")
-			hdfsUri = "%s%s@%s"%(hdfsAddress, hdfsPath, clusterName)
-			hdfsFullPath = "%s%s"%(hdfsAddress, hdfsPath)
+			if hdfsPath != "":
+				hdfsAddress = self.getConfigValue(key = "hdfs_address")
+				clusterName = self.getConfigValue(key = "cluster_name")
+				hdfsUri = "%s%s@%s"%(hdfsAddress, hdfsPath, clusterName)
+				hdfsFullPath = "%s%s"%(hdfsAddress, hdfsPath)
 
-			jsonData["referredEntities"]["-200"] = {}
-			jsonData["referredEntities"]["-200"]["guid"] = "-200"
-			jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
-			jsonData["referredEntities"]["-200"]["attributes"] = {}
-			jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
-			jsonData["referredEntities"]["-200"]["attributes"]["name"] = hdfsPath
-			jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
+				jsonData["referredEntities"]["-200"] = {}
+				jsonData["referredEntities"]["-200"]["guid"] = "-200"
+				jsonData["referredEntities"]["-200"]["typeName"] = "hdfs_path"
+				jsonData["referredEntities"]["-200"]["attributes"] = {}
+				jsonData["referredEntities"]["-200"]["attributes"]["qualifiedName"] = hdfsUri
+				jsonData["referredEntities"]["-200"]["attributes"]["name"] = hdfsPath
+				jsonData["referredEntities"]["-200"]["attributes"]["path"] = hdfsFullPath
 
-		jsonData["referredEntities"]["-300"] = {}
-		jsonData["referredEntities"]["-300"]["guid"] = "-300"
-		jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
-		jsonData["referredEntities"]["-300"]["attributes"] = {}
-		jsonData["referredEntities"]["-300"]["attributes"]["qualifiedName"] = dbUri
-		jsonData["referredEntities"]["-300"]["attributes"]["name"] = dbName
-		jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = contactInfo
-		jsonData["referredEntities"]["-300"]["attributes"]["owner"] = owner
-		jsonData["referredEntities"]["-300"]["attributes"]["description"] = description
-		jsonData["referredEntities"]["-300"]["attributes"]["prodOrOther"] = environmentType
-		jsonData["referredEntities"]["-300"]["attributes"]["instance"] = { "guid": "-400", "typeName": "rdbms_instance" }
+			jsonData["referredEntities"]["-300"] = {}
+			jsonData["referredEntities"]["-300"]["guid"] = "-300"
+			jsonData["referredEntities"]["-300"]["typeName"] = "rdbms_db"
+			jsonData["referredEntities"]["-300"]["attributes"] = {}
+			jsonData["referredEntities"]["-300"]["attributes"]["qualifiedName"] = dbUri
+			jsonData["referredEntities"]["-300"]["attributes"]["name"] = dbName
+			jsonData["referredEntities"]["-300"]["attributes"]["contact_info"] = contactInfo
+			jsonData["referredEntities"]["-300"]["attributes"]["owner"] = owner
+			jsonData["referredEntities"]["-300"]["attributes"]["description"] = description
+			jsonData["referredEntities"]["-300"]["attributes"]["prodOrOther"] = environmentType
+			jsonData["referredEntities"]["-300"]["attributes"]["instance"] = { "guid": "-400", "typeName": "rdbms_instance" }
+
 		jsonData["referredEntities"]["-400"] = {}
 		jsonData["referredEntities"]["-400"]["guid"] = "-400"
 		jsonData["referredEntities"]["-400"]["typeName"] = "rdbms_instance"
@@ -664,7 +663,7 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getAtlasReferredEntities() - Finished")
 
-	def checkAtlasSchema(self, logger=""):
+	def OLDcheckAtlasSchema(self, logger=""):
 		""" Checks if the Atlas schema for DBImport is available and at the correct version. Returns True or False """
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.checkAtlasSchema()")
@@ -712,22 +711,22 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.checkAtlasSchema() - Finished")
 
-	def atlasGetData(self, URL, logger=""):
+	def OLDatlasGetData(self, URL, logger=""):
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.atlasGetData()")
 		return self.atlasCommunicate(URL=URL, requestType="GET", logger=logger)
 
-	def atlasPostData(self, URL, data, logger=""):
+	def OLDatlasPostData(self, URL, data, logger=""):
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.atlasPostData()")
 		return self.atlasCommunicate(URL=URL, requestType="POST", data=data, logger=logger)
 
-	def atlasDeleteData(self, URL, logger=""):
+	def OLDatlasDeleteData(self, URL, logger=""):
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.atlasDeleteData()")
 		return self.atlasCommunicate(URL=URL, requestType="DELETE", logger=logger)
 
-	def atlasCommunicate(self, URL, requestType, data=None, logger=""):
+	def OLDatlasCommunicate(self, URL, requestType, data=None, logger=""):
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.atlasCommunicate()")
 
@@ -871,9 +870,10 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.remove_temporary_files() - Finished")
 
-	def checkTimeWindow(self, connection_alias):
+	def checkTimeWindow(self, connection_alias, atlasDiscoveryMode=False):
 		logging.debug("Executing common_config.checkTimeWindow()")
-		logging.info("Checking if we are allowed to use this jdbc connection at this time")
+		if atlasDiscoveryMode == False:
+			logging.info("Checking if we are allowed to use this jdbc connection at this time")
 
 		self.timeZone = self.getConfigValue("timezone")
 
@@ -914,21 +914,27 @@ class config(object, metaclass=Singleton):
 		logging.debug("timeWindowStop: %s"%(timeWindowStop))
 
 		if timeWindowStart == None and timeWindowStop == None:
-			logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
-			return
+			if atlasDiscoveryMode == False:
+				logging.info("SUCCESSFUL: This import is allowed to run at any time during the day.")
+			return True
 		elif timeWindowStart == None or timeWindowStop == None: 
-			logging.error("Atleast one of the TimeWindow settings are NULL in the database. Only way to disable the Time Window")
-			logging.error("function is to put NULL into both columns. Otherwise the configuration is marked as invalid and will exit")
-			logging.error("as it's not running inside a correct Time Window.")
-			logging.error("Invalid TimeWindow configuration")
-			self.remove_temporary_files()
-			sys.exit(1)
+			if atlasDiscoveryMode == False:
+				logging.error("Atleast one of the TimeWindow settings are NULL in the database. Only way to disable the Time Window")
+				logging.error("function is to put NULL into both columns. Otherwise the configuration is marked as invalid and will exit")
+				logging.error("as it's not running inside a correct Time Window.")
+				logging.error("Invalid TimeWindow configuration")
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				return False
 		elif timeWindowStart == timeWindowStop:
-			logging.error("The value in timewindow_start column is the same as the value in timewindow_stop.")
-			logging.error("Invalid TimeWindow configuration")
-			self.remove_temporary_files()
-			sys.exit(1)
-#		elif timeWindowStart < timeWindowStop:
+			if atlasDiscoveryMode == False:
+				logging.error("The value in timewindow_start column is the same as the value in timewindow_stop.")
+				logging.error("Invalid TimeWindow configuration")
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				return False
 		else:
 			allowedTime = False
 
@@ -946,38 +952,25 @@ class config(object, metaclass=Singleton):
 				if currentTime > timeWindowStart and currentTime < timeWindowStop:
 					allowedTime = True
 
-#			if currentTime < timeWindowStart or currentTime > timeWindowStop:
 			if allowedTime == False:
-				logging.error("We are not allowed to run this import outside the configured Time Window")
-				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
-				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
-				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
-				self.remove_temporary_files()
-				sys.exit(1)
+				if atlasDiscoveryMode == False:
+					logging.error("We are not allowed to run this import outside the configured Time Window")
+					logging.info("    Current time:     %s"%(currentTime.to_time_string()))
+					logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
+					logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
+					self.remove_temporary_files()
+					sys.exit(1)
+				else:
+					return False
 			else:		
-				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
-#		elif timeWindowStart > timeWindowStop:
-##			allowedTime = False
-#			print("SHOULD NEVER HAPPEN! Report to developer it it does")
-#
-#			if currentTime < timeWindowStart and currentTime > timeWindowStop:
-#			if allowedTime = False:
-#				logging.error("We are not allowed to run this import outside the configured Time Window")
-#				logging.info("    Current time:     %s"%(currentTime.to_time_string()))
-#				logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
-#				logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
-#				self.remove_temporary_files()
-#				sys.exit(1)
-#			else:		
-#				logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
- 
-#		self.remove_temporary_files()
-#		sys.exit(1)
+				if atlasDiscoveryMode == False:
+					logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
 
 		logging.debug("    currentTime = %s"%(currentTime.to_time_string()))
 		logging.debug("    timeWindowStart = %s"%(timeWindowStart.to_time_string()))
 		logging.debug("    timeWindowStop = %s"%(timeWindowStop.to_time_string()))
 		logging.debug("Executing common_config.checkTimeWindow() - Finished")
+		return True
 
 	def checkConnectionAlias(self, connection_alias):
 		""" Will check if the connection alias exists in the jdbc_connection table """
@@ -1091,6 +1084,16 @@ class config(object, metaclass=Singleton):
 		exit_after_function = False
 		self.dbAlias = connection_alias
 		self.atlasJdbcSourceSupport = False
+
+		self.db_mssql = False
+		self.db_oracle = False
+		self.db_mysql = False
+		self.db_postgresql = False
+		self.db_progress = False
+		self.db_db2udb = False
+		self.db_db2as400 = False
+		self.db_mongodb = False
+		self.db_cachedb = False
 
 		# Fetch data from jdbc_connection table
 		query = "select jdbc_url, credentials, private_key_path, public_key_path, environment from jdbc_connections where dbalias = %s "
@@ -1512,7 +1515,7 @@ class config(object, metaclass=Singleton):
 
 		self.JDBCCursor = None
 		
-	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger=""):
+	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger="", printError=True):
 		log = logging.getLogger(logger)
 
 		if self.db_mongodb == True:
@@ -1526,7 +1529,8 @@ class config(object, metaclass=Singleton):
 
 			self.jdbc_classpath_for_python = []
 			for row in self.mysql_cursor.fetchall():
-				self.jdbc_classpath_for_python.append(row[0])
+				if row[0] != "add path to JAR file":
+					self.jdbc_classpath_for_python.append(row[0])
 
 		if self.JDBCCursor == None:
 			log.debug("Connecting to database over JDBC")
@@ -1541,8 +1545,9 @@ class config(object, metaclass=Singleton):
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
 			except jpype.JavaException as exception:
-				log.error("Connection to database over JDBC failed with the following error:")
-				log.error(exception.message())
+				if printError == True:
+					log.error("Connection to database over JDBC failed with the following error:")
+					log.error(exception.message())
 				if exitIfFailure == True:
 					self.remove_temporary_files()
 					sys.exit(1)
@@ -1990,9 +1995,17 @@ class config(object, metaclass=Singleton):
 		return result_df
 
 	def getJDBCtablesAndViews(self, schemaFilter=None, tableFilter=None):
-		logging.debug("Executing common_config.getJDBCtablesAndViews()")
+#		logging.debug("Executing common_config.getJDBCtablesAndViews()")
 		self.connectToJDBC()
 
+		result_df = self.sourceSchema.getJDBCtablesAndViews(
+			JDBCCursor=self.JDBCCursor,
+			serverType=self.jdbc_servertype,
+			database=self.jdbc_database,
+			schemaFilter=schemaFilter,
+			tableFilter=tableFilter)
+
+		"""
 		if schemaFilter != None:
 			schemaFilter = schemaFilter.replace('*', '%')
 
@@ -2087,18 +2100,23 @@ class config(object, metaclass=Singleton):
 		result_df = pd.DataFrame(self.JDBCCursor.fetchall())
 		if len(result_df) > 0:
 			result_df.columns = ['schema', 'table']
+		else:
+			result_df = pd.DataFrame(columns=['schema', 'table'])
+		"""
 
 		logging.debug("Executing common_config.getJDBCtablesAndViews() - Finished")
 		return result_df
 
 
-	def updateAtlasWithRDBMSdata(self, schemaName, tableName, printInfo=True, logger=""):
+	def OLDupdateAtlasWithRDBMSdata(self, schemaName, tableName, printInfo=True, logger="", errorOnWarning=False):
 		""" This will update Atlas metadata with the information about the remote table schema """
 		log = logging.getLogger(logger)
 		log.debug("Executing common_config.updateAtlasWithSourceSchema()")
 
 		if self.atlasEnabled == False:
 			return False
+
+		warningsFound = False
 
 		# Fetch the remote system schema if we havent before
 		if self.source_columns_df.empty == True:
@@ -2111,7 +2129,6 @@ class config(object, metaclass=Singleton):
 			log.warning("No columns could be found on the source system.")
 			return False
 		
-
 		if printInfo == True:
 			log.info("Updating Atlas with remote database schema")
 
@@ -2252,6 +2269,7 @@ class config(object, metaclass=Singleton):
 						log.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
 						log.warning("%s"%(response["data"]))
 						self.atlasEnabled == False
+						warningsFound = True
 
 		# Code to add Foreign Keys to table. This is done in a new JSON as we reference the table we just created. One JSON per FK
 
@@ -2369,181 +2387,54 @@ class config(object, metaclass=Singleton):
 						log.warning("Request from Atlas when creating Foreign Keys was %s"%(statusCode))
 						log.warning("%s"%(response["data"]))
 						self.atlasEnabled == False
+						warningsFound = True
 					else:
 						log.debug("Creating/updating Atlas ForeignKey against %s.%s"%(refSchemaName, refTableName))
 				else:
 					log.warning("Foreign Key cant be created as refered table(%s.%s) does not exists in Atlas"%(refSchemaName, refTableName)) 
+					warningsFound = True
 
-		return True
+		if errorOnWarning == True and warningsFound == True:
+			return False
+		else:
+			return True
 		log.debug("Executing common_config.updateAtlasWithSourceSchema() - Finished")
 
-	def discoverAtlasRdbms(self, dbAlias, logger=""):
+	def getAtlasDiscoverConfigObject(self, dbAlias=None, logger=""):
 		""" Discover all RDBMS objects on the 'dbAlias' and populate Atlas with them """
 		log = logging.getLogger(logger)
-		log.debug("Executing common_config.discoverAtlasRdbms()")
+		log.debug("Executing common_config.getAtlasDiscoverConfigObject()")
 
-		# Get the correct connection information for the dbAlias
+		if dbAlias == None:
+			dbAlias = self.dbAlias
+
 		self.lookupConnectionAlias(dbAlias)
+		jdbcConnectionData = self.getAtlasJdbcConnectionData(dbAlias)
 
-		if self.checkAtlasSchema(logger=logger) == False:
-			return False
+		configObject = {}
+		configObject["dbAlias"] = dbAlias
+		configObject["contactInfo"] = jdbcConnectionData.get('contact_info')
+		configObject["description"] = jdbcConnectionData.get('description')
+		configObject["owner"] = jdbcConnectionData.get('owner')
+		configObject["atlasIncludeFilter"] = jdbcConnectionData.get('atlas_include_filter')
+		configObject["atlasExcludeFilter"] = jdbcConnectionData.get('atlas_exclude_filter')
+		configObject["jdbc_hostname"] = self.jdbc_hostname
+		configObject["jdbc_port"] = self.jdbc_port
+		configObject["jdbc_servertype"] = self.jdbc_servertype
+		configObject["jdbc_database"] = self.jdbc_database
+		configObject["jdbc_oracle_sid"] = self.jdbc_oracle_sid
+		configObject["jdbc_oracle_servicename"] = self.jdbc_oracle_servicename
+		configObject["jdbc_username"] = self.jdbc_username
+		configObject["jdbc_password"] = self.jdbc_password
+		configObject["jdbc_driver"] = self.jdbc_driver
+		configObject["jdbc_url"] = self.jdbc_url
+		configObject["jdbc_classpath_for_python"] = self.jdbc_classpath_for_python
+		configObject["jdbc_environment"] = self.jdbc_environment
+		configObject["hdfs_address"] = self.getConfigValue(key = "hdfs_address")
+		configObject["cluster_name"] = self.getConfigValue(key = "cluster_name")
 
-		jdbcConnectionDict = self.getAtlasJdbcConnectionData(dbAlias = dbAlias)
-		self.atlasExcludeFilter = jdbcConnectionDict["atlas_exclude_filter"]
-		self.atlasIncludeFilter = jdbcConnectionDict["atlas_include_filter"]
-
-		if self.atlasIncludeFilter == None or self.atlasIncludeFilter == "":
-			self.atlasIncludeFilter = "*.*"
-
-		if self.atlasExcludeFilter == None:
-			self.atlasExcludeFilter = ""
-
-		tablesAndViewsDF = self.getJDBCtablesAndViews()
-
-		# Add all tables we can find to Atlas
-		for index, row in tablesAndViewsDF.iterrows():
-			updateAtlasWithTable = False
-			schema = row['schema'].lower()
-			table = row['table'].lower()
-
-			# Filter the schema.table so that only the included tables gets processed 
-			for include in self.atlasIncludeFilter.split(";"):
-				try:
-					includeSchema = include.split(".")[0].replace('*', '.*').lower()
-					includeTable = include.split(".")[1].replace('*', '.*').lower()
-					if re.search(includeSchema, schema) and re.search(includeTable, table):
-						updateAtlasWithTable = True
-						break
-				except IndexError: 
-					pass
-
-			# Filter the schema.table so we remove the excluded items
-			for exclude in self.atlasExcludeFilter.split(";"):
-				try:
-					excludeSchema = exclude.split(".")[0].replace('*', '.*').lower()
-					excludeTable = exclude.split(".")[1].replace('*', '.*').lower()
-					if re.search(excludeSchema, schema) and re.search(excludeTable, table):
-						updateAtlasWithTable = False
-						break
-				except IndexError: 
-					pass
-
-			if updateAtlasWithTable == False:
-				continue
-
-			# Clear the self.source_columns_df to force it to reload in the updateAtlasWithRDBMSdata function
-			self.source_columns_df = pd.DataFrame()
-			self.atlasEnabled = True		# This can be set to False in self.updateAtlasWithRDBMSdata depending on what it finds
-
-			schema = row['schema'].strip()
-			table = row['table'].strip()
-
-			if row['schema'] != "-":
-#				log.info("Creating/updating Atlas metadata for %s.%s for dbalias %s"%(row['schema'], row['table'], dbAlias))
-				log.info("Creating/updating Atlas table schema for %s.%s on dbalias %s"%(schema, table, dbAlias))
-			else:
-#				log.info("Creating/updating Atlas metadata for %s for dbalias %s"%(row['table'], dbAlias))
-				log.info("Creating/updating Atlas table schema for %s on dbalias %s"%(table, dbAlias))
-
-			result = self.updateAtlasWithRDBMSdata(schemaName = schema, tableName = table, printInfo = False, logger=logger)
-			if result == False:
-				continue
-#				return False
-
-		# Remove tables that exists in Atlas that we didnt find
-
-		# Get the unique names for the rdbms_db. No need for schema or table as we are only intressted in the dbUri result
-		returnDict = self.getAtlasRdbmsNames(schemaName = "", tableName = "")
-		dbUri = returnDict["dbUri"]
-
-		# query the rdbms_db object in Atlas
-		atlasRestURL = "%s/rdbms_db?minExtInfo=true&attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, dbUri)
-		response = self.atlasGetData(URL = atlasRestURL)
-		if response == None:
-			# If there is an error in self.atlasGetData(), we need to stop here as the response is None
-			return False
-
-		statusCode = response["statusCode"]
-		responseData = json.loads(response["data"])
-
-		if statusCode != 200:
-			log.warning("Request from Atlas when updating source schema was %s."%(statusCode))
-			log.warning("%s"%(response["data"]))
-			self.atlasEnabled == False
-			return False
-
-		# Fetch all tables defined on the rdbms_db object
-		tablesFoundInDBList = []
-		for tables in responseData["entity"]["attributes"]["tables"]:
-			guid = tables["guid"]
-			qualifiedName = responseData["referredEntities"][guid]["attributes"]["qualifiedName"]
-
-			if responseData["referredEntities"][guid]["status"] != "ACTIVE":
-				continue
-
-			if self.db_mysql == True:
-				table = qualifiedName.split('@')[0].split('.')[-1]
-				schema = "-"
-			else:
-				table = qualifiedName.split('@')[0].split('.')[-1]
-				schema = qualifiedName.split('@')[0].split('.')[-2]
-
-			processTableForDelete = False
-
-			# Filter the schema.table so that only the included tables gets processed 
-			for include in self.atlasIncludeFilter.split(";"):
-				try:
-					includeSchema = include.split(".")[0].replace('*', '.*')
-					includeTable = include.split(".")[1].replace('*', '.*')
-					if re.search(includeSchema, schema) and re.search(includeTable, table):
-						processTableForDelete = True
-						break
-				except IndexError: 
-					pass
-
-			# Filter the schema.table so we remove the excluded items
-			for exclude in self.atlasExcludeFilter.split(";"):
-				try:
-					excludeSchema = exclude.split(".")[0].replace('*', '.*')
-					excludeTable = exclude.split(".")[1].replace('*', '.*')
-					if re.search(excludeSchema, schema) and re.search(excludeTable, table):
-						processTableForDelete = False
-						break
-				except IndexError: 
-					pass
-
-			if processTableForDelete == False:
-				continue
-
-			tablesFoundInDBDict = {}
-			tablesFoundInDBDict["schema"] = schema
-			tablesFoundInDBDict["table"] = table
-			tablesFoundInDBDict["qualifiedName"] = qualifiedName
-			tablesFoundInDBList.append(tablesFoundInDBDict)
-
-		tablesFoundInDB = pd.DataFrame(tablesFoundInDBList)
-		if tablesFoundInDB.empty:
-			tablesFoundInDB = pd.DataFrame(columns=['schema', 'table'])
-
-		mergeDF = pd.merge(tablesAndViewsDF, tablesFoundInDB, on=None, how='outer', indicator='Exist')
-		for index, row in mergeDF.loc[mergeDF['Exist'] == 'right_only'].iterrows():
-			if row['schema'] != "-":
-				log.info("Deleting Atlas table for %s.%s on dbalias %s"%(row['schema'], row['table'], dbAlias))
-			else:
-				log.info("Deleting Atlas table for %s on dbalias %s"%(row['table'], dbAlias))
-
-			atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.atlasRestUniqueAttributeType, row['qualifiedName'])
-			response = self.atlasDeleteData(URL = atlasRestURL)
-			if response == None:
-				return False
-
-			statusCode = response["statusCode"]
-			if statusCode != 200:
-				log.warning("Request from Atlas when deleting table was %s."%(statusCode))
-				log.warning(response["data"])
-
-		log.debug("Executing common_config.discoverAtlasRdbms() - Finished")
-		return True
+		log.debug("Executing common_config.getAtlasDiscoverConfigObject() - Finished")
+		return configObject
 
 	def getAnonymizationSeed(self):
 		logging.debug("Executing common_config.getAnonymizationSeed()")

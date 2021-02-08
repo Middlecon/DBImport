@@ -422,10 +422,13 @@ class initialize(object):
 		previousConnectionAlias = ""
 
 		for index, row in tables.iterrows():
-			if row['dbalias'] != previousConnectionAlias:
-				# We save the previousConnectionAlias just to avoid making lookups for every dbalias even if they are all the same
-				self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
-				previousConnectionAlias = row['dbalias']
+			try:
+				if row['dbalias'] != previousConnectionAlias:
+					# We save the previousConnectionAlias just to avoid making lookups for every dbalias even if they are all the same
+					self.common_config.lookupConnectionAlias(connection_alias=row['dbalias'], decryptCredentials=False)
+					previousConnectionAlias = row['dbalias']
+			except:
+				continue
 		
 #			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
 			importPhasePool = self.getAirflowHostPoolName()

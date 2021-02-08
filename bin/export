@@ -201,7 +201,6 @@ def main(argv):
 				if stage == 108: newStage = 106
 				if stage == 109: newStage = 100
 				if stage == 110: newStage = 100
-#				if stage == 111: newStage = 100
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous export failed and this execution |")
@@ -271,23 +270,18 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "validate":
 				if export_operation.runStage(111) == True:
 					export_operation.connectToHive()
-#					export_operation.getHiveTableRowCount()
-#					export_operation.getTargetTableRowCount()
-#					export_operation.validateRowCount()
 					export_operation.getHiveTableValidationData()
 					export_operation.getTargetTableValidationData()
 					export_operation.validateExport()
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
 				if export_operation.runStage(950) == True:
-					export_operation.updateAtlasWithTargetSchema()
-					export_operation.updateAtlasWithExportLineage()
+					export_operation.updateAtlasWithExportData()
 
 			if runOnlyFunction == None:
 				export_operation.setStage(999)
 
 			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
-#				export_operation.convertStageStatisticsToJSON()
 				export_operation.saveStageStatistics()
 
 
@@ -378,9 +372,6 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "validate":
 				if export_operation.runStage(161) == True:
 					export_operation.connectToHive()
-#					export_operation.getHiveTableRowCount()
-#					export_operation.getTargetTableRowCount()
-#					export_operation.validateRowCount()
 					export_operation.getHiveTableValidationData()
 					export_operation.getTargetTableValidationData()
 					export_operation.validateExport()
@@ -391,14 +382,12 @@ def main(argv):
 
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas":
 				if export_operation.runStage(950) == True:
-					export_operation.updateAtlasWithTargetSchema()
-					export_operation.updateAtlasWithExportLineage()
+					export_operation.updateAtlasWithExportData()
 
 			if runOnlyFunction == None:
 				export_operation.setStage(999)
 
 			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
-#				export_operation.convertStageStatisticsToJSON()
 				export_operation.saveStageStatistics()
 
 		if export_operation.getStage() == 999:

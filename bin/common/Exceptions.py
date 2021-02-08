@@ -23,3 +23,7 @@ class undevelopedFeature(Exception): pass
 class SQLerror(Exception): pass
 class daemonExit(Exception): pass
 class validationError(Exception): pass
+class foreignKeyError(Exception): pass
+class atlasError(Exception): pass
+class connectionError(Exception): pass
+class schemaError(Exception): pass

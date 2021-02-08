@@ -28,6 +28,7 @@ from DBImportOperation import common_operations
 from DBImportOperation import import_operations
 from DBImportOperation import export_operations
 from DBImportOperation import copy_operations
+from DBImportOperation import atlas_operations
 from Schedule import Airflow
 
 def	printHeader():
@@ -69,6 +70,7 @@ def printMainHelp():
 	print ("  --addExportTable                  Add export definitions for tables in Hive")
 	print ("  --checkAirflowExecution           Checks if it's allowed to start Airflow DAG's or not")
 	print ("  --airflowGenerate                 Generate Airflow DAG")
+	print ("  --discoverAtlasRdbms              Discover all object on a Database Connection and update Atlas with the information")
 	print ("  --runJDBCQuery                    Run a SQL command against a JDBC connection")
 	print ("  --runHiveQuery                    Run a SQL command against Hive")
 	print ("  --runHiveScript                   Run a SQL script against Hive")
@@ -213,6 +215,15 @@ def print_addExportTable_help():
 def print_testConnection_help():
 	printHeader()
 	print ("Connect to the [Connection] and verifies that DBImport can connect successfully")
+	print ("")
+	print ("Required parameters:")
+	print ("  -a [Connection], --dbAlias=[Connection]  The alias of the JDBC connection")
+	print ("")
+	sys.exit(1)
+
+def print_discoverAtlasRdbms_help():
+	printHeader()
+	print ("Discover all object on a Database Connection and update Atlas with the information.")
 	print ("")
 	print ("Required parameters:")
 	print ("  -a [Connection], --dbAlias=[Connection]  The alias of the JDBC connection")
@@ -443,7 +454,7 @@ def main(argv):
 		print_airflow_help()
 
 	if operation == "discoverAtlasRdbms" and (connectionAlias == None or displayHelp == True):
-		print_runJDBCQuery_help()
+		print_discoverAtlasRdbms_help()
 
 	if quietMode == False:
 		printHeader()
@@ -480,10 +491,18 @@ def main(argv):
 	
 		if operation == "discoverAtlasRdbms":
 			commonConfig = common_config.config()
+			atlasOperation = atlas_operations.atlasOperation()
 			if commonConfig.checkConnectionAlias(connectionAlias) == False:
 				logging.error("The specified database connection does not exist.")
 				sys.exit(1)
-			commonConfig.discoverAtlasRdbms(connectionAlias)
+
+			# Check if the schema is correct
+			if atlasOperation.checkAtlasSchema() == False:
+				sys.exit(1)
+
+			configObject = commonConfig.getAtlasDiscoverConfigObject(connectionAlias)
+			atlasOperation.setConfiguration(configObject)
+			atlasOperation.discoverAtlasRdbms()
 
 		if operation == "runJDBCQuery":
 			commonConfig = common_config.config()

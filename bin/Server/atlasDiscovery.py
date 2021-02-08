@@ -29,9 +29,10 @@ import shlex
 import pandas as pd
 import Crypto
 import binascii
+import jaydebeapi
+import jpype
 from queue import Queue
 from queue import Empty
-#import Queue
 import threading
 from daemons.prefab import run
 from ConfigReader import configuration
@@ -40,6 +41,8 @@ from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import configSchema
 from DBImportConfig import common_config
+from DBImportOperation import atlas_operations
+# from sourceSchemaReader import schemaReader
 import sqlalchemy as sa
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,6 +50,70 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func
 from sqlalchemy.orm import aliased, sessionmaker, Query
+
+class atlasCrawler(threading.Thread):
+	def __init__(self, name, atlasCrawlerProcessQueue, atlasCrawlerResultQueue, threadStopEvent, loggerName, mutex):
+		threading.Thread.__init__(self)
+		self.name = name
+		self.jdbcConnectionMutex = mutex
+		self.atlasCrawlerProcessQueue = atlasCrawlerProcessQueue
+		self.atlasCrawlerResultQueue = atlasCrawlerResultQueue
+		self.threadStopEvent = threadStopEvent
+		self.loggerName = loggerName
+		self.atlasOperation = atlas_operations.atlasOperation(loggerName) 
+# 		self.sourceSchema = schemaReader.source()
+# 		self.JDBCConn = None
+# 		self.JDBCCursor = None
+
+	def run(self):
+		log = logging.getLogger(self.loggerName)
+		log.info("Atlas crawler thread %s started"%(self.name))
+		self.atlasOperation.testVariable = self.name
+		self.atlasCrawlerRequest = None
+
+		if self.atlasOperation.checkAtlasSchema(logger=self.loggerName) == False:
+			return False
+
+		while not self.threadStopEvent.isSet():
+			try:
+				self.atlasCrawlerRequest = self.atlasCrawlerProcessQueue.get(block=True, timeout=None)
+			except Empty: 
+				self.atlasCrawlerRequest = None
+
+			if self.atlasCrawlerRequest is None:
+				time.sleep(1)
+				continue
+
+			response = {}
+			response["dbAlias"] = self.atlasCrawlerRequest.get('dbAlias')
+
+			try:
+				self.atlasOperation.setConfiguration(self.atlasCrawlerRequest, self.jdbcConnectionMutex)
+				atlasOperationResult = self.atlasOperation.discoverAtlasRdbms()
+			except invalidConfiguration:
+				response["result"] = False
+				response["blacklist"] = True
+			except atlasError:
+				response["result"] = False
+				response["blacklist"] = False
+			except foreignKeyError:
+				response["result"] = False
+				response["blacklist"] = False
+			except connectionError:
+				response["result"] = False
+				response["blacklist"] = True
+			except:
+				log.error(sys.exc_info()[0])
+				response["result"] = False
+				response["blacklist"] = True
+			else:
+				response["result"] = True
+				response["blacklist"] = False
+
+			self.atlasCrawlerResultQueue.put(response)
+
+		log.info("Atlas crawler thread %s stopped"%(self.name))
+
 
 class atlasDiscovery(threading.Thread):
 	def __init__(self, threadStopEvent):
@@ -56,15 +123,20 @@ class atlasDiscovery(threading.Thread):
 	def run(self):
 		logger = "atlasDiscovery"
 		log = logging.getLogger(logger)
-#		log.info("atlasDiscovery started")
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.configDBSession = None
 		self.configDBEngine = None
 		self.debugLogLevel = False
+		atlasEnabled = True
+#		self.atlasOperation = atlas_operations.atlasOperation(logger) 
 
 		if logging.root.level == 10:        # DEBUG
 			self.debugLogLevel = True
+
+		self.atlasCrawlerProcessQueue = Queue()
+		self.atlasCrawlerResultQueue = Queue()
+		self.jdbcConnectionMutex = threading.Lock()
 
 		# Fetch configuration about MySQL database and how to connect to it
 		self.configHostname = configuration.get("Database", "mysql_hostname")
@@ -73,147 +145,237 @@ class atlasDiscovery(threading.Thread):
 		self.configUsername = configuration.get("Database", "mysql_username")
 		self.configPassword = configuration.get("Database", "mysql_password")
 
+		atlasCrawlerObjects = []
+		atlasCrawlerThreads = int(configuration.get("Server", "atlas_threads"))
+		if atlasCrawlerThreads == 0:
+			log.info("Atlas discovery disabled as the number of threads is set to 0")
+			atlasEnabled = False
+		else:
+			log.info("Starting %s Atlas crawler threads"%(atlasCrawlerThreads))
+
+		for threadID in range(0, atlasCrawlerThreads):
+#			if distCP_separate_logs == False:
+			atlasCrawlerLogName = "atlasCrawler-thread%s"%(str(threadID))
+#			else:
+#				distCPlogName = "distCP-thread%s"%(str(threadID))
+
+			thread = atlasCrawler(	name = str(threadID),
+									atlasCrawlerProcessQueue = self.atlasCrawlerProcessQueue,
+									atlasCrawlerResultQueue = self.atlasCrawlerResultQueue,
+									threadStopEvent = self.threadStopEvent,
+									loggerName = atlasCrawlerLogName,
+									mutex = self.jdbcConnectionMutex)
+			thread.daemon = True
+			thread.start()
+			atlasCrawlerObjects.append(thread)
+
 		self.common_config = common_config.config()
-
 		jdbcConnections = aliased(configSchema.jdbcConnections)
-
-		failureLog = {}
+		self.failureLog = {}
+		self.connectionsSentToCrawlers = []
 
 		# The interval between the scans. This is in hours
 		atlasDiscoveryInterval = self.common_config.getConfigValue(key = "atlas_discovery_interval")
 
-		atlasEnabled = self.common_config.checkAtlasSchema(logger=logger)
+#		if atlasEnabled == True:
+#			atlasEnabled = self.atlasOperation.checkAtlasSchema(logger=logger)
+
 		if atlasEnabled == True:
 			log.info("atlasDiscovery started")
 			log.info("Atlas discovery interval is set to %s hours"%(atlasDiscoveryInterval))
 
 		while not self.threadStopEvent.isSet() and atlasEnabled == True:
 
-			try:
-				session = self.getDBImportSession()
-				atlasDiscoveryCheckTime = datetime.utcnow() - timedelta(hours=atlasDiscoveryInterval)
+			# ****************************************************************
+			# Read data from jdbc_connection and put in queue for processing
+			# ****************************************************************
 
-				jdbcConnectionsDf = pd.DataFrame(session.query(
-					jdbcConnections.dbalias,
-					jdbcConnections.timewindow_start,
-					jdbcConnections.timewindow_stop,
-					jdbcConnections.atlas_last_discovery,
-					jdbcConnections.atlas_discovery
-					)
-					.select_from(jdbcConnections)
-					.filter(jdbcConnections.atlas_discovery == 1)
-					.filter((jdbcConnections.atlas_last_discovery < atlasDiscoveryCheckTime) | (jdbcConnections.atlas_last_discovery == None))
-					.order_by(jdbcConnections.atlas_last_discovery)
-					.all())
-				session.close()
+			if self.atlasCrawlerProcessQueue.qsize() < atlasCrawlerThreads:
+				# Only read the database if there isn't enough items in the queue to the crawlers to processes. This will save 
+				# a large number of sql requests if the queue is full
+				try:
+					# Read a list of connection aliases that we are going to process in this iteration
+					session = self.getDBImportSession()
+					atlasDiscoveryCheckTime = datetime.utcnow() - timedelta(hours=atlasDiscoveryInterval)
 
-			except SQLAlchemyError as e:
-				log.error(str(e.__dict__['orig']))
-				session.rollback()
-				self.disconnectDBImportDB()
+					# TODO: Antagligen bara köra denna om jdbcConnectionsDf är tom från föregående körning
+					jdbcConnectionsDf = pd.DataFrame(session.query(
+						jdbcConnections.dbalias,
+						jdbcConnections.atlas_last_discovery,
+						jdbcConnections.atlas_discovery,
+						jdbcConnections.contact_info,
+						jdbcConnections.description,
+						jdbcConnections.owner,
+						jdbcConnections.atlas_include_filter,
+						jdbcConnections.atlas_exclude_filter
+						)
+						.select_from(jdbcConnections)
+						.filter(jdbcConnections.atlas_discovery == 1)
+#						.filter((jdbcConnections.atlas_last_discovery < atlasDiscoveryCheckTime) | (jdbcConnections.atlas_last_discovery == None))
+						.order_by(jdbcConnections.atlas_last_discovery)
+						.all())
+					session.close()
 
-			else:
+				except SQLAlchemyError as e:
+					log.error(str(e.__dict__['orig']))
+					session.rollback()
+					self.disconnectDBImportDB()
 
-				for index, row in jdbcConnectionsDf.iterrows():
-					dbAlias = row['dbalias']
+				else:
 
-					currentTime = str(datetime.now().strftime('%H:%M:%S'))
-					timeWindowStart = None
-					timeWindowStop = None
-					dbAliasAllowedAtThisTime = False
+					for index, row in jdbcConnectionsDf.iterrows():
+						dbAlias = row['dbalias']
 
-					if row['timewindow_start'] != None: timeWindowStart = str(row['timewindow_start'])
-					if row['timewindow_stop'] != None: timeWindowStop = str(row['timewindow_stop'])
-
-					if timeWindowStart != None and re.search('^[0-9]:', timeWindowStart): timeWindowStart = "0" + timeWindowStart
-					if timeWindowStop  != None and re.search('^[0-9]:', timeWindowStop):  timeWindowStop  = "0" + timeWindowStop
-
-					if timeWindowStart == None and timeWindowStop == None:
-						dbAliasAllowedAtThisTime = True
-
-					elif currentTime > timeWindowStart and currentTime < timeWindowStop:
-						dbAliasAllowedAtThisTime = True
-
-					# Find out if the dbAlias is blacklisted
-					if failureLog.get(dbAlias, None) != None:
-						blackListEnableTime = failureLog[dbAlias]['blackListStart'] + timedelta(hours=failureLog[dbAlias]['blackListTime'])
-
-						if datetime.now() < blackListEnableTime:
-							# This dbAlias is still blacklisted
+						# TODO: Flytta denna till thread
+						if self.common_config.checkTimeWindow(dbAlias, atlasDiscoveryMode=True) == False:
 							continue
 
-					if dbAliasAllowedAtThisTime == False:
-						# Not allowed to access this connection at this time
-						continue
+						# Find out if the dbAlias is blacklisted
+						if self.isConnectionBlacklisted(dbAlias) == True:
+							continue
 
-					self.common_config.mysql_conn.commit()
-					self.common_config.lookupConnectionAlias(dbAlias)
+						if dbAlias in self.connectionsSentToCrawlers:
+#							log.warning("This connection is already being processed. Skipping....")
+							continue
 
-					if self.common_config.atlasJdbcSourceSupport == False:
-						# This source type does not support Atlas discovery
-						continue
+						altasOperationFailed = False
+						printBlackListWarning = True
 
-					# We now have a valid connection in dbAlias that we can do a discovery on
-					log.info("Starting a Atlas discovery on connection '%s'"%(dbAlias))
-
-					altasOperationFailed = False
-					if self.common_config.connectToJDBC(allJarFiles=True, exitIfFailure=False, logger=logger) == True:
-						self.common_config.atlasEnabled = True
-						response = self.common_config.discoverAtlasRdbms(dbAlias = dbAlias, logger=logger)
-						if response == False:
-							# Something went wrong when getting source system schema
+						self.common_config.mysql_conn.commit()
+						try:
+							self.common_config.lookupConnectionAlias(dbAlias)
+						except invalidConfiguration as err:
+							if self.common_config.atlasJdbcSourceSupport == True:
+								log.error("Connection '%s' have invalid configuration. Failed with '%s'"%(dbAlias, err))
+								altasOperationFailed = True
+						
+						if self.common_config.atlasJdbcSourceSupport == False:
+							# This source type does not support Atlas discovery
+							log.debug("Connection '%s' does not support Atlas discovery. Skipping..."%(dbAlias))
 							altasOperationFailed = True
-							log.warning("There was an error/warning when discovering source schema")
-						else:
-							log.info("Finished Atlas discovery on connection '%s'"%(dbAlias))
+							printBlackListWarning = False
 
-						self.common_config.disconnectFromJDBC()
+						# Start the Jpype JVM as that needs to be running before the crawlers starts to use it
+						if jpype.isJVMStarted() == False:
+							log.debug("Starting jpype JVM")
+							self.common_config.connectToJDBC(allJarFiles=True, exitIfFailure=False, logger=logger, printError=False)
+							self.common_config.disconnectFromJDBC()
 
+#						if altasOperationFailed == False and self.common_config.connectToJDBC(allJarFiles=True, exitIfFailure=False, logger=logger) == True:
 						if altasOperationFailed == False:
-							updateDict = {}
-							updateDict["atlas_last_discovery"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
+#							self.common_config.atlasEnabled = True
+							self.connectionsSentToCrawlers.append(dbAlias)
 
-							try:
-								session = self.getDBImportSession()
-								(session.query(configSchema.jdbcConnections)
-									.filter(configSchema.jdbcConnections.dbalias == dbAlias)
-									.update(updateDict))
-								session.commit()
-								session.close()
-	
-							except SQLAlchemyError as e:
-								log.error(str(e.__dict__['orig']))
-								session.rollback()
-								self.disconnectDBImportDB()
+							log.debug("Sending alias '%s' to queue"%(dbAlias))
+							atlasCrawlerRequest = {}
+							atlasCrawlerRequest["dbAlias"] = row['dbalias']
+							atlasCrawlerRequest["contactInfo"] = row['contact_info']
+							atlasCrawlerRequest["description"] = row['description']
+							atlasCrawlerRequest["owner"] = row['owner']
+							atlasCrawlerRequest["atlasIncludeFilter"] = row['atlas_include_filter']
+							atlasCrawlerRequest["atlasExcludeFilter"] = row['atlas_exclude_filter']
+							atlasCrawlerRequest["jdbc_hostname"] = self.common_config.jdbc_hostname
+							atlasCrawlerRequest["jdbc_port"] = self.common_config.jdbc_port
+							atlasCrawlerRequest["jdbc_servertype"] = self.common_config.jdbc_servertype
+							atlasCrawlerRequest["jdbc_database"] = self.common_config.jdbc_database
+							atlasCrawlerRequest["jdbc_oracle_sid"] = self.common_config.jdbc_oracle_sid
+							atlasCrawlerRequest["jdbc_oracle_servicename"] = self.common_config.jdbc_oracle_servicename
+							atlasCrawlerRequest["jdbc_username"] = self.common_config.jdbc_username
+							atlasCrawlerRequest["jdbc_password"] = self.common_config.jdbc_password
+							atlasCrawlerRequest["jdbc_driver"] = self.common_config.jdbc_driver
+							atlasCrawlerRequest["jdbc_url"] = self.common_config.jdbc_url
+							atlasCrawlerRequest["jdbc_classpath_for_python"] = self.common_config.jdbc_classpath_for_python
+							atlasCrawlerRequest["jdbc_environment"] = self.common_config.jdbc_environment
+							atlasCrawlerRequest["hdfs_address"] = None
+							atlasCrawlerRequest["cluster_name"] = None
 
-							else:
-								failureLog.pop(dbAlias, None)
-								break	
-					else:
-						altasOperationFailed = True
+							self.atlasCrawlerProcessQueue.put(atlasCrawlerRequest)
 
-					if altasOperationFailed == True:
-
-						# Connection failed. We need to blacklist this connection for some time
-						blackListData = failureLog.get(dbAlias, None)
-						if blackListData == None:
-							blackListTime = 1
 						else:
-							blackListTime = failureLog[dbAlias]['blackListTime'] * 2
+#							altasOperationFailed = True
 
-							# Max blacklist time is 24 hours
-							if blackListTime > 24: blackListTime = 24
+#						if altasOperationFailed == True:
+							self.blacklistConnection(dbAlias, printBlackListWarning)
 
-						failureLog[dbAlias] = { 'blackListTime': blackListTime, 'blackListStart': datetime.now() }
 
-						log.warning("Atlas Discovery failed on connection '%s'"%(dbAlias))
-						log.warning("This connection is now blacklisted for %s hours"%(failureLog[dbAlias]['blackListTime']))
+			# ********************************
+			# Read response from atlasCrawler
+			# ********************************
+
+			try:
+				atlasCrawlerResult = self.atlasCrawlerResultQueue.get(block=False, timeout=1)
+			except Empty: 
+				atlasCrawlerResult = None
+
+			if atlasCrawlerResult is not None:
+				dbAlias = atlasCrawlerResult.get('dbAlias')
+				result = atlasCrawlerResult.get('result')
+				blacklist = atlasCrawlerResult.get('blacklist')
+				log.debug("atlasCrawlerResultQueue: %s"%(atlasCrawlerResult))
+
+				self.connectionsSentToCrawlers.remove(dbAlias)
+
+				if result == True:
+					updateDict = {}
+					updateDict["atlas_last_discovery"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'))
+
+					try:
+						session = self.getDBImportSession()
+						(session.query(configSchema.jdbcConnections)
+							.filter(configSchema.jdbcConnections.dbalias == dbAlias)
+							.update(updateDict))
+						session.commit()
+						session.close()
+	
+					except SQLAlchemyError as e:
+						log.error(str(e.__dict__['orig']))
+						session.rollback()
+						self.disconnectDBImportDB()
+
+					else:
+						self.removeBlacklist(dbAlias)
+				else:
+					if blacklist == True:
+						log.error("Connection '%s' failed during crawling of database schema"%(dbAlias))
+						self.blacklistConnection(dbAlias)
+					else:
+						log.warning("A Warning was detected when crawling connection '%s'. It will not be marked as completed and will retry the operation"%(dbAlias))
 
 			time.sleep(1)
 
 		self.disconnectDBImportDB()
 		if atlasEnabled == True:
 			log.info("atlasDiscovery stopped")
+
+	def isConnectionBlacklisted(self, dbAlias):
+		if self.failureLog.get(dbAlias, None) != None:
+			blackListEnableTime = self.failureLog[dbAlias]['blackListStart'] + timedelta(hours=self.failureLog[dbAlias]['blackListTime'])
+
+			if datetime.now() < blackListEnableTime:
+				# This dbAlias is still blacklisted
+				return True
+
+		return False
+
+	def removeBlacklist(self, dbAlias):
+		self.failureLog.pop(dbAlias, None)
+
+	def blacklistConnection(self, dbAlias, printBlackListWarning = True):
+		log = logging.getLogger("atlasDiscovery")
+
+		blackListData = self.failureLog.get(dbAlias, None)
+		if blackListData == None:
+			blackListTime = 1
+		else:
+			blackListTime = self.failureLog[dbAlias]['blackListTime'] * 2
+
+			# Max blacklist time is 24 hours
+			if blackListTime > 24: blackListTime = 24
+
+		self.failureLog[dbAlias] = { 'blackListTime': blackListTime, 'blackListStart': datetime.now() }
+
+		if printBlackListWarning == True:
+			log.warning("Connection '%s' is blacklisted for %s hours"%(dbAlias, self.failureLog[dbAlias]['blackListTime']))
 
 	def getDBImportSession(self):
 		log = logging.getLogger("atlasDiscovery")

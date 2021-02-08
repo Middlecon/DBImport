@@ -576,7 +576,11 @@ class stage(object):
 			if import_stop == None or stage_stop > import_stop:
 				import_stop = stage_stop
 
-		import_duration = int((import_stop - import_start).total_seconds())
+		try:
+			import_duration = int((import_stop - import_start).total_seconds())
+		except TypeError:
+			logging.warning("'import_duration' cant be calculated due to invalid format of start or stop time. It will be set to 0")
+			import_duration = 0
 
 		columnsPart.append("start")
 		valuesPart.append(str(import_start))
