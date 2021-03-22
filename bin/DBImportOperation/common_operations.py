@@ -841,6 +841,10 @@ class operation(object, metaclass=Singleton):
 		if excludeDataLakeColumns == True:
 			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
 
+		# Index needs to be reset if anything was droped in the DF. 
+		# The merge will otherwise indicate that there is a difference and table will be recreated
+		result_df.reset_index(drop=True, inplace=True)
+
 		logging.debug("Executing common_operations.getHiveColumns() - Finished")
 		return result_df
 

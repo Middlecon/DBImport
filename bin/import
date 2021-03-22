@@ -533,12 +533,19 @@ def main(argv):
 				if import_operation.runStage(1211) == True: 
 					import_operation.clearValidationData()
 
+			if runOnlyFunction == None: 
+				if import_operation.runStage(1211) == True: 
+					# This will force an initial load if the SCN number is to old
+					import_operation.checkOracleFlashbackSCNnumber()
+
+#			import_operation.setStage(9000)
+
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
-					if import_operation.runStage(1212) == True:
+					if import_operation.runStage(1215) == True:
 						import_operation.runSqoopImport(False)
 				if import_operation.import_config.importTool == "spark": 
-					if import_operation.runStage(1213) == True:
+					if import_operation.runStage(1216) == True:
 						import_operation.runSparkImport(False)
 
 			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
@@ -557,6 +564,66 @@ def main(argv):
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1249)
+
+		# ******************************************
+		# * IMPORT_PHASE_MSSQL_CHANGE_TRACKING 
+		# ******************************************
+
+		if slaveTable == False and importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING and runImportPhase == True:
+			if stage >= 1250 and stage < 1299 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
+
+				newStage = 0
+				if stage == 1265: newStage = 1261 
+				if stage == 1271: newStage = 1261 
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
+
+			# Fetch the source table schema. This is mandatory for all imports
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+				if import_operation.runStage(1260) == True: 
+					import_operation.getSourceTableSchema()
+
+			if runOnlyFunction == None: 
+				if import_operation.runStage(1261) == True: 
+					import_operation.clearValidationData()
+
+			if runOnlyFunction == None: 
+				if import_operation.runStage(1262) == True: 
+					import_operation.import_config.checkMSSQLChangeTrackingMinValidVersion()
+
+			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
+#				if import_operation.import_config.importTool == "sqoop": 
+#					if import_operation.runStage(1264) == True:
+#						import_operation.runSqoopImport(False)
+				if import_operation.import_config.importTool == "spark": 
+					if import_operation.runStage(1265) == True:
+						import_operation.runSparkImport(False)
+
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+				if import_operation.import_config.validate_import == True:
+					if import_operation.runStage(1270) == True: 
+						import_operation.getJDBCTableValidationData()
+	
+#				if import_operation.runStage(1271) == True: 
+#					import_operation.validateImportTool()
+	
+			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
+				if import_operation.runStage(1295) == True: 
+					import_operation.updateAtlasWithImportData()
+	
+			if runOnlyFunction == None:
+				import_operation.setStage(1299)
 
 		# ******************************************
 		# * IMPORT_PHASE_MONGO_FULL
@@ -1822,6 +1889,279 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(9999)
+
+			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+				import_operation.convertStageStatisticsToJSON()
+				import_operation.saveStageStatistics()
+
+
+		# *******************************************************
+		# * IMPORT_PHASE_MSSQL_CHANGE_TRACKING & ETL_PHASE_MERGEONLY
+		# *******************************************************
+	
+		if importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING and etlPhase == constant.ETL_PHASE_MERGEONLY and runETLPhase == True:
+			stage = import_operation.getStage()
+			if stage > 0 and stage != 1299 and stage != 2099 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
+
+				newStage = 0
+				# TODO: Add correct restart points once incremental imports are working
+				if stage == 3603: newStage = 3600 
+				if stage == 3607: newStage = 3604 
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
+	
+			if runImportPhase == False and stage < 1299:
+				logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+				logging.error("Please run a import phase first and make sure it completes successfully")
+				import_operation.remove_temporary_files()
+				sys.exit(0)
+
+			if runOnlyFunction == None:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
+					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
+					import_operation.setStage(3610)
+
+			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+				if import_operation.runStage(3600) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+				if import_operation.runStage(3601) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createExternalImportTable()
+					import_operation.updateExternalImportTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+				if import_operation.import_config.validate_import == True:
+					if import_operation.runStage(3602) == True: 
+						import_operation.connectToHive(forceSkipTest=skipHiveTest)
+						import_operation.getImportTableValidationData()
+
+					if import_operation.runStage(3603) == True: 
+						import_operation.validateImportTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+				if import_operation.runStage(3604) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.removeHiveLocks()
+
+			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+				if import_operation.runStage(3605) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createTargetTable()
+					import_operation.convertHiveTableToACID()
+					import_operation.updateTargetTable()
+					import_operation.addHiveDBImportColumns(mergeOperation=True)
+					import_operation.updatePKonTargetTable()
+					import_operation.updateFKonTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
+				if import_operation.runStage(3607) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+					if import_operation.import_config.isExternalViewRequired() == True:
+						importTableOrView = import_operation.import_config.Hive_Import_View
+					else:
+						importTableOrView = import_operation.import_config.Hive_Import_Table
+
+					if import_operation.import_config.incr_maxvalue == None: 
+						# If it's an initial or reinitialized load, we need to remove old lines from target table
+						deleteNotUpdatedRows = True
+					else:
+						deleteNotUpdatedRows = False
+
+					etl_operation.mergeHiveTables(
+						sourceDB = import_operation.import_config.Hive_Import_DB, 
+						sourceTable = importTableOrView,
+						targetDB = import_operation.import_config.Hive_DB, 
+						targetTable = import_operation.import_config.Hive_Table, 
+						createHistoryAudit = False,
+						sourceIsIncremental = True,
+						sourceIsImportTable = True,
+						mssqlChangeTrackingSource = True,
+						softDelete = None,
+						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
+						datalakeSource = import_operation.import_config.datalake_source,
+						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
+						deleteNotUpdatedRows = deleteNotUpdatedRows
+					)
+
+				if import_operation.runStage(3608) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.updateStatisticsOnTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+				if import_operation.import_config.validate_import == True:
+					if import_operation.runStage(3609) == True: 
+						import_operation.connectToHive(forceSkipTest=skipHiveTest)
+						import_operation.getTargetTableValidationData()
+
+					if import_operation.runStage(3610) == True: 
+						import_operation.validateTargetTable()
+
+			if runOnlyFunction == None:
+				if import_operation.runStage(3611) == True: 
+					import_operation.saveIncrPendingValues()
+
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
+				if import_operation.runStage(3612) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
+
+			if runOnlyFunction == None:
+				import_operation.setStage(9999)
+
+			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+				import_operation.convertStageStatisticsToJSON()
+				import_operation.saveStageStatistics()
+
+
+		# *******************************************************
+		# * IMPORT_PHASE_MSSQL_CHANGE_TRACKING & ETL_PHASE_MERGEHISTORYAUDIT
+		# *******************************************************
+	
+		if importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING and etlPhase == constant.ETL_PHASE_MERGEHISTORYAUDIT and runETLPhase == True:
+			stage = import_operation.getStage()
+			if stage > 0 and stage != 1299 and stage != 2099 and runOnlyFunction == None:
+				import_operation.saveRetryAttempt(stage)
+
+				newStage = 0
+				# TODO: Add correct restart points once incremental imports are working
+				if stage == 3653: newStage = 3650 
+				if stage == 3657: newStage = 3654 
+				print(" ________________________________________________________ ")
+				print("|                                                        |")
+				print("| WARNING: The previous import failed and this execution |") 	
+				print("|          is recovering from that failure.              |") 	
+				print("| Last execution failed on stage %s                    |"%(stage)) 	
+				if newStage != 0: 
+					print("| Will restart from stage %s                           |"%(newStage)) 	
+					import_operation.setStage(newStage, force=True)
+				print("|________________________________________________________|")
+				print("")
+				print("")
+				sys.stdout.flush()
+	
+			if runImportPhase == False and stage < 1299:
+				logging.error("You are trying to execute a ETL Phase only import, but there is no information about a completed import phase")
+				logging.error("Please run a import phase first and make sure it completes successfully")
+				import_operation.remove_temporary_files()
+				sys.exit(0)
+
+			if runOnlyFunction == None:
+				if import_operation.import_config.sqoop_last_rows == 0 and processEmptyTables == False:
+					logging.info("No new rows have been imported. The ETL stage will be skipped")
+					# As we have passed the sqoop validation, we can assume that if sqoop havent loaded any rows, there is nothing to do in stage2
+					import_operation.setStage(3660)
+
+			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+				if import_operation.runStage(3650) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+				if import_operation.runStage(3651) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createExternalImportTable()
+					import_operation.updateExternalImportTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+				if import_operation.import_config.validate_import == True:
+					if import_operation.runStage(3652) == True: 
+						import_operation.connectToHive(forceSkipTest=skipHiveTest)
+						import_operation.getImportTableValidationData()
+
+					if import_operation.runStage(3653) == True: 
+						import_operation.validateImportTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+				if import_operation.runStage(3654) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.removeHiveLocks()
+
+			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
+				if import_operation.runStage(3655) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createTargetTable()
+					import_operation.convertHiveTableToACID()
+					import_operation.updateTargetTable()
+					import_operation.addHiveDBImportColumns(mergeOperation=True)
+					import_operation.updatePKonTargetTable()
+					import_operation.updateFKonTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "createHistoryTable":
+				if import_operation.runStage(3656) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createHistoryTable()
+					import_operation.updateHistoryTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
+				if import_operation.runStage(3657) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+
+					if import_operation.import_config.isExternalViewRequired() == True:
+						importTableOrView = import_operation.import_config.Hive_Import_View
+					else:
+						importTableOrView = import_operation.import_config.Hive_Import_Table
+
+					if import_operation.import_config.incr_maxvalue == None: 
+						# If it's an initial or reinitialized load, we need to remove old lines from target table
+						deleteNotUpdatedRows = True
+					else:
+						deleteNotUpdatedRows = False
+
+					etl_operation.mergeHiveTables(
+						sourceDB = import_operation.import_config.Hive_Import_DB, 
+						sourceTable = importTableOrView,
+						targetDB = import_operation.import_config.Hive_DB, 
+						targetTable = import_operation.import_config.Hive_Table, 
+						historyDB = import_operation.import_config.Hive_History_DB, 
+						historyTable = import_operation.import_config.Hive_History_Table, 
+						createHistoryAudit = True,
+						sourceIsIncremental = True,
+						sourceIsImportTable = True,
+						mssqlChangeTrackingSource = True,
+						softDelete = None,
+						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
+						datalakeSource = import_operation.import_config.datalake_source,
+						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
+						deleteNotUpdatedRows = deleteNotUpdatedRows,
+						mssqlChangeTrackingImportTable = import_operation.import_config.Hive_Import_Table
+					)
+
+				if import_operation.runStage(3658) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.updateStatisticsOnTargetTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+				if import_operation.import_config.validate_import == True:
+					if import_operation.runStage(3659) == True: 
+						import_operation.connectToHive(forceSkipTest=skipHiveTest)
+						import_operation.getTargetTableValidationData()
+
+					if import_operation.runStage(3660) == True: 
+						import_operation.validateTargetTable()
+
+			if runOnlyFunction == None:
+				if import_operation.runStage(3661) == True: 
+					import_operation.saveIncrPendingValues()
+
+			if runOnlyFunction == None or runOnlyFunction == "compaction":
+				if import_operation.runStage(3662) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.runHiveCompaction()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)

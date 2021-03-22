@@ -45,7 +45,7 @@ This is the most common way to import the data. The entire table is loaded by DB
   3050. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3051. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3052. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3053. | *Validate import table*
@@ -100,7 +100,7 @@ Full import with Insert will just add data to the target table without truncatin
   3100. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3101. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3102. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3103. | *Validate import table*
@@ -153,7 +153,7 @@ Doing a Full Merge operation instead of a normal full import gives you one addit
   3250. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3251. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3252. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3253. | *Validate import table*
@@ -210,7 +210,7 @@ Depending on the size of the table, this can be a very large job in Hive during 
   3200. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3201. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3202. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3203. | *Validate import table*
@@ -233,6 +233,44 @@ Depending on the size of the table, this can be a very large job in Hive during 
   3211. | *Validate import table*
         | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
         | If the validation fails, the next import will restart from stage 1054
+
+
+None
+^^^^
+
+This import will not load anything in Hive. It will only create an external Import table, but nothing more than that. It's used when you have a complex ETL process that needs to be executed after the import and loading the Target table is just a waste of time/resources.
+
+
++---------------------+-----------------------------------------------------+
+| Setting             | Configuration                                       |
++=====================+=====================================================+
+| Import Phase        | full                                                |
++---------------------+-----------------------------------------------------+
+| ETL Phase           | none                                                |
++---------------------+-----------------------------------------------------+
+
+
+  1010. | *Getting source tableschema*
+        | This stage connects to the source database and reads all columns, columntypes, primary keys, foreign keys and comments and saves the to the configuration database.
+  1011. | *Clear table rowcount*
+        | Removes the number of rows that was import in the previous import of the table
+  1012. | *Get source table rowcount*
+        | Run a ``select count(1) from ...`` on the source table to the number of rows
+  1013. | *Sqoop import*
+        | Executes the sqoop import and saves the source table in Parquet files
+  1014. | *Validate sqoop import*
+        | Validates that sqoop read the same amount of rows that exists in the source system. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 1011
+  1049. | *Stage1 Completed*
+        | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
+  3450. | *Connecting to Hive*
+        | Connects to Hive and runs a test to verify that Hive is working properly
+  3451. | *Creating the import table in the staging database*
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3452. | *Get Import table rowcount*
+        | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
+  3453. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
 
 
 Incremental import
@@ -280,7 +318,7 @@ The changed data is read from the source and once it's avalable in the Import ta
   3150. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3151. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3152. | *Get Import table rowcount*
         | Run a ``select count(1) ...`` on the Import table in Hive to get the number of rows
   3153. | *Validate import table*
@@ -335,7 +373,7 @@ The changed data is read from the source and once it's avalable in the Import ta
   3300. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3301. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3302. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3303. | *Validate import table*
@@ -366,8 +404,6 @@ The changed data is read from the source and once it's avalable in the Import ta
 +---------------------+-----------------------------------------------------+
 | Setting             | Configuration                                       |
 +=====================+=====================================================+
-| Import Type (old)   | incr_merge_direct_history                           |
-+---------------------+-----------------------------------------------------+
 | Import Phase        | incr                                                |
 +---------------------+-----------------------------------------------------+
 | ETL Phase           | merge_history_audit                                 |
@@ -390,7 +426,7 @@ The changed data is read from the source and once it's avalable in the Import ta
   3350. | *Connecting to Hive*
         | Connects to Hive and runs a test to verify that Hive is working properly
   3351. | *Creating the import table in the staging database*
-        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+        | The import table is created. This is an external table based on the Parquet or Orc files that sqoop or spark wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
   3352. | *Get Import table rowcount*
         | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
   3353. | *Validate import table*
@@ -416,15 +452,20 @@ The changed data is read from the source and once it's avalable in the Import ta
 
 
 Oracle Flashback
-^^^^^^^^^^^^^^^^
+----------------
 
 This import method uses the Oracle Flashback Version Query to fetch only the changed rows from the last import. Comparing this to a standard incremental import, the main differences is that we detect *deletes* as well and that we dont require a timestamp or an integer based column with increasing values. The downside is that the table must support Oracle Flashback Version Query and that the undo area is large enough to keep changes between imports. Once the data is avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists, delete the data if that happend in the source system and insert it if it's missing.
+
+.. note:: Oracle Flashback only supports *sqoop* as the import tool
+
+Merge 
+^^^^^
+
+The changed data is read from the source and once it's avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists and insert it if it's missing.  
 
 +---------------------+-----------------------------------------------------+
 | Setting             | Configuration                                       |
 +=====================+=====================================================+
-| Import Type (old)   | oracle_flashback_merge                              |
-+---------------------+-----------------------------------------------------+
 | Import Phase        | oracle_flashback                                    |
 +---------------------+-----------------------------------------------------+
 | ETL Phase           | merge                                               |
@@ -468,4 +509,173 @@ This import method uses the Oracle Flashback Version Query to fetch only the cha
         | If the validation fails, the next import will restart from stage 3304
   3410. | *Saving pending incremental values*
         | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
+
+
+Merge with History Audit 
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The changed data is read from the source and once it's avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists and insert it if it's missing. After the merge is completed, it will also insert all new and changed rows into the History Audit Table so it's possible to track the changed in the table over time 
+
++---------------------+-----------------------------------------------------+
+| Setting             | Configuration                                       |
++=====================+=====================================================+
+| Import Phase        | oracle_flashback                                    |
++---------------------+-----------------------------------------------------+
+| ETL Phase           | merge_history_audit                                 |
++---------------------+-----------------------------------------------------+
+
+  1210. | *Getting source tableschema*
+        | This stage connects to the source database and reads all columns, columntypes, primary keys, foreign keys and comments and saves the to the configuration database.
+  1211. | *Clear table rowcount*
+        | Removes the number of rows that was import in the previous import of the table
+  1212. | *Sqoop import*
+        | Executes the sqoop import and saves the source table in Parquet files. This is where the Oracle Flashback *VERSION BETWEEN* query is executed against the source system.
+  1213. | *Get source table rowcount*
+        | Run a ``select count(1) from ... VERSIONS BETWEEN SCN <min_value> AND <max_value> WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL`` on the source table to get the number of rows. Due to the where statement, it only validates the incremental rows
+        | If the incremental validation method is 'full', then a ``select count(1) from ... VERSIONS BETWEEN SCN <min_value> AND <max_value> WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)`` is also executed against the source table.
+  1214. | *Validate sqoop import*
+        | Validates that sqoop read the same amount of rows that exists in the source system. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 1211
+  1249. | *Stage1 Completed*
+        | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
+  3550. | *Connecting to Hive*
+        | Connects to Hive and runs a test to verify that Hive is working properly
+  3551. | *Creating the import table in the staging database*
+        | The import table is created. This is an external table based on the Parquet files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3552. | *Get Import table rowcount*
+        | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
+  3553. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3301
+  3554. | *Removing Hive locks by force*
+        | Due to a bug in Hive, we need to remove the locks by force. This connects to the metadatabase and removes them from there
+  3555. | *Creating the Target table*
+        | The target table is created. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3556. | *Creating the History table*
+        | The History table is created. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3557. | *Merge Import table with Target table*
+        | Merge all data in the Import table into the Target table based on PK. 
+  3558. | *Update Hive statistics on target table*
+        | Updates all the statistcs in Hive for the table
+  3559. | *Get Target table rowcount*
+        | Run a ``select count(1) from ...`` on the Target table in Hive to get the number of rows
+  3560. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3304
+  3561. | *Saving pending incremental values*
+        | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
+
+
+Microsoft Change Tracking
+-------------------------
+
+This import method uses the Microsoft Change Tracking function to fetch only the changed rows from the last import. Comparing this to a standard incremental import, the main differences is that we detect *deletes* as well and that we dont require a timestamp or an integer based column with increasing values. The downside is that the function requires that Change Tracking is enabled on the database and table on the source system. Once the data is avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists, delete the data if that happend in the source system and insert it if it's missing.
+
+.. note:: Microsoft Change Tracking only supports *spark* as the import tool
+
+Merge 
+^^^^^
+
+The changed data is read from the source and once it's avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists and insert it if it's missing.  
+
++---------------------+-----------------------------------------------------+
+| Setting             | Configuration                                       |
++=====================+=====================================================+
+| Import Phase        | mssql_change_tracking                               |
++---------------------+-----------------------------------------------------+
+| ETL Phase           | merge                                               |
++---------------------+-----------------------------------------------------+
+
+  1260. | *Getting source tableschema*
+        | This stage connects to the source database and reads all columns, columntypes, primary keys, foreign keys and comments and saves the to the configuration database.
+  1261. | *Clear table rowcount*
+        | Removes the number of rows that was import in the previous import of the table
+  1262. | *Checking MSSQL Change Tracking functions* 
+        | Connects to the source system and validates that the range of data that will be read by spark is valid. If it's not, it will force the import to do a full initial import and also truncate the Target table.
+  1265. | *Spark import*
+        | Executes the spark import and saves the source table in Orc files. 
+  1270. | *Get source table rowcount*
+        | Fetch the number of rows in the source table and saves it to the DBImport configuration database
+  1295. | *Update Atlas*
+        | Update Atlas with source system information and lineage.
+  1299. | *Stage1 Completed*
+        | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
+  3600. | *Connecting to Hive*
+        | Connects to Hive and runs a test to verify that Hive is working properly
+  3601. | *Creating the import table in the staging database*
+        | The import table is created. This is an external table based on the Orc files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3602. | *Get Import table rowcount*
+        | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
+  3603. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. 
+        | If the validation fails, the next import will restart from stage 3601
+  3604. | *Removing Hive locks by force*
+        | Due to a bug in Hive, we need to remove the locks by force. This connects to the metadatabase and removes them from there
+  3605. | *Creating the Target table*
+        | The target table is created. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3607. | *Merge Import table with Target table*
+        | Merge all data in the Import table into the Target table based on PK. 
+  3608. | *Update Hive statistics on target table*
+        | Updates all the statistcs in Hive for the table
+  3609. | *Get Target table rowcount*
+        | Run a ``select count(1) from ...`` on the Target table in Hive to get the number of rows
+  3610. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3304
+  3611. | *Saving pending incremental values*
+        | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
+
+
+Merge with History Audit 
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The changed data is read from the source and once it's avalable in the Import table, a merge operation will be executed in Hive. The merge will be based on the Primary Keys and will update the information in the Target table if it already exists and insert it if it's missing. After the merge is completed, it will also insert all new and changed rows into the History Audit Table so it's possible to track the changed in the table over time 
+
++---------------------+-----------------------------------------------------+
+| Setting             | Configuration                                       |
++=====================+=====================================================+
+| Import Phase        | mssql_change_tracking                               |
++---------------------+-----------------------------------------------------+
+| ETL Phase           | merge_history_audit                                 |
++---------------------+-----------------------------------------------------+
+
+  1260. | *Getting source tableschema*
+        | This stage connects to the source database and reads all columns, columntypes, primary keys, foreign keys and comments and saves the to the configuration database.
+  1261. | *Clear table rowcount*
+        | Removes the number of rows that was import in the previous import of the table
+  1262. | *Checking MSSQL Change Tracking functions* 
+        | Connects to the source system and validates that the range of data that will be read by spark is valid. If it's not, it will force the import to do a full initial import and also truncate the Target table.
+  1265. | *Spark import*
+        | Executes the spark import and saves the source table in Orc files. 
+  1270. | *Get source table rowcount*
+        | Fetch the number of rows in the source table and saves it to the DBImport configuration database
+  1295. | *Update Atlas*
+        | Update Atlas with source system information and lineage.
+  1299. | *Stage1 Completed*
+        | This is just a mark saying that the stage 1 is completed. If you selected to run only a stage 1 import, this is where the import will end.
+  3650. | *Connecting to Hive*
+        | Connects to Hive and runs a test to verify that Hive is working properly
+  3651. | *Creating the import table in the staging database*
+        | The import table is created. This is an external table based on the Orc files that sqoop wrote. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3652. | *Get Import table rowcount*
+        | Run a ``select count(1) from ...`` on the Import table in Hive to get the number of rows
+  3653. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. 
+        | If the validation fails, the next import will restart from stage 3651
+  3654. | *Removing Hive locks by force*
+        | Due to a bug in Hive, we need to remove the locks by force. This connects to the metadatabase and removes them from there
+  3655. | *Creating the Target table*
+        | The target table is created. Any changes on the exiting table compared the the information that was received in the *Getting source tableschema* stage is applied here.
+  3657. | *Merge Import table with Target table*
+        | Merge all data in the Import table into the Target table based on PK. 
+  3658. | *Update Hive statistics on target table*
+        | Updates all the statistcs in Hive for the table
+  3659. | *Get Target table rowcount*
+        | Run a ``select count(1) from ...`` on the Target table in Hive to get the number of rows
+  3660. | *Validate import table*
+        | Compare the number of rows from the source table with the number of rows in the import table. These dont have to match 100% and is based on the configuration in the import_tables.validate_diff_allowed column.
+        | If the validation fails, the next import will restart from stage 3304
+  3661. | *Saving pending incremental values*
+        | In order to start the next incremental import from the last entry that the current import read, we are saving the min and max values into the import_tables table. The next import will then start to read from the next record after the max we read this time.
+
 

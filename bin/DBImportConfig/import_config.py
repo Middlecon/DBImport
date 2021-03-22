@@ -426,11 +426,6 @@ class config(object, metaclass=Singleton):
 		if self.validate_diff_allowed == -1:
 			self.validate_diff_allowed = None
 
-		# Validate that self.incr_mode have a valid configuration if it's not NULL
-#		if self.incr_mode != None:
-#			if self.incr_mode != "append" and self.incr_mode != "lastmodified":
-#				raise invalidConfiguration("Only the values 'append' or 'lastmodified' is valid for column incr_mode in import_tables.")
-
 		if self.incr_validation_method != "full" and self.incr_validation_method != "incr":
 			raise invalidConfiguration("Only the values 'full' or 'incr' is valid for column incr_validation_method in import_tables.")
 
@@ -488,6 +483,12 @@ class config(object, metaclass=Singleton):
 				validCombination = True
 
 			if self.import_phase_type == "oracle_flashback" and self.etl_phase_type == "merge_history_audit": 
+				validCombination = True
+
+			if self.import_phase_type == "mssql_change_tracking" and self.etl_phase_type == "merge": 
+				validCombination = True
+
+			if self.import_phase_type == "mssql_change_tracking" and self.etl_phase_type == "merge_history_audit": 
 				validCombination = True
 
 			if validCombination == False:
@@ -636,6 +637,24 @@ class config(object, metaclass=Singleton):
 			if self.importTool != "sqoop":
 				raise invalidConfiguration("Oracle Flashback only supports imports with sqoop in this version")
 
+		if self.import_phase_type == "mssql_change_tracking" and self.etl_phase_type == "merge":
+			self.import_type_description = "Import with the help of Microsoft SQL Change Tracking"
+			self.importPhase             = constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEONLY
+			self.importPhaseDescription  = "Microsoft SQL Change Tracking"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge"
+
+		if self.import_phase_type == "mssql_change_tracking" and self.etl_phase_type == "merge_history_audit":
+			self.import_type_description = "Import with the help of Microsoft SQL Change Tracking. Will also create a History table"
+			self.importPhase             = constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_MERGEHISTORYAUDIT
+			self.importPhaseDescription  = "Microsoft SQL Change Tracking"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Merge History Audit"
+
 		# Check Mongo validation methods
 		if self.mongoImport == True and self.validationMethod == constant.VALIDATION_METHOD_CUSTOMQUERY:
 			raise invalidConfiguration("Mongo Import only supports %s as a validation method" % ( constant.VALIDATION_METHOD_ROWCOUNT ))
@@ -649,14 +668,26 @@ class config(object, metaclass=Singleton):
 		if self.importPhase == None or self.etlPhase == None:
 			raise invalidConfiguration("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
 
+		# Check for MSSQL Change Tracking
+		if self.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			if self.soft_delete_during_merge == True: 
+				raise invalidConfiguration("Microsoft SQL Change Tracking imports doesnt support 'Soft delete during Merge'. Please check configuration")
+
+			if self.importTool != "spark":
+				raise invalidConfiguration("Microsoft SQL Change Tracking imports only support spark as import tool. Please check configuration")
+
+			if self.incr_validation_method != "full":
+				raise invalidConfiguration("Microsoft SQL Change Tracking imports only support 'full' validation. Please check configuration")
+
+
 		# Determine if it's a Mongo import or not
 		if self.importPhase == constant.IMPORT_PHASE_MONGO_FULL and self.importTool != "spark":
 			raise invalidConfiguration("Import of MongoDB is only supported by spark")
 
 		# Determine if it's an incremental import based on the importPhase
-		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK):
+		if self.importPhase in (constant.IMPORT_PHASE_INCR, constant.IMPORT_PHASE_ORACLE_FLASHBACK, constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING):
 			self.import_is_incremental = True
-			if self.importPhase != constant.IMPORT_PHASE_ORACLE_FLASHBACK:
+			if self.importPhase == constant.IMPORT_PHASE_INCR:
 				if self.sqoop_incr_column == None:
 					raise invalidConfiguration("An incremental import requires a valid column name specified in 'incr_column'. Please check configuration")
 				if self.incr_mode != "append" and self.incr_mode != "lastmodified":
@@ -665,7 +696,7 @@ class config(object, metaclass=Singleton):
 			self.import_is_incremental = False
 
 		# Determine if it's an merge and need ACID tables
-		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY, constant.IMPORT_PHASE_ORACLE_FLASHBACK): 
+		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY, constant.IMPORT_PHASE_ORACLE_FLASHBACK, constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING): 
 			self.create_table_with_acid = True
 			self.import_with_merge = True
 		else:
@@ -1257,7 +1288,7 @@ class config(object, metaclass=Singleton):
 				if source_column_comment != None:
 					self.sqlGeneratedHiveColumnDefinition += " COMMENT '" + source_column_comment + "'"
 
-			# Add the column to the SQL query that can be used by sqoop
+			# Add the column to the SQL query that can be used by sqoop or spark
 				column_name_parquet_supported = self.getParquetColumnName(column_name)
 				quote = self.common_config.getQuoteAroundColumn()
 
@@ -1800,6 +1831,31 @@ class config(object, metaclass=Singleton):
 			logging.debug("Executing import_config.getIncrWhereStatement() - Exited (Not an incremental import)")
 			return None
 
+#		if self.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+#			# This is where we handle the specific where statement for Microsoft SQL Change Tracking Imports
+#			if whereForSqoop == True:
+#				maxVERSION = int(self.common_config.executeJDBCquery("select CHANGE_TRACKING_CURRENT_VERSION() as VERSION").iloc[0]['VERSION'])
+#				self.sqoopIncrMaxvaluePending = maxVERSION
+#				self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
+#
+#				query = ("update import_tables set incr_minvalue_pending = %s, incr_maxvalue_pending = %s where table_id = %s")
+#				self.mysql_cursor01.execute(query, (self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending, self.table_id))
+#				self.mysql_conn.commit()
+#				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+#			else:
+#				# COALESCE is needed if you are going to call a function that counts source target rows outside the normal import
+#				query = ("select COALESCE(incr_minvalue_pending, incr_minvalue), COALESCE(incr_maxvalue_pending, incr_maxvalue) from import_tables where table_id = %s")
+#				self.mysql_cursor01.execute(query, (self.table_id, ))
+#				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+#	
+#				row = self.mysql_cursor01.fetchone()
+#				self.sqoopIncrMinvaluePending = row[0]
+#				self.sqoopIncrMaxvaluePending = row[1]
+####
+#			if self.incr_maxvalue == None:
+#				# There is no MaxValue stored form previous imports. That means we need to do a full initial import
+#				# It also means that this will only be executed by sqoop, as after sqoop there will be a maxvalue present
+#
 		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# This is where we handle the specific where statement for Oracle FlashBack Imports
 			if whereForSqoop == True:
@@ -1983,7 +2039,8 @@ class config(object, metaclass=Singleton):
 		JDBCRowsIncr = None
 		whereStatement = None
 
-		if self.import_is_incremental == True:
+		if self.import_is_incremental == True and self.importPhase != constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			# MSSQL Change Tracking only supports full incremental validation
 			if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 				if self.sqoop_incr_validation_method == "full":
 					whereStatement = self.getIncrWhereStatement(forceIncr = False, whereForSourceTable=True)
@@ -2107,7 +2164,8 @@ class config(object, metaclass=Singleton):
 
 	def resetSqoopStatistics(self, maxValue):
 		logging.debug("Executing import_config.resetSqoopStatistics()")
-		logging.info("Reseting incremental values for sqoop imports. New max value is: %s"%(maxValue))
+		if maxValue != None:
+			logging.info("Reseting incremental values for imports. New max value is: %s"%(maxValue))
 
 		query =  "update import_tables set "
 		query += "	incr_minvalue = NULL, "
@@ -2173,7 +2231,91 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.saveSqoopStatistics() - Finished")
 
-	def getSQLtoReadFromSource(self):
+	def checkMSSQLChangeTrackingMinValidVersion(self):
+		""" Checks the Minimum valid version from MSSQL Change Tracking. If the min valid version is higher than what we want to read, we will force a full import instead of an incremental import """
+		logging.debug("Executing import_config.checkMSSQLChangeTrackingMinValidVersion()")
+
+		query = "select CHANGE_TRACKING_MIN_VALID_VERSION(OBJECT_ID('%s')) AS MINVERSION"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
+		
+		try:
+			minVersion = int(self.common_config.executeJDBCquery(query).iloc[0]['MINVERSION'])
+		except TypeError: 
+
+#		if minVersion == None:
+			# Cant read the value. It means permission error or that Change Tracking isnt available on the table
+			raise invalidConfiguration("Unable to read Change Tracking version. Verify that Change Tracking is enabled on the table and that the user that is accessing it have the correct permission")
+
+		if self.incr_maxvalue == None:
+			# No need to check as it will be a full load anyway
+			return
+
+		if minVersion > int(self.incr_maxvalue):
+			# If we hit this part of the code, it means that the minimal version on the MSSQL Server is higher thatn what we require.
+			# Only way to get out of this situation is to do a full load
+			logging.warning("The minimal version in MSSQL is larger than what is required. This means that we need to force a full initial load")
+			self.resetSqoopStatistics(maxValue=None)
+			self.incr_maxvalue = None
+#		self.remove_temporary_files()
+#		sys.exit(1)
+
+		logging.debug("Executing import_config.checkMSSQLChangeTrackingMinValidVersion() - Finished")
+
+	def getSQLtoReadFromSourceWithMSSQLChangeTracking(self):
+		""" Creates and return the SQL needed to read the rows from the source database with the help of MSSQL Change Tracking function """
+		logging.debug("Executing import_config.getSQLtoReadFromSourceWithMSSQLChangeTracking()")
+		query = self.getSQLtoReadFromSource(sourceTableAsName="ST")
+
+		# Previous MaxValue or the pending one will be used as the minimum version to pull 
+#		query = ("select COALESCE(incr_maxvalue_pending, incr_maxvalue) from import_tables where table_id = %s")
+#		self.mysql_cursor01.execute(query, (self.table_id, ))
+#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+#		row = self.mysql_cursor01.fetchone()
+#		self.sqoopIncrMaxvaluePending = row[0]
+#		self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
+
+		query = re.sub('^select', 'select \"CT\".\"SYS_CHANGE_VERSION\" as \"datalake_mssql_changetrack_version\", \"CT\".\"SYS_CHANGE_OPERATION\" as \"datalake_mssql_changetrack_operation\",', query)
+
+		if self.incr_maxvalue == None:
+			# This means that there is no previous version. So we need to do an initial load
+			query += " LEFT JOIN CHANGETABLE(CHANGES %s, 0 ) as CT"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
+			PKColumns = self.getPKcolumns()
+			joinColumns = ""
+			for i, targetColumn in enumerate(PKColumns.split(",")):
+				if joinColumns == "":
+					joinColumns = " ON "
+				else:
+					joinColumns += " AND " 
+
+				joinColumns += "\"CT\".\"%s\" = \"ST\".\"%s\""%(targetColumn, targetColumn)
+
+			query += joinColumns
+
+		else:
+			# This is an incremental load
+			query += " RIGHT OUTER JOIN CHANGETABLE(CHANGES %s, %s ) as CT"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table), self.incr_maxvalue)
+
+			PKColumns = self.getPKcolumns()
+			joinColumns = ""
+
+			# PK must come from the CHANGETABLE function. This is needed in case of deletes, as the column would be NULL otherwise and the merge
+			# in Hive would not be able to match and remove the row
+			for i, targetColumn in enumerate(PKColumns.split(",")):
+				query = re.sub("\"ST\".\"%s\""%(targetColumn), "\"CT\".\"%s\""%(targetColumn), query)
+				
+			for i, targetColumn in enumerate(PKColumns.split(",")):
+				if joinColumns == "":
+					joinColumns = " ON "
+				else:
+					joinColumns += " AND " 
+
+				joinColumns += "\"CT\".\"%s\" = \"ST\".\"%s\""%(targetColumn, targetColumn)
+
+			query += joinColumns
+
+		return query
+		logging.debug("Executing import_config.getSQLtoReadFromSourceWithMSSQLChangeTracking() - Finished")
+
+	def getSQLtoReadFromSource(self, sourceTableAsName=None):
 		""" Creates and return the SQL needed to read all rows from the source database """
 		logging.debug("Executing import_config.getSQLtoReadFromSource()")
 
@@ -2182,7 +2324,6 @@ class config(object, metaclass=Singleton):
 		query  = "select "
 		query += "   c.source_column_name, "
 		query += "   c.column_name "
-#		query += "   c.column_name_override "
 		query += "from import_tables t " 
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
@@ -2199,7 +2340,6 @@ class config(object, metaclass=Singleton):
 
 		result_df = pd.DataFrame(self.mysql_cursor01.fetchall())
 		result_df.columns = ['source_name', 'name' ]
-#		result_df.columns = ['name', 'name_override' ]
 
 		sparkQuery = ""
 		for index, row in result_df.iterrows():	
@@ -2207,22 +2347,26 @@ class config(object, metaclass=Singleton):
 				sparkQuery = "select "
 			else:
 				sparkQuery += ", "
-			if row['source_name'] != row['name']:
-				sparkQuery += quote + row['source_name'] + quote + " as " + quote + row['name'] + quote
+			if sourceTableAsName == None:
+				if row['source_name'] != row['name']:
+					sparkQuery += quote + row['source_name'] + quote + " as " + quote + row['name'] + quote
+				else:
+					sparkQuery += quote + row['source_name'] + quote
 			else:
-				sparkQuery += quote + row['source_name'] + quote
-#			if row['name_override'] != None and row['name_override'].strip() != "":
-#				sparkQuery += quote + row['name'] + quote + " as " + quote + row['name_override'] + quote
-#			else:
-#				sparkQuery += quote + row['name'] + quote
+				if row['source_name'] != row['name']:
+					sparkQuery += quote + sourceTableAsName + quote + "." + quote + row['source_name'] + quote + " as " + quote + row['name'] + quote
+				else:
+					sparkQuery += quote + sourceTableAsName + quote + "." + quote + row['source_name'] + quote
 
 		# Add the source the to the generated sql query
 		sparkQuery += " from %s"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
+		if sourceTableAsName != None:
+			sparkQuery += " as %s"%(sourceTableAsName)
 
 		logging.debug("Executing import_config.getSQLtoReadFromSource() - Finished")
 		return sparkQuery
 
-	def getColumnsFromConfigDatabase(self, restrictColumns=None, sourceIsParquetFile=False, ignoreIncludeInImport=True):
+	def getColumnsFromConfigDatabase(self, restrictColumns=None, sourceIsParquetFile=False, includeAllColumns=True):
 		""" Reads the columns from the configuration database and returns the information in a Pandas DF with the columns name, type and comment """
 		logging.debug("Executing import_config.getColumnsFromConfigDatabase()")
 		hiveColumnDefinition = ""
@@ -2239,7 +2383,7 @@ class config(object, metaclass=Singleton):
 		query += "join import_columns c on t.table_id = c.table_id "
 		query += "where t.table_id = %s and t.last_update_from_source = c.last_update_from_source "
 
-		if ignoreIncludeInImport == False:
+		if includeAllColumns == False:
 			query += " and c.include_in_import = 1 "
 
 		if restrictColumnsList != []:
@@ -2454,6 +2598,12 @@ class config(object, metaclass=Singleton):
 		row = self.mysql_cursor01.fetchone()
 		self.pk_column_override = row[0]
 		self.pk_column_override_mergeonly = row[1]
+
+		if self.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			if self.pk_column_override != None or self.pk_column_override_mergeonly != None:
+				logging.warning("MSSQL Change Tracking dont support overriding of PrimaryKeys. This configuration will be ignored")
+				self.pk_column_override = None
+				self.pk_column_override_mergeonly = None
 
 		if self.pk_column_override != None and self.pk_column_override.strip() != "" and PKforMerge == False:
 			logging.debug("Executing import_config.getPKcolumns() - Finished")
@@ -2830,15 +2980,7 @@ class config(object, metaclass=Singleton):
 					firstRow = False
 				else:
 					selectQuery += "   and S.%s = G.%s"%(PKcolumn, PKcolumn)
-#			selectQuery += "   and S.datalake_flashback_startscn = G.max_startscn "	
 			selectQuery += "   and ( S.datalake_flashback_startscn = G.max_startscn or G.max_startscn is NULL )"
-
-# query += "%s "%(self.import_config.getSelectForImportView())
-# if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
-# # Add the specific Oracle FlashBack columns that we need to import
-# query += ", `datalake_flashback_operation`"
-# query += ", `datalake_flashback_startscn`"
-# query += "from `%s`.`%s` "%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
 
 		logging.debug("Executing import_config.getSelectForImportView() - Finished")
 		return selectQuery

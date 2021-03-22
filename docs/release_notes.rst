@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+v0.67 
+------------------------------
+
+**New Features**
+
+  - Support for imports with MSSQL Change Tracking functions
+
+
 v0.66 
 ------------------------------
 

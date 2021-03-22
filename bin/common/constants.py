@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.66"
+VERSION = "0.67"
 
 # Database types
 MYSQL = "mysql"
@@ -19,6 +19,7 @@ FOREIGN_KEY = "F"
 # Phase defintions
 IMPORT_PHASE_MONGO_FULL = "mongo_full"
 IMPORT_PHASE_ORACLE_FLASHBACK = "oracle_flashback"
+IMPORT_PHASE_MSSQL_CHANGE_TRACKING = "mssql_change_tracking"
 IMPORT_PHASE_FULL = "full"
 IMPORT_PHASE_INCR = "incr"
 IMPORT_PHASE_SLAVE = "slave"

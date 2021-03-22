@@ -862,6 +862,7 @@ class operation(object, metaclass=Singleton):
 		from pyspark import HiveContext
 		from pyspark.context import SparkContext
 		from pyspark.sql import Row
+		from pyspark.sql.functions import lit
 		import pyspark.sql.session
 
 		conf = SparkConf()

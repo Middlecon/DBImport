@@ -226,7 +226,7 @@ def main(argv):
 			if runOnlyFunction == None:
 				if export_operation.runStage(102) == True:
 					export_operation.connectToHive()
-					export_operation.updateStatisticsOnExportedTable()
+#					export_operation.updateStatisticsOnExportedTable()
 	
 			if export_operation.isExportTempTableNeeded() == True:
 				if runOnlyFunction == None or runOnlyFunction == "createExportTempTable":

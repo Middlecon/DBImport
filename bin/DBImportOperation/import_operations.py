@@ -520,6 +520,43 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
 
+	def checkOracleFlashbackSCNnumber(self):
+		""" Checks if the Oracle Flashback SCN number used in the previous import is valid. If not, we force a full import """
+
+		incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+		query = "%s %s AND 1 = 0"%(self.import_config.sqlGeneratedSqoopQuery, incrWhereStatement)
+
+		try:
+			self.import_config.common_config.executeJDBCquery(query)
+		except SQLerror as e:
+			errorMsg = str(e)
+			if "java.sql.SQLException: ORA-08181:" in errorMsg or "java.sql.SQLException: ORA-30052" in errorMsg :
+				logging.warning("The last import with Oracle Flashback is to far into the past. In order to continue, we will be forced to do a new initial load")
+				logging.warning("Reseting Oracle Flashback versions")
+
+				self.resetIncrMinMaxValues(maxValue=None)
+				self.truncateTargetTable()
+				self.import_config.sqoopIncrMinvaluePending = None
+				self.import_config.sqoopIncrMaxvaluePending = None
+				self.import_config.incr_maxvalue = None
+
+			elif "java.sql.SQLException: ORA-01466:" in errorMsg:
+				logging.warning("Table definition have changed. One reason when this happens is when the source table is loaded or truncated. In order to continue, we will be forced to do a new initial load")
+				logging.warning("Reseting Oracle Flashback versions")
+
+				self.resetIncrMinMaxValues(maxValue=None)
+				self.truncateTargetTable()
+				self.import_config.sqoopIncrMinvaluePending = None
+				self.import_config.sqoopIncrMaxvaluePending = None
+				self.import_config.incr_maxvalue = None
+
+			else:
+				logging.error("Unknown Oracle Flashback error when checking for valid SCN number")
+				print(errorMsg)
+				self.import_config.remove_temporary_files()
+				sys.exit(1)
+
+
 	def convertSparkTypeToBinary(self, schema):
 		import pyspark.sql
 
@@ -876,7 +913,7 @@ class operation(object, metaclass=Singleton):
 
 		rowCount = 0
 		incrWhereStatement = ""
-		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
+		if self.import_config.import_is_incremental == True and PKOnlyImport == False and self.import_config.importPhase != constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
 			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
 			if incrWhereStatement == "":
 				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
@@ -884,7 +921,7 @@ class operation(object, metaclass=Singleton):
 				if rowCount == 0:
 					self.sqoopIncrNoNewRows = True
 					try:
-						logging.warning("There are no rows in the source table. As this is an incremental import, sqoop will not run")
+						logging.warning("There are no rows in the source table. As this is an incremental import, spark will not run")
 						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=False)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=True, printInfo=False)
@@ -899,7 +936,9 @@ class operation(object, metaclass=Singleton):
 					sys.exit(1)
 
 		# Create the SQL that will be used to fetch the data. This will be used on a "from" statement
-		if incrWhereStatement != "":
+		if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING: 
+			sparkQuery = "(%s) %s"%(self.import_config.getSQLtoReadFromSourceWithMSSQLChangeTracking(), self.Hive_Table)
+		elif incrWhereStatement != "":
 			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), incrWhereStatement, self.Hive_Table)
 		elif self.import_config.getSQLWhereAddition() != None:
 			sparkQuery = "(%s where %s) %s"%(self.import_config.getSQLtoReadFromSource(), self.import_config.getSQLWhereAddition(), self.Hive_Table)
@@ -925,6 +964,9 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Spark Max Executors: %s"%(self.import_config.sparkMaxExecutors))
 		logging.debug("Spark Dynamic Executors: %s"%(self.import_config.common_config.sparkDynamicAllocation))
 		logging.debug("=======================================================================")
+
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
 
 		# Create a valid PYSPARK_SUBMIT_ARGS string
 		sparkPysparkSubmitArgs = "--jars "
@@ -980,6 +1022,8 @@ class operation(object, metaclass=Singleton):
 		from pyspark.context import SparkContext
 		from pyspark.sql import Row
 		from pyspark.sql.functions import udf
+		if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			from pyspark.sql.functions import max
 		import pyspark.sql.session
 
 		conf = SparkConf()
@@ -1023,6 +1067,12 @@ class operation(object, metaclass=Singleton):
 
 		quoteAroundColumn = self.import_config.common_config.getQuoteAroundColumn()
 		partitionColumn = "%s%s%s"%(quoteAroundColumn, str(self.import_config.splitByColumn).lower(), quoteAroundColumn)
+
+#		print(self.import_config.common_config.jdbc_driver)
+#		print(self.import_config.common_config.jdbc_url)
+#		print(sparkQuery)
+#		print(self.import_config.common_config.jdbc_username)
+#		print(self.import_config.common_config.jdbc_password)
 
 		if self.import_config.sqlSessions < 2:
 			df = (spark.read.format("jdbc")
@@ -1079,15 +1129,30 @@ class operation(object, metaclass=Singleton):
 #		sys.exit(1)
 
 		# Write ORC files
+#		print(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
 		df.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
 
 		hdfsDataDf = spark.read.format("orc").load(self.import_config.sqoop_hdfs_location)
 		rowsWrittenBySpark = hdfsDataDf.count()
+
 		sys.stdout.flush()
 		logging.info("Number of rows written by spark = %s"%(rowsWrittenBySpark))
 		sys.stdout.flush()
+
+		if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			if rowsWrittenBySpark == 0:
+				# If there is no new rows, we cant get the MaxValue from the output. 
+				# So we need to set it to the previous value
+				incrMaxvaluePending = self.import_config.incr_maxvalue 
+				logging.warning("There are no new rows in the source table.")
+			else:
+				# We need to read the max version number and use that as the min value on next import
+				incrMaxvaluePending = hdfsDataDf.select([max("datalake_mssql_changetrack_version")]).first()[0]
+				logging.info("Max Version number for MSSQL Change Tracking that was fetched = %s"%(incrMaxvaluePending))
+		else:
+			incrMaxvaluePending = None
 
 		# Get size of all files on HDFS that spark wrote
 		hdfsCommandList = ['hdfs', 'dfs', '-du', '-s', self.import_config.sqoop_hdfs_location]
@@ -1115,11 +1180,14 @@ class operation(object, metaclass=Singleton):
 
 		if PKOnlyImport == False:
 			try:
-				self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions)
+				self.import_config.saveSqoopStatistics(self.sparkStartUTS, sqoopSize=sizeWrittenBySpark, sqoopRows=rowsWrittenBySpark, sqoopMappers=self.import_config.sqlSessions, sqoopIncrMaxvaluePending=incrMaxvaluePending)
 			except:
 				logging.exception("Fatal error when saving spark statistics")
 				self.import_config.remove_temporary_files()
 				sys.exit(1)
+
+		if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+			self.import_config.saveSourceTableRowCount(rowCount=rowsWrittenBySpark, incr=True, printInfo=True)
 
 		logging.debug("Executing import_operations.runSparkImport() - Finished")
 
@@ -1159,7 +1227,6 @@ class operation(object, metaclass=Singleton):
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_db2udb == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-#			sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_db2as400 == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"
@@ -1458,7 +1525,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.updateExternalImportView()")
 
 		if self.import_config.isExternalViewRequired() == True:
-			columnsConfig = self.import_config.getColumnsFromConfigDatabase(sourceIsParquetFile=True) 
+			columnsConfig = self.import_config.getColumnsFromConfigDatabase(sourceIsParquetFile=True, includeAllColumns=False) 
 
 			hiveDB = self.import_config.Hive_Import_DB
 			hiveView = self.import_config.Hive_Import_View
@@ -1498,7 +1565,7 @@ class operation(object, metaclass=Singleton):
 			# Import table does not exist. We just create it in that case
 			logging.info("Creating External Import Table")
 			query  = "create external table `%s`.`%s` ("%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-			columnsDF = self.import_config.getColumnsFromConfigDatabase() 
+			columnsDF = self.import_config.getColumnsFromConfigDatabase(includeAllColumns=False) 
 
 			if self.import_config.importTool == "sqoop":
 				columnsDF = self.updateColumnsForImportTable(columnsDF)
@@ -1506,19 +1573,21 @@ class operation(object, metaclass=Singleton):
 				columnsDF = self.updateColumnsForImportTable(columnsDF, replaceNameOnly=True)
 
 			firstLoop = True
+
+			if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
+				# Add the specific MSSQL Change Tracking columns that we need to import
+				firstLoop = False
+				query += "`datalake_mssql_changetrack_version` bigint"
+				query += ", `datalake_mssql_changetrack_operation` varchar(2)"
+
 			for index, row in columnsDF.iterrows():
 				if firstLoop == False: query += ", "
 
-				# As Parquet import format writes timestamps in the wrong format, we need to force them to string
-#				if row['type'] == "timestamp":
-#					query += "`%s` string"%(row['name'])
-#				else:
 				query += "`%s` %s"%(row['name'], row['type'])
 
 				if row['comment'] != None:
 					query += " COMMENT \"%s\""%(row['comment'])
 				firstLoop = False
-
 
 			if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 				# Add the specific Oracle FlashBack columns that we need to import
@@ -1605,7 +1674,7 @@ class operation(object, metaclass=Singleton):
 
 		queryList = []
 		query  = "create table `%s`.`%s` ("%(hiveDB, hiveTable)
-		columnsDF = self.import_config.getColumnsFromConfigDatabase() 
+		columnsDF = self.import_config.getColumnsFromConfigDatabase(includeAllColumns=False) 
 
 		restrictColumnsList = []
 		if restrictColumns != None:
@@ -1811,7 +1880,7 @@ class operation(object, metaclass=Singleton):
 		""" Update the target table based on the column information in the configuration database """
 		# TODO: If there are less columns in the source table together with a rename of a column, then it wont work. Needs to be handled
 		logging.debug("Executing import_operations.updateTargetTable()")
-		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile) 
+		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile, includeAllColumns=False) 
 		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files

@@ -1110,14 +1110,14 @@ class config(object, metaclass=Singleton):
 		publicKeyFile = row[3]
 		self.jdbc_environment = row[4]
 
-		if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
-			self.crypto.setPrivateKeyFile(privateKeyFile)
-			self.crypto.setPublicKeyFile(publicKeyFile)
-		else:
-			self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
-			self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
-
 		if decryptCredentials == True and copySlave == False:
+			if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
+				self.crypto.setPrivateKeyFile(privateKeyFile)
+				self.crypto.setPublicKeyFile(publicKeyFile)
+			else:
+				self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+				self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
 			credentials = self.crypto.decrypt(row[1])
 			
 			if credentials == None:

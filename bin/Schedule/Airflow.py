@@ -471,10 +471,7 @@ class initialize(object):
 			if row['import_type'] in ("full_direct", "full", "oracle_flashback_merge", "full_history", "full_merge_direct_history", "full_merge_direct", "full_append"):
 				clearStageRequired = True
 
-			if row['import_phase_type'] == "full":
-				clearStageRequired = True
-
-			if row['import_phase_type'] == "oracle_flashback":
+			if row['import_phase_type'] in ("full", "oracle_flashback", "mssql_change_tracking"):
 				clearStageRequired = True
 
 			if clearStageRequired == True:

@@ -659,7 +659,7 @@ class importTables(Base):
     source_schema = Column(String(256), nullable=False, comment='Name of the schema in the remote database')
     source_table = Column(String(256), nullable=False, comment='Name of the table in the remote database')
     import_type = Column(String(32), nullable=True, comment='What import method to use')
-    import_phase_type = Column(Enum('full', 'incr', 'oracle_flashback'), nullable=True, comment="What method to use for Import phase", server_default=text("'full'"))
+    import_phase_type = Column(Enum('full', 'incr', 'oracle_flashback', 'mssql_change_tracking'), nullable=True, comment="What method to use for Import phase", server_default=text("'full'"))
     etl_phase_type = Column(Enum('truncate_insert', 'insert', 'merge', 'merge_history_audit', 'none'), nullable=True, comment="What method to use for ETL phase", server_default=text("'truncate_insert'"))
     import_tool = Column(Enum('spark', 'sqoop'), server_default=text("'sqoop'"), nullable=False, comment='What tool should be used for importing data')
     last_update_from_source = Column(DateTime, comment='Timestamp of last schema update from source')
@@ -815,33 +815,6 @@ class tableChangeHistory(Base):
 
 
 
-#class airflowImportDagExecution(Base):
-#    __tablename__ = 'airflow_import_dag_execution'
-#    __table_args__ = {'comment': 'This table is used only in Legacy DBImport'}
-#
-#    dag_name = Column( String(64), primary_key=True, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    task_name = Column( String(256), primary_key=True, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    task_config = Column( Text, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    executionid = Column( ForeignKey('airflow_execution_type.executionid'), nullable=False, index=True, comment='<ONLY LEGACY DBIMPORT>')
-#
-#    airflow_execution_type = relationship('airflowExecutionType')
-
-
-
-#class airflowImportTaskExecution(Base):
-#    __tablename__ = 'airflow_import_task_execution'
-#    __table_args__ = {'comment': 'This table is used only in Legacy DBImport'}
-#
-#    hive_db = Column(String(256), primary_key=True, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    hive_table = Column(String(256), primary_key=True, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    stage = Column(TINYINT(4), primary_key=True, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    executionid = Column(ForeignKey('airflow_execution_type.executionid'), nullable=False, index=True, comment='<ONLY LEGACY DBIMPORT>')
-#    task_config = Column(Text, nullable=False, comment='<ONLY LEGACY DBIMPORT>')
-#    task_name = Column(Text, comment='<ONLY LEGACY DBIMPORT>')
-#
-#    airflow_execution_type = relationship('airflowExecutionType')
-
-
 class airflowTasks(Base):
     __tablename__ = 'airflow_tasks'
     __table_args__ = {'comment': 'All DAGs can be customized by adding Tasks into the DAG. Depending on what placement and type of Tasks that is created, DBImport will add custom placeholders to keep the DAG separated in three different parts. Before, In and After Main. In main is where all regular Imports, export or ETL jobs are executed. If you want to execute something before these, you place it in Before Main. And if you want to execute something after, you place it in After main. Please check the Airflow Integration part of the documentation for more examples and better understanding of the data you can put into this table'}
@@ -856,7 +829,7 @@ class airflowTasks(Base):
     airflow_priority = Column(TINYINT(4), comment='Airflow Priority. Higher number, higher priority')
     include_in_airflow = Column(TINYINT(4), nullable=False, server_default=text("'1'"), comment='Enable or disable the Task in the DAG during creation of DAG file.')
     task_dependency_in_main = Column(String(256), comment='If placement is In Main, this defines a dependency for the Task. Comma separated list')
-    task_config = Column(String(256), comment='The configuration for the Task. Depends on what Task type it is.')
+    task_config = Column(String(512), comment='The configuration for the Task. Depends on what Task type it is.')
     sensor_poke_interval = Column(Integer, nullable=True, comment='Poke interval for sensors in seconds')
     sensor_timeout_minutes = Column(Integer, nullable=True, comment='Timeout for sensors in minutes')
     sensor_connection = Column(String(64), nullable=True, comment='Name of Connection in Airflow')

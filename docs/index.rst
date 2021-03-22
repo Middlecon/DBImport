@@ -36,6 +36,7 @@ So DBImport brings the following to the table
 -   Auto discovery of tables and views from all supported source systems
 -   Supports both Full and Incremental imports and exports
 -   Supports Oracle Flashback Query for Incremental imports
+-   Supports Microsoft Change Tracking for Incremental imports
 -   Import to multiple clusters
 -   Handle column definition changes in source systems
 -   Handle column description changes in source systems

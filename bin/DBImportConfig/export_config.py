@@ -704,7 +704,6 @@ class config(object, metaclass=Singleton):
 		firstLoop = True
 		alterTableExecuted = False
 
-
 		for index, row in columnsSource.iterrows():
 			columnType = row['columnType']
 			columnComment = row['comment']
@@ -871,7 +870,7 @@ class config(object, metaclass=Singleton):
 			columnsMergeOnlyName = pd.merge(columnsSourceOnlyName, columnsTargetOnlyName, on=None, how='outer', indicator='Exist')
 
 		for index, row in columnsMergeOnlyName.loc[columnsMergeOnlyName['Exist'] == 'left_only'].iterrows():
-			# This will iterate over columns that only exists in the config and not in Hive. We add these to Hive
+			# This will iterate over columns that only exists in the config and not in Target table. We add these to the table
 			fullRow = columnsSource.loc[columnsSource['name'] == row['name']].iloc[0]
 
 			if self.common_config.jdbc_servertype == constant.MSSQL:
