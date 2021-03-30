@@ -96,6 +96,9 @@ class operation(object, metaclass=Singleton):
 	def encryptUserPassword(self, instance, username, password):
 		""" Encrypts the username and password and store them in the 'credentials column' of 'dbimport_instances' table """
 
+		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+
 		strToEncrypt = "%s %s\n"%(username, password)
 		encryptedStr = self.crypto.encrypt(strToEncrypt)
 
@@ -654,7 +657,7 @@ class operation(object, metaclass=Singleton):
 
 		localSession.close()
 
-	def copyAirflowExportDAG(self, airflowDAGname, copyDestination, setAutoRegenerateDAG = False):
+	def copyAirflowExportDAG(self, airflowDAGname, copyDestination, setAutoRegenerateDAG=False, deployMode=False):
 		""" Copy an Airflow Export DAG, including connections, tables and columns to a remote DBImport instance """
 
 		if self.checkDBImportInstance(instance = copyDestination) == False:
@@ -734,7 +737,25 @@ class operation(object, metaclass=Singleton):
 				.update(updateDict))
 			remoteSession.commit()
 
-			logging.info("DAG definition copied to remote DBImport successfully")
+			if deployMode == False:
+				logging.info("DAG definition copied to remote DBImport successfully")
+			else:
+				logging.info("DAG definition deployed successfully")
+
+			# **************************
+			# Prepair and trigger a copy of all schemas to the other cluster
+			# **************************
+
+			self.copyExportSchemaToDestination(	filterDBalias=filterDBalias, 
+												filterSchema=filterSchema,
+												filterTable=filterTable,
+												destination=copyDestination,
+												deployMode=deployMode)
+
+			if deployMode == False:
+				logging.info("Schema definitions copied to remote DBImport successfully")
+			else:
+				logging.info("Schema definitions deployed successfully")
 
 			# **************************
 			# Copy custom tasks from airflow_tasks table
@@ -777,7 +798,10 @@ class operation(object, metaclass=Singleton):
 				remoteSession.commit()
 
 			if airflowTasksResult.empty == False:
-				logging.info("DAG custom tasks copied to remote DBImport successfully")
+				if deployMode == False:
+					logging.info("DAG custom tasks copied to remote DBImport successfully")
+				else:
+					logging.info("DAG custom tasks deployed successfully")
 
 			# **************************
 			# Convert rows in airflow_dag_sensors to airflow_tasks in remote system
@@ -822,20 +846,39 @@ class operation(object, metaclass=Singleton):
 
 				logging.info("Converted DAG sensor '%s' to an airflow_tasks entry"%(row['sensor_name']))
 
-			# **************************
-			# Prepair and trigger a copy of all schemas to the other cluster
-			# **************************
 
-			self.copyExportSchemaToDestination(	filterDBalias=filterDBalias, 
-												filterSchema=filterSchema,
-												filterTable=filterTable,
-												destination=copyDestination)
+	def checkRemoteInstanceSchema(self, remoteInstance):
+		""" Checks that the remote instance is using the same database schema version as the local instance is """
 
-			logging.info("Schema definitions copied to remote DBImport successfully")
+		if self.checkDBImportInstance(instance = remoteInstance) == False:
+			logging.error("The specified remote DBImport instance does not exist.")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession = self.configDBSession()
+		alembicVersion = aliased(configSchema.alembicVersion)
+
+		if self.connectRemoteDBImportInstance(instance = remoteInstance):
+			remoteSession = self.remoteInstanceConfigDBSession()
+
+			localVersion = localSession.query(alembicVersion.version_num).one_or_none()
+			remoteVersion = remoteSession.query(alembicVersion.version_num).one_or_none()
+
+			if localVersion[0] != remoteVersion[0]:
+				logging.error("The remote DBImport instance is not running with the same version.")
+				self.remove_temporary_files()
+				sys.exit(1)
+
+		else:
+			logging.error("Cant connect to remote DBImport instance")
+			self.remove_temporary_files()
+			sys.exit(1)
+
+		localSession.close()
+		remoteSession.close()
 
 
-
-	def copyAirflowImportDAG(self, airflowDAGname, copyDestination, copyDAGnoSlave = False, setAutoRegenerateDAG = False):
+	def copyAirflowImportDAG(self, airflowDAGname, copyDestination, copyDAGnoSlave=False, setAutoRegenerateDAG=False, deployMode=False):
 		""" Copy an Airflow Import DAG, including connections, tables and columns to a remote DBImport instance """
 
 		if self.checkDBImportInstance(instance = copyDestination) == False:
@@ -904,7 +947,47 @@ class operation(object, metaclass=Singleton):
 				.update(updateDict))
 			remoteSession.commit()
 
-			logging.info("DAG definition copied to remote DBImport successfully")
+			if deployMode == False:
+				logging.info("DAG definition copied to remote DBImport successfully")
+			else:
+				logging.info("DAG definition deployed successfully")
+
+			# **************************
+			# Prepair and trigger a copy of all schemas to the other cluster
+			# **************************
+			self.copyDestinations = []
+			destString = "%s;Asynchronous"%(copyDestination)
+			self.copyDestinations.append(destString)
+
+			for hiveFilter in hiveFilterStr.split(';'):
+				hiveFilterDB = hiveFilter.split('.')[0]
+				hiveFilterTable = hiveFilter.split('.')[1]
+
+				hiveFilterDB = hiveFilterDB.replace('*', '%')
+				hiveFilterTable = hiveFilterTable.replace('*', '%')
+
+				result = pd.DataFrame(localSession.query(
+						importTables.table_id,
+						importTables.hive_db,
+						importTables.hive_table,
+						importTables.dbalias
+					)
+					.filter(importTables.hive_db.like(hiveFilterDB))
+					.filter(importTables.hive_table.like(hiveFilterTable))
+					)
+
+				for index, row in result.iterrows():
+					self.copyImportSchemaToDestinations(tableID=row['table_id'], 
+													hiveDB=row['hive_db'], 
+													hiveTable=row['hive_table'], 
+													connectionAlias=row['dbalias'],
+													copyDAGnoSlave=copyDAGnoSlave,
+													deployMode=deployMode)
+			if deployMode == False:
+				logging.info("Schema definitions copied to remote DBImport successfully")
+			else:
+				logging.info("Schema definitions deployed successfully")
+
 
 			# **************************
 			# Copy custom tasks from airflow_tasks table
@@ -947,39 +1030,10 @@ class operation(object, metaclass=Singleton):
 				remoteSession.commit()
 
 			if airflowTasksResult.empty == False:
-				logging.info("DAG custom tasks copied to remote DBImport successfully")
-
-			# **************************
-			# Prepair and trigger a copy of all schemas to the other cluster
-			# **************************
-			self.copyDestinations = []
-			destString = "%s;Asynchronous"%(copyDestination)
-			self.copyDestinations.append(destString)
-
-			for hiveFilter in hiveFilterStr.split(';'):
-				hiveFilterDB = hiveFilter.split('.')[0]
-				hiveFilterTable = hiveFilter.split('.')[1]
-
-				hiveFilterDB = hiveFilterDB.replace('*', '%')
-				hiveFilterTable = hiveFilterTable.replace('*', '%')
-
-				result = pd.DataFrame(localSession.query(
-						importTables.table_id,
-						importTables.hive_db,
-						importTables.hive_table,
-						importTables.dbalias
-					)
-					.filter(importTables.hive_db.like(hiveFilterDB))
-					.filter(importTables.hive_table.like(hiveFilterTable))
-					)
-
-				for index, row in result.iterrows():
-					self.copyImportSchemaToDestinations(tableID=row['table_id'], 
-													hiveDB=row['hive_db'], 
-													hiveTable=row['hive_table'], 
-													connectionAlias=row['dbalias'],
-													copyDAGnoSlave=copyDAGnoSlave)
-			logging.info("Schema definitions copied to remote DBImport successfully")
+				if deployMode == False:
+					logging.info("DAG custom tasks copied to remote DBImport successfully")
+				else:
+					logging.info("DAG custom tasks deployed successfully")
 
 		else:
 			logging.error("Cant connect to remote DBImport instance")
@@ -989,7 +1043,7 @@ class operation(object, metaclass=Singleton):
 		localSession.close()
 		remoteSession.close()
 
-	def copyExportSchemaToDestination(self, filterDBalias, filterSchema, filterTable, destination):
+	def copyExportSchemaToDestination(self, filterDBalias, filterSchema, filterTable, destination, deployMode=False):
 		""" Copy the schema definitions to the target instances """
 		localSession = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -1031,7 +1085,10 @@ class operation(object, metaclass=Singleton):
 				)
 
 			for index, row in result.iterrows():
-				logging.info("Copy schema definitions for %s.%s"%(row['hive_db'], row['hive_table']))
+				if deployMode == False:
+					logging.info("Copy schema definitions for %s.%s"%(row['hive_db'], row['hive_table']))
+				else:
+					logging.info("Deploying schema definitions for %s.%s"%(row['hive_db'], row['hive_table']))
 
 				##################################
 				# Update jdbc_connections
@@ -1226,12 +1283,15 @@ class operation(object, metaclass=Singleton):
 
 		localSession.close()
 
-	def copyImportSchemaToDestinations(self, tableID=None, hiveDB=None, hiveTable=None, connectionAlias=None, copyDAGnoSlave=False):
+	def copyImportSchemaToDestinations(self, tableID=None, hiveDB=None, hiveTable=None, connectionAlias=None, copyDAGnoSlave=False, deployMode=False):
 		""" Copy the schema definitions to the target instances """
 		localSession = self.configDBSession()
 
 		if self.copyDestinations == None:	
-			logging.warning("There are no destination for this table to receive a copy")
+			if deployMode == False:
+				logging.warning("There are no destination for this table to receive a copy")
+			else:
+				logging.warning("There are no destination for this deployment")
 			return
 
 		if tableID == None and hiveDB == None and hiveTable == None and connectionAlias == None:
@@ -1242,7 +1302,8 @@ class operation(object, metaclass=Singleton):
 			connectionAlias = self.import_config.connection_alias
 			printDestination = True
 		else:
-			# This happens during a "manage --copyAirflowImportDAG". And then the destination is specified in cmd and not needed to be printed
+			# This happens during a "manage --copyAirflowImportDAG" or during deployment. 
+			# And then the destination is specified in cmd and not needed to be printed
 			printDestination = False
 
 		for destAndMethod in self.copyDestinations:
@@ -1252,7 +1313,10 @@ class operation(object, metaclass=Singleton):
 				if printDestination == True:
 					logging.info("Copy schema definitions for %s.%s to instance '%s'"%(hiveDB, hiveTable, destination))
 				else:
-					logging.info("Copy schema definitions for %s.%s"%(hiveDB, hiveTable))
+					if deployMode == False:
+						logging.info("Copy schema definitions for %s.%s"%(hiveDB, hiveTable))
+					else:
+						logging.info("Deploying schema definitions for %s.%s"%(hiveDB, hiveTable))
 				remoteSession = self.remoteInstanceConfigDBSession()
 
 				jdbcConnections = aliased(configSchema.jdbcConnections)
@@ -1351,7 +1415,7 @@ class operation(object, metaclass=Singleton):
 					updateDict["%s"%(name)] = value 
 
 
-				# Update the values in import_table on the remote instance
+				# Update the values in jdbc_connections on the remote instance
 				(remoteSession.query(configSchema.jdbcConnections)
 					.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
 					.update(updateDict))

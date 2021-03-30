@@ -72,6 +72,7 @@ Content
     install
     quickstart
     configuration
+    deployment
     multi_cluster
     airflow
     atlas

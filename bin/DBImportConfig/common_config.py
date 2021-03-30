@@ -1023,6 +1023,13 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.checkKerberosTicket() - Finished")
 
 
+	def encryptString(self, strToEncrypt):
+		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+		
+		encryptedStr = self.crypto.encrypt(strToEncrypt)
+		return(encryptedStr)
+
 	def encryptUserPassword(self, connection_alias, username, password):
 
 		# Fetch public/private key from jdbc_connection table if it exists

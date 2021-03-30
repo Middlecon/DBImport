@@ -10,6 +10,11 @@ from sqlalchemy_utils import create_view
 Base = declarative_base()
 metadata = Base.metadata
 
+class alembicVersion(Base):
+    __tablename__ = 'alembic_version'
+
+    version_num = Column(String(32), primary_key=True, nullable=False)
+
 class dbimportInstances(Base):
     __tablename__ = 'dbimport_instances'
     __table_args__ = {'comment': 'This table contains all DBInstance that will receive data from this instance during the copy phase'}

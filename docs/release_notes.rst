@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+v0.68 (not release yet) 
+------------------------------
+
+**Fixed issues**
+
+**New Features**
+
+  - Deploy tool to handle deployments of DAGs and affected tables/columns/connections to a remote DBImport instance
+
+
 v0.67 
 ------------------------------
 
@@ -9,7 +19,7 @@ v0.67
   - Support for imports with MSSQL Change Tracking functions
 
 
-v0.66 
+v0.66
 ------------------------------
 
 **Fixed issues**
