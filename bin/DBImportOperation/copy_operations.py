@@ -1525,16 +1525,19 @@ class operation(object, metaclass=Singleton):
 
 					updateDict["%s"%(name)] = value 
 
-				if copyDAGnoSlave == True:
+				if deployMode == False:
+					if copyDAGnoSlave == True:
+						updateDict["copy_slave"] = 0
+						updateDict["copy_finished"] = None
+					else:
+						updateDict["copy_slave"] = 1
+						if method == "Synchronous":
+							updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
+						else:
+							updateDict["copy_finished"] = None
+				else:
 					updateDict["copy_slave"] = 0
 					updateDict["copy_finished"] = None
-				else:
-					updateDict["copy_slave"] = 1
-					if method == "Synchronous":
-						updateDict["copy_finished"] = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) 
-					else:
-						updateDict["copy_finished"] = None
-
 
 				# Update the values in import_table on the remote instance
 				(remoteSession.query(configSchema.importTables)

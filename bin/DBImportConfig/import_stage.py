@@ -674,9 +674,13 @@ class stage(object):
 		valuesPart.append(str(import_duration))
 
 		query = "insert into import_statistics "
-		insertQuery = "("	
-		insertQuery += ", ".join(map(str, columnsPart))
-		insertQuery += ") values ("	
+#		insertQuery = "("	
+#		insertQuery += ", ".join(map(str, columnsPart))
+#		insertQuery += ") values ("	
+		insertQuery = "(`"
+		insertQuery += "`, `".join(map(str, columnsPart))
+		insertQuery += "`) values ("
+
 
 		strInsert = ""
 		for i in valuesPart:

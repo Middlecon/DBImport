@@ -1831,31 +1831,6 @@ class config(object, metaclass=Singleton):
 			logging.debug("Executing import_config.getIncrWhereStatement() - Exited (Not an incremental import)")
 			return None
 
-#		if self.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
-#			# This is where we handle the specific where statement for Microsoft SQL Change Tracking Imports
-#			if whereForSqoop == True:
-#				maxVERSION = int(self.common_config.executeJDBCquery("select CHANGE_TRACKING_CURRENT_VERSION() as VERSION").iloc[0]['VERSION'])
-#				self.sqoopIncrMaxvaluePending = maxVERSION
-#				self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
-#
-#				query = ("update import_tables set incr_minvalue_pending = %s, incr_maxvalue_pending = %s where table_id = %s")
-#				self.mysql_cursor01.execute(query, (self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending, self.table_id))
-#				self.mysql_conn.commit()
-#				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
-#			else:
-#				# COALESCE is needed if you are going to call a function that counts source target rows outside the normal import
-#				query = ("select COALESCE(incr_minvalue_pending, incr_minvalue), COALESCE(incr_maxvalue_pending, incr_maxvalue) from import_tables where table_id = %s")
-#				self.mysql_cursor01.execute(query, (self.table_id, ))
-#				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
-#	
-#				row = self.mysql_cursor01.fetchone()
-#				self.sqoopIncrMinvaluePending = row[0]
-#				self.sqoopIncrMaxvaluePending = row[1]
-####
-#			if self.incr_maxvalue == None:
-#				# There is no MaxValue stored form previous imports. That means we need to do a full initial import
-#				# It also means that this will only be executed by sqoop, as after sqoop there will be a maxvalue present
-#
 		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# This is where we handle the specific where statement for Oracle FlashBack Imports
 			if whereForSqoop == True:
@@ -1897,7 +1872,7 @@ class config(object, metaclass=Singleton):
 				if whereForSourceTable == True or whereForSqoop == True:
 					whereStatement  = "VERSIONS BETWEEN SCN %s AND %s "%(self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending)
 					if forceIncr == True or whereForSqoop == True:
-						whereStatement += "WHERE VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL "
+						whereStatement += "WHERE VERSIONS_STARTSCN > %s AND VERSIONS_STARTSCN  <= %s AND VERSIONS_OPERATION IS NOT NULL AND VERSIONS_ENDTIME IS NULL "%(self.sqoopIncrMinvaluePending, self.sqoopIncrMaxvaluePending)
 					else:
 						whereStatement += "WHERE VERSIONS_ENDTIME IS NULL AND (VERSIONS_OPERATION != 'D' OR VERSIONS_OPERATION IS NULL)"
 				else:
