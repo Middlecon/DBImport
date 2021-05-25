@@ -294,9 +294,9 @@ class stage(object):
 		valuesPart.append(str(export_duration))
 
 		query = "insert into export_statistics "
-		insertQuery = "("	
-		insertQuery += ", ".join(map(str, columnsPart))
-		insertQuery += ") values ("	
+		insertQuery = "(`"	
+		insertQuery += "`, `".join(map(str, columnsPart))
+		insertQuery += "`) values ("	
 
 		strInsert = ""
 		for i in valuesPart:

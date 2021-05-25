@@ -85,6 +85,7 @@ class config(object, metaclass=Singleton):
 		self.sqoop_incr_validation_method = None
 		self.import_is_incremental = None
 		self.create_table_with_acid = None
+		self.create_table_with_acid_insert_only = None
 		self.import_with_merge = None
 		self.import_with_history_table = None
 		self.full_table_compare = None
@@ -698,9 +699,15 @@ class config(object, metaclass=Singleton):
 		# Determine if it's an merge and need ACID tables
 		if self.etlPhase in (constant.ETL_PHASE_MERGEHISTORYAUDIT, constant.ETL_PHASE_MERGEONLY, constant.IMPORT_PHASE_ORACLE_FLASHBACK, constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING): 
 			self.create_table_with_acid = True
+			self.create_table_with_acid_insert_only = False
 			self.import_with_merge = True
 		else:
-			self.create_table_with_acid = False
+			if self.common_config.getConfigValue(key = "hive_insert_only_tables") == True:
+				self.create_table_with_acid = True
+				self.create_table_with_acid_insert_only = True
+			else:
+				self.create_table_with_acid = False
+				self.create_table_with_acid_insert_only = False
 			self.import_with_merge = False
 
 		# Determine if a history table should be created
@@ -2534,6 +2541,10 @@ class config(object, metaclass=Singleton):
 			logging.debug("lowerValidationLimit: %s"%(lowerValidationLimit))
 			logging.debug("diffAllowed: %s"%(diffAllowed))
 
+
+			if target_rowcount == None:
+				logging.warn("There is no information about rowcounts in target table. Skipping validation")
+				return True
 
 			if target_rowcount > upperValidationLimit or target_rowcount < lowerValidationLimit:
 				logging.error("Validation failed! The %s exceedes the allowed limit compared top the source table"%(validateText))

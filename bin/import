@@ -41,6 +41,7 @@ def printHelp():
 	print ("  -I, -1             Only run functions in Import Phase. ")
 	print ("  -C                 Only run functions in Copy Phase. ")
 	print ("  -E, -2             Only run functions in ETL Phase.")
+	print ("  -m, --metaDataOnly Only import metaData regarding columns, constraints and number of rows from source system")
 	print ("  -f [Function], --function=[Function]")
 	print ("                     Only run the specified function. This is used for debugging and when migrating from")
 	print ("                     bash based DBImport scripts. Using a function ignore what ever stage the import is in.")
@@ -91,7 +92,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "vVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest"])
+		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -109,6 +110,7 @@ def main(argv):
 	ignoreTime = False
 	resetStage = False
 	skipHiveTest = False
+	metaDataOnlyImport = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -134,6 +136,9 @@ def main(argv):
 			ignoreTime = True
 		elif opt in ("-f", "--function"):
 			runOnlyFunction = arg
+		elif opt in ("-m", "--metaDataOnly"):
+			metaDataOnlyImport = True
+			runOnlyFunction = "metaDataOnly"
 		elif opt == "--help":
 			printHelp()
 		elif opt == "-1":
@@ -161,7 +166,7 @@ def main(argv):
 		runETLPhase = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas", "compaction"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas", "compaction", "metaDataOnly"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
@@ -399,9 +404,8 @@ def main(argv):
 				print("")
 				sys.stdout.flush()
 
-
 			# Fetch the source table schema. This is mandatory for all imports
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableSchema", "metaDataOnly"):
 				if import_operation.runStage(1010) == True: 
 					import_operation.getSourceTableSchema()
 
@@ -409,7 +413,7 @@ def main(argv):
 				if import_operation.runStage(1011) == True: 
 					import_operation.clearValidationData()
 
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"): 
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1012) == True: 
 						import_operation.getJDBCTableValidationData()
@@ -460,7 +464,7 @@ def main(argv):
 				sys.stdout.flush()
 
 			# Fetch the source table schema. This is mandatory for all imports
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableSchema", "metaDataOnly"):
 				if import_operation.runStage(1110) == True: 
 					import_operation.getSourceTableSchema()
 
@@ -482,10 +486,13 @@ def main(argv):
 						if import_operation.sqoopIncrNoNewRows == True: 
 							import_operation.setStage(1149)
 
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1120) == True: 
-						import_operation.getJDBCTableValidationData()
+						if runOnlyFunction == "metaDataOnly":
+							logging.warning("MetaDataOnly imports only supports rowcount information during full/truncate_insert import") 
+						else:
+							import_operation.getJDBCTableValidationData()
 	
 			if runOnlyFunction == None:
 				if import_operation.runStage(1121) == True: 
@@ -525,7 +532,7 @@ def main(argv):
 				sys.stdout.flush()
 
 			# Fetch the source table schema. This is mandatory for all imports
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableSchema", "metaDataOnly"):
 				if import_operation.runStage(1210) == True: 
 					import_operation.getSourceTableSchema()
 
@@ -548,13 +555,17 @@ def main(argv):
 					if import_operation.runStage(1216) == True:
 						import_operation.runSparkImport(False)
 
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1220) == True: 
-						import_operation.getJDBCTableValidationData()
+						if runOnlyFunction == "metaDataOnly":
+							logging.warning("MetaDataOnly imports only supports rowcount information during full/truncate_insert import") 
+						else:
+							import_operation.getJDBCTableValidationData()
 	
 				if import_operation.runStage(1221) == True: 
-					import_operation.validateImportTool()
+					if runOnlyFunction != "metaDataOnly":
+						import_operation.validateImportTool()
 	
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1245) == True: 
@@ -590,7 +601,7 @@ def main(argv):
 				sys.stdout.flush()
 
 			# Fetch the source table schema. This is mandatory for all imports
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableSchema":
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableSchema", "metaDataOnly"):
 				if import_operation.runStage(1260) == True: 
 					import_operation.getSourceTableSchema()
 
@@ -610,10 +621,13 @@ def main(argv):
 					if import_operation.runStage(1265) == True:
 						import_operation.runSparkImport(False)
 
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(1270) == True: 
-						import_operation.getJDBCTableValidationData()
+						if runOnlyFunction == "metaDataOnly":
+							logging.warning("MetaDataOnly imports only supports rowcount information during full/truncate_insert import") 
+						else:
+							import_operation.getJDBCTableValidationData()
 	
 #				if import_operation.runStage(1271) == True: 
 #					import_operation.validateImportTool()
@@ -648,6 +662,11 @@ def main(argv):
 				print("")
 				sys.stdout.flush()
 
+			if runOnlyFunction == "metaDataOnly":
+				logging.error("MetaDataOnly imports is not supported for Mongo databases")
+				import_operation.import_config.remove_temporary_files()
+				sys.exit(1)
+
 			if runOnlyFunction == None: 
 				if import_operation.runStage(1310) == True: 
 					import_operation.clearValidationData()
@@ -656,7 +675,7 @@ def main(argv):
 				if import_operation.runStage(1315) == True:
 					import_operation.runSparkImportForMongo()
 
-			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount": 
+			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount":
 				if import_operation.import_config.validate_import == True:
 					if import_operation.import_config.validate_import == True:
 						if import_operation.runStage(1320) == True: 

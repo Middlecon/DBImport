@@ -60,6 +60,7 @@ class initialize(object):
 		self.DAGfileGroup = self.common_config.getConfigValue("airflow_dag_file_group")
 		self.DAGfilePermission = self.common_config.getConfigValue("airflow_dag_file_permission")
 		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
+		self.airflowMajorVersion = self.common_config.getConfigValue("airflow_major_version")
 		self.timeZone = self.common_config.getConfigValue("timezone")
 		
 		self.DAGfile = None
@@ -181,7 +182,8 @@ class initialize(object):
 				airflowImportDags.run_import_and_etl_separate,
 				airflowImportDags.finish_all_stage1_first,
 				airflowImportDags.auto_regenerate_dag,
-				airflowImportDags.sudo_user
+				airflowImportDags.sudo_user,
+				airflowImportDags.metadata_import
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -382,7 +384,13 @@ class initialize(object):
 		tableFilters = []
 		defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
+#		metaDataImport = DAG['metadata_import']
 		usedPools.append(defaultPool)
+
+		if DAG['metadata_import'] == 1:
+			metaDataImportOption = "-m"
+		else:
+			metaDataImportOption = ""
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser)
@@ -598,7 +606,7 @@ class initialize(object):
 
 				self.DAGfile.write("%s = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s',\n"%(taskID))
-				self.DAGfile.write("    bash_command='%s -h %s -t %s ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
+				self.DAGfile.write("    bash_command='%s -h %s -t %s %s ',\n"%(dbimportCMD, row['hive_db'], row['hive_table'], metaDataImportOption))
 				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 				self.DAGfile.write("    weight_rule='absolute',\n")
@@ -735,7 +743,10 @@ class initialize(object):
 		self.DAGfile.write("from airflow.operators.python_operator import BranchPythonOperator\n")
 		self.DAGfile.write("from airflow.operators.dagrun_operator import TriggerDagRunOperator\n")
 		self.DAGfile.write("from airflow.operators.dummy_operator import DummyOperator\n")
-		self.DAGfile.write("from airflow.operators.sensors import ExternalTaskSensor\n")
+		if self.airflowMajorVersion == 2:
+			self.DAGfile.write("from airflow.sensors.external_task import ExternalTaskSensor\n")
+		else:
+			self.DAGfile.write("from airflow.operators.sensors import ExternalTaskSensor\n")
 		self.DAGfile.write("from airflow.sensors.sql_sensor import SqlSensor\n")
 		self.DAGfile.write("from datetime import datetime, timedelta, timezone\n")
 		self.DAGfile.write("import pendulum\n")

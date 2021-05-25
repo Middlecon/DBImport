@@ -463,6 +463,13 @@ class initialize(object):
 				description='What user will Airflow sudo to for executing DBImport. This value will replace the ${SUDO_USER} variable in airflow_dbimport_commandpath setting')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'airflow_major_version').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_major_version', 
+				valueInt='2', 
+				description='What is the major version of Airflow? 1 or 2 is valid options. Controls how the DAG files are generated')
+			self.configDB.execute(query)
+
 		if result_df.empty or (result_df[0] == 'airflow_dag_directory').any() == False:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_directory', 
@@ -601,4 +608,18 @@ class initialize(object):
 				configKey='import_process_empty', 
 				valueInt='0', 
 				description='If 1, then the import will do a full processing of import even if they contain no data.')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_insert_only_tables').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_insert_only_tables', 
+				valueInt='1', 
+				description='If 1, then the non-merge tables in Hive will be ACID insert-only')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'hive_acid_with_clusteredby').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='hive_acid_with_clusteredby', 
+				valueInt='0', 
+				description='If 1, then ACID tables will be created with a clustered by option based on the PK. Not required with Hive3 and later')
 			self.configDB.execute(query)

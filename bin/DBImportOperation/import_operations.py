@@ -1263,6 +1263,9 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
 		sqoopCommand.extend(["-D", "yarn.timeline-service.enabled=false"]) 
 		sqoopCommand.extend(["-D", "org.apache.sqoop.splitter.allow_text_splitter=%s"%(self.import_config.sqoop_allow_text_splitter)])
+		sqoopCommand.extend(["-D", "sqoop.parquet.logical_types.decimal.enable=false"])
+		sqoopCommand.extend(["-D", "sqoop.avro.logical_types.decimal.enable=false"])
+
 
 		if "split-by" not in self.import_config.sqoop_options.lower():
 			sqoopCommand.append("--autoreset-to-one-mapper")
@@ -1668,7 +1671,7 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.createHiveMergeColumns() - Finished")
 
-	def generateCreateTargetTableSQL(self, hiveDB, hiveTable, acidTable=False, buckets=4, restrictColumns=None):
+	def generateCreateTargetTableSQL(self, hiveDB, hiveTable, acidTable=False, buckets=4, restrictColumns=None, acidInsertOnly=False):
 		""" Will generate the common create table for the target table as a list. """
 		logging.debug("Executing import_operations.generateCreateTargetTableSQL()")
 
@@ -1700,23 +1703,27 @@ class operation(object, metaclass=Singleton):
 		if acidTable == False:
 			query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB') "
 		else:
-			# TODO: HDP3 shouldnt run this
-			query += "CLUSTERED BY ("
-			firstColumn = True
+			if self.import_config.common_config.getConfigValue(key = "hive_acid_with_clusteredby") == True:
+				query += "CLUSTERED BY ("
+				firstColumn = True
+	
+				if self.import_config.getPKcolumns(PKforMerge = True) == None:		# To look at both pk_column_override and pk_override_merge_only 
+					logging.error("There is no Primary Key for this table. Please add one in source system or in 'pk_column_override'")
+					self.import_config.remove_temporary_files()
+					sys.exit(1)
+	
+				for column in self.import_config.getPKcolumns(PKforMerge = True).split(","):
+					if firstColumn == False:
+						query += ", " 
+					query += "`" + column + "`" 
+					firstColumn = False
+				#TODO: Smarter calculation of the number of buckets
+				query += ") into %s buckets "%(buckets)
 
-			if self.import_config.getPKcolumns(PKforMerge = True) == None:		# To look at both pk_column_override and pk_override_merge_only 
-				logging.error("There is no Primary Key for this table. Please add one in source system or in 'pk_column_override'")
-				self.import_config.remove_temporary_files()
-				sys.exit(1)
-
-			for column in self.import_config.getPKcolumns(PKforMerge = True).split(","):
-				if firstColumn == False:
-					query += ", " 
-				query += "`" + column + "`" 
-				firstColumn = False
-			#TODO: Smarter calculation of the number of buckets
-			query += ") into %s buckets "%(buckets)
-			query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='true') "
+			if acidInsertOnly == False:
+				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='true') "
+			else:
+				query += "STORED AS ORC TBLPROPERTIES ('orc.compress'='ZLIB', 'transactional'='true', 'transactional_properties'='insert_only') "
 
 		queryList.append(query)
 
@@ -1732,11 +1739,20 @@ class operation(object, metaclass=Singleton):
 		if self.common_operations.checkHiveTable(Hive_Delete_DB, Hive_Delete_Table) == False:
 			# Target table does not exist. We just create it in that case
 			logging.info("Creating Delete table %s.%s in Hive"%(Hive_Delete_DB, Hive_Delete_Table))
-			queryList = self.generateCreateTargetTableSQL( 
-				hiveDB = Hive_Delete_DB, 
-				hiveTable = Hive_Delete_Table, 
-				acidTable = False, 
-				restrictColumns = self.import_config.getPKcolumns(PKforMerge=True))
+			if self.import_config.common_config.getConfigValue(key = "hive_insert_only_tables") == True:
+				queryList = self.generateCreateTargetTableSQL( 
+					hiveDB = Hive_Delete_DB, 
+					hiveTable = Hive_Delete_Table, 
+					acidTable = True, 
+					acidInsertOnly = True, 
+					restrictColumns = self.import_config.getPKcolumns(PKforMerge=True))
+			else:
+				queryList = self.generateCreateTargetTableSQL( 
+					hiveDB = Hive_Delete_DB, 
+					hiveTable = Hive_Delete_Table, 
+					acidTable = False, 
+					acidInsertOnly = False, 
+					restrictColumns = self.import_config.getPKcolumns(PKforMerge=True))
 
 			query = "".join(queryList)
 
@@ -1761,7 +1777,10 @@ class operation(object, metaclass=Singleton):
 		if self.common_operations.checkHiveTable(Hive_History_DB, Hive_History_Table) == False:
 			# Target table does not exist. We just create it in that case
 			logging.info("Creating History table %s.%s in Hive"%(Hive_History_DB, Hive_History_Table))
-			queryList = self.generateCreateTargetTableSQL( hiveDB=Hive_History_DB, hiveTable=Hive_History_Table, acidTable=False)
+			if self.import_config.common_config.getConfigValue(key = "hive_insert_only_tables") == True:
+				queryList = self.generateCreateTargetTableSQL( hiveDB=Hive_History_DB, hiveTable=Hive_History_Table, acidTable=True, acidInsertOnly=True)
+			else:
+				queryList = self.generateCreateTargetTableSQL( hiveDB=Hive_History_DB, hiveTable=Hive_History_Table, acidTable=False, acidInsertOnly=False)
 
 			query = queryList[0]
 			if self.import_config.datalake_source != None:
@@ -1787,10 +1806,19 @@ class operation(object, metaclass=Singleton):
 			# Target table does not exist. We just create it in that case
 			logging.info("Creating Target table %s.%s in Hive"%(self.Hive_DB, self.Hive_Table))
 
+#			if self.import_config.import_with_merge == True:
 			queryList = self.generateCreateTargetTableSQL( 
 				hiveDB=self.Hive_DB, 
 				hiveTable=self.Hive_Table, 
-				acidTable=self.import_config.create_table_with_acid)
+				acidTable=self.import_config.create_table_with_acid,
+				acidInsertOnly=self.import_config.create_table_with_acid_insert_only)		
+#			else:
+#				# If it's not a merge import, we might have to create the table with acid 'insert_only' option
+#				queryList = self.generateCreateTargetTableSQL( 
+#					hiveDB=self.Hive_DB, 
+#					hiveTable=self.Hive_Table, 
+#					acidTable=self.import_config.create_table_with_acid,
+#					acidInsertOnly = self.import_config.common_config.getConfigValue(key = "hive_insert_only_tables"))		
 
 			query = queryList[0]
 
