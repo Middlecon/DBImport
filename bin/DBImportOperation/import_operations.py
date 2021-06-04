@@ -969,7 +969,6 @@ class operation(object, metaclass=Singleton):
 #		sys.exit(1)
 
 		# Create a valid PYSPARK_SUBMIT_ARGS string
-		sparkPysparkSubmitArgs = "--jars "
 		sparkJars = ""
 
 		firstLoop = True

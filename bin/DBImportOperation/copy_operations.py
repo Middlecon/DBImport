@@ -997,6 +997,7 @@ class operation(object, metaclass=Singleton):
 				.filter(configSchema.airflowTasks.dag_name == airflowDAGname)
 				)
 
+			copiedJdbcConnections = []
 			for index, row in airflowTasksResult.iterrows():
 
 				# Check if the Airflow Task exists on the remote DBImport instance
@@ -1021,6 +1022,10 @@ class operation(object, metaclass=Singleton):
 						continue
 
 					updateDict["%s"%(name)] = value 
+
+				if row["jdbc_dbalias"] not in copiedJdbcConnections:
+					self.copyJdbcConnectionToDestination(jdbcConnection=row["jdbc_dbalias"], destination=copyDestination, deployMode=deployMode)
+					copiedJdbcConnections.append(row["jdbc_dbalias"])
 
 				# Update the values in airflow_tasks on the remote instance
 				(remoteSession.query(configSchema.airflowTasks)
@@ -1374,6 +1379,8 @@ class operation(object, metaclass=Singleton):
 				# Update jdbc_connections
 				##################################
 
+				self.copyJdbcConnectionToDestination(jdbcConnection=jdbcConnection, deployMode=deployMode, destination=destination)
+				"""
 				# Check if the jdbcConnection exists on the remote DBImport instance
 				result = (remoteSession.query(
 						jdbcConnections
@@ -1420,7 +1427,7 @@ class operation(object, metaclass=Singleton):
 					.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
 					.update(updateDict))
 				remoteSession.commit()
-
+				"""
 				##################################
 				# Update import_colums 
 				##################################
@@ -1551,6 +1558,82 @@ class operation(object, metaclass=Singleton):
 
 		localSession.close()
 			
+	def copyJdbcConnectionToDestination(self, jdbcConnection, destination, deployMode=False):
+		""" Copy the JDBC Connection to the target instances """
+		localSession = self.configDBSession()
+
+		if self.copyDestinations == None:	
+			if deployMode == False:
+				logging.warning("There are no destination for this table to receive a copy")
+			else:
+				logging.warning("There are no destination for this deployment")
+			return
+
+		remoteSession = self.remoteInstanceConfigDBSession()
+
+		jdbcConnections = aliased(configSchema.jdbcConnections)
+		dbimportInstances = aliased(configSchema.dbimportInstances)
+
+		# Check if if we are going to sync the credentials for this destination
+		result = (localSession.query(
+				dbimportInstances.sync_credentials
+			)
+			.select_from(dbimportInstances)
+			.filter(dbimportInstances.name == destination)
+			.one())
+
+		if result[0] == 1:
+			syncCredentials = True
+		else:
+			syncCredentials = False
+
+		# Check if the jdbcConnection exists on the remote DBImport instance
+		result = (remoteSession.query(
+				jdbcConnections
+			)
+			.filter(jdbcConnections.dbalias == jdbcConnection)
+			.count())
+
+		if result == 0:
+			newJdbcConnection = configSchema.jdbcConnections(
+				dbalias = jdbcConnection,
+				jdbc_url = '')
+			remoteSession.add(newJdbcConnection)
+			remoteSession.commit()
+
+		# Read the entire import_table row from the source database
+		sourceJdbcConnection = pd.DataFrame(localSession.query(configSchema.jdbcConnections.__table__)
+			.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
+			)
+
+		# Table to update with values from import_table source
+		remoteJdbcConnection = (remoteSession.query(configSchema.jdbcConnections.__table__)
+			.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
+			.one()
+			)
+
+		# Create dictonary to be used to update the values in import_table on the remote Instance
+		updateDict = {}
+		for name, values in sourceJdbcConnection.iteritems():
+			if name == "dbalias":
+				continue
+
+			if syncCredentials == False and name in ("credentials", "private_key_path", "public_key_path"):
+				continue
+
+			value = str(values[0])
+			if value == "None":
+				value = None
+
+			updateDict["%s"%(name)] = value 
+
+
+		# Update the values in jdbc_connections on the remote instance
+		(remoteSession.query(configSchema.jdbcConnections)
+			.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
+			.update(updateDict))
+		remoteSession.commit()
+
 	def importCopiedTable(self, localHDFSpath, hiveDB, hiveTable):
 		""" Import a table from the specified directory """
 		logging.debug("Executing copy_operations.importCopiedTable()")
