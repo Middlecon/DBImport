@@ -969,6 +969,8 @@ class operation(object, metaclass=Singleton):
 #		sys.exit(1)
 
 		# Create a valid PYSPARK_SUBMIT_ARGS string
+#		sparkPysparkSubmitArgs = "--driver-library-path /usr/share/java --jars /usr/share/java/mssql-jdbc_auth-9.2.1.x86.dll,"
+		sparkPysparkSubmitArgs = "--jars "
 		sparkJars = ""
 
 		firstLoop = True
@@ -999,6 +1001,7 @@ class operation(object, metaclass=Singleton):
 				firstLoop = False
 
 		sparkPysparkSubmitArgs += " pyspark-shell"
+#		print(sparkPysparkSubmitArgs)
 
 		# Setup the additional path required to find the libraries/modules
 		for path in self.import_config.common_config.sparkPathAppend.split(","):
