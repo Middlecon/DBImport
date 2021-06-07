@@ -1380,54 +1380,7 @@ class operation(object, metaclass=Singleton):
 				##################################
 
 				self.copyJdbcConnectionToDestination(jdbcConnection=jdbcConnection, deployMode=deployMode, destination=destination)
-				"""
-				# Check if the jdbcConnection exists on the remote DBImport instance
-				result = (remoteSession.query(
-						jdbcConnections
-					)
-					.filter(jdbcConnections.dbalias == jdbcConnection)
-					.count())
 
-				if result == 0:
-					newJdbcConnection = configSchema.jdbcConnections(
-						dbalias = jdbcConnection,
-						jdbc_url = '')
-					remoteSession.add(newJdbcConnection)
-					remoteSession.commit()
-
-				# Read the entire import_table row from the source database
-				sourceJdbcConnection = pd.DataFrame(localSession.query(configSchema.jdbcConnections.__table__)
-					.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
-					)
-
-				# Table to update with values from import_table source
-				remoteJdbcConnection = (remoteSession.query(configSchema.jdbcConnections.__table__)
-					.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
-					.one()
-					)
-
-				# Create dictonary to be used to update the values in import_table on the remote Instance
-				updateDict = {}
-				for name, values in sourceJdbcConnection.iteritems():
-					if name == "dbalias":
-						continue
-
-					if syncCredentials == False and name in ("credentials", "private_key_path", "public_key_path"):
-						continue
-
-					value = str(values[0])
-					if value == "None":
-						value = None
-
-					updateDict["%s"%(name)] = value 
-
-
-				# Update the values in jdbc_connections on the remote instance
-				(remoteSession.query(configSchema.jdbcConnections)
-					.filter(configSchema.jdbcConnections.dbalias == jdbcConnection)
-					.update(updateDict))
-				remoteSession.commit()
-				"""
 				##################################
 				# Update import_colums 
 				##################################
@@ -1435,10 +1388,75 @@ class operation(object, metaclass=Singleton):
 				# Read the entire import_table row from the source database
 				sourceAllColumnDefinitions = pd.DataFrame(localSession.query(configSchema.importColumns.__table__)
 					.filter(configSchema.importColumns.table_id == tableID)
+					.order_by(configSchema.importColumns.column_order)
 					)
 
-				for columnIndex, columnRow in sourceAllColumnDefinitions.iterrows():
+				targetAllColumnDefinitions = pd.DataFrame(remoteSession.query(configSchema.importColumns.__table__)
+					.filter(configSchema.importColumns.table_id == remoteTableID)
+					.order_by(configSchema.importColumns.column_order)
+					)
 
+				sourceAllColumnDefinitions.rename(columns={'table_id':'source_table_id', 'column_id':'source_column_id'}, inplace=True)	
+				targetAllColumnDefinitions.rename(columns={'table_id':'target_table_id', 'column_id':'target_column_id'}, inplace=True)	
+
+				# Get the difference between source and target column definitions
+				columnDifference = pd.merge(sourceAllColumnDefinitions, targetAllColumnDefinitions, on=None, how='outer', indicator='Exist')			
+				columnDifferenceLeftOnly = columnDifference[columnDifference.Exist == "left_only"]
+				columnDifferenceLeftOnly = columnDifferenceLeftOnly.replace({np.nan: None})
+
+				for columnIndex, columnRow in columnDifferenceLeftOnly.iterrows():
+					sourceColumnName = columnRow["source_column_name"]
+
+					# Check if column exists in target database
+					if len(targetAllColumnDefinitions.loc[targetAllColumnDefinitions['source_column_name'] == sourceColumnName]) == 0:
+						logging.debug("Source Column Name '%s' does not exists in target"%(sourceColumnName))
+						newImportColumn = configSchema.importColumns(
+							table_id = remoteTableID,
+							column_name = columnRow['column_name'],
+							hive_db = hiveDB,
+							hive_table = hiveTable,
+							source_column_name = columnRow['source_column_name'],
+							column_type = '',
+							source_column_type = '',
+							last_update_from_source = str(columnRow['last_update_from_source']))
+						remoteSession.add(newImportColumn)
+						remoteSession.commit()
+
+					# Get the table_id from the table at the remote instance
+					remoteImportColumnID = (remoteSession.query(
+							importColumns.column_id
+						)
+						.select_from(importColumns)
+						.filter(importColumns.table_id == remoteTableID)
+						.filter(importColumns.source_column_name == columnRow['source_column_name'])
+						.one())
+
+					remoteColumnID = remoteImportColumnID[0]
+						
+					# Create dictonary to be used to update the values in import_table on the remote Instance
+					updateDict = {}
+					for name, values in columnRow.iteritems():
+
+						if name in ("source_table_id", "source_column_id", "source_column_name", "target_table_id", "target_column_id", "hive_db", "hive_table", "Exist"):
+							continue
+	
+#						print("%s = %s"%(name, values))
+						value = str(values)
+						if value == "None" and name != "anonymization_function":
+							# The 'anonymization_function' column contains the text 'None' if it doesnt anonymize anything. 
+							# It's a Enum, so it's ok. But we need to handle it here
+							value = None
+	
+						updateDict["%s"%(name)] = value 
+
+					# Update the values in import_table on the remote instance
+					(remoteSession.query(configSchema.importColumns)
+						.filter(configSchema.importColumns.column_id == remoteColumnID)
+						.update(updateDict))
+					remoteSession.commit()
+
+				"""
+				for columnIndex, columnRow in sourceAllColumnDefinitions.iterrows():
 					# Check if the column exists on the remote DBImport instance
 					result = (remoteSession.query(
 							importColumns
@@ -1503,6 +1521,7 @@ class operation(object, metaclass=Singleton):
 						.update(updateDict))
 					remoteSession.commit()
 
+				"""
 
 				##################################
 				# Update import_tables
