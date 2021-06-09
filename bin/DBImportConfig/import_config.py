@@ -1112,6 +1112,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
 				column_type = re.sub('^geometry$', 'binary', column_type)
+				column_type = re.sub('^geography\(-1\)$', 'binary', column_type)
 				column_type = re.sub('^image$', 'binary', column_type)
 				column_type = re.sub('^money$', 'decimal', column_type)
 				column_type = re.sub('^nchar\(', 'char(', column_type)
