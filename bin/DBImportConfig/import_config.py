@@ -2168,7 +2168,10 @@ class config(object, metaclass=Singleton):
 		logging.info("Saving sqoop statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
-		self.sqoop_last_execution_timestamp = datetime.utcfromtimestamp(sqoopStartUTS).strftime('%Y-%m-%d %H:%M:%S.000')
+		try:
+			self.sqoop_last_execution_timestamp = datetime.utcfromtimestamp(sqoopStartUTS).strftime('%Y-%m-%d %H:%M:%S.000')
+		except TypeError:
+			self.sqoop_last_execution_timestamp = None
 
 		queryParam = []
 		query =  "update import_tables set "

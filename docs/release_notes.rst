@@ -6,6 +6,8 @@ v0.68 (not release yet)
 
 **Fixed issues**
 
+  - Issue #85: Incremental import of empty database might result in duplicate rows
+
 **New Features**
 
   - Deploy tool to handle deployments of DAGs and affected tables/columns/connections to a remote DBImport instance

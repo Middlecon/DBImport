@@ -925,6 +925,7 @@ class operation(object, metaclass=Singleton):
 						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=False)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=True, printInfo=False)
+						self.deleteSqoopHdfsLocation()
 					except:
 						logging.exception("Fatal error when saving sqoop statistics")
 						self.import_config.remove_temporary_files()
@@ -1193,6 +1194,20 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.runSparkImport() - Finished")
 
+	def deleteSqoopHdfsLocation(self):
+		logging.debug("Executing import_operations.deleteSqoopHdfsLocation()")
+		logging.info("Deleting old imported data from previous DBImport executions on HDFS")
+
+		hdfsCommandList = ['hdfs', 'dfs', '-rm', '-r', '-skipTrash', self.import_config.sqoop_hdfs_location]
+		hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = hdfsProc.communicate()
+
+		hdfsCommandList = ['hdfs', 'dfs', '-mkdir', self.import_config.sqoop_hdfs_location]
+		hdfsProc = subprocess.Popen(hdfsCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdOut, stdErr = hdfsProc.communicate()
+
+		logging.debug("Executing import_operations.deleteSqoopHdfsLocation() - Finished")
+
 	def runSqoopImport(self, PKOnlyImport):
 		logging.debug("Executing import_operations.runSqoopImport()")
 
@@ -1327,6 +1342,7 @@ class operation(object, metaclass=Singleton):
 						self.import_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=0, sqoopRows=0, sqoopMappers=0)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=False)
 						self.import_config.saveSourceTableRowCount(rowCount=0, incr=True, printInfo=False)
+						self.deleteSqoopHdfsLocation()
 					except:
 						logging.exception("Fatal error when saving sqoop statistics")
 						self.import_config.remove_temporary_files()
