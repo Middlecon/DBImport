@@ -1396,6 +1396,11 @@ class operation(object, metaclass=Singleton):
 					.order_by(configSchema.importColumns.column_order)
 					)
 
+				if targetAllColumnDefinitions.empty:
+					# If the target DF is empty, it means that the table does not exist in the target system. So to be able to continue with the merge, we need the columns 
+					# to be presented. So we set them to the same as the sourceDefinition
+					targetAllColumnDefinitions = pd.DataFrame(data=None, columns=sourceAllColumnDefinitions.columns)
+
 				sourceAllColumnDefinitions.rename(columns={'table_id':'source_table_id', 'column_id':'source_column_id'}, inplace=True)	
 				targetAllColumnDefinitions.rename(columns={'table_id':'target_table_id', 'column_id':'target_column_id'}, inplace=True)	
 
