@@ -278,7 +278,7 @@ def print_airflow_help():
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms" ])
+		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "airflowDAGFolder=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms"])
 	except getopt.GetoptError:
 		if "--runJDBCQuery" in argv:
 			print_runJDBCQuery_help()
@@ -307,6 +307,7 @@ def main(argv):
 	airflowAutoDAGonly = False
 	airflowDAG = None
 	airflowWriteDAG = False
+	airflowDAGFolder=None
 	copyDestination = None
 	quietMode = False
 	hiveScript = None
@@ -365,6 +366,8 @@ def main(argv):
 			airflowAutoDAGonly = True
 		elif opt == "--airflowDAG":
 			airflowDAG = str(arg)
+		elif opt == "--airflowDAGFolder":
+			airflowDAGFolder = str(arg)
 		elif opt == "--airflowGenerate":
 			operation = "airflowGenerate"
 		elif opt == "--checkAirflowExecution":
@@ -550,7 +553,7 @@ def main(argv):
 					logging.info("No generation of Airflow DAG's will happen")
 					sys.exit(1)
 
-			airflow.generateDAG(name=airflowDAG, autoDAGonly=airflowAutoDAGonly, writeDAG=airflowWriteDAG)
+			airflow.generateDAG(name=airflowDAG, autoDAGonly=airflowAutoDAGonly, writeDAG=airflowWriteDAG, DAGFolder=airflowDAGFolder)
 			airflow.common_config.remove_temporary_files()
 
 		if operation == "encryptInstance":

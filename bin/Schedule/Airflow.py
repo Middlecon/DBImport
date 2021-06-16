@@ -24,6 +24,7 @@ import shutil
 import jaydebeapi
 import re
 from ConfigReader import configuration
+import pendulum
 from datetime import date, datetime, time, timedelta
 import pandas as pd
 from common import constants as constant
@@ -61,7 +62,7 @@ class initialize(object):
 		self.DAGfilePermission = self.common_config.getConfigValue("airflow_dag_file_permission")
 		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
 		self.airflowMajorVersion = self.common_config.getConfigValue("airflow_major_version")
-		self.timeZone = self.common_config.getConfigValue("timezone")
+		self.defaultTimeZone = self.common_config.getConfigValue("timezone")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -147,9 +148,10 @@ class initialize(object):
 
 		return self.dbimportCommandPath.replace("${SUDO_USER}", sudoUser)
 
-	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False):
+	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False, DAGFolder=None):
 
 		self.writeDAG = writeDAG
+		self.DAGFolder = DAGFolder
 
 		session = self.configDBSession()
 		airflowCustomDags = aliased(configSchema.airflowCustomDags)
@@ -165,7 +167,8 @@ class initialize(object):
 				airflowExportDags.filter_target_table,
 				airflowExportDags.retries,
 				airflowExportDags.auto_regenerate_dag,
-				airflowExportDags.sudo_user
+				airflowExportDags.sudo_user,
+				airflowExportDags.timezone
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -183,7 +186,8 @@ class initialize(object):
 				airflowImportDags.finish_all_stage1_first,
 				airflowImportDags.auto_regenerate_dag,
 				airflowImportDags.sudo_user,
-				airflowImportDags.metadata_import
+				airflowImportDags.metadata_import,
+                                airflowImportDags.timezone
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -197,7 +201,9 @@ class initialize(object):
 				airflowEtlDags.filter_target_db,
 				airflowEtlDags.retries,
 				airflowEtlDags.auto_regenerate_dag,
-				airflowEtlDags.sudo_user
+				airflowEtlDags.sudo_user,
+                                airflowEtlDags.timezone
+
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -207,7 +213,8 @@ class initialize(object):
 				airflowCustomDags.schedule_interval,
 				airflowCustomDags.retries,
 				airflowCustomDags.auto_regenerate_dag,
-				airflowCustomDags.sudo_user
+				airflowCustomDags.sudo_user,
+                                airflowCustomDags.timezone
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -268,7 +275,7 @@ class initialize(object):
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -393,7 +400,7 @@ class initialize(object):
 			metaDataImportOption = ""
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -691,7 +698,7 @@ class initialize(object):
 			retries = int(DAG['retries'])
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser)
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
@@ -707,10 +714,20 @@ class initialize(object):
 			minute = re.sub('^[0-2][0-9]:', '', time) 
 			returnValue = "'%s %s * * *'"%(int(minute), int(hour)) 
 
-		return returnValue 
+		return returnValue
+
+	def validateTimeZone(self, timeZone):
+		try:
+			pendulum.timezone(timeZone)
+		except pendulum.tz.zoneinfo.exceptions.InvalidTimezone:
+			return False
+		except ValueError:
+			return False
+		else:
+			return True
 
 
-	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser=""):
+	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None):
 		session = self.configDBSession()
 
 		self.sensorStartTask = "start"
@@ -731,7 +748,16 @@ class initialize(object):
 		tasksAfterMainExists = False
 		tasksSensorsExists = False
 
-		self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, dagName)
+		if dagTimeZone != None and dagTimeZone != "" and self.validateTimeZone(dagTimeZone) == False:
+			logging.warning("Time zone value specified for DAG is not valid, (%s)" %(dagTimeZone))
+			logging.warning("Using default time zone value instead")
+			dagTimeZone=None
+
+		if self.DAGFolder == None: 
+			self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, dagName)
+		else:
+			self.DAGfilename = "%s/%s.py"%(self.DAGFolder, dagName)
+
 		self.DAGfilenameInAirflow = "%s/%s.py"%(self.DAGdirectory, dagName)
 
 		self.DAGfile = open(self.DAGfilename, "w")
@@ -753,7 +779,10 @@ class initialize(object):
 		self.DAGfile.write("\n")
 		self.DAGfile.write("Email_receiver = Variable.get(\"Email_receiver\")\n")
 		self.DAGfile.write("\n")
-		self.DAGfile.write("local_tz = pendulum.timezone(\"%s\")\n"%(self.timeZone))
+		if dagTimeZone == None or dagTimeZone == "":
+			self.DAGfile.write("local_tz = pendulum.timezone(\"%s\")\n"%(self.defaultTimeZone))
+		else:
+			self.DAGfile.write("local_tz = pendulum.timezone(\"%s\")\n"%(dagTimeZone))
 		self.DAGfile.write("\n")
 		self.DAGfile.write("default_args = {\n")
 		self.DAGfile.write("    'owner': 'airflow',\n")
