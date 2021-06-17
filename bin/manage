@@ -278,7 +278,7 @@ def print_airflow_help():
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "airflowDAGFolder=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms"])
+		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "airflowDAGFolder=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms", "getAllConnectionPasswords" ])
 	except getopt.GetoptError:
 		if "--runJDBCQuery" in argv:
 			print_runJDBCQuery_help()
@@ -394,6 +394,8 @@ def main(argv):
 			operation = "resetIncrementalExport"
 		elif opt == "--repairIncrementalExport":
 			operation = "repairIncrementalExport"
+		elif opt == "--getAllConnectionPasswords":
+			operation = "getAllConnectionPasswords"
 		elif opt == "--dropExportTable":
 			operation = "dropExportTable"
 		elif opt == "--addImportTable":
@@ -624,6 +626,10 @@ def main(argv):
 			encryptedStr = commonConfig.encryptString(strToEncrypt)
 			print(encryptedStr)
 			commonConfig.remove_temporary_files()
+
+		if operation == "getAllConnectionPasswords":
+			commonConfig = common_config.config()
+			commonConfig.printConnectionAliasDetails()
 
 		if operation == "sendJSONstatistics":
 			rest.postSQLDataToREST()

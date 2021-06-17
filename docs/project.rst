@@ -5,10 +5,13 @@ Committers
 ----------
 
   - @BerryOsterlund (Berry Österlund, Middlecon AB)
+  - @erikalarsson (Erika Larsson, Scania AB)
 
 Versions
 --------
 
+  - v0.67. MSSQL Change Tracking support
+  - v0.66. Custom SQL validations and timezone configuration 
   - v0.65. Apache Atlas integration
   - v0.64. Spark support for Import and Export
   - v0.63. Copy command
@@ -33,3 +36,5 @@ RoadMap
   1. WebGui for administration of DBImport - **Alpha version available**
   2. Support for more JDBC sources such as Netezza, TeraData, ExaData
   3. Support for more than MySQL as configuration database for DBImport
+
+

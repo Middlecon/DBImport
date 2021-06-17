@@ -36,7 +36,6 @@ class source(object):
 		if _data == None: 
 			return None
 		else:
-#			return _data.strip()
 			return _data
 		
 
@@ -44,10 +43,6 @@ class source(object):
 		logging.debug("Executing schemaReader.readTableColumns()")
 		query = None
 		result_df = pd.DataFrame()
-
-#		fetchAllData = False
-#		if database == None and schema == None and table == None:
-#			fetchAllData = True
 
 		if serverType == constant.MSSQL:
 			query  = "select "
@@ -1143,6 +1138,155 @@ class source(object):
 		logging.debug("Executing schemaReader.readKeys() - Finished")
 		return result_df
 
+	def readTableIndex(self, JDBCCursor, serverType = None, database = None, schema = None, table = None):
+		logging.debug("Executing schemaReader.readTableColumns()")
+		query = None
+		result_df = pd.DataFrame()
+
+		if serverType == constant.MSSQL:
+#			query  = "select "
+#			query += "	SchemaName = CAST((TBL.TABLE_SCHEMA) AS NVARCHAR(4000)), "
+#			query += "	TableName =  CAST((TBL.TABLE_NAME) AS NVARCHAR(4000)), "
+#			query += "	TableDescription = CAST((tableProp.value) AS NVARCHAR(4000)), "
+#			query += "	ColumnName = CAST((COL.COLUMN_NAME) AS NVARCHAR(4000)), "
+#			query += "	ColumnDataType = CAST((COL.DATA_TYPE) AS NVARCHAR(4000)), " 
+#			query += "	ColumnLength = COL.CHARACTER_MAXIMUM_LENGTH, "
+#			query += "	ColumnDescription = CAST((colDesc.ColumnDescription) AS NVARCHAR(4000)), " 
+#			query += "	ColumnPrecision = CAST((COL.numeric_precision) AS NVARCHAR(128)), "
+#			query += "	ColumnScale = COL.numeric_scale, "
+#			query += "	IsNullable =  CAST((COL.Is_Nullable) AS NVARCHAR(128)), "
+#			query += "	TableType =  CAST((TBL.TABLE_TYPE) AS NVARCHAR(4000)), "
+#			query += "  CreateDate = sysTables.create_date "
+#			query += "FROM INFORMATION_SCHEMA.TABLES TBL " 
+#			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS COL " 
+#			query += "	ON COL.TABLE_NAME = TBL.TABLE_NAME "
+#			query += "	AND COL.TABLE_SCHEMA = TBL.TABLE_SCHEMA " 
+#			query += "LEFT JOIN sys.tables sysTables "
+#			query += "	ON sysTables.object_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
+#			query += "LEFT JOIN sys.extended_properties tableProp "
+#			query += "	ON tableProp.major_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
+#			query += "	AND tableProp.minor_id = 0 "
+#			query += "	AND tableProp.name = 'MS_Description' " 
+#			query += "LEFT JOIN ( "
+#			query += "	SELECT "
+#			query += "		sc.object_id, " 
+#			query += "		sc.column_id, "
+#			query += "		sc.name, "
+#			query += "		colProp.[value] AS ColumnDescription " 
+#			query += "	FROM sys.columns sc "
+#			query += "	INNER JOIN sys.extended_properties colProp " 
+#			query += "		ON colProp.major_id = sc.object_id "
+#			query += "		AND colProp.minor_id = sc.column_id "
+#			query += "		AND colProp.name = 'MS_Description' "
+#			query += "	) colDesc "
+#			query += "	ON colDesc.object_id = object_id(TBL.TABLE_SCHEMA + '.' + TBL.TABLE_NAME) " 
+#			query += "	AND colDesc.name = COL.COLUMN_NAME " 
+#			query += "WHERE lower(TBL.TABLE_TYPE) in ('base table','view') "
+#			query += "	AND COL.TABLE_SCHEMA = '%s' "%(schema)
+#			if table != None:
+#				query += "	AND COL.TABLE_NAME = '%s' "%(table)
+#			query += "ORDER BY TBL.TABLE_SCHEMA, TBL.TABLE_NAME,COL.ordinal_position"
+			query = ""
+			query += "select i.[name] as index_name,"
+			query += "    substring(column_names, 1, len(column_names)-1) as [columns],"
+			query += "    case when i.[type] = 1 then 'Clustered index'"
+			query += "        when i.[type] = 2 then 'Nonclustered unique index'"
+			query += "        when i.[type] = 3 then 'XML index'"
+			query += "        when i.[type] = 4 then 'Spatial index'"
+			query += "        when i.[type] = 5 then 'Clustered columnstore index'"
+			query += "        when i.[type] = 6 then 'Nonclustered columnstore index'"
+			query += "        when i.[type] = 7 then 'Nonclustered hash index'"
+			query += "        end as index_type,"
+			query += "    case when i.is_unique = 1 then 'Unique'"
+			query += "        else 'Not unique' end as [unique]"
+#			query += "    t.schema_id, "
+#			query += "    t.[name] "
+#			query += "    schema_name(t.schema_id) + '.' + t.[name] as table_view "
+#			query += "    case when t.[type] = 'U' then 'Table'"
+#			query += "        when t.[type] = 'V' then 'View'"
+#			query += "        end as [object_type]"
+			query += "from sys.objects t"
+			query += "    inner join sys.indexes i"
+			query += "        on t.object_id = i.object_id"
+			query += "    cross apply (select col.[name] + ', '"
+			query += "                    from sys.index_columns ic"
+			query += "                        inner join sys.columns col"
+			query += "                            on ic.object_id = col.object_id"
+			query += "                            and ic.column_id = col.column_id"
+			query += "                    where ic.object_id = t.object_id"
+			query += "                        and ic.index_id = i.index_id"
+			query += "                            order by key_ordinal"
+			query += "                            for xml path ('') ) D (column_names)"
+#			query += "where t.is_ms_shipped <> 1"
+#			query += "and index_id > 0"
+			query += "where schema_name(t.schema_id) = '%s' "%(schema)
+			query += "and t.[name] = '%s' "%(table)
+			query += "order by i.[name]"
+
+# ('NonClusteredIndex-Berry01', 'intval, strval', 'Nonclustered unique index', 'Not unique')
+# ('PK_test_table', 'pkcol', 'Clustered index', 'Unique')
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				print(row)
+#				line_dict = {}
+#				if table == None:
+#					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+#					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+#				if row[2] == "" or row[2] == None:
+#					line_dict["TABLE_COMMENT"] = None
+#				else:
+#					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+#				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+#
+#				if row[4] in ("numeric", "decimal"):
+#					if row[5] == None:
+#						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(row[4],row[7], row[8] )
+#					else:
+#						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(row[4], row[5])
+#
+#				elif row[4] in ("geometry", "image", "ntext", "text", "xml"):
+#					line_dict["SOURCE_COLUMN_TYPE"] = "%s"%(row[4])
+#
+#				elif row[4] == "varbinary":
+#					if row[7] != None and row[7] > -1:
+#						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(row[4],row[7], row[8] )
+#					else:
+#						line_dict["SOURCE_COLUMN_TYPE"] = row[4]
+#				else:
+#					if row[5] == None:
+#						line_dict["SOURCE_COLUMN_TYPE"] = row[4]
+#					else:
+#						line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(row[4], row[5])
+#
+#				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+#
+#				if row[6] == "" or row[6] == None:
+#					line_dict["SOURCE_COLUMN_COMMENT"] = None
+#				else:
+#					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+#				line_dict["IS_NULLABLE"] = row[9]
+#
+#				line_dict["TABLE_TYPE"] = row[10]
+#
+#				try:
+#					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S.%f')
+#				except:
+#					line_dict["TABLE_CREATE_TIME"] = None
+#
+#				line_dict["DEFAULT_VALUE"] = None
+#				rows_list.append(line_dict)
+#			result_df = pd.DataFrame(rows_list)
+
+		return result_df
 
 	def getJDBCtablesAndViews(self, JDBCCursor, serverType, database=None, schemaFilter=None, tableFilter=None):
 		logging.debug("Executing schemaReader.getJDBCtablesAndViews()")
