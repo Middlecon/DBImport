@@ -11,5 +11,5 @@ Sometimes, the table you are importing is not behaiving as you would expect. Mos
 Indexes
 -------
 
-When fetching metadata from the source system, indexes are also read and stored in a table called *import_tables_indexes*. More information on this table can be found on the :doc:'database' page.
+When fetching metadata from the source system, indexes are also read and stored in a table called *import_tables_indexes*. More information on this table can be found on the :doc:`database` page.
 
