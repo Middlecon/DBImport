@@ -189,7 +189,7 @@ There are a number of column names that are reserved in DBImport. They all start
 
 **Validation failed**
 
-During import, one of the first thing that will happen is that DBImport will connect to the source system and read how many rows there are in the table. Then the sqoop import will start and later the tables will be imported into Hive. Problem here is that a number of tables we are trying to import logs stage information, statistics and so on so the number of rows will change. There are a couple of different wayt to handle this, but we will in this guide change to use the number of rows that sqoop read as the truth of how many rows there are in the source system, instead of doing a "*select count(1) from ...*. This will give us a more stable rowcount and validation will pass.
+During import, one of the first thing that will happen is that DBImport will connect to the source system and read how many rows there are in the table. Then the sqoop import will start and later the tables will be imported into Hive. Problem here is that a number of tables we are trying to import logs stage information, statistics and so on so the number of rows will change. There are a couple of different ways to handle this, but we will in this guide change to use the number of rows that sqoop read as the truth of how many rows there are in the source system, instead of doing a "*select count(1) from ...*. This will give us a more stable rowcount and validation will pass.
 
 1.  In HeidiSQL (or other SQL tools) list the rows in the import_tables table and filter for the hive tables that failed in validation
 2.  Set column *validate_source* to *sqoop* 

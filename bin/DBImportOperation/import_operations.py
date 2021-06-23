@@ -407,6 +407,7 @@ class operation(object, metaclass=Singleton):
 			self.import_config.saveColumnData()
 			self.import_config.setPrimaryKeyColumn()
 			self.import_config.saveKeyData()
+			self.import_config.saveIndexData()
 			self.import_config.saveGeneratedData()
 		except invalidConfiguration as errMsg:
 			logging.error(errMsg)

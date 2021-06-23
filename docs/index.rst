@@ -78,6 +78,7 @@ Content
     atlas
     import_methods
     export_methods
+    source_table_info
     database
     statistics
 

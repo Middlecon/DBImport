@@ -78,6 +78,21 @@ In the *airflow_import_dags* there is a column called *finish_all_stage1_first*.
 
 Now a new dummy task is added called *Import_Phase_Finished*. This Task will force all imports to be completed first before the ETl Tasks is started. This is useful to make sure that all tables is read successfully by sqoop before it's imported into Hive and made available to the users.
 
+
+Timezone
+--------
+
+When scheduling a job in Airflow, both the time of the jobs and the configured timezone comes into play to determine when the job should be executed. There are two different places to configure the timezone for a job. This also assumes that the Airflow server is running at UTC time. Otherwise that comes into play aswell.
+
+- | *default value*
+  | In the configuration table, there is an entity called *timezone* that have a default value of UTC. That means that if nothing is specified on the DAG level, this is the timezone that the job will be scheduled at. This configuration must always exists. If you are running the Airflow server at a non-UTC timezone, just specify this as UTC and no time conversions will happen. 
+- | *DAG level*
+  | In all the 4 different DAG configuration tables, there is a column called *timezone*. Here you can override the default value and use something specific for that DAG. This is usefull if you for example import data from different regions around the world and want to schedule the time in the local time where the datasource exists. If no timezone is needed on the DAG level, put *null* into this column. 
+
+
+.. note:: Specify a timezone other than UTC will also handle daylight time savings for that specific timezone. 
+
+
 Customizing the DAG
 -------------------
 

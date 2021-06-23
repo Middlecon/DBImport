@@ -1517,6 +1517,61 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.setPrimaryKeyColumn() - Finished")
 
+	def saveIndexData(self,):
+		logging.debug("Executing import_config.saveIndexData()")
+		logging.info("Saving index metadata to MySQL table - import_tables_indexes")
+
+		try:
+			query = "delete from import_tables_indexes where table_id = %s"
+			self.mysql_cursor01.execute(query, ( self.table_id,  ))
+			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+		except mysql.connector.errors.IntegrityError as e:
+			logging.error("Unknown error when deleting old index data from DBImport configuration database")
+			raise(e)
+
+
+
+		try:
+			for index, row in self.common_config.source_index_df.sort_values(by=['Name', 'ColumnOrder']).iterrows():
+#				print("name:       %s"%(row[0]))
+#				print("type:       %s"%(row[1]))
+#				print("unique:     %s"%(row[2]))
+#				print("column:     %s"%(row[3]))
+#				print("columnType: %s"%(self.common_config.source_columns_df.loc[self.common_config.source_columns_df['SOURCE_COLUMN_NAME'] == row[3], 'SOURCE_COLUMN_TYPE'].iloc[0]))
+#				print("----------------------------------------------")
+	
+				# Save the Index data to the MySQL table
+				query = ("insert into import_tables_indexes "
+						"("
+						"    `table_id`, "
+						"    `hive_db`, "
+						"    `hive_table`, "
+						"    `index_name`, "
+						"    `index_type`, "
+						"    `index_unique`, "
+						"    `column`, "
+						"    `column_type`, "
+						"    `column_order`, "
+						"    `column_is_nullable` "
+						") values ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )")
+
+				columnType = self.common_config.source_columns_df.loc[self.common_config.source_columns_df['SOURCE_COLUMN_NAME'] == row[3], 'SOURCE_COLUMN_TYPE'].iloc[0]
+
+				try:
+					self.mysql_cursor02.execute(query, (self.table_id, self.Hive_DB, self.Hive_Table, row[0], row[1], row[2], row[3], columnType, row[4], row[5] ))
+					self.mysql_conn.commit()
+					logging.debug("SQL Statement executed: %s" % (self.mysql_cursor02.statement) )
+				except mysql.connector.errors.IntegrityError as e:
+					if ( "Duplicate entry" in str(e) ):
+						logging.warning("Table indexes cant be saved as name/id is not unique in DBImport Configuration Database")
+					else:
+						logging.error("Unknown error when saving index data to DBImport configuration database")
+						raise(e)
+		except KeyError:
+			pass
+
+		logging.debug("Executing import_config.saveIndexData() - Finished")
+
 	def saveKeyData(self, ):
 		# This is one of the main functions when it comes to source system schemas. This will parse the output from the Python Schema Program
 		# and update the import_foreign_keys table with the information on what FK's are available for the table
@@ -1647,7 +1702,7 @@ class config(object, metaclass=Singleton):
 								if ( "Duplicate entry" in str(e) ):
 									logging.warning("Foreign Key cant be saved as name is not unique in DBImport Configuration Database")
 								else:
-									logging.error("Unknown error when saving ForeignKey data to DBIMport configuration database")
+									logging.error("Unknown error when saving ForeignKey data to DBImport configuration database")
 									raise(e)
 
 
@@ -1657,7 +1712,7 @@ class config(object, metaclass=Singleton):
 		# This will save data to the generated* columns in import_table
 		logging.debug("")
 		logging.debug("Executing import_config.saveGeneratedData()")
-		logging.info("Saving generated data to MySQL table - import_table")
+		logging.info("Saving generated data to MySQL table - import_tables")
 
 		if self.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 			# We need to force one of the Oracle Flashback columns to a map-column-java option. 
@@ -1691,10 +1746,11 @@ class config(object, metaclass=Singleton):
 				"    generated_sqoop_options = %s, "
 				"    generated_pk_columns = %s, "
 				"    generated_foreign_keys = NULL, "
-				"    sqoop_use_generated_sql = %s "
+				"    sqoop_use_generated_sql = %s, "
+				"    sourceTableType = %s "
 				"where table_id = %s ")
 
-		self.mysql_cursor01.execute(query, (self.sqlGeneratedHiveColumnDefinition, self.sqlGeneratedSqoopQuery, self.table_comment, self.generatedSqoopOptions, self.generatedPKcolumns, sqoop_use_generated_sql_local, self.table_id))
+		self.mysql_cursor01.execute(query, (self.sqlGeneratedHiveColumnDefinition, self.sqlGeneratedSqoopQuery, self.table_comment, self.generatedSqoopOptions, self.generatedPKcolumns, sqoop_use_generated_sql_local, self.common_config.tableType, self.table_id))
 		self.mysql_conn.commit()
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 				

@@ -1573,15 +1573,13 @@ class config(object, metaclass=Singleton):
 														table = self.source_table)
 
 
-#		self.source_index_df = self.sourceSchema.readTableIndex(	self.JDBCCursor,
-#														serverType = self.jdbc_servertype, 
-#														database = self.jdbc_database,
-#														schema = self.source_schema,
-#														table = self.source_table)
-#
-#		print(self.source_index_df)
-#
-#		self.tableType = self.sourceSchema.getJdbcTableType(self.jdbc_servertype, self.source_columns_df.iloc[0]["TABLE_TYPE"])
+		self.source_index_df = self.sourceSchema.readTableIndex(	self.JDBCCursor,
+														serverType = self.jdbc_servertype, 
+														database = self.jdbc_database,
+														schema = self.source_schema,
+														table = self.source_table)
+
+		self.tableType = self.sourceSchema.getJdbcTableType(self.jdbc_servertype, self.source_columns_df.iloc[0]["TABLE_TYPE"])
 
 		logging.debug("Executing common_config.getSourceTableDefinition() - Finished")
 

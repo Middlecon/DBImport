@@ -10,6 +10,7 @@ v0.68 (not release yet)
 
 **New Features**
 
+  - Source table information likes indexes are fetched from sources database and stored for information use
   - Deploy tool to handle deployments of DAGs and affected tables/columns/connections to a remote DBImport instance
 
 
