@@ -1579,7 +1579,10 @@ class config(object, metaclass=Singleton):
 														schema = self.source_schema,
 														table = self.source_table)
 
-		self.tableType = self.sourceSchema.getJdbcTableType(self.jdbc_servertype, self.source_columns_df.iloc[0]["TABLE_TYPE"])
+		try: 
+			self.tableType = self.sourceSchema.getJdbcTableType(self.jdbc_servertype, self.source_columns_df.iloc[0]["TABLE_TYPE"])
+		except IndexError:
+			self.tableType = "unknown"
 
 		logging.debug("Executing common_config.getSourceTableDefinition() - Finished")
 
