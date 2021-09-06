@@ -878,13 +878,17 @@ class config(object, metaclass=Singleton):
 
 		self.timeZone = self.getConfigValue("timezone")
 
-		query = "select timewindow_start, timewindow_stop from jdbc_connections where dbalias = %s"
+		query = "select timewindow_start, timewindow_stop, timewindow_timezone from jdbc_connections where dbalias = %s"
 		self.mysql_cursor.execute(query, (connection_alias, ))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		row = self.mysql_cursor.fetchone()
 		hour = row[0]
 		minute = row[1]
+
+		# If there is a local timezone set on the JDBC connection, we use that instead of the configured default timezone
+		if row[2] is not None and row[2].strip() != "":
+			self.timeZone = row[2]
 
 		currentTime = pendulum.now(self.timeZone)	# Get time in configured timeZone
 		timeWindowStart = None
@@ -956,7 +960,7 @@ class config(object, metaclass=Singleton):
 			if allowedTime == False:
 				if atlasDiscoveryMode == False:
 					logging.error("We are not allowed to run this import outside the configured Time Window")
-					logging.info("    Current time:     %s"%(currentTime.to_time_string()))
+					logging.info("    Current time:     %s (%s)"%(currentTime.to_time_string(), self.timeZone))
 					logging.info("    TimeWindow Start: %s"%(timeWindowStart.to_time_string()))
 					logging.info("    TimeWindow Stop:  %s"%(timeWindowStop.to_time_string()))
 					self.remove_temporary_files()
