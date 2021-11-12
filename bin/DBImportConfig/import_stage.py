@@ -622,7 +622,7 @@ class stage(object):
 		import_duration = None
 
 		for key, value in kwargs.items():
-			columnsPart.append(key)
+			columnsPart.append(f"`{key}`")
 			if value == True: value = 1
 			if value == False: value = 0
 			valuesPart.append(value)
