@@ -30,6 +30,7 @@ The configuration for what service and format to use is located in the configura
 default format for imports
 
 .. code-block:: json
+
     {
         "type": "import", 
         "hive_db": "defaul", 
@@ -133,6 +134,7 @@ JSON information about Airflow DAG executions
 It's possible to send a JSON when an Airflow DAG is started and stopped. To enable this feature, set valueInt_ to 1 in configuration_ table where the configKey is post_airflow_dag_operations_. The result will be that the start task, after passsing if it's ok to start, will send a JSON saying that the DAG started. The stop task will also send a JSON saying that the DAG is finished. The JSON have the following format.
 
 Start JSON
+
 .. code-block:: json
 
     {
@@ -143,6 +145,7 @@ Start JSON
 
 
 Stop JSON
+
 .. code-block:: json
 
     {
