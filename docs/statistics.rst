@@ -140,7 +140,7 @@ Start JSON
     {
         "type": "airflow_dag", 
         "status": "started", 
-        "dag": "<name of dag>", 
+        "dag": "<name of dag>"
     }
 
 
@@ -151,7 +151,7 @@ Stop JSON
     {
         "type": "airflow_dag", 
         "status": "finished", 
-        "dag": "<name of dag>", 
+        "dag": "<name of dag>"
     }
 
 
