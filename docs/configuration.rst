@@ -6,7 +6,7 @@ Configuration
 .. _HeidiSQL: https://www.heidisql.com/
 
 Global configurations
---------------------
+---------------------
 
 There are two places where global configurations are handled. The conf/dbimport.cfg configuration file and the configuration_ table. All available options in the configuration file is already present in the file, so for a new installation, go over them all and set them according to you environment. For the configuration_ table, the following options exists.
 
@@ -95,7 +95,7 @@ The JDBC string needs to be entered manually into the *jdbc_url* column in the *
 
     jdbc:db2://<HOSTNAME>:<PORT>/<DATABASE>
 
-**Microsoft SQL Server**::
+**Microsoft SQL Server**
 
 There are two different ways to enter the JDBC URL for MSSQL. Default Microsoft JDBC or jTDS JDBC. jTDS is used when you are autenticating with a user that is in AD and the standard Microsoft JDBC is used when the SQL Server have local users that you connect with::
 
