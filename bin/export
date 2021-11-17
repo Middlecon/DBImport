@@ -181,6 +181,12 @@ def main(argv):
 		export_operation.setStage(0, force=True)
 		stage = 0
 
+
+	if stage == 0:
+		# This means it's the first attempt (or a reset) of this export. So we can send the start message to Kafka or REST in this case
+		export_operation.sendStartJSON()
+
+
 	if export_operation.export_config.common_config.getConfigValue(key = "export_start_disable") == True:
 		logging.error("Export execution has been disabled from DBImport configuration")
 		export_operation.remove_temporary_files()
@@ -282,8 +288,8 @@ def main(argv):
 				export_operation.setStage(999)
 
 			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+				export_operation.convertStageStatisticsToJSON()
 				export_operation.saveStageStatistics()
-
 
 
 		# ******************************************
@@ -388,6 +394,7 @@ def main(argv):
 				export_operation.setStage(999)
 
 			if runOnlyFunction == None or runOnlyFunction == "createStatistics":
+				export_operation.convertStageStatisticsToJSON()
 				export_operation.saveStageStatistics()
 
 		if export_operation.getStage() == 999:

@@ -24,7 +24,9 @@ from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import time, date, datetime, timedelta
-from DBImportConfig import rest
+# from DBImportConfig import rest
+from DBImportConfig import common_config
+from DBImportConfig import sendStatistics
 import time
 import pandas as pd
 
@@ -45,6 +47,9 @@ class stage(object):
 		self.stageDurationStart = float()
 		self.stageDurationStop = float()
 		self.stageDurationTime = float()
+
+		self.common_config = common_config.config()
+		self.sendStatistics = sendStatistics.sendStatistics()
 
 #		if configuration.get("REST_statistics", "post_export_data").lower() == "true":
 #			self.post_export_data = True
@@ -167,48 +172,100 @@ class stage(object):
 
 		return stageShortName
 
-#	def convertStageStatisticsToJSON(self, **kwargs):
-#		""" Reads the import_stage_statistics and convert the information to a JSON document """
-#		logging.debug("Executing stage.convertStageStatisticsToJSON()")
-#
-#		if self.post_import_data == False:
-#			return
-#
-#		import_stop = None
-#		jsonData = {}
-#		jsonData["type"] = "import"
-#
-#		for key, value in kwargs.items():
-#			jsonData[key] = value
-#
-#		query = "select stage, start, stop, duration from import_stage_statistics where hive_db = %s and hive_table = %s"
-#		self.mysql_cursor.execute(query, (self.hiveDB, self.hiveTable))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		for row in self.mysql_cursor.fetchall():
-#			stage = row[0]
-#			stage_start = row[1]
-#			stage_stop = row[2]
-#			stage_duration = row[3]
-#
-#			stageShortName = self.getStageShortName(stage)
-#
-#			if stageShortName == "":
-#				logging.error("There is no stage description for the JSON data for stage %s"%(stage))
-#				logging.error("Will put the raw stage number into the JSON document")
-#				stageShortName = str(stage)
-#
-#			if stageShortName != "skip":
-#				jsonData["%s_start"%(stageShortName)] = str(stage_start) 
-#				jsonData["%s_stop"%(stageShortName)] = str(stage_stop) 
-#				jsonData["%s_duration"%(stageShortName)] = stage_duration 
-#
-#			if stage == 0:
-#				import_start = stage_start
-#			
-#			if import_stop == None or stage_stop > import_stop:
-#				import_stop = stage_stop
-#
+	def convertStageStatisticsToJSON(self, **kwargs):
+		""" Reads the export_stage_statistics and convert the information to a JSON document """
+		logging.debug("Executing export_stage.convertStageStatisticsToJSON()")
+
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToRESTextended = self.common_config.getConfigValue(key = "post_data_to_rest_extended")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+		self.postDataToKafkaExtended = self.common_config.getConfigValue(key = "post_data_to_kafka_extended")
+
+#		self.postDataToREST = True
+
+		if self.postDataToREST == False and self.postDataToKafka == False:
+			return
+
+		export_stop = None
+		jsonDataKafka = {}
+		jsonDataKafka["type"] = "export"
+		jsonDataKafka["status"] = "finished"
+		jsonDataREST = {}
+		jsonDataREST["type"] = "export"
+		jsonDataREST["status"] = "finished"
+
+		for key, value in kwargs.items():
+			jsonDataKafka[key] = value
+			jsonDataREST[key] = value
+
+		if self.postDataToKafkaExtended == False:
+			jsonDataKafka.pop("sessions")
+
+		if self.postDataToRESTextended == False:
+			jsonDataREST.pop("sessions")
+
+		query = "select stage, start, stop, duration from export_stage_statistics where dbalias = %s and target_schema = %s and target_table = %s"
+		self.mysql_cursor.execute(query, (self.connectionAlias, self.targetSchema, self.targetTable))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+
+		for row in self.mysql_cursor.fetchall():
+			stage = row[0]
+			stage_start = row[1]
+			stage_stop = row[2]
+			stage_duration = row[3]
+
+			stageShortName = self.getStageShortName(stage)
+
+			if stageShortName == "":
+				logging.error("There is no stage description for the JSON data for stage %s"%(stage))
+				logging.error("Will put the raw stage number into the JSON document")
+				stageShortName = str(stage)
+
+			if stageShortName != "skip" and self.postDataToRESTextended == True:
+				jsonDataREST["%s_start"%(stageShortName)] = str(stage_start)
+				jsonDataREST["%s_stop"%(stageShortName)] = str(stage_stop)
+				jsonDataREST["%s_duration"%(stageShortName)] = stage_duration
+
+			if stageShortName != "skip" and self.postDataToKafkaExtended == True:
+				jsonDataKafka["%s_start"%(stageShortName)] = str(stage_start)
+				jsonDataKafka["%s_stop"%(stageShortName)] = str(stage_stop)
+				jsonDataKafka["%s_duration"%(stageShortName)] = stage_duration
+
+			if stage == 0:
+				export_start = stage_start
+
+			if export_stop == None or stage_stop > export_stop:
+				export_stop = stage_stop
+
+		export_duration = int((export_stop - export_start).total_seconds())
+
+		jsonDataKafka["start"] = str(export_start)
+		jsonDataKafka["stop"] = str(export_stop)
+		jsonDataKafka["duration"] = export_duration
+
+		jsonDataREST["start"] = str(export_start)
+		jsonDataREST["stop"] = str(export_stop)
+		jsonDataREST["duration"] = export_duration
+
+#		print(jsonDataKafka)
+#		print("================================================")
+#		print(jsonDataREST)
+
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonDataKafka))
+			if result == False:
+				logging.info("Kafka publish failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "kafka", json.dumps(jsonDataKafka))
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonDataREST))
+			if response != 200:
+				logging.info("REST call failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
+
+
 #		import_duration = int((import_stop - import_start).total_seconds())
 #
 #		jsonData["start"] = str(import_start)

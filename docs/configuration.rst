@@ -5,6 +5,67 @@ Configuration
 
 .. _HeidiSQL: https://www.heidisql.com/
 
+Global configurations
+--------------------
+
+There are two places where global configurations are handled. The conf/dbimport.cfg configuration file and the configuration_ table. All available options in the configuration file is already present in the file, so for a new installation, go over them all and set them according to you environment. For the configuration_ table, the following options exists.
+
+============================== ======== ===========================================================================================================================================================================
+airflow_dag_directory          valueStr Airflow path to DAG directory
+airflow_dag_file_group         valueStr Group owner of created DAG file
+airflow_dag_file_permission    valueStr File permission of created DAG file
+airflow_dag_staging_directory  valueStr Airflow path to staging DAG directory
+airflow_dbimport_commandpath   valueStr This is the path to DBImport. If sudo is required, this can be added here aswell. Use the variable ${SUDO_USER} instead of hardcoding the sudo username. Must end with a /
+airflow_disable                valueInt Disable All executions from Airflow. This is what the "start" Task is looking at
+airflow_dummy_task_queue       valueStr Queue to use for dummy tasks (stop, stage_one_complete and more)
+airflow_major_version          valueInt What is the major version of Airflow? 1 or 2 is valid options. Controls how the DAG files are generated
+airflow_sudo_user              valueStr What user will Airflow sudo to for executing DBImport. This value will replace the ${SUDO_USER} variable in airflow_dbimport_commandpath setting
+atlas_discovery_interval       valueInt How many hours there should pass between each Atlas discovery of a jdbc connection
+cluster_name                   valueStr Name of Hadoop cluster
+export_stage_disable           valueInt With 1, you prevent new Export tasks from starting and running tasks will stop after the current stage is completed.
+export_staging_database        valueStr Name of staging database to use during Exports
+export_start_disable           valueInt With 1, you prevent new Export tasks from starting. Running tasks will be completed
+hdfs_address                   valueStr Address to HDFS
+hdfs_basedir                   valueStr The base dir to write data to. Example /apps/dbimport
+hdfs_blocksize                 valueStr The HDFS blocksize in bytes. Can usually be found in /etc/hadoop/conf/hdfs-site.xml (search for dfs.blocksize)
+hive_acid_with_clusteredby     valueInt If 1, then ACID tables will be created with a clustered by option based on the PK. Not required with Hive3 and later
+hive_insert_only_tables        valueInt If 1, then the non-merge tables in Hive will be ACID insert-only
+hive_major_compact_after_merge valueInt With 1, DBImport will run a major compaction after the merge operations is completed
+hive_print_messages            valueInt With 1, Hive will print additional messages during SQL operations
+hive_remove_locks_by_force     valueInt With 1, DBImport will remove Hive locks by force
+hive_validate_before_execution valueInt With 1, DBImport will run a group by query agains the validate table and verify the result against reference values hardcoded in DBImport
+hive_validate_table            valueStr The table to run the validate query against
+import_process_empty           valueInt If 1, then the import will do a full processing of import even if they contain no data.
+import_stage_disable           valueInt With 1, you prevent new tasks from starting and running Import tasks will stop after the current stage is completed.
+import_staging_database        valueStr Name of staging database to use during Imports
+import_start_disable           valueInt With 1, you prevent new Import tasks from starting. Running tasks will be completed
+kafka_brokers                  valueStr Comma separeted list of Kafka brokers
+kafka_saslmechanism            valueStr Kafka SASL mechanism
+kafka_securityprotocol         valueStr Kafka Security Protocol
+kafka_topic                    valueStr Kafka topic to send the data to
+kafka_trustcafile              valueStr Kafka CA Trust file for SSL
+post_airflow_dag_operations    valueInt Post start and stop activities for Airflow DAGs to Kafka and/or Rest, depending on what is enabled
+post_data_to_kafka             valueInt Enable the Kafka endpoint to be able to receive information regarding completed imports and exports
+post_data_to_kafka_extended    valueInt Enable extended statistics in Kafka data
+post_data_to_rest              valueInt Enable the REST endpoint to be able to receive information regarding completed imports and exports
+post_data_to_rest_extended     valueInt Enable extended statistics in the REST data
+rest_timeout                   valueInt Timeout for the REST call
+rest_trustcafile               valueStr REST CA Trust file for SSL
+rest_url                       valueStr Rest server URL
+rest_verifyssl                 valueInt Verify SSL certificate during REST call
+spark_export_default_executors valueInt How many executors should be used for tables who have never been exported before
+spark_export_max_executors     valueInt The maximum number of executors to use during exports
+spark_import_default_executors valueInt How many executors should be used for tables who have never been imported before
+spark_import_max_executors     valueInt The maximum number of executors to use during imports
+sqoop_export_default_mappers   valueInt How many mappers should be used for tables who have never been exported before
+sqoop_export_max_mappers       valueInt The maximum number of mappers to use during exports
+sqoop_import_default_mappers   valueInt How many mappers should be used for tables who have never been imported before
+sqoop_import_max_mappers       valueInt The maximum number of mappers to use during imports
+timezone                       valueStr The timezone that the configured times are meant for (example is Europe/Stockholm) 
+============================== ======== ===========================================================================================================================================================================
+
+
+
 Database Connections
 --------------------
 

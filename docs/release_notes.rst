@@ -1,17 +1,21 @@
 Release Notes
 =============
 
-v0.68 (not release yet) 
+v0.68 
 ------------------------------
 
 **Fixed issues**
 
   - Issue #85: Incremental import of empty database might result in duplicate rows
+  - Issue #86: Time start/stop on jdbc_connections does not follow scheduled timezone
+  - Issue #87: Time start/stop on jdbc_connections does not follow scheduled timezone
+  - Issue #88: Column comments from Oracle is missing
 
 **New Features**
 
   - Source table information likes indexes are fetched from sources database and stored for information use
   - Deploy tool to handle deployments of DAGs and affected tables/columns/connections to a remote DBImport instance
+  - Information of started and finised imports, exports and Airflow DAGs can be sent in json format to Kafka and REST interfaces
 
 
 v0.67 

@@ -23,6 +23,7 @@ import subprocess
 import shutil
 import jaydebeapi
 import re
+import json
 from ConfigReader import configuration
 import pendulum
 from datetime import date, datetime, time, timedelta
@@ -32,6 +33,7 @@ from common.Exceptions import *
 from Schedule import airflowSchema
 from DBImportConfig import configSchema
 from DBImportConfig import common_config
+from DBImportConfig import sendStatistics
 import sqlalchemy as sa
 # from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.automap import automap_base
@@ -53,6 +55,7 @@ class initialize(object):
 			self.debugLogLevel = True
 
 		self.common_config = common_config.config()
+		self.sendStatistics = sendStatistics.sendStatistics()
 
 		self.dbimportCommandPath = self.common_config.getConfigValue("airflow_dbimport_commandpath")
 		self.defaultSudoUser = self.common_config.getConfigValue("airflow_sudo_user")
@@ -134,8 +137,8 @@ class initialize(object):
 		airflowExecutionDisabled = self.common_config.getConfigValue("airflow_disable")
 		if airflowExecutionDisabled == False:
 			print("Airflow execution is enabled")
-			self.common_config.remove_temporary_files()
-			sys.exit(0)
+#			self.common_config.remove_temporary_files()
+#			sys.exit(0)
 		else:
 			print("Airflow execution is disabled")
 			self.common_config.remove_temporary_files()
@@ -260,8 +263,13 @@ class initialize(object):
 		session.close()
 
 	def getAirflowHostPoolName(self):
-		hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
-		poolName = "DBImport_server_%s"%(hostname)
+		# self.common_config.jdbc_hostname = None
+		try:
+			hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
+			poolName = "DBImport_server_%s"%(hostname)
+		except (TypeError, AttributeError):
+			logging.warning("Cant find hostname in jdbc_connections table. Setting pool to 'default'")
+			poolName = "default"	
 		
 		return poolName[0:50]
 
@@ -318,7 +326,6 @@ class initialize(object):
 					previousConnectionAlias = None
 					continue
 		
-#			exportPool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
 			exportPool = self.getAirflowHostPoolName()
 
 			# usedPools is later used to check if the pools that we just are available in Airflow
@@ -445,7 +452,6 @@ class initialize(object):
 			except:
 				continue
 		
-#			importPhasePool = "DBImport_server_%s"%(self.common_config.jdbc_hostname.lower())
 			importPhasePool = self.getAirflowHostPoolName()
 			etlPhasePool = DAG['dag_name'][0:50]
 
@@ -808,15 +814,16 @@ class initialize(object):
 		self.DAGfile.write("    task_id='start',\n")
 		if self.TaskQueueForDummy != None:
 			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
-		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution ',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser)))
+		self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 		self.DAGfile.write("    priority_weight=100,\n")
 		self.DAGfile.write("    weight_rule='absolute',\n")
 		self.DAGfile.write("    dag=dag)\n")
 		self.DAGfile.write("\n")
-		self.DAGfile.write("stop = DummyOperator(\n")
+		self.DAGfile.write("stop = BashOperator(\n")
 		self.DAGfile.write("    task_id='stop',\n")
 		if self.TaskQueueForDummy != None:
 			self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
+		self.DAGfile.write("    bash_command='%sbin/manage --sendAirflowStopMessage --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 		self.DAGfile.write("    priority_weight=100,\n")
 		self.DAGfile.write("    weight_rule='absolute',\n")
 		self.DAGfile.write("    dag=dag)\n")
@@ -931,10 +938,14 @@ class initialize(object):
 
 
 		if self.writeDAG == True:
-			shutil.copy(self.DAGfilename, self.DAGfilenameInAirflow)
-			os.chmod(self.DAGfilenameInAirflow, int(self.DAGfilePermission, 8))	
-			shutil.chown(self.DAGfilenameInAirflow, group=self.DAGfileGroup)
-			print("DAG file written to %s"%(self.DAGfilenameInAirflow))
+			try:
+				shutil.copy(self.DAGfilename, self.DAGfilenameInAirflow)
+				os.chmod(self.DAGfilenameInAirflow, int(self.DAGfilePermission, 8))	
+				shutil.chown(self.DAGfilenameInAirflow, group=self.DAGfileGroup)
+			except PermissionError:
+				logging.warning("Could not copy and change permission of file '%s'"%(self.DAGfilenameInAirflow))
+			else:
+				print("DAG file written to %s"%(self.DAGfilenameInAirflow))
 		else:
 			print("DAG file written to %s"%(self.DAGfilename))
 
@@ -969,6 +980,7 @@ class initialize(object):
 					airflowTasks.sensor_poke_interval,
 					airflowTasks.sensor_timeout_minutes,
 					airflowTasks.sensor_connection,
+					airflowTasks.sensor_soft_fail,
 					airflowTasks.sudo_user
 					)
 				.select_from(airflowTasks)
@@ -1106,6 +1118,8 @@ class initialize(object):
 					self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
 					self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
 					self.DAGfile.write("    mode='reschedule',\n")
+					if row['sensor_soft_fail'] is not None and row['sensor_soft_fail'] == 1:
+						self.DAGfile.write("    soft_fail=True,\n")
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
 
@@ -1136,6 +1150,8 @@ class initialize(object):
 				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
 				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
 				self.DAGfile.write("    mode='reschedule',\n")
+				if row['sensor_soft_fail'] is not None and row['sensor_soft_fail'] == 1:
+					self.DAGfile.write("    soft_fail=True,\n")
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
@@ -1284,6 +1300,7 @@ class initialize(object):
 					airflowDAGsensors.wait_for_dag,
 					airflowDAGsensors.wait_for_task,
 					airflowDAGsensors.timeout_minutes,
+					airflowDAGsensors.sensor_soft_fail,
 					airflowImportDags.schedule_interval.label("import_schedule"),
 					airflowExportDags.schedule_interval.label("export_schedule"),
 					airflowCustomDags.schedule_interval.label("custom_schedule"),
@@ -1409,6 +1426,8 @@ class initialize(object):
 			self.DAGfile.write("    timeout=%s,\n"%(int(timeoutSeconds)))
 			self.DAGfile.write("    poke_interval=300,\n")
 			self.DAGfile.write("    mode='reschedule',\n")
+			if row['sensor_soft_fail'] is not None and row['sensor_soft_fail'] == 1:
+				self.DAGfile.write("    soft_fail=True,\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 			self.DAGfile.write("%s.set_downstream(%s)\n"%(self.sensorStartTask, row['sensor_name']))
@@ -1416,3 +1435,38 @@ class initialize(object):
 			self.DAGfile.write("\n")
 
 		session.close()
+
+	def sendJSON(self, airflowDAG, status): 
+		""" Sends a start JSON document to REST and/or Kafka """
+		logging.debug("Executing Airflow.sendStartJSON()")
+
+		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+
+#		self.postDataToREST = True
+
+		if airflowDAG == None:
+			return
+
+		if self.postAirflowDAGoperations == False:
+			logging.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
+			return
+
+		jsonData = {}
+		jsonData["type"] = "airflow_dag"
+		jsonData["status"] = status
+		jsonData["dag"] = airflowDAG
+
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
+			if result == False:
+				logging.warning("Kafka publish failed! No start message posted")
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
+			if response != 200:
+				logging.warn("REST call failed! No start message posted")
+
+		logging.debug("Executing Airflow.sendStartJSON() - Finished")
+	

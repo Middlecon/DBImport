@@ -27,8 +27,9 @@ from common.Singleton import Singleton
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
-from DBImportConfig import rest 
+# from DBImportConfig import rest 
 from DBImportConfig import export_stage
+from DBImportConfig import sendStatistics
 from mysql.connector import errorcode
 from datetime import datetime
 import pandas as pd
@@ -47,6 +48,7 @@ class config(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 #		self.rest = rest.restInterface()
+		self.sendStatistics = sendStatistics.sendStatistics()
 
 		self.startDate = self.common_config.startDate
 		self.mysql_conn = self.common_config.mysql_conn
@@ -151,6 +153,58 @@ class config(object, metaclass=Singleton):
 			rows=self.sqoop_last_rows,
 			sessions=self.sqoop_last_mappers
 		)
+
+	def convertStageStatisticsToJSON(self):
+		self.stage.convertStageStatisticsToJSON(
+			dbalias = self.connectionAlias,
+			target_database=self.common_config.jdbc_database,
+			target_schema = self.targetSchema,
+			target_table = self.targetTable,
+			hive_db = self.hiveDB,
+			hive_table = self.hiveTable,
+			export_phase = self.exportPhase,
+			incremental = self.exportIsIncremental,
+#			size=self.sqoop_last_size,
+			rows=self.sqoop_last_rows,
+			sessions=self.sqoop_last_mappers
+		)
+
+	def sendStartJSON(self):
+		""" Sends a start JSON document to REST and/or Kafka """
+		logging.debug("Executing export_config.sendStartJSON()")
+
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+
+#		self.postDataToREST = True
+
+		if self.postDataToREST == False and self.postDataToKafka == False:
+			return
+
+		import_stop = None
+		jsonData = {}
+		jsonData["type"] = "export"
+		jsonData["status"] = "started"
+		jsonData["dbalias"] = self.connectionAlias
+		jsonData["target_database"] = self.common_config.jdbc_database
+		jsonData["target_schema"] = self.targetSchema
+		jsonData["target_table"] = self.targetTable
+		jsonData["hive_db"] = self.hiveDB
+		jsonData["hive_table"] = self.hiveTable
+		jsonData["export_phase"] = self.exportPhase
+		jsonData["incremental"] = self.exportIsIncremental
+
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
+			if result == False:
+				logging.warning("Kafka publish failed! No start message posted")
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
+			if response != 200:
+				logging.warn("REST call failed! No start message posted")
+
+		logging.debug("Executing export_config.sendStartJSON() - Finished")
 
 	def checkTimeWindow(self):
 		self.common_config.checkTimeWindow(self.connectionAlias)
@@ -1116,35 +1170,57 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing export_config.createTargetTable() - Finished")
 
-	def saveSqoopStatistics(self, sqoopStartUTS, sqoopSize=None, sqoopRows=None, sqoopIncrMaxvaluePending=None, sqoopMappers=None):
-		logging.debug("Executing export_config.saveSqoopStatistics()")
-		logging.info("Saving sqoop statistics")
+	def saveExportStatistics(self, sqoopStartUTS=None, sqoopSize=None, sqoopRows=None, sqoopIncrMaxvaluePending=None, sqoopMappers=None):
+		logging.debug("Executing export_config.saveExportStatistics()")
+		logging.info("Saving export statistics")
 
 		self.sqoopStartUTS = sqoopStartUTS
 		self.sqoop_last_execution_timestamp = datetime.utcfromtimestamp(sqoopStartUTS).strftime('%Y-%m-%d %H:%M:%S.000')
 
 		queryParam = []
 		query =  "update export_tables set "
-		query += "	sqoop_last_execution = %s "
-		queryParam.append(sqoopStartUTS)
+		firstSet = True
+		if sqoopStartUTS != None:
+			if firstSet == False:
+				query += " ,"
+				firstSet = False
+
+			query += "sqoop_last_execution = %s"
+			queryParam.append(sqoopStartUTS)
 
 		if sqoopSize != None:
-			query += "  ,sqoop_last_size = %s "
+			if firstSet == False:
+				query += " , "
+				firstSet = False
+
+			query += "sqoop_last_size = %s"
 			self.sqoop_last_size = sqoopSize
 			queryParam.append(sqoopSize)
 
 		if sqoopRows != None:
-			query += "  ,sqoop_last_rows = %s "
+			if firstSet == False:
+				query += " , "
+				firstSet = False
+
+			query += "sqoop_last_rows = %s"
 			self.sqoop_last_rows = sqoopRows
 			queryParam.append(sqoopRows)
 
 		if sqoopIncrMaxvaluePending != None:
-			query += "  ,incr_maxvalue_pending = %s "
+			if firstSet == False:
+				query += " , "
+				firstSet = False
+
+			query += "incr_maxvalue_pending = %s"
 			self.sqoopIncrMaxvaluePending = sqoopIncrMaxvaluePending
 			queryParam.append(sqoopIncrMaxvaluePending)
 
 		if sqoopMappers != None:
-			query += "  ,sqoop_last_mappers = %s "
+			if firstSet == False:
+				query += " , "
+				firstSet = False
+
+			query += "sqoop_last_mappers = %s"
 			self.sqoop_last_mappers = sqoopMappers
 			queryParam.append(sqoopMappers)
 
@@ -1158,14 +1234,17 @@ class config(object, metaclass=Singleton):
 #				query += "  ,source_rowcount_incr = NULL "
 #			queryParam.append(sqoopRows)
 
-		query += "where table_id = %s "
-		queryParam.append(self.tableID)
+		print(query)
+		if firstSet == False:
+			# Only run this if any of the set columns are not None
+			query += " where table_id = %s "
+			queryParam.append(self.tableID)
 
-		self.mysql_cursor01.execute(query, queryParam)
-		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
-		self.mysql_conn.commit()
+			self.mysql_cursor01.execute(query, queryParam)
+			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+			self.mysql_conn.commit()
 
-		logging.debug("Executing export_config.saveSqoopStatistics() - Finished")
+		logging.debug("Executing export_config.saveExportStatistics() - Finished")
 
 	def saveHiveTableRowCount(self, rowCount):
 		logging.debug("Executing export_config.saveHiveTableRowCount()")
@@ -1219,6 +1298,11 @@ class config(object, metaclass=Singleton):
 		# Save the value to the database
 		query = "update export_tables set "
 		query += "target_rowcount = %s "%(JDBCRowsFull)
+		if self.exportTool == "spark":
+			# Need to save the sqoop_last_rows if the export tool is spark, as we dont get this from spark the same way as sqoop gives us
+			self.sqoop_last_rows = JDBCRowsFull
+			query += ",sqoop_last_rows = %s "%(JDBCRowsFull)
+
 		query += "where table_id = %s"%(self.tableID)
 
 		self.mysql_cursor01.execute(query)

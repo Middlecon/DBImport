@@ -129,7 +129,10 @@ class operation(object, metaclass=Singleton):
 
 	def convertStageStatisticsToJSON(self):
 		self.export_config.convertStageStatisticsToJSON()
-	
+
+	def sendStartJSON(self):
+		self.export_config.sendStartJSON()
+
 	def saveStageStatistics(self):
 		self.export_config.saveStageStatistics()
 	
@@ -720,6 +723,8 @@ class operation(object, metaclass=Singleton):
 		# Fetch the number of executors and sql splits that should be used
 		self.export_config.calculateJobMappers()
 
+		self.sparkStartUTS = int(time.time())
+
 		forceColumnUppercase = False
 		if self.export_config.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
 			forceColumnUppercase = True
@@ -880,15 +885,18 @@ class operation(object, metaclass=Singleton):
 			conf.set('spark.dynamicAllocation.minExecutors', '0')
 			conf.set('spark.dynamicAllocation.maxExecutors', str(self.export_config.sparkMaxExecutors))
 			logging.info("Number of executors is dynamic with a max value of %s executors"%(self.export_config.sparkMaxExecutors))
+			self.sqoopMappers = -1
 		else:
 			conf.set('spark.dynamicAllocation.enabled', 'false')
 			conf.set('spark.shuffle.service.enabled', 'false')
 			if self.export_config.sqlSessions < self.export_config.sparkMaxExecutors:
 				conf.set('spark.executor.instances', str(self.export_config.sqlSessions))
 				logging.info("Number of executors is fixed at %s"%(self.export_config.sqlSessions))
+				self.sqoopMappers = self.export_config.sqlSessions
 			else:
 				conf.set('spark.executor.instances', str(self.export_config.sparkMaxExecutors))
 				logging.info("Number of executors is fixed at %s"%(self.export_config.sparkMaxExecutors))
+				self.sqoopMappers = self.export_config.sparkMaxExecutors
 
 		JDBCconnectionProperties = {}
 		JDBCconnectionProperties["user"] = self.export_config.common_config.jdbc_username
@@ -952,6 +960,7 @@ class operation(object, metaclass=Singleton):
 										table=sparkWriteTable,
 										properties=JDBCconnectionProperties
 									)
+
 		time.sleep(1)	# Sleep 1 sec in order to avoid Yarn applications finished before program is able to get state		
 		sc.stop()
 
@@ -961,6 +970,14 @@ class operation(object, metaclass=Singleton):
 		print("|________________________|")
 		print("")
 		sys.stdout.flush()
+
+		try:
+			self.export_config.saveExportStatistics(self.sparkStartUTS, sqoopMappers=self.sqoopMappers)
+		except:
+			logging.error("Fatal error when saving spark statistics")
+			pass
+			self.export_config.remove_temporary_files()
+			sys.exit(1)
 
 		logging.debug("Executing export_operations.runSparkExport() - Finished")
 
@@ -1143,7 +1160,7 @@ class operation(object, metaclass=Singleton):
 		logging.info("Sqoop executed successfully")			
 		
 		try:
-			self.export_config.saveSqoopStatistics(self.sqoopStartUTS, sqoopSize=self.sqoopSize, sqoopRows=self.sqoopRows, sqoopMappers=self.sqoopMappers)
+			self.export_config.saveExportStatistics(self.sqoopStartUTS, sqoopSize=self.sqoopSize, sqoopRows=self.sqoopRows, sqoopMappers=self.sqoopMappers)
 		except:
 			logging.exception("Fatal error when saving sqoop statistics")
 			self.export_config.remove_temporary_files()

@@ -134,6 +134,9 @@ class operation(object, metaclass=Singleton):
 	
 	def saveStageStatistics(self):
 		self.import_config.saveStageStatistics()
+
+	def sendStartJSON(self):
+		self.import_config.sendStartJSON()
 	
 	def updateAtlasWithImportData(self):
 		if self.atlasOperation.checkAtlasSchema() == True:
@@ -1519,9 +1522,9 @@ class operation(object, metaclass=Singleton):
 				query = "set hive.tez.container.size=%s"%(self.import_config.hiveJavaHeap)
 				self.common_operations.executeHiveQuery(query)
 
-		# Connect to Hive Metastore Database
-#		se.common_operations.connectToMetaStoreDB()
-
+			if self.import_config.hiveSplitCount != None:
+				query = "set tez.grouping.split-count=%s"%(self.import_config.hiveSplitCount)
+				self.common_operations.executeHiveQuery(query)
 
 		logging.debug("Executing import_operations.connectToHive() - Finished")
 

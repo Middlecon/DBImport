@@ -21,7 +21,6 @@ import getopt
 import logging
 from common import constants as constant
 from DBImportConfig import common_config
-from DBImportConfig import rest
 from DBImportOperation import common_operations
 from DBImportOperation import import_operations
 from DBImportOperation import export_operations

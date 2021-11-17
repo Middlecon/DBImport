@@ -57,8 +57,6 @@ class operation(object, metaclass=Singleton):
 
 		self.Hive_DB = Hive_DB	 
 		self.Hive_Table = Hive_Table	 
-#		self.mysql_conn = None
-#		self.mysql_cursor = None
 		self.hive_conn = None
 		self.hive_cursor = None
 		self.debugLogLevel = False
@@ -72,9 +70,7 @@ class operation(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 
-		# Fetch configuration details about Hive LLAP
-#		self.hive_hostname = configuration.get("Hive", "hostname")
-#		self.hive_port = configuration.get("Hive", "port")
+		# Fetch configuration details about Hive 
 		self.hive_servers = configuration.get("Hive", "servers")
 		self.hive_kerberos_service_name = configuration.get("Hive", "kerberos_service_name")
 		self.hive_kerberos_realm = configuration.get("Hive", "kerberos_realm")
@@ -84,8 +80,6 @@ class operation(object, metaclass=Singleton):
 		else:
 			self.hive_use_ssl = False
 
-		self.hive_min_buckets = int(configuration.get("Hive", "min_buckets"))
-		self.hive_max_buckets = int(configuration.get("Hive", "max_buckets"))
 		self.hiveConnectStr = configuration.get("Hive", "hive_metastore_alchemy_conn")
 
 		# HDFS Settings

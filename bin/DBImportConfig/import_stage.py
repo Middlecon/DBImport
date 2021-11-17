@@ -24,9 +24,12 @@ from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import time, date, datetime, timedelta
-from DBImportConfig import rest
+from DBImportConfig import sendStatistics
+from DBImportConfig import common_config
 import time
 import pandas as pd
+# import kafka
+# import ssl
 
 class stage(object):
 	def __init__(self, mysql_conn, Hive_DB, Hive_Table):
@@ -44,12 +47,13 @@ class stage(object):
 		self.stageDurationStop = float()
 		self.stageDurationTime = float()
 
-		if configuration.get("REST_statistics", "post_import_data").lower() == "true":
-			self.post_import_data = True
-		else:
-			self.post_import_data = False
+		self.common_config = common_config.config(Hive_DB, Hive_Table)
+#		if configuration.get("REST_statistics", "post_import_data").lower() == "true":
+#			self.post_import_data = True
+#		else:
+#			self.post_import_data = False
 
-		self.rest = rest.restInterface()
+		self.sendStatistics = sendStatistics.sendStatistics()
 
 	def setMySQLConnection(self, mysql_conn):
 		self.mysql_conn = mysql_conn
@@ -553,15 +557,37 @@ class stage(object):
 		""" Reads the import_stage_statistics and convert the information to a JSON document """
 		logging.debug("Executing stage.convertStageStatisticsToJSON()")
 
-		if self.post_import_data == False:
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToRESTextended = self.common_config.getConfigValue(key = "post_data_to_rest_extended")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+		self.postDataToKafkaExtended = self.common_config.getConfigValue(key = "post_data_to_kafka_extended")
+
+#		self.postDataToREST = True
+#		self.postDataToKafka = True
+#		self.postDataToKafkaExtended = True
+
+		if self.postDataToREST == False and self.postDataToKafka == False:
 			return
 
 		import_stop = None
-		jsonData = {}
-		jsonData["type"] = "import"
+		jsonDataKafka = {}
+		jsonDataKafka["type"] = "import"
+		jsonDataKafka["status"] = "finished"
+		jsonDataREST = {}
+		jsonDataREST["type"] = "import"
+		jsonDataREST["status"] = "finished"
 
 		for key, value in kwargs.items():
-			jsonData[key] = value
+			jsonDataKafka[key] = value
+			jsonDataREST[key] = value
+
+		if self.postDataToKafkaExtended == False:
+			jsonDataKafka.pop("sessions")
+			jsonDataKafka.pop("copy_phase")
+
+		if self.postDataToRESTextended == False:
+			jsonDataREST.pop("sessions")
+			jsonDataREST.pop("copy_phase")
 
 		query = "select stage, start, stop, duration from import_stage_statistics where hive_db = %s and hive_table = %s"
 		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
@@ -580,10 +606,15 @@ class stage(object):
 				logging.error("Will put the raw stage number into the JSON document")
 				stageShortName = str(stage)
 
-			if stageShortName != "skip":
-				jsonData["%s_start"%(stageShortName)] = str(stage_start) 
-				jsonData["%s_stop"%(stageShortName)] = str(stage_stop) 
-				jsonData["%s_duration"%(stageShortName)] = stage_duration 
+			if stageShortName != "skip" and self.postDataToRESTextended == True:
+				jsonDataREST["%s_start"%(stageShortName)] = str(stage_start) 
+				jsonDataREST["%s_stop"%(stageShortName)] = str(stage_stop) 
+				jsonDataREST["%s_duration"%(stageShortName)] = stage_duration 
+
+			if stageShortName != "skip" and self.postDataToKafkaExtended == True:
+				jsonDataKafka["%s_start"%(stageShortName)] = str(stage_start) 
+				jsonDataKafka["%s_stop"%(stageShortName)] = str(stage_stop) 
+				jsonDataKafka["%s_duration"%(stageShortName)] = stage_duration 
 
 			if stage == 0:
 				import_start = stage_start
@@ -593,21 +624,27 @@ class stage(object):
 
 		import_duration = int((import_stop - import_start).total_seconds())
 
-		jsonData["start"] = str(import_start)
-		jsonData["stop"] = str(import_stop)
-		jsonData["duration"] = import_duration
+		jsonDataKafka["start"] = str(import_start)
+		jsonDataKafka["stop"] = str(import_stop)
+		jsonDataKafka["duration"] = import_duration
 
-		logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
-		response = self.rest.sendData(json.dumps(jsonData))
-		if response != 200:
-			# There was something wrong with the REST call. So we save it to the database and handle it later
-			logging.debug("REST call failed!")
-			logging.debug("Saving the JSON to the json_to_rest table instead")
+		jsonDataREST["start"] = str(import_start)
+		jsonDataREST["stop"] = str(import_stop)
+		jsonDataREST["duration"] = import_duration
 
-			query = "insert into json_to_rest (type, status, jsondata) values ('import_statistics', 0, %s)"
-			self.mysql_cursor.execute(query, (json.dumps(jsonData), ))
-			self.mysql_conn.commit()
-			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonDataKafka))
+			if result == False:
+				logging.info("Kafka publish failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "kafka", json.dumps(jsonDataKafka))
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonDataREST))
+			if response != 200:
+				logging.info("REST call failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
 
 		logging.debug("Executing stage.convertStageStatisticsToJSON() - Finished")
 
@@ -718,20 +755,10 @@ class stage(object):
 
 		logging.debug("Executing stage.saveStageStatistics() - Finished")
 
-#	def setStageUnrecoverable(self):
-#		""" Removes all stage information from the import_stage table """
-#		logging.debug("Executing stage.setStageUnrecoverable()")
-#
-#		if self.memoryStage == False:
-#			query = "update import_stage set unrecoverable_error = 1 where hive_db = %s and hive_table = %s"
-#			self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
-#			self.mysql_conn.commit()
-#			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		logging.debug("Executing stage.setStageUnrecoverable() - Finished")
 
 	def setStageOnlyInMemory(self):
 		self.memoryStage = True
+
 
 	def clearStage(self):
 		""" Removes all stage information from the import_stage table """

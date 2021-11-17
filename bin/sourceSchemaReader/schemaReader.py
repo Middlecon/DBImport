@@ -150,7 +150,12 @@ class source(object):
 		if serverType == constant.ORACLE:
 			# First determine if column ORIGIN_CON_ID exists in ALL_TAB_COMMENTS. If it does, we need to take that into consideration
 			oracle_OriginConId_exists = True
-			query = "SELECT ORIGIN_CON_ID FROM ALL_TAB_COMMENTS WHERE 1 = 0"
+			oracle_OriginConId = None
+			# query = "SELECT ORIGIN_CON_ID FROM ALL_TAB_COMMENTS WHERE 1 = 0"
+			query = "SELECT ORIGIN_CON_ID FROM ALL_TAB_COMMENTS "
+			query += "WHERE OWNER = '%s' "%(schema)
+			if table != None:
+				query += "  AND TABLE_NAME = '%s' "%(table)
 			try:
 				JDBCCursor.execute(query)
 			except jaydebeapi.DatabaseError as errMsg:
@@ -159,6 +164,16 @@ class source(object):
 				else:
 					logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
 					return result_df
+
+			if oracle_OriginConId_exists == True:
+				rowCount = 0
+				for row in JDBCCursor.fetchall():
+					oracle_OriginConId = row[0]
+					rowCount += 1
+
+				if rowCount != 1:
+					# If there are more than one originConId, it's impossible to determine what we will use. So then we go to default
+					oracle_OriginConId = None
 
 			query  = "SELECT "
 			query += "  ALL_TAB_COLUMNS.OWNER SCHEMA_NAME, "
@@ -179,13 +194,19 @@ class source(object):
 			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_TAB_COMMENTS.OWNER " 
 			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_TAB_COMMENTS.TABLE_NAME " 
 			if oracle_OriginConId_exists == True:
-				query += "  AND ALL_TAB_COMMENTS.ORIGIN_CON_ID <= 1 "
+				if oracle_OriginConId == None:
+					query += "  AND ALL_TAB_COMMENTS.ORIGIN_CON_ID <= 1 "
+				else:
+					query += "  AND ALL_TAB_COMMENTS.ORIGIN_CON_ID = %s "%(oracle_OriginConId)
 			query += "LEFT JOIN ALL_COL_COMMENTS ALL_COL_COMMENTS " 
 			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_COL_COMMENTS.OWNER " 
 			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_COL_COMMENTS.TABLE_NAME " 
 			query += "  AND ALL_TAB_COLUMNS.COLUMN_NAME = ALL_COL_COMMENTS.COLUMN_NAME " 
 			if oracle_OriginConId_exists == True:
-				query += "  AND ALL_COL_COMMENTS.ORIGIN_CON_ID <= 1 "
+				if oracle_OriginConId == None:
+					query += "  AND ALL_COL_COMMENTS.ORIGIN_CON_ID <= 1 "
+				else:
+					query += "  AND ALL_COL_COMMENTS.ORIGIN_CON_ID = %s "%(oracle_OriginConId)
 			query += "LEFT JOIN ALL_OBJECTS ALL_OBJECTS " 
 			query += "  ON  ALL_TAB_COLUMNS.OWNER = ALL_OBJECTS.OWNER " 
 			query += "  AND ALL_TAB_COLUMNS.TABLE_NAME = ALL_OBJECTS.OBJECT_NAME " 

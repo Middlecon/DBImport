@@ -32,7 +32,8 @@ from common.Singleton import Singleton
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
-from DBImportConfig import rest 
+from DBImportConfig import sendStatistics
+# from DBImportConfig import rest 
 from DBImportConfig import import_stage as stage
 from mysql.connector import errorcode
 from datetime import datetime
@@ -77,6 +78,7 @@ class config(object, metaclass=Singleton):
 		self.sqoop_last_execution = None
 		self.sqoop_last_execution_timestamp = None
 		self.hiveJavaHeap = None
+		self.hiveSplitCount = None
 		self.sqoop_hdfs_location = None
 		self.sqoop_hdfs_location_pkonly = None
 		self.sqoop_incr_mode = None
@@ -140,7 +142,8 @@ class config(object, metaclass=Singleton):
 		self.mongoImport = None
 
 		self.common_config = common_config.config(Hive_DB, Hive_Table)
-		self.rest = rest.restInterface()
+		self.sendStatistics = sendStatistics.sendStatistics()
+#		self.rest = rest.restInterface()
 
 		self.startDate    = self.common_config.startDate
 		self.mysql_conn = self.common_config.mysql_conn
@@ -204,6 +207,46 @@ class config(object, metaclass=Singleton):
 	def setStageOnlyInMemory(self):
 		self.stage.setStageOnlyInMemory()
 
+	def sendStartJSON(self):
+		""" Sends a start JSON document to REST and/or Kafka """
+		logging.debug("Executing import_config.sendStartJSON()")
+
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+
+#		self.postDataToREST = True
+
+		if self.postDataToREST == False and self.postDataToKafka == False:
+			return
+
+		import_stop = None
+		jsonData = {}
+		jsonData["type"] = "import"
+		jsonData["status"] = "started"
+		jsonData["hive_db"] = self.Hive_DB 
+		jsonData["hive_table"] = self.Hive_Table 
+		jsonData["import_phase"] = self.importPhase 
+		jsonData["copy_phase"] = self.copyPhase 
+		jsonData["etl_phase"] = self.etlPhase 
+		jsonData["incremental"] = self.import_is_incremental
+		jsonData["dbalias"] = self.connection_alias
+		jsonData["source_database"] = self.common_config.jdbc_database
+		jsonData["source_schema"] = self.source_schema
+		jsonData["source_table"] = self.source_table
+
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
+			if result == False:
+				logging.warning("Kafka publish failed! No start message posted")
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
+			if response != 200:
+				logging.warn("REST call failed! No start message posted")
+
+		logging.debug("Executing import_config.sendStartJSON() - Finished")
+
+
 	def saveStageStatistics(self):
 		self.stage.saveStageStatistics(
 			hive_db=self.Hive_DB, 
@@ -232,9 +275,9 @@ class config(object, metaclass=Singleton):
 			source_database=self.common_config.jdbc_database,
 			source_schema=self.source_schema,
 			source_table=self.source_table,
-			sqoop_size=self.sqoop_last_size,
-			sqoop_rows=self.sqoop_last_rows,
-			sqoop_mappers=self.sqoop_last_mappers
+			size=self.sqoop_last_size,
+			rows=self.sqoop_last_rows,
+			sessions=self.sqoop_last_mappers
 		)
 
 	def lookupConnectionAlias(self, connection_alias=None):
@@ -306,7 +349,8 @@ class config(object, metaclass=Singleton):
 				"    validationCustomQueryValidateImportTable, "
 				"    validationCustomQuerySourceValue, "
 				"    validationCustomQueryHiveValue, "
-				"    mergeCompactionMethod "
+				"    mergeCompactionMethod, "
+				"    hive_split_count "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -400,6 +444,8 @@ class config(object, metaclass=Singleton):
 		self.validationCustomQuerySourceValue = row[42]
 		self.validationCustomQueryHiveValue = row[43]
 		self.mergeCompactionMethod = row[44]
+
+		self.hiveSplitCount = row[45]
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
@@ -791,6 +837,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    datalake_source_table = %s"%(self.datalake_source_table))
 		logging.debug("    datalake_source_connection = %s"%(self.datalake_source_connection))
 		logging.debug("    hiveJavaHeap = %s"%(self.hiveJavaHeap))
+		logging.debug("    hiveSplitCount = %s"%(self.hiveSplitCount))
 		logging.debug("    sqoop_use_generated_sql = %s"%(self.sqoop_use_generated_sql))
 		logging.debug("    sqoop_mappers = %s"%(self.sqoop_mappers))
 		logging.debug("    sqoop_last_size = %s"%(self.sqoop_last_size))
@@ -1367,31 +1414,31 @@ class config(object, metaclass=Singleton):
 				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
 
-			if self.common_config.post_column_data == True:
-				jsonData = {}
-				jsonData["type"] = "column_data"
-				jsonData["date"] = self.startDate 
-				jsonData["source_database_server_type"] = self.common_config.jdbc_servertype 
-				jsonData["source_database_server"] = self.common_config.jdbc_hostname
-				jsonData["source_database"] = self.common_config.jdbc_database
-				jsonData["source_schema"] = self.source_schema
-				jsonData["source_table"] = self.source_table
-				jsonData["hive_db"] = self.Hive_DB
-				jsonData["hive_table"] = self.Hive_Table
-				jsonData["column"] = column_name.lower()
-				jsonData["source_column"] = source_column_name
-				jsonData["source_column_type"] = source_column_type
-				jsonData["column_type"] = column_type
-	
-				logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
-				response = self.rest.sendData(json.dumps(jsonData))
-				if response != 200:
-					# There was something wrong with the REST call. So we save it to the database and handle it later
-					logging.debug("REST call failed!")
-					logging.debug("Saving the JSON to the json_to_rest table instead")
-					query = "insert into json_to_rest (type, status, jsondata) values ('import_column', 0, %s)"
-					self.mysql_cursor01.execute(query, (json.dumps(jsonData), ))
-					logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+#			if self.common_config.post_column_data == True:
+#				jsonData = {}
+#				jsonData["type"] = "column_data"
+#				jsonData["date"] = self.startDate 
+#				jsonData["source_database_server_type"] = self.common_config.jdbc_servertype 
+#				jsonData["source_database_server"] = self.common_config.jdbc_hostname
+#				jsonData["source_database"] = self.common_config.jdbc_database
+#				jsonData["source_schema"] = self.source_schema
+#				jsonData["source_table"] = self.source_table
+#				jsonData["hive_db"] = self.Hive_DB
+#				jsonData["hive_table"] = self.Hive_Table
+#				jsonData["column"] = column_name.lower()
+#				jsonData["source_column"] = source_column_name
+#				jsonData["source_column_type"] = source_column_type
+#				jsonData["column_type"] = column_type
+#	
+#				logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
+#				response = self.rest.sendData(json.dumps(jsonData))
+#				if response != 200:
+#					# There was something wrong with the REST call. So we save it to the database and handle it later
+#					logging.debug("REST call failed!")
+#					logging.debug("Saving the JSON to the json_to_rest table instead")
+#					query = "insert into json_to_rest (type, status, jsondata) values ('import_column', 0, %s)"
+#					self.mysql_cursor01.execute(query, (json.dumps(jsonData), ))
+#					logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 				
 		# Commit all the changes to the import_column column
 		self.mysql_conn.commit()
@@ -2320,7 +2367,7 @@ class config(object, metaclass=Singleton):
 		if self.incr_maxvalue == None:
 			# This means that there is no previous version. So we need to do an initial load
 			query += " LEFT JOIN CHANGETABLE(CHANGES %s, 0 ) as CT"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table))
-			PKColumns = self.getPKcolumns()
+			PKColumns = self.getPKcolumns(convertToLower=False)
 			joinColumns = ""
 			for i, targetColumn in enumerate(PKColumns.split(",")):
 				if joinColumns == "":
@@ -2336,7 +2383,7 @@ class config(object, metaclass=Singleton):
 			# This is an incremental load
 			query += " RIGHT OUTER JOIN CHANGETABLE(CHANGES %s, %s ) as CT"%(self.common_config.getJDBCsqlFromTable(schema=self.source_schema, table=self.source_table), self.incr_maxvalue)
 
-			PKColumns = self.getPKcolumns()
+			PKColumns = self.getPKcolumns(convertToLower=False)
 			joinColumns = ""
 
 			# PK must come from the CHANGETABLE function. This is needed in case of deletes, as the column would be NULL otherwise and the merge
@@ -2631,7 +2678,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.validateRowCount() - Finished")
 		return returnValue
 		
-	def getPKcolumns(self, PKforMerge=False):
+	def getPKcolumns(self, PKforMerge=False, convertToLower=True):
 		""" Returns a comma seperated list of columns that is part of the PK """
 		logging.debug("Executing import_config.getPKcolumns()")
 		returnValue = None
@@ -2682,11 +2729,19 @@ class config(object, metaclass=Singleton):
 
 		for row in self.mysql_cursor01.fetchall():
 			if returnValue == None:
-				returnValue = str(row[0].lower())
+				returnValue = str(row[0])
 			else:
-				returnValue += "," + str(row[0].lower()) 
+				returnValue += "," + str(row[0]) 
 
-		logging.debug("Executing import_config.getPKcolumns() - Finished")
+			if convertToLower == True:
+				returnValue = returnValue.lower()
+
+		# ConvertToLower needs to be implemented here instead of in all requesting code. The reason is that this was all running fine up until CDT for MSSQL was implemented.
+		# Those functions will be used to make sure we read from the ChangeTable instead of the source table for deleted data. And in order to do so, there is a regexp that
+		# replace columnnames based on PK, and that regexp need to do an exact match, so converting to lowercase will break that
+#		logging.debug("Executing import_config.getPKcolumns() - Finished")
+#			return returnValue.lower()
+#		else:
 		return returnValue
 
 	def getForeignKeysFromConfig(self,):

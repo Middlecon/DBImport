@@ -59,7 +59,7 @@ class airflowCustomDags(Base):
     __table_args__ = {'comment': 'Its possible to construct a DAG that have no import, export or ETL definitions in it, but instead just Tasks from the airflow_task table. That might nbe useful to for example run custom Hive Code after an import is completed as a separate DAG. Defining a DAG in here also requires you to have at least one task in airflow_tasks defined "in main"'}
 
     dag_name = Column(String(64), primary_key=True, comment='Name of Airflow DAG.')
-    schedule_interval = Column(String(20), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
+    schedule_interval = Column(String(128), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
     retries = Column(Integer, nullable=False, server_default=text("'0'"), comment='How many retries should be Task do in Airflow before it failes')
     operator_notes = Column(Text, comment='Free text field to write a note about the custom DAG. ')
     application_notes = Column(Text, comment='Free text field that can be used for application documentaton, notes or links. ')
@@ -77,7 +77,8 @@ class airflowDagSensors(Base):
     sensor_name = Column(String(64), primary_key=True, nullable=False, comment='name of the sensor Task')
     wait_for_dag = Column(String(64), nullable=False, comment='Name of DAG to wait for. Must be defined in DBImport')
     wait_for_task = Column(String(64), comment="Name of task to wait for.Default is 'stop'")
-    timeout_minutes = Column(Integer, comment='Number of minutes to wait for DAG.')
+    timeout_minutes = Column(Integer, comment='Number of minutes to wait for DAG')
+    sensor_soft_fail = Column(Integer, nullable=True, comment='Setting this to 1 will add soft_fail=True on sensor')
 
 
 class airflowEtlDags(Base):
@@ -85,7 +86,7 @@ class airflowEtlDags(Base):
     __table_args__ = {'comment': 'To create a DAG in Airflow for only ETL jobs, this is the table that holds all definitions of the DAG configuration, including the filter that defines what ETL jobs to run, schedules times, pool names and much more. '}
 
     dag_name = Column(String(64), primary_key=True, comment='Name of Airflow DAG.')
-    schedule_interval = Column(String(20), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
+    schedule_interval = Column(String(128), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
     filter_job = Column(String(64), nullable=False, comment='Filter string for JOB in etl_jobs table')
     filter_task = Column(String(64), comment='Filter string for TASK in etl_jobs table')
     filter_source_db = Column(String(256), comment='Filter string for SOURCE_DB in etl_jobs table')
@@ -114,7 +115,7 @@ class airflowExportDags(Base):
     __table_args__ = {'comment': 'To create a DAG in Airflow for Exports, this is the table that holds all definitions of the DAG configuration, including the filter that defines what tables to export, schedules times, pool names and much more. '}
 
     dag_name = Column(String(64), primary_key=True, comment='Name of Airflow DAG.')
-    schedule_interval = Column(String(20), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
+    schedule_interval = Column(String(128), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
     filter_dbalias = Column(String(256), nullable=False, comment='Filter string for DBALIAS in export_tables')
     filter_target_schema = Column(String(256), comment='Filter string for TARGET_SCHEMA  in export_tables')
     filter_target_table = Column(String(256), comment='Filter string for TARGET_TABLE  in export_tables')
@@ -135,7 +136,7 @@ class airflowImportDags(Base):
     __table_args__ = {'comment': 'To create a DAG in Airflow for Imports, this is the table that holds all definitions of the DAG configuration, including the filter that defines what tables to import, schedules times, pool names and much more.'}
 
     dag_name = Column(String(64), primary_key=True, comment='Name of Airflow DAG.')
-    schedule_interval = Column(String(32), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
+    schedule_interval = Column(String(128), nullable=False, comment='Time to execute dag', server_default=text("'None'"))
     filter_hive = Column(String(1024), nullable=False, comment='Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE')
     use_python_dbimport = Column(TINYINT(4), nullable=False, server_default=text("'1'"), comment='Legacy use only. Always put this to 1')
     finish_all_stage1_first = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = All Import phase jobs will be completed first, and when all is successfull, the ETL phase start')
@@ -703,6 +704,7 @@ class importTables(Base):
     pk_column_override = Column(String(1024), comment='Force the import and Hive table to define another PrimaryKey constraint. Comma separeted list of columns')
     pk_column_override_mergeonly = Column(String(1024), comment='Force the import to use another PrimaryKey constraint during Merge operations. Comma separeted list of columns')
     hive_merge_heap = Column(Integer, comment='Should be a multiple of Yarn container size. If NULL then it will use the default specified in Yarn and TEZ')
+    hive_split_count = Column(Integer, comment='Sets tez.grouping.split-count in the Hive session')
     spark_executor_memory = Column(String(8), comment='Memory used by spark when importing data. Overrides default value in global configuration')
     concatenate_hive_table = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'-1'"))
     split_by_column = Column(String(64), comment='Column to split by when doing import with multiple sessions')
@@ -797,14 +799,15 @@ class jdbcTableChangeHistory(Base):
 
 
 
-class jsonToRest(Base):
-    __tablename__ = 'json_to_rest'
+class jsonToSend(Base):
+    __tablename__ = 'json_to_send'
     __table_args__ = {'comment': 'Temporary storage of JSON payloads that will be sent to a REST interface if the tool is configured to do so.'}
 
     id = Column(BIGINT(20), primary_key=True, autoincrement=True, comment='Unique Identifier')
     type = Column(String(50), nullable=False, comment="The type of JSON data that is saved in the 'jsondata' column")
     create_time = Column(DateTime, nullable=False, comment='Time when the JSON data was created', server_default=text("CURRENT_TIMESTAMP"))
     status = Column(TINYINT(4), nullable=False, comment='Internal status to keep track of what the status of the transmissions is')
+    destination = Column(String(8), nullable=False, comment='The destination where to send the json.')
     jsondata = Column(Text, nullable=False, comment='The payload to send')
 
 
@@ -844,6 +847,7 @@ class airflowTasks(Base):
     sensor_poke_interval = Column(Integer, nullable=True, comment='Poke interval for sensors in seconds')
     sensor_timeout_minutes = Column(Integer, nullable=True, comment='Timeout for sensors in minutes')
     sensor_connection = Column(String(64), nullable=True, comment='Name of Connection in Airflow')
+    sensor_soft_fail = Column(Integer, nullable=True, comment='Setting this to 1 will add soft_fail=True on sensor')
     sudo_user = Column(String(64), comment='The task will use this user for sudo instead of default')
 
     jdbc_connection = relationship('jdbcConnections')

@@ -623,3 +623,102 @@ class initialize(object):
 				valueInt='0', 
 				description='If 1, then ACID tables will be created with a clustered by option based on the PK. Not required with Hive3 and later')
 			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'post_airflow_dag_operations').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_airflow_dag_operations', 
+				valueInt='0', 
+				description='Post start and stop activities for Airflow DAGs to Kafka and/or Rest, depending on what is enabled')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'post_data_to_rest').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_rest', 
+				valueInt='0', 
+				description='Enable the REST endpoint to be able to receive information regarding completed imports and exports')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'post_data_to_rest_extended').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_rest_extended', 
+				valueInt='0', 
+				description='Enable extended statistics in the REST data')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'post_data_to_kafka').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_kafka', 
+				valueInt='0', 
+				description='Enable the Kafka endpoint to be able to receive information regarding completed imports and exports')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'post_data_to_kafka_extended').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_kafka_extended', 
+				valueInt='0', 
+				description='Enable extended statistics in Kafka data')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'kafka_brokers').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='kafka_brokers', 
+				valueStr='localhost:9092', 
+				description='Comma separeted list of Kafka brokers')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'kafka_trustcafile').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='kafka_trustcafile', 
+				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
+				description='Kafka CA Trust file for SSL')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'kafka_securityprotocol').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='kafka_securityprotocol', 
+				valueStr='SASL_SSL', 
+				description='Kafka Security Protocol')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'kafka_saslmechanism').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='kafka_saslmechanism', 
+				valueStr='GSSAPI', 
+				description='Kafka SASL mechanism')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'kafka_topic').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='kafka_topic', 
+				valueStr='dbimport_topic', 
+				description='Kafka topic to send the data to')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'rest_url').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='rest_url', 
+				valueStr='https://localhost:8443/dbimport', 
+				description='Rest server URL')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'rest_timeout').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='rest_timeout', 
+				valueInt='5', 
+				description='Timeout for the REST call')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'rest_verifyssl').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='rest_verifyssl', 
+				valueInt='1', 
+				description='Verify SSL certificate during REST call')
+			self.configDB.execute(query)
+
+		if result_df.empty or (result_df[0] == 'rest_trustcafile').any() == False:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='rest_trustcafile', 
+				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
+				description='REST CA Trust file for SSL')
+			self.configDB.execute(query)
+

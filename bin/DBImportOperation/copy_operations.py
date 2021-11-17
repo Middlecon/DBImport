@@ -1717,7 +1717,8 @@ class operation(object, metaclass=Singleton):
 		self.common_operations.connectToHive(forceSkipTest=True)
 
 		logging.info("Exporting table")	
-		query = "export table `%s`.`%s` to '%s'"%(hiveDB, hiveTable, localHDFSpath)
+#		query = "export table `%s`.`%s` to '%s'"%(hiveDB, hiveTable, localHDFSpath)
+		query = "export table %s.%s to '%s'"%(hiveDB, hiveTable, localHDFSpath)
 		self.common_operations.executeHiveQuery(query)
 
 		logging.debug("Executing copy_operations.exportTable() - Finished")

@@ -23,7 +23,7 @@ from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
 from DBImportConfig import import_config
-from DBImportConfig import rest
+# from DBImportConfig import rest
 from DBImportOperation import common_operations
 from DBImportOperation import import_operations
 from DBImportOperation import export_operations
@@ -59,7 +59,7 @@ def printMainHelp():
 	print ("  --encryptCredentials              Encrypt username and password for a Database Connection")
 	print ("  --encryptInstance                 Encrypt username and password for a DBImport Instance")
 	print ("  --encryptString                   Encrypt a string. Used for encryption of configuration in config file")
-#	print ("  --sendJSONstatistics              Posts the JSON data in the 'json_to_rest' table to the configured REST endpoints")
+#	print ("  --sendJSONdata                    Posts the JSON data in the 'json_to_send' table to the configured destinations")
 	print ("  --repairIncrementalImport         Repairs an incremental import that is out-of-sync with source system")
 	print ("  --repairAllIncrementalImports     Repairs all incremental import that have an active stage.")
 	print ("  --resetIncrementalImport          Resets an incremental import. This will truncate the Hive table")
@@ -70,6 +70,7 @@ def printMainHelp():
 	print ("  --addImportTable                  Connects to the source database and reads tables and view")
 	print ("  --addExportTable                  Add export definitions for tables in Hive")
 	print ("  --checkAirflowExecution           Checks if it's allowed to start Airflow DAG's or not")
+	print ("  --sendAirflowStopMessage          Sends a message to Kafka and/or Rest saying that the specified Airflow DAG have finished")
 	print ("  --airflowGenerate                 Generate Airflow DAG")
 	print ("  --discoverAtlasRdbms              Discover all object on a Database Connection and update Atlas with the information")
 	print ("  --runJDBCQuery                    Run a SQL command against a JDBC connection")
@@ -262,6 +263,24 @@ def print_runHiveScript_help():
 	print ("")
 	sys.exit(1)
 
+def print_checkAirflowExecution_help():
+	printHeader()
+	print ("Checks if the Airflow Execution is allowed or not. This is usually done first in each DAG and is used to globaly disable all DAG's that is controlled by DBImport")
+	print ("")
+	print ("Optional parameters:")
+	print ("  --airflowDAG=[DAG Name]              If this is supplied and the post_to_kafka or post_to_rest is enabled, a message will be posted saying that this DAG started")
+	print ("")
+	sys.exit(1)
+
+def print_sendAirflowStopMessage_help():
+	printHeader()
+	print ("Sends a message to Kafka and/or Rest saying that the specified Airflow DAG have finished")
+	print ("")
+	print ("Required parameters:")
+	print ("  --airflowDAG=[DAG Name] ")
+	print ("")
+	sys.exit(1)
+
 def print_airflow_help():
 	printHeader()
 	print ("Generate the Airflow DAG file. If no DAG is specified, all configured DAG's are generated" )
@@ -278,7 +297,7 @@ def print_airflow_help():
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "airflowDAGFolder=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms", "getAllConnectionPasswords" ])
+		opts, args = getopt.getopt(argv, "?yvwh:t:a:S:T:", ["quiet", "yes", "help", "resetIncrementalExport", "repairAllIncrementalImports", "repairIncrementalImport", "resetIncrementalImport", "resetCDCImport", "sendJSONstatistics", "encryptCredentials", "clearImportStage", "Hive_DB=", "hiveDB=", "Hive_Table=", "hiveTable=", "dbAlias=", "schema=", "table=", "debug", "repairIncrementalExport", "clearExportStage", "dropExportTable", "addImportTable", "addSchemaToTable", "addExportTable", "addCounterToTable", "addDBToTable", "counterStart=", "addCustomText=", "testConnection", "airflowGenerate", "airflowAutoDAGonly", "airflowDAG=", "airflowDAGFolder=", "checkAirflowExecution", "runJDBCQuery=", "runHiveQuery=", "airflowWriteDAG", "runHiveScript=", "encryptString", "encryptInstance", "destination=", "discoverAtlasRdbms", "getAllConnectionPasswords", "sendAirflowStopMessage" ])
 	except getopt.GetoptError:
 		if "--runJDBCQuery" in argv:
 			print_runJDBCQuery_help()
@@ -372,6 +391,8 @@ def main(argv):
 			operation = "airflowGenerate"
 		elif opt == "--checkAirflowExecution":
 			operation = "checkAirflowExecution"
+		elif opt == "--sendAirflowStopMessage":
+			operation = "sendAirflowStopMessage"
 		elif opt == "--clearImportStage":
 			operation = "clearImportStage"
 		elif opt == "--clearExportStage":
@@ -464,6 +485,12 @@ def main(argv):
 	if operation == "discoverAtlasRdbms" and (connectionAlias == None or displayHelp == True):
 		print_discoverAtlasRdbms_help()
 
+	if operation == "checkAirflowExecution" and displayHelp == True:
+		print_checkAirflowExecution_help()
+
+	if operation == "sendAirflowStopMessage" and (airflowDAG == None or displayHelp == True):
+		print_sendAirflowStopMessage_help()
+
 	if quietMode == False:
 		printHeader()
 
@@ -535,8 +562,18 @@ def main(argv):
 			importConfig.remove_temporary_files()
 
 		if operation == "checkAirflowExecution":
+			commonOperation = common_operations.operation()
+			commonOperation.common_config.checkKerberosTicket()
 			airflow = Airflow.initialize()
 			airflow.checkExecution()
+			airflow.sendJSON(airflowDAG=airflowDAG, status="started")
+			airflow.common_config.remove_temporary_files()
+
+		if operation == "sendAirflowStopMessage":
+			commonOperation = common_operations.operation()
+			commonOperation.common_config.checkKerberosTicket()
+			airflow = Airflow.initialize()
+			airflow.sendJSON(airflowDAG=airflowDAG, status="finished")
 			airflow.common_config.remove_temporary_files()
 
 		if operation == "airflowGenerate":
@@ -631,8 +668,8 @@ def main(argv):
 			commonConfig = common_config.config()
 			commonConfig.printConnectionAliasDetails()
 
-		if operation == "sendJSONstatistics":
-			rest.postSQLDataToREST()
+#		if operation == "sendJSONstatistics":
+#			rest.postSQLDataToREST()
 
 		if operation == "repairAllIncrementalImports":
 			print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")

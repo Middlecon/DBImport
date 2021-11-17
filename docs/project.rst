@@ -5,11 +5,13 @@ Committers
 ----------
 
   - @BerryOsterlund (Berry Österlund, Middlecon AB)
+  - @karlam123 (Karl Amundsson)
   - @erikalarsson (Erika Larsson, Scania AB)
 
 Versions
 --------
 
+  - v0.68. Deployment functions and improved statistics to REST and Kafka
   - v0.67. MSSQL Change Tracking support
   - v0.66. Custom SQL validations and timezone configuration 
   - v0.65. Apache Atlas integration
@@ -35,6 +37,5 @@ RoadMap
 
   1. WebGui for administration of DBImport - **Alpha version available**
   2. Support for more JDBC sources such as Netezza, TeraData, ExaData
-  3. Support for more than MySQL as configuration database for DBImport
 
 

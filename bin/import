@@ -92,7 +92,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly"])
+		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -111,6 +111,7 @@ def main(argv):
 	resetStage = False
 	skipHiveTest = False
 	metaDataOnlyImport = False
+	ignoreDisabled = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -151,6 +152,8 @@ def main(argv):
 			runCopyPhase = True
 		elif opt == "-E":
 			runETLPhase = True
+		elif opt == "--ignoreDisabled":
+			ignoreDisabled = True
 
 	if displayVersion == True:
 		print("DBImport version: %s"%(constant.VERSION))
@@ -277,6 +280,15 @@ def main(argv):
 		logging.warning("runOnlyFunction 'sqoop' is deprecated. Please use 'importData' instead.")
 		runOnlyFunction = "importData"
 
+	if runOnlyFunction != None:
+		print(" _______________________________________________________ ")
+		print("|                                                       |")
+		print("| This is not a full import as a function was specified |") 	
+		print("|_______________________________________________________|")
+		print("")
+		print("")
+		import_operation.setStageOnlyInMemory()
+
 	stage = import_operation.getStage()
 
 	# Check if the configured Hive database exists
@@ -290,6 +302,11 @@ def main(argv):
 	if resetStage == True or stage == 9999:
 		import_operation.setStage(0, force=True)
 		stage = 0
+
+	if stage == 0:
+		# This means it's the first attempt (or a reset) of this import. So we can send the start message to Kafka or REST in this case
+#		import_operation.convertStageStatisticsToJSON()
+		import_operation.sendStartJSON()
 
 	if copy_operation.isPreviousCopyCompleted() == False and stage < 2099 :
 		logging.error("There is a previous copy that isnt completed yet. This import cant continue until that copy is completed") 
@@ -338,16 +355,6 @@ def main(argv):
 		print("")
 		print("")
 
-	if runOnlyFunction != None:
-		print(" _______________________________________________________ ")
-		print("|                                                       |")
-		print("| This is not a full import as a function was specified |") 	
-		print("|_______________________________________________________|")
-		print("")
-		print("")
-
-		import_operation.setStageOnlyInMemory()
-
 	if stage > 0 and stage < 1000:
 		# TODO: Remove this once everything is migrated to python version
 		print(" ________________________________________________________ ")
@@ -373,7 +380,7 @@ def main(argv):
 	sys.stdout.flush()
 
 
-	if import_operation.import_config.common_config.getConfigValue(key = "import_start_disable") == True:
+	if import_operation.import_config.common_config.getConfigValue(key = "import_start_disable") == True and ignoreDisabled == False:
 		logging.error("Import execution has been disabled from DBImport configuration")
 		import_operation.remove_temporary_files()
 		sys.exit(1)
@@ -690,6 +697,7 @@ def main(argv):
 		# ******************************************
 		# * Copy Phase                                   
 		# ******************************************
+
 
 		if slaveTable == False and copyDestinations != None and runCopyPhase == True:
 			# Only run if Import Phase was completed successfully
@@ -2212,9 +2220,9 @@ def main(argv):
 					print("|_____________________________|")
 				print("")
 
-				if runETLPhase == True:
-					# We can only clear the stage at the end of stage 2. 
-					import_operation.clearStage()
+#				if runETLPhase == True:
+#					# We can only clear the stage at the end of stage 2. 
+#					import_operation.clearStage()
 
 		import_operation.import_config.common_config.disconnectFromJDBC()
 		import_operation.remove_temporary_files()

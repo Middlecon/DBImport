@@ -194,7 +194,6 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-
 		if datalakeIUDExists == True:    query += ", \n   `datalake_iud` = 'U'"
 		if datalakeUpdateExists == True: query += ", \n   `datalake_update` = '%s'"%(mergeTime)
 		if datalakeSourceExists == True and datalakeSource != None: query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
@@ -252,7 +251,6 @@ class operation(object, metaclass=Singleton):
 			query = "delete from `%s`.`%s` where datalake_update != '%s' "%(targetDB, targetTable, mergeTime)
 			self.common_operations.executeHiveQuery(query)
 
-
 		# If a row was previously deleted and now inserted again and we are using Soft Delete, 
 		# then the information in the datalake_iud, datalake_insert and datalake_delete is wrong. 
 
@@ -272,7 +270,7 @@ class operation(object, metaclass=Singleton):
 
 		# Statement to select all rows that was changed in the Target table and insert them to the History table
 
-		if createHistoryAudit == True and historyDB != None and historyTable != None and oracleFlashbackSource == False:
+		if createHistoryAudit == True and historyDB != None and historyTable != None and oracleFlashbackSource == False and mssqlChangeTrackingSource == False:
 			query  = "insert into table `%s`.`%s` \n"%(historyDB, historyTable) 
 			query += "( "
 			firstIteration = True
@@ -408,7 +406,6 @@ class operation(object, metaclass=Singleton):
 			query += "\nfrom `%s`.`%s`"%(sourceDB, mssqlChangeTrackingImportTable)
 
 			self.common_operations.executeHiveQuery(query)
-
 
 		# Insert the deleted rows into the History table. Without this, it's impossible to see what values the column had before the delete
 		if sourceIsIncremental == False and createHistoryAudit == True and historyDB != None and historyTable != None and targetDeleteDB != None and targetDeleteTable != None:
