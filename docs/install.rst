@@ -149,9 +149,17 @@ DBImport uses it’s own schema in Atlas. This needs to be created manually. The
 
 **Atlas process Pictures**
 
-To get the correct representation of the DBImport Lineage in Atlas, you need to copy the DBImport icon into the Atlas Server directory for lineage icons. The picture is located under *atlas/ DBImport_Process.png*. The target directory is *server/webapp/atlas/img/entity-icon* under Atlas installation directory. Example::
+To get the correct representation of the DBImport Lineage in Atlas, you need to copy the DBImport icon into the Atlas Server directory for lineage icons. The picture is located under *atlas/ DBImport_Process.png*. The target directory is *server/webapp/atlas/img/entity-icon* under Atlas installation directory. Example
+
+HDP::
 
         cp /usr/local/dbimport/atlas/DBImport_Process.png /usr/hdp/current/atlas-server/server/webapp/atlas/img/entity-icon
+
+CDP/CDH::
+
+        cp /usr/local/dbimport/atlas/DBImport_Process.png /opt/cloudera/parcels/CDH/lib/atlas/server/webapp/atlas/img/entity-icon
+
+
 
 DBImport Server
 --------------------
