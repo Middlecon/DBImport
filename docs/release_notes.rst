@@ -11,6 +11,7 @@ v0.68
   - Issue #87: Time start/stop on jdbc_connections does not follow scheduled timezone
   - Issue #88: Column comments from Oracle is missing
   - Issue #90: "No common columns to perform merge on" during Deploy
+  - Issue #91: MySQL Connection leak in copy operations
 
 **New Features**
 

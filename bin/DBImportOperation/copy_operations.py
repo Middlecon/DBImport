@@ -1593,6 +1593,9 @@ class operation(object, metaclass=Singleton):
 			.update(updateDict))
 		remoteSession.commit()
 
+		localSession.close()
+		remoteSession.close()
+
 	def importCopiedTable(self, localHDFSpath, hiveDB, hiveTable):
 		""" Import a table from the specified directory """
 		logging.debug("Executing copy_operations.importCopiedTable()")
