@@ -350,7 +350,7 @@ class initialize(object):
 				self.DAGfile.write("%s_clearStage = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -a %s -S %s -T %s ',\n"%(dbexportClearStageCMD, row['dbalias'], row['target_schema'], row['target_table']))
-				self.DAGfile.write("    pool='%s',\n"%(exportPool))
+#				self.DAGfile.write("    pool='%s',\n"%(exportPool))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
@@ -1266,8 +1266,10 @@ class initialize(object):
 
 				# We also need to check if there is any dependencies on this task. If there is, we dont add a set_downstream as that will be handled by the other task
 				foundDependency = False
-				for depIndex, dep in allTaskDependencies.iterrows():
-					for depTask in dep['task_dependency_in_main'].split(','):
+				# for depIndex, dep in allTaskDependencies.iterrows():
+				for dep in allTaskDependencies.values:
+					# for depTask in dep['task_dependency_in_main'].split(','):
+					for depTask in dep[0].split(','):
 						depTask = depTask.strip()
 						if depTask != '' and depTask == row['task_name']:
 							foundDependency = True

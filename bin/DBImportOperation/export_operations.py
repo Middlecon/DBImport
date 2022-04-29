@@ -878,7 +878,11 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.executor.memory', self.export_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.export_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
+#		conf.set('spark.executor.heartbeatInterval', '200000')
+#		conf.set('spark.network.timeout', '300000')
 		conf.set('spark.hive.llap.execution.mode', 'only')
+#		conf.set('spark.datasource.hive.warehouse.read.mode', 'JDBC_CLUSTER')
+		conf.set('spark.datasource.hive.warehouse.read.mode', 'DIRECT_READER_V1')
 		if self.export_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
@@ -906,7 +910,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug(conf.getAll())
 
 		if self.export_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
-			# Configuration for HDP 3.x
+			# Configuration for HDP 3.x and CDP
 			from pyspark_llap import HiveWarehouseSession
 			sc = SparkContext(conf=conf)
 			spark = SparkSession(sc)
@@ -937,11 +941,11 @@ class operation(object, metaclass=Singleton):
 
 		sys.stdout.flush()
 
-
 		if self.export_config.common_config.sparkHiveLibrary == "HiveWarehouseSession":
 			# Get DataFrame for HDP 3.x
 			hive = HiveWarehouseSession.session(spark).build()
-			df = hive.executeQuery(sparkQuery)
+			df = hive.sql(sparkQuery)
+
 		elif self.export_config.common_config.sparkHiveLibrary == "HiveContext":
 			# Get DataFrame for HDP 2.x
 			df = HiveContext(sc).sql(sparkQuery)

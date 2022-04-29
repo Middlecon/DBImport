@@ -1234,7 +1234,6 @@ class config(object, metaclass=Singleton):
 #				query += "  ,source_rowcount_incr = NULL "
 #			queryParam.append(sqoopRows)
 
-		print(query)
 		if firstSet == False:
 			# Only run this if any of the set columns are not None
 			query += " where table_id = %s "

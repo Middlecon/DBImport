@@ -1379,8 +1379,8 @@ def main(argv):
 				import_operation.saveRetryAttempt(stage)
 
 				newStage = 0
-				# TODO: Add correct restart points once incremental imports are working
-				if stage == 3360: newStage = 3354 
+#				if stage == 3360: newStage = 3354 
+				if stage == 3360: newStage = 3359 
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous import failed and this execution |") 	

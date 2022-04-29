@@ -1310,7 +1310,7 @@ class config(object, metaclass=Singleton):
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
 
 		if self.db_db2udb == True:
-			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
+			query = "select cast(count(1) as bigint) from \"%s\".\"%s\""%(source_schema, source_table)
 
 		if self.db_db2as400 == True:		
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)

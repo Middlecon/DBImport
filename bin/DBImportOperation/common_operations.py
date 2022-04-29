@@ -375,7 +375,9 @@ class operation(object, metaclass=Singleton):
 																	username='dummy', 
 																	password='dummy')
 
+#						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none', 'hive.merge.mapredfiles': 'true'})
 						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
+#						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none', 'hive.stats.autogather': 'false'})
 #						self.hive_conn = hive.connect(thrift_transport=transport)
 
 					else:
@@ -395,6 +397,14 @@ class operation(object, metaclass=Singleton):
 					self.hive_hostname = hive_hostname
 					self.hive_port = hive_port
 					
+#					self.executeHiveQuery("set hive.optimize.reducededuplication.min.reducer=1")
+#					self.executeHiveQuery("set hive.auto.convert.join=false")
+#					self.executeHiveQuery("set hive.merge.mapredfiles=true")
+#					self.executeHiveQuery("set hive.merge.mapfiles=true")
+#					self.executeHiveQuery("set hive.optimize.bucketmapjoin.sortedmerge=true")
+#					self.executeHiveQuery("set hive.merge.smallfiles.avgsize=32000000")
+
+
 				except TypeError:
 					logging.warning("Could not connect to Hive at %s:%s. This might be because the address was not resolvable in the DNS"%(hive_hostname, hive_port))
 				except hive.thrift.transport.TTransport.TTransportException:
@@ -603,6 +613,8 @@ class operation(object, metaclass=Singleton):
 		query = "select count(1) as rowcount from `%s`.`%s` "%(hiveDB, hiveTable)
 		if whereStatement != None:
 			query += "where " + whereStatement
+		else:
+			query += "limit 1"
 
 		result_df = self.executeHiveQuery(query)
 		rowCount = int(result_df['rowcount'].iloc[0])

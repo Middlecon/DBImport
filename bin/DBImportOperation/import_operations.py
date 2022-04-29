@@ -1081,6 +1081,11 @@ class operation(object, metaclass=Singleton):
 #		print(self.import_config.common_config.jdbc_username)
 #		print(self.import_config.common_config.jdbc_password)
 
+#		print(sparkQuery)
+#		sc.stop()
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
+
 		if self.import_config.sqlSessions < 2:
 			df = (spark.read.format("jdbc")
 				.option("driver", self.import_config.common_config.jdbc_driver)
@@ -1279,8 +1284,12 @@ class operation(object, metaclass=Singleton):
 		sqoopCommand = []
 		sqoopCommand.extend(["sqoop", "import", "-D", "mapreduce.job.user.classpath.first=true"])
 		sqoopCommand.extend(["-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue"))])
-		sqoopCommand.extend(["-D", "mapreduce.map.memory.mb=%s"%(25000)])
-		sqoopCommand.extend(["-D", "mapreduce.reduce.memory.mb=%s"%(50000)])
+#		sqoopCommand.extend(["-D", "mapreduce.map.memory.mb=%s"%(25000)])
+#		sqoopCommand.extend(["-D", "mapreduce.reduce.memory.mb=%s"%(50000)])
+#		sqoopCommand.extend(["-D", "mapreduce.map.memory.mb=%s"%(3072)])
+#		sqoopCommand.extend(["-D", "mapreduce.reduce.memory.mb=%s"%(6144)])
+#		sqoopCommand.extend(["-D", "mapreduce.task.io.sort.mb=%s"%(512)])
+#		sqoopCommand.extend(["-D", "yarn.app.mapreduce.am.resource.mb=%s"%(3072)])
 		sqoopCommand.extend(["-D", "oraoop.disabled=true"]) 
 		sqoopCommand.extend(["-D", "yarn.timeline-service.enabled=false"]) 
 		sqoopCommand.extend(["-D", "org.apache.sqoop.splitter.allow_text_splitter=%s"%(self.import_config.sqoop_allow_text_splitter)])
@@ -1520,6 +1529,9 @@ class operation(object, metaclass=Singleton):
 			self.globalHiveConfigurationSet = True
 			if self.import_config.hiveJavaHeap != None:
 				query = "set hive.tez.container.size=%s"%(self.import_config.hiveJavaHeap)
+				self.common_operations.executeHiveQuery(query)
+			else:
+				query = "set hive.tez.container.size=3072"
 				self.common_operations.executeHiveQuery(query)
 
 			if self.import_config.hiveSplitCount != None:
@@ -2324,6 +2336,7 @@ class operation(object, metaclass=Singleton):
 		self.common_operations.truncateHiveTable(self.Hive_DB, self.Hive_Table)
 
 	def updateStatisticsOnTargetTable(self,):
+#		logging.debug("Updating the Hive statistics on the target table is disabled. Wont execute that function")
 		logging.info("Updating the Hive statistics on the target table")
 		self.common_operations.updateHiveTableStatistics(self.Hive_DB, self.Hive_Table)
 
