@@ -1163,11 +1163,6 @@ class config(object, metaclass=Singleton):
 		except AttributeError:
 			pass
 
-#		except jpype.JavaException as exception:
-#			logging.info("Disconnection to database over JDBC failed with the following error:")
-#			logging.info(exception.message())
-#			pass
-
 		except Exception as exception:
 			logging.info("Unknown error during disconnection to JDBC database:")
 			logging.info(exception.message())
@@ -1205,7 +1200,7 @@ class config(object, metaclass=Singleton):
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
-			except jpype.JavaException as exception:
+			except Exception as exception:
 				if printError == True:
 					log.error("Connection to database over JDBC failed with the following error:")
 					log.error(exception.message())
