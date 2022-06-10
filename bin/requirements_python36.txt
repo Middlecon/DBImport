@@ -73,7 +73,7 @@ sqlparse==0.4.2
 thrift==0.16.0
 thrift-sasl==0.4.3
 typing_extensions==4.1.1
-urllib3==1.25.11
+urllib3==1.26.5
 virtualenv==20.14.1
 waitress==2.0.0
 webargs==8.0.1
