@@ -75,6 +75,6 @@ thrift-sasl==0.4.3
 typing_extensions==4.1.1
 urllib3==1.25.11
 virtualenv==20.14.1
-waitress==2.0.0
+waitress==2.1.2
 webargs==8.0.1
 zipp==3.6.0
