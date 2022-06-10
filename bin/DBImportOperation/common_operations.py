@@ -1092,17 +1092,18 @@ class operation(object, metaclass=Singleton):
 			targetColumns['targetName'] = targetColumns['name']
 
 			# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
-			targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o')
-			targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash')
+			targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'/', '', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o', regex=True)
+			targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash', regex=True)
 			if importTool != "spark":
-				targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_')
+				targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_', regex=True)
 
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
 		logging.debug("\n%s"%(columnMerge))

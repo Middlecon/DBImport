@@ -626,6 +626,71 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.SNOWFLAKE:
+			query  = "SELECT "
+			query += "	COL.TABLE_SCHEMA, "
+			query += "	COL.TABLE_NAME, "
+			query += "	TAB.COMMENT as TABLE_COMMENT, " 
+			query += "	COL.COLUMN_NAME, "
+			query += "	COL.DATA_TYPE, "
+			query += "	COL.CHARACTER_MAXIMUM_LENGTH, " 
+			query += "	COL.COMMENT as COLUMN_COMMENT, "
+			query += "	COL.IS_NULLABLE, " 
+			query += "	TAB.TABLE_TYPE as TABLE_TYPE, " 
+			query += "	TAB.CREATED " 
+			query += "FROM INFORMATION_SCHEMA.COLUMNS COL " 
+			query += "LEFT JOIN INFORMATION_SCHEMA.TABLES TAB "
+			query += "	ON TAB.TABLE_SCHEMA = COL.TABLE_SCHEMA "
+			query += "	AND TAB.TABLE_CATALOG = COL.TABLE_CATALOG "
+			query += "	AND TAB.TABLE_NAME = COL.TABLE_NAME "
+			query += "WHERE COL.TABLE_CATALOG = '%s' "%(database)
+			query += "	AND COL.TABLE_SCHEMA ='%s' "%(schema)
+
+			if table != None:
+				query += "	AND COL.TABLE_NAME = '%s' "%(table)
+			query += "ORDER BY COL.TABLE_SCHEMA, COL.TABLE_NAME, COL.ORDINAL_POSITION"
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
+				if row[2] == "" or row[2] == None:
+					line_dict["TABLE_COMMENT"] = None
+				else:
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+
+				if row[5] == None:
+					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
+				else:
+					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
+				if row[6] == "" or row[6] == None:
+					line_dict["SOURCE_COLUMN_COMMENT"] = None
+				else:
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[6]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+
+				line_dict["IS_NULLABLE"] = row[7]
+
+				line_dict["TABLE_TYPE"] = row[8]
+				line_dict["TABLE_CREATE_TIME"] = row[9]
+				line_dict["DEFAULT_VALUE"] = None
+				rows_list.append(line_dict)
+			result_df = pd.DataFrame(rows_list)
+
 		logging.debug(result_df)
 		logging.debug("Executing schemaReader.readTable() - Finished")
 		return result_df
@@ -1152,6 +1217,40 @@ class source(object):
 					rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.SNOWFLAKE:
+			if table != None:
+				query = 'SHOW PRIMARY KEYS IN TABLE \"%s\".\"%s\".\"%s\"'%(database, schema, table)
+			else:
+				query = 'SHOW PRIMARY KEYS IN SCHEMA \"%s\".\"%s\"'%(database, schema)
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				# As snowflake only gives PK's in a show function, we are forced to beleive that the order of the columns will always be the same
+				# If that changes, we need to update this code as well
+				# Example
+				# ('2022-05-04 04:54:08.777000', 'DL_SCHEMA', 'DATA_LAKE', 'TEST', 'I1', 1, 'TEST_PK', 'false', None)
+				logging.debug(row)
+				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[2]
+					line_dict["TABLE_NAME"] = row[3]
+				line_dict["CONSTRAINT_NAME"] = row[6]
+				line_dict["CONSTRAINT_TYPE"] = constant.PRIMARY_KEY
+				line_dict["COL_NAME"] = row[4]
+				line_dict["REFERENCE_SCHEMA_NAME"] = None
+				line_dict["REFERENCE_TABLE_NAME"] = None
+				line_dict["REFERENCE_COL_NAME"] = None
+				line_dict["COL_KEY_POSITION"] = int(row[5])
+				rows_list.append(line_dict)
+			result_df = pd.DataFrame(rows_list)
+
 		# In some cases, we get duplicate Foreign Keys. This removes all duplicate entries
 		result_df.drop_duplicates(keep="first", inplace=True)
 
@@ -1440,6 +1539,17 @@ class source(object):
 				else:
 					query += "WHERE TABLE_NAME LIKE '%s' "%(tableFilter)
 			query += "ORDER BY TABLE_SCHEM, TABLE_NAME"
+
+		if serverType == constant.SNOWFLAKE:
+			query = "select TABLE_SCHEMA, TABLE_NAME from INFORMATION_SCHEMA.TABLES "
+			if schemaFilter != None:
+				query += "where TABLE_SCHEMA like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and TABLE_NAME like '%s' "%(tableFilter)
+				else:
+					query += "where TABLE_NAME like '%s' "%(tableFilter)
+			query += "order by TABLE_SCHEMA, TABLE_NAME"
 
 		logging.debug("SQL Statement executed: %s" % (query) )
 		JDBCCursor.execute(query)

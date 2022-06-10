@@ -35,9 +35,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import time
-
-
-
+import boto3
 
 class operation(object, metaclass=Singleton):
 	def __init__(self, connectionAlias=None, targetSchema=None, targetTable=None):
@@ -69,7 +67,8 @@ class operation(object, metaclass=Singleton):
 				self.common_operations = common_operations.operation()
 	
 				self.export_config.getExportConfig()
-				self.export_config.common_config.lookupConnectionAlias(connection_alias=self.connectionAlias)
+				# self.export_config.common_config.lookupConnectionAlias(connection_alias=self.connectionAlias)
+				# self.export_config.lookupConnectionAlias()
 	
 				self.hiveDB = self.export_config.hiveDB
 				self.hiveTable = self.export_config.hiveTable
@@ -737,77 +736,118 @@ class operation(object, metaclass=Singleton):
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
 
-		self.export_config.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable)
-		columnsTarget = self.export_config.common_config.source_columns_df
-		columnsTarget.rename(columns={'SOURCE_COLUMN_NAME':'name'}, inplace=True) 
-		columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
-		columnsTarget.drop('SOURCE_COLUMN_COMMENT', axis=1, inplace=True)
-		columnsTarget.drop('SOURCE_COLUMN_TYPE', axis=1, inplace=True)
-		columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
-		columnsTarget.drop('TABLE_TYPE', axis=1, inplace=True)
-		columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
-		columnsTarget.drop('TABLE_CREATE_TIME', axis=1, inplace=True)
-		columnsTarget.drop('DEFAULT_VALUE', axis=1, inplace=True)
+		if self.export_config.common_config.jdbc_servertype == constant.AWS_S3:
+			# As we cant verify schema on S3 files, we are just going to read what we have in Hive and export all columns
 
+			columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, forceColumnUppercase=forceColumnUppercase)
 
-		columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, forceColumnUppercase=forceColumnUppercase)
+			# Generate the SQL used to query Hive
+			columnList = ""
+			columnStartingWithUnderscoreFound = False
+			for index, row in columnsConfig.iterrows():
+				columnName = row['hiveColumnName']
+				targetColumnName = row['targetColumnName']
 
-		logging.debug("=================================================================")
-		logging.debug("columnsTarget")
-		logging.debug(columnsTarget)
-		logging.debug("=================================================================")
-
-		logging.debug("columnsConfig")
-		logging.debug(columnsConfig)
-		logging.debug("=================================================================")
-
-		# Generate the SQL used to query Hive
-		columnList = ""
-		columnStartingWithUnderscoreFound = False
-		for index, row in columnsConfig.iterrows():
-			columnName = row['hiveColumnName']
-			targetColumnName = row['targetColumnName']
-
-			if targetColumnName != None and targetColumnName.strip() != "":
-				checkColumn = targetColumnName
-			else:
-				checkColumn = columnName
-				targetColumnName = ""
-
-			if columnsTarget[columnsTarget['name'] == checkColumn].empty == False:
-				# Column exists in target table
 				if columnList != "":
 					columnList += (", ")
 
-				if checkColumn == columnName:
-					# No rename of the column
-					columnList +=("`%s`"%(columnName))
-				else:
-					# Rename of the column
+				if targetColumnName != None and targetColumnName.strip() != "":
 					if self.isExportTempTableNeeded() == True:
 						columnList +=("`%s`"%(targetColumnName))
 					else:
 						columnList +=("`%s` as `%s`"%(columnName, targetColumnName))
+				else:
+					# No rename of the column
+					columnList +=("`%s`"%(columnName))
+					targetColumnName = ""
 
 				if columnName.startswith('_') or targetColumnName.startswith('_'):
 					# This might or might now be supported depending on spark version. Will check after spark is initialized
 					columnStartingWithUnderscoreFound = True
 
-		if self.isExportTempTableNeeded() == True:
-			hiveDB = self.hiveExportTempDB
-			hiveTable = self.hiveExportTempTable
-		else:
-			hiveDB = self.hiveDB
-			hiveTable = self.hiveTable
+			if self.isExportTempTableNeeded() == True:
+				hiveDB = self.hiveExportTempDB
+				hiveTable = self.hiveExportTempTable
+			else:
+				hiveDB = self.hiveDB
+				hiveTable = self.hiveTable
 
-		sparkQuery = "select %s from `%s`.`%s`"%(columnList, hiveDB, hiveTable)
+			sparkQuery = "select %s from `%s`.`%s`"%(columnList, hiveDB, hiveTable)
 
-		# Sets the correct spark table and schema that will be used to write to
-		sparkWriteTable = ""
-		if self.export_config.common_config.db_mysql == True: 
-			sparkWriteTable = targetTable
 		else:
-			sparkWriteTable = "%s.%s"%(targetSchema, targetTable)
+			self.export_config.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable)
+			columnsTarget = self.export_config.common_config.source_columns_df
+			columnsTarget.rename(columns={'SOURCE_COLUMN_NAME':'name'}, inplace=True) 
+			columnsTarget.drop('IS_NULLABLE', axis=1, inplace=True)
+			columnsTarget.drop('SOURCE_COLUMN_COMMENT', axis=1, inplace=True)
+			columnsTarget.drop('SOURCE_COLUMN_TYPE', axis=1, inplace=True)
+			columnsTarget.drop('SOURCE_COLUMN_LENGTH', axis=1, inplace=True)
+			columnsTarget.drop('TABLE_TYPE', axis=1, inplace=True)
+			columnsTarget.drop('TABLE_COMMENT', axis=1, inplace=True)
+			columnsTarget.drop('TABLE_CREATE_TIME', axis=1, inplace=True)
+			columnsTarget.drop('DEFAULT_VALUE', axis=1, inplace=True)
+
+			columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, forceColumnUppercase=forceColumnUppercase)
+
+			logging.debug("=================================================================")
+			logging.debug("columnsTarget")
+			logging.debug(columnsTarget)
+			logging.debug("=================================================================")
+
+			logging.debug("columnsConfig")
+			logging.debug(columnsConfig)
+			logging.debug("=================================================================")
+
+			# Generate the SQL used to query Hive
+			columnList = ""
+			columnStartingWithUnderscoreFound = False
+			for index, row in columnsConfig.iterrows():
+				columnName = row['hiveColumnName']
+				targetColumnName = row['targetColumnName']
+
+				if targetColumnName != None and targetColumnName.strip() != "":
+					checkColumn = targetColumnName
+				else:
+					checkColumn = columnName
+					targetColumnName = ""
+
+				if columnsTarget[columnsTarget['name'] == checkColumn].empty == False:
+					# Column exists in target table
+					if columnList != "":
+						columnList += (", ")
+
+					if checkColumn == columnName:
+						# No rename of the column
+						columnList +=("`%s`"%(columnName))
+					else:
+						# Rename of the column
+						if self.isExportTempTableNeeded() == True:
+							columnList +=("`%s`"%(targetColumnName))
+						else:
+							columnList +=("`%s` as `%s`"%(columnName, targetColumnName))
+
+					if columnName.startswith('_') or targetColumnName.startswith('_'):
+						# This might or might now be supported depending on spark version. Will check after spark is initialized
+						columnStartingWithUnderscoreFound = True
+
+			if self.isExportTempTableNeeded() == True:
+				hiveDB = self.hiveExportTempDB
+				hiveTable = self.hiveExportTempTable
+			else:
+				hiveDB = self.hiveDB
+				hiveTable = self.hiveTable
+
+			sparkQuery = "select %s from `%s`.`%s`"%(columnList, hiveDB, hiveTable)
+
+			# Sets the correct spark table and schema that will be used to write to
+			sparkWriteTable = ""
+			if self.export_config.common_config.db_mysql == True: 
+				sparkWriteTable = targetTable
+			else:
+				if self.export_config.common_config.jdbc_servertype == constant.SNOWFLAKE:
+					sparkWriteTable = "\"%s\".\"%s\""%(targetSchema, targetTable)
+				else:
+					sparkWriteTable = "%s.%s"%(targetSchema, targetTable)
 
 		# Setup the additional path required to find the libraries/modules
 		for path in self.export_config.common_config.sparkPathAppend.split(","):	
@@ -902,10 +942,61 @@ class operation(object, metaclass=Singleton):
 				logging.info("Number of executors is fixed at %s"%(self.export_config.sparkMaxExecutors))
 				self.sqoopMappers = self.export_config.sparkMaxExecutors
 
-		JDBCconnectionProperties = {}
-		JDBCconnectionProperties["user"] = self.export_config.common_config.jdbc_username
-		JDBCconnectionProperties["password"] = self.export_config.common_config.jdbc_password
-		JDBCconnectionProperties["driver"] = self.export_config.common_config.jdbc_driver
+		if self.export_config.common_config.jdbc_servertype == constant.AWS_S3:
+			if self.export_config.common_config.awsS3proxyServer != None:
+				os.environ['HTTPS_PROXY'] = self.export_config.common_config.awsS3proxyServer
+				awsS3proxyHost = self.export_config.common_config.awsS3proxyServer.split('//')[1].split(':')[0]
+				awsS3proxyPort = self.export_config.common_config.awsS3proxyServer.split('//')[1].split(':')[1]
+				conf.set('spark.hadoop.fs.s3a.proxy.host', awsS3proxyHost)
+				conf.set('spark.hadoop.fs.s3a.proxy.port', awsS3proxyPort)
+				logging.debug("awsS3proxyHost: %s"%awsS3proxyHost)
+				logging.debug("awsS3proxyPort: %s"%awsS3proxyPort)
+
+			if self.export_config.common_config.awsS3assumeRole != None:
+				session = boto3.Session(aws_access_key_id=self.export_config.common_config.jdbc_username, 
+										aws_secret_access_key=self.export_config.common_config.jdbc_password, 
+										region_name=self.export_config.common_config.awsS3region)
+
+				sts = session.client('sts')
+				response = sts.assume_role(
+					RoleArn=self.export_config.common_config.awsS3assumeRole,
+					RoleSessionName='DBImport_export_%s.%s'%(self.hiveDB, self.hiveTable)
+					# DurationSeconds=3600  # how many seconds these credentials will work
+					)
+
+				credentials = response['Credentials']
+				logging.debug(credentials)
+
+				conf.set('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider')
+				conf.set('spark.hadoop.fs.s3a.access.key', credentials['AccessKeyId'])
+				conf.set('spark.hadoop.fs.s3a.secret.key', credentials['SecretAccessKey'])
+				conf.set('spark.hadoop.fs.s3a.session.token', credentials['SessionToken'])
+
+				s3client = boto3.resource(
+					's3',
+					region_name = self.export_config.common_config.awsS3region,
+					config=boto3.session.Config(s3={'addressing_style': 'virtual'}),
+					aws_access_key_id = credentials['AccessKeyId'],
+					aws_secret_access_key = credentials['SecretAccessKey'],
+					aws_session_token = credentials['SessionToken']
+					)
+
+			else:
+				conf.set('spark.hadoop.fs.s3a.access.key', self.export_config.common_config.jdbc_username)
+				conf.set('spark.hadoop.fs.s3a.secret.key', self.export_config.common_config.jdbc_password)
+
+				s3client = boto3.resource(
+					's3',
+					aws_access_key_id = self.export_config.common_config.jdbc_username,
+					aws_secret_access_key = self.export_config.common_config.jdbc_password
+					)
+
+			conf.set('spark.hadoop.fs.s3a.endpoint', 's3.%s.amazonaws.com'%self.export_config.common_config.awsS3region)
+		else:
+			JDBCconnectionProperties = {}
+			JDBCconnectionProperties["user"] = self.export_config.common_config.jdbc_username
+			JDBCconnectionProperties["password"] = self.export_config.common_config.jdbc_password
+			JDBCconnectionProperties["driver"] = self.export_config.common_config.jdbc_driver
 
 		logging.debug(conf.getAll())
 
@@ -956,15 +1047,25 @@ class operation(object, metaclass=Singleton):
 		if self.export_config.sqlWhereAddition != None:
 			df = df.filter("(%s)" % (self.export_config.sqlWhereAddition))
 
-		sys.stdout.flush()
-#		df.show()
+		# df.show()
 
-		# Write data to target database
-		df.write.mode('append').jdbc(	url=self.export_config.common_config.jdbc_url, 
-										table=sparkWriteTable,
-										properties=JDBCconnectionProperties
-									)
+		if self.export_config.common_config.jdbc_servertype == constant.AWS_S3:
+			logging.info("Writing data to AWS S3 Bucket")
+			sys.stdout.flush()
+			df.write.mode('overwrite').parquet(self.export_config.awsS3bucketPath)
 
+			logging.info("Writing schema to AWS S3 Bucket")
+			sys.stdout.flush()
+			df_schema = df.schema.json().encode('ascii')
+			s3client.Object(self.export_config.awsS3bucket, '%s/_schema.json'%(self.export_config.awsS3path)).put(Body=df_schema)
+
+		else:
+			# Write data to target database
+			df.write.mode('append').jdbc(	url=self.export_config.common_config.jdbc_url, 
+											table=sparkWriteTable,
+											properties=JDBCconnectionProperties
+										)
+			
 		time.sleep(1)	# Sleep 1 sec in order to avoid Yarn applications finished before program is able to get state		
 		sc.stop()
 

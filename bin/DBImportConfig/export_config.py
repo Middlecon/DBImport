@@ -84,6 +84,10 @@ class config(object, metaclass=Singleton):
 		self.generatedSqoopOptions = None
 		self.forceCreateTempTable = None
 
+		self.awsS3bucket = None
+		self.awsS3path = None
+		self.awsS3bucketPath = None
+
 		self.validationMethod = None
 		self.validationCustomQueryHiveSQL = None
 		self.validationCustomQueryTargetSQL = None
@@ -303,13 +307,32 @@ class config(object, metaclass=Singleton):
 				logging.error("ERROR: Unsupported export configuration")
 				raise invalidConfiguration("Using a SQL Where configuration in 'sql_where_addition' column is not supported with sqoop exports")
 
-		if self.exportType == "full":
+		# Get the connection details. This is needed in order to determine what kind of connection we talk about.
+		self.lookupConnectionAlias()
+
+		if self.exportType == "full" and self.common_config.db_awss3 == False:
 			self.exportPhase             = constant.EXPORT_PHASE_FULL
 			self.exportPhaseDescription  = "Full Export"
 
-		if self.exportType == "incr":
+		if self.exportType == "full" and self.common_config.db_awss3 == True:
+			self.exportPhase             = constant.EXPORT_PHASE_AWSS3_FULL
+			self.exportPhaseDescription  = "Full Export"
+
+		if self.exportType == "incr" and self.common_config.db_awss3 == False:
 			self.exportPhase             = constant.EXPORT_PHASE_INCR
 			self.exportPhaseDescription  = "Incremental Export"
+
+		if self.exportType == "incr" and self.common_config.db_awss3 == True:
+			raise invalidConfiguration("Incremental exports to AWS S3 is not supported in this version of DBImport")
+
+		if self.common_config.db_awss3 == True:
+			if self.targetSchema == "-" or self.targetSchema == "":
+				self.awsS3bucketPath = "%s/%s"%(self.common_config.awsS3bucket, self.targetTable)
+			else:
+				self.awsS3bucketPath = "%s/%s/%s"%(self.common_config.awsS3bucket, self.targetSchema, self.targetTable)
+
+			self.awsS3bucket = self.awsS3bucketPath.split('/')[2]		# Need to start on 2 as s3a:// is first
+			self.awsS3path = '/'.join(self.awsS3bucketPath.split('/')[3:])
 
 		if self.exportPhase == None:
 			raise invalidConfiguration("Import type '%s' is not a valid type. Please check configuration"%(self.import_type))
@@ -355,6 +378,13 @@ class config(object, metaclass=Singleton):
 		logging.debug("    hiveExportTempDB = %s"%(self.hiveExportTempDB))
 		logging.debug("    hiveExportTempTable = %s"%(self.hiveExportTempTable))
 		logging.debug("Executing export_config.getExportConfig() - Finished")
+
+	def lookupConnectionAlias(self, connectionAlias=None):
+
+		if connectionAlias == None:
+			connectionAlias = self.connectionAlias
+
+		self.common_config.lookupConnectionAlias(connectionAlias)
 
 
 	def validateCustomQuery(self):
@@ -724,6 +754,11 @@ class config(object, metaclass=Singleton):
 			columnType = re.sub('^char\(', 'character(', columnType)
 			columnType = re.sub('^varchar\(', 'character varying(', columnType)
 
+		if self.common_config.db_snowflake == True:
+			columnType = re.sub('^timestamp$', 'TIMESTAMP_NTZ', columnType)
+			columnType = re.sub('^char\(', 'TEXT(', columnType)
+			columnType = re.sub('^varchar\(', 'TEXT(', columnType)
+			
 		if columnName == "_globalid":
 			print("===============================")
 			print(sourceDB)
@@ -750,9 +785,15 @@ class config(object, metaclass=Singleton):
 			targetSchema = self.targetSchema.upper()
 			targetTable = self.targetTable.upper()
 
-		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
+		elif self.common_config.jdbc_servertype in (constant.POSTGRESQL):
 			targetSchema = self.targetSchema.lower()
 			targetTable = self.targetTable.lower()
+
+		elif self.common_config.jdbc_servertype in (constant.SNOWFLAKE):
+			targetSchema = self.targetSchema
+			targetTable = self.targetTable
+#			targetSchema = self.targetSchema.upper()
+#			targetTable = self.targetTable.upper()
 
 		self.sqoop_mapcolumnjava=[]
 		firstLoop = True
@@ -859,6 +900,9 @@ class config(object, metaclass=Singleton):
 					if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 						query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
 
+					if self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+						query = "ALTER TABLE \"%s\".\"%s\" RENAME COLUMN \"%s\" TO \"%s\""%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
+
 					self.common_config.executeJDBCquery(query)
 					alterTableExecuted = True
 
@@ -892,8 +936,12 @@ class config(object, metaclass=Singleton):
 
 						if self.common_config.jdbc_servertype == constant.MYSQL:
 							query = "ALTER TABLE %s CHANGE COLUMN %s %s %s NULL"%(targetTable, rowInTarget["name"], rowInSource["name"], rowInSource["type"])
+
 						if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 							query = "ALTER TABLE %s.%s RENAME COLUMN %s TO %s"%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
+
+						if self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+							query = "ALTER TABLE \"%s\".\"%s\" RENAME COLUMN \"%s\" TO \"%s\""%(targetSchema, targetTable, rowInTarget["name"], rowInSource["name"])
 
 						self.common_config.executeJDBCquery(query)
 						self.common_config.executeJDBCquery(query)
@@ -941,6 +989,9 @@ class config(object, metaclass=Singleton):
 
 			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 				query = "ALTER TABLE %s.%s ADD COLUMN %s %s"%(targetSchema, targetTable, fullRow["name"], fullRow["type"])
+
+			if self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+				query = "ALTER TABLE \"%s\".\"%s\" ADD COLUMN \"%s\" %s"%(targetSchema, targetTable, fullRow["name"], fullRow["type"])
 
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True
@@ -1002,6 +1053,9 @@ class config(object, metaclass=Singleton):
 
 			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 				query = "ALTER TABLE %s.%s ALTER COLUMN %s TYPE %s"%(targetSchema, targetTable, row["name"], row["type"])
+
+			if self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+				query = "ALTER TABLE \"%s\".\"%s\" ALTER COLUMN \"%s\" TYPE %s"%(targetSchema, targetTable, row["name"], row["type"])
 
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True
@@ -1069,10 +1123,11 @@ class config(object, metaclass=Singleton):
 			if self.common_config.jdbc_servertype == constant.POSTGRESQL:
 				query = "comment on column \"%s\".\"%s\".\"%s\" is '%s'"%(targetSchema, targetTable, row["name"], row["comment"])
 
+			if self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+				query = "ALTER TABLE \"%s\".\"%s\" ALTER COLUMN \"%s\" COMMENT '%s'"%(targetSchema, targetTable, row["name"], row["comment"])
+
 			self.common_config.executeJDBCquery(query)
 			alterTableExecuted = True
-
-
 
 		logging.debug("Executing export_config.updateTargetTable() - Finished")
 
@@ -1127,6 +1182,14 @@ class config(object, metaclass=Singleton):
 			targetTable = self.targetTable.lower()
 			query  = "create table %s.%s ("%(targetSchema, targetTable) 
 
+		elif self.common_config.jdbc_servertype in (constant.SNOWFLAKE):
+#			targetSchema = self.targetSchema.upper()
+#			targetTable = self.targetTable.upper()
+			targetSchema = self.targetSchema
+			targetTable = self.targetTable
+			query  = "create table \"%s\".\"%s\" ("%(targetSchema, targetTable) 
+			columnQuote = "\""
+
 		else:
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
@@ -1161,9 +1224,14 @@ class config(object, metaclass=Singleton):
 				self.sqoop_mapcolumnjava.append(columnName + "=" + mapColumnJava)
 
 			query += "%s%s%s %s NULL "%(columnQuote, columnName, columnQuote, columnType)
-			if self.common_config.jdbc_servertype not in (constant.ORACLE, constant.MSSQL, constant.POSTGRESQL):
-				if columnComment != None and columnComment.strip() != "":
+
+			if columnComment != None and columnComment.strip() != "":
+				if self.common_config.jdbc_servertype in (constant.SNOWFLAKE):
+					query += "comment '%s'"%(columnComment)
+
+				elif self.common_config.jdbc_servertype not in (constant.ORACLE, constant.MSSQL, constant.POSTGRESQL):
 					query += "comment \"%s\""%(columnComment)
+
 		query += ")"
 
 		self.common_config.executeJDBCquery(query)
@@ -1417,11 +1485,7 @@ class config(object, metaclass=Singleton):
 		sqlSessionsMax = None
 
 		# TODO: Add max_export_sessions to jdbc_connections
-#		query = "select max_export_sessions from jdbc_connections where dbalias = %s "
-#		self.mysql_cursor01.execute(query, (self.connection_alias, ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
-#
-#		row = self.mysql_cursor01.fetchone()
+
 		row = None
 
 		if row != None and row[0] > 0: 
@@ -1609,11 +1673,17 @@ class config(object, metaclass=Singleton):
 		elif whereForTarget == True and columnType == "timestamp" and self.common_config.jdbc_servertype == constant.ORACLE:
 			minValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF')"%(minValue)
 			maxValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF')"%(maxValue)
+		elif whereForTarget == True and columnType == "timestamp" and self.common_config.jdbc_servertype == constant.SNOWFLAKE:
+			minValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF6')"%(minValue)
+			maxValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF6')"%(maxValue)
 		elif columnType not in ("int", "integer", "bigint", "tinyint", "smallint", "decimal", "double", "float", "boolean"):
 			minValue = "\"%s\""%(minValue)
 			maxValue = "\"%s\""%(maxValue)
 
 		if whereForTarget == True and self.common_config.jdbc_servertype == constant.ORACLE:
+			columnQuotation = "\""
+
+		if whereForTarget == True and self.common_config.jdbc_servertype == constant.SNOWFLAKE:
 			columnQuotation = "\""
 
 		if whereForTarget == False:

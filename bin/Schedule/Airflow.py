@@ -171,7 +171,10 @@ class initialize(object):
 				airflowExportDags.retries,
 				airflowExportDags.auto_regenerate_dag,
 				airflowExportDags.sudo_user,
-				airflowExportDags.timezone
+				airflowExportDags.timezone,
+				airflowExportDags.email,
+				airflowExportDags.email_on_failure,
+				airflowExportDags.email_on_retries
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -190,7 +193,10 @@ class initialize(object):
 				airflowImportDags.auto_regenerate_dag,
 				airflowImportDags.sudo_user,
 				airflowImportDags.metadata_import,
-                                airflowImportDags.timezone
+				airflowImportDags.timezone,
+				airflowImportDags.email,
+				airflowImportDags.email_on_failure,
+				airflowImportDags.email_on_retries
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -205,8 +211,10 @@ class initialize(object):
 				airflowEtlDags.retries,
 				airflowEtlDags.auto_regenerate_dag,
 				airflowEtlDags.sudo_user,
-                                airflowEtlDags.timezone
-
+				airflowEtlDags.timezone,
+				airflowEtlDags.email,
+				airflowEtlDags.email_on_failure,
+				airflowEtlDags.email_on_retries
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -217,7 +225,10 @@ class initialize(object):
 				airflowCustomDags.retries,
 				airflowCustomDags.auto_regenerate_dag,
 				airflowCustomDags.sudo_user,
-                                airflowCustomDags.timezone
+				airflowCustomDags.timezone,
+				airflowCustomDags.email,
+				airflowCustomDags.email_on_failure,
+				airflowCustomDags.email_on_retries
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -283,7 +294,7 @@ class initialize(object):
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'])
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -407,7 +418,7 @@ class initialize(object):
 			metaDataImportOption = ""
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'])
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -667,10 +678,14 @@ class initialize(object):
 
 		for pool in pools:
 			if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
-				logging.info("Creating the Airflow pool '%s' with 24 slots"%(pool))
-				newPool = airflowSchema.slotPool(pool=pool, slots=24)
-				session.add(newPool)
-				session.commit()
+				try:
+					logging.info("Creating the Airflow pool '%s' with 24 slots"%(pool))
+					newPool = airflowSchema.slotPool(pool=pool, slots=24)
+					session.add(newPool)
+					session.commit()
+				except sa.exc.IntegrityError:
+					logging.warning("Cant create pool '%s' as there is a duplicate pool already in the Airflow database."%(pool))
+					session.rollback()
 
 		session.close()
 
@@ -704,7 +719,7 @@ class initialize(object):
 			retries = int(DAG['retries'])
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'])
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
@@ -733,7 +748,7 @@ class initialize(object):
 			return True
 
 
-	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None):
+	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None):
 		session = self.configDBSession()
 
 		self.sensorStartTask = "start"
@@ -795,9 +810,23 @@ class initialize(object):
 		self.DAGfile.write("    'depends_on_past': False,\n")
 		self.DAGfile.write("    'start_date': datetime(2017, 1, 1, 0, 0, tzinfo=local_tz),\n")
 		self.DAGfile.write("    'max_active_runs': 1,\n")
-		self.DAGfile.write("    'email': Email_receiver,\n")
-		self.DAGfile.write("    'email_on_failure': False,\n")
-		self.DAGfile.write("    'email_on_retry': False,\n")
+
+		if email != None and email.strip() != '':
+			email = email.split(',')
+			self.DAGfile.write("    'email': %s,\n"%(email))
+		else:
+			self.DAGfile.write("    'email': Email_receiver,\n")
+
+		if email_on_failure == 1:
+			self.DAGfile.write("    'email_on_failure': True,\n")
+		else:
+			self.DAGfile.write("    'email_on_failure': False,\n")
+
+		if email_on_retries == 1:
+			self.DAGfile.write("    'email_on_retry': True,\n")
+		else:
+			self.DAGfile.write("    'email_on_retry': False,\n")
+
 		self.DAGfile.write("    'retries': 0,\n")
 		self.DAGfile.write("    'pool': '%s',\n"%(defaultPool))
 		self.DAGfile.write("    'retry_delay': timedelta(minutes=5),\n")

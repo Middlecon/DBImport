@@ -918,7 +918,12 @@ class operation(object, metaclass=Singleton):
 		rowCount = 0
 		incrWhereStatement = ""
 		if self.import_config.import_is_incremental == True and PKOnlyImport == False and self.import_config.importPhase != constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
-			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+
+			if self.import_config.common_config.jdbc_servertype == constant.SNOWFLAKE:
+				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True)
+			else:
+				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+
 			if incrWhereStatement == "":
 				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
 				rowCount = self.import_config.common_config.getJDBCTableRowCount(self.import_config.source_schema, self.import_config.source_table)
@@ -1023,7 +1028,7 @@ class operation(object, metaclass=Singleton):
 		print("")
 
 		# import all packages after the environment is set
-		from pyspark.context import SparkContext, SparkConf
+		from pyspark.context import SparkConf
 		from pyspark.sql import SparkSession
 #		from pyspark import HiveContext
 		from pyspark.context import SparkContext
@@ -2315,8 +2320,12 @@ class operation(object, metaclass=Singleton):
 			try:
 				if andWait == False:
 					self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' "%(self.Hive_DB, self.Hive_Table, compactionMethod))
+#					if self.import_config.import_with_history_table == True:
+#						self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' "%(self.import_config.Hive_History_DB, self.import_config.Hive_History_Table, compactionMethod))
 				else:
 					self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' and wait "%(self.Hive_DB, self.Hive_Table, compactionMethod))
+#					if self.import_config.import_with_history_table == True:
+#						self.common_operations.executeHiveQuery("alter table `%s`.`%s` compact '%s' and wait "%(self.import_config.Hive_History_DB, self.import_config.Hive_History_Table, compactionMethod))
 			except:
 				logging.error("Major compaction failed with the following error message:")
 				logging.warning(sys.exc_info())

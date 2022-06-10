@@ -638,9 +638,15 @@ def main(argv):
 				logging.error("The specified database connection does not exist.")
 				sys.exit(1)
 
+			commonConfig.lookupConnectionAlias(connection_alias=connectionAlias, decryptCredentials=False)
+
 			try:
-				username = input("Username: ")
-				password = input("Password: ")
+				if commonConfig.db_awss3 == True:
+					username = input("AccessKeyId: ")
+					password = input("SecretAccessKey: ")
+				else:
+					username = input("Username: ")
+					password = input("Password: ")
 			except KeyboardInterrupt:
 				print ("")
 				logging.warning("Aborting command by user request")
@@ -880,13 +886,17 @@ def main(argv):
 				logging.error("The specified database connection does not exist.")
 				sys.exit(1)
 			commonConfig.lookupConnectionAlias(connectionAlias)
-			commonConfig.connectToJDBC()
-			print("Connected successfully")
+			if commonConfig.db_awss3 == True:
+				logging.error("AWS S3 is not supported for '--testConnection' operations")
+			else:
+				commonConfig.connectToJDBC()
+				print("Connected successfully")
 			commonConfig.remove_temporary_files()
 
 	# Error handling for the entire stage block
 	except invalidConfiguration as errMsg:
-		logging.error(errMsg)
+		if str(errMsg) != "":
+			logging.error(errMsg)
 		if commonConfig != None:
 			commonConfig.remove_temporary_files()
 		if importConfig != None:

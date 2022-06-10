@@ -127,6 +127,65 @@ After the Database Connection is created, JDBC string is entered and username/pa
     ./manage --testConnection -a <DATABASE CONNECTION>
 
 
+AWS S3 Connections
+------------------
+
+DBImport have support for writing data from Hive into a S3 bucket. Even if this is strictly not a JDBC connection, the configuration and handling of the S3 connection is still configured in the jdbc_connections table. In order to make the configuation of AWS connections compatiable with the rest of DBImport, the connection string in the *jdbc_url* column wont be following the S3 default bucket string path, but instead containing additional information that is required in order to successfully write data to S3.
+
+AccessKeyId and SecretAccessKey
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The AccessKeyId and SecretAccessKey is encrypted and stored in the jdbc_connection table together with S3 adress string and other information. To encrypt and save the AccessKeyId and SecretAccessKey, you need to run the *manage* command tool::
+
+    manage --encryptCredentials
+
+You will first get a question about what Database Connection that the keys should be used on, and then the AccessKeyId and SecretAccessKey itself. Once all three items are entered, the keys will be encrypted and saved in the *credentials* column in *jdbc_connections* table. 
+
+Required S3 permissions
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The permissions needed on the user or the role to assume in order to be able to save data to S3 is the following
+
+-   s3:AbortMultipartUpload
+-   s3:ListMultipartUploadParts
+-   s3:DeleteObject
+-   s3:GetObject
+-   s3:PutObject
+-   s3:ListBucket
+-   s3:ListBucketMultipartUpload
+
+
+Table schema
+^^^^^^^^^^^^
+
+In order to make it easier to understand and access the files on S3, there is a schema file created in the same directory as the data is located. This schema file is the output of sparks function *df.schema.json()* and stored untouched and in clear json text in a file called *_schema.json* on S3.  
+
+
+Connection String
+^^^^^^^^^^^^^^^^^
+
+The S3 address string needs to be entered manually into the *jdbc_url* column in the *jdbc_connections* table. Whats specific for the DBImport S3 string is that additional configuration, separated by a ; after the bucket address is required in order to write data to S3::
+
+    s3a://<BUCKET>/<FOLDER IF NEEDED>;region=eu-west-1;format=parquet
+
+There are two additional properties that can be entered together with the mandatory *region* setting, and that is the following.
+
+=========== ========= ===========================================================================================
+region      Required  Name of AWS Region
+format      Required  Format of the files written to S3. Only supported option is *parquet*
+assumeRole  Optional  What iam role to assume before starting to write to S3. 
+proxy       Optional  Proxy server used to communicate outside the company network. Format is https://server:port
+=========== ========= ===========================================================================================
+
+A full example of a S3 string with both a role and a proxy conbfigured::
+
+    s3a://my-special-bucket/data-from-hive;format=parquet;assumeRole=arn:aws:iam::123456789012:role/AssumeRoleForMe;proxy=https://proxyserver.democompany.se:8080;region=eu-west-1
+
+Target bucket and folder where the export will write it's data will be in the bucket plus folder specified in the *jdbc_url* column plus the value in *export_tables.target_schema* if it's not empty or *-* plus the value in *export_tables.target_table*. So with the example above, and the values in the specified column is *default* and *test_hive_table*, the full S3 path will be::
+
+    s3a://my-special-bucket/data-from-hive/default/test_hive_table
+
+
 Adding tables to Import
 -----------------------
 

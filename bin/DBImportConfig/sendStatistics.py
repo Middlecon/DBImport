@@ -178,6 +178,8 @@ class sendStatistics(object):
 
 		logging.info("Sending data to Kafka topic")
 		logging.debug("Sending the following JSON to Kafka: %s"% (jsonData))
+		kafkaLogger = logging.getLogger('kafka')
+		kafkaLogger.setLevel(logging.ERROR)
 
 		kafkaError = False
 		result = True

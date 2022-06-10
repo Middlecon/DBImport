@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+v0.70 
+------------------------------
+
+**New Features**
+
+  - Support for import and export to Snowflake
+  - Support for writing Hive data to AWS S3 bucket
+  - Airflow email support for failed dags
+
 v0.68 
 ------------------------------
 

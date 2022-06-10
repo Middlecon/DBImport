@@ -32,7 +32,8 @@ High Level Functionality
 
 So DBImport brings the following to the table
 
--   Full support for importing and exporting data to Oracle, MsSQL, MySQL, DB2-UDB, DB2-AS400, Progress and PostgreSQL databases
+-   Full support for importing and exporting data to Oracle, MsSQL, MySQL, DB2-UDB, DB2-AS400, Snowflake, Progress and PostgreSQL databases
+-   Uploading data from Hive to AWS S3
 -   Auto discovery of tables and views from all supported source systems
 -   Supports both Full and Incremental imports and exports
 -   Supports Oracle Flashback Query for Incremental imports

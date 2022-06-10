@@ -1637,7 +1637,7 @@ def main(argv):
 		# * IMPORT_PHASE_FULL & ETL_PHASE_NONE
 		# ******************************************
 
-		if importPhase == constant.IMPORT_PHASE_FULL and etlPhase == constant.ETL_PHASE_NONE and runETLPhase == True:
+		if importPhase == constant.IMPORT_PHASE_FULL and (etlPhase == constant.ETL_PHASE_NONE or etlPhase == constant.ETL_PHASE_EXTERNAL) and runETLPhase == True:
 			stage = import_operation.getStage()
 			if stage > 0 and stage != 1049 and stage != 2099 and runOnlyFunction == None:
 				import_operation.saveRetryAttempt(stage)

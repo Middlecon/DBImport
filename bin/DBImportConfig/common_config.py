@@ -84,6 +84,8 @@ class config(object, metaclass=Singleton):
 		self.db_db2as400 = False
 		self.db_mongodb = False
 		self.db_cachedb = False
+		self.db_snowflake = False
+		self.db_awss3 = False
 		self.jdbc_url = None
 		self.jdbc_hostname = None
 		self.jdbc_port = None
@@ -110,6 +112,11 @@ class config(object, metaclass=Singleton):
 		self.mongoClient = None
 		self.mongoDB = None
 		self.mongoAuthSource = None
+		self.awsS3assumeRole = None
+		self.awsS3proxyServer = None
+		self.awsS3bucket = None
+		self.awsS3region = None
+		self.awsS3fileFormat = None
 		self.kerberosInitiated = False
 
 		self.sparkPathAppend = None
@@ -553,6 +560,7 @@ class config(object, metaclass=Singleton):
 			self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
 
 		strToEncrypt = "%s %s\n"%(username, password)
+
 		encryptedStr = self.crypto.encrypt(strToEncrypt)
 
 		if encryptedStr != None and encryptedStr != "":
@@ -564,7 +572,7 @@ class config(object, metaclass=Singleton):
 #		decryptedStr = self.crypto.decrypt(encryptedStr)
 #
 #		print("DECRYPTED VALUE USING STANDARD DECODING")
-#		print(decryptedStr)
+#		print("[%s]"%(decryptedStr))
 
 	def getJDBCDriverConfig(self, databaseType, version):
 		logging.debug("Executing common_config.getJDBCDriverConfig()")
@@ -674,6 +682,8 @@ class config(object, metaclass=Singleton):
 		self.db_db2as400 = False
 		self.db_mongodb = False
 		self.db_cachedb = False
+		self.db_snowflake = False
+		self.db_awss3 = False
 
 		# Fetch data from jdbc_connection table
 		query = "select jdbc_url, credentials, private_key_path, public_key_path, environment from jdbc_connections where dbalias = %s "
@@ -704,8 +714,11 @@ class config(object, metaclass=Singleton):
 				raise invalidConfiguration("Cant decrypt username and password. Check private/public key in config file")
 		
 			if credentials != None:
-				self.jdbc_username = credentials.split(" ")[0]
-				self.jdbc_password = credentials.split(" ")[1]
+				try:
+					self.jdbc_username = credentials.split(" ")[0]
+					self.jdbc_password = credentials.split(" ")[1]
+				except IndexError:
+					raise invalidConfiguration("Cant decrypt username and password. Please encrypt new credentials with the 'manage --encryptCredentials' function")
 
 				# Sets a creates the password file that is used by sqoop and other tools
 				self.jdbc_password_file = self.tempdir + "/jdbc_passwd"
@@ -994,6 +1007,64 @@ class config(object, metaclass=Singleton):
 				logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
+		if self.jdbc_url.startswith( 'jdbc:snowflake://'): 
+			self.atlasJdbcSourceSupport = False
+			self.db_snowflake = True
+			self.jdbc_servertype = constant.SNOWFLAKE
+			self.jdbc_force_column_lowercase = False
+			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SnowFlake", "default")
+			self.jdbc_classpath_for_python = self.jdbc_classpath
+
+			self.jdbc_hostname = self.jdbc_url[17:].split('/')[0]
+			self.jdbc_port = None
+
+			database_pos = self.jdbc_url.split('?')[1].find('db')
+			if database_pos == -1:
+				logging.error("Cant determine database based on jdbc_string")
+				exit_after_function = True
+			else:
+				try:
+					self.jdbc_database = self.jdbc_url.split('?')[1][database_pos:].split('=')[1].split('&')[0]
+				except:
+					logging.error("Cant determine database based on jdbc_string")
+					exit_after_function = True
+
+		if self.jdbc_url.startswith( 's3a://'): 
+			self.atlasJdbcSourceSupport = False
+			self.db_awss3 = True
+			self.jdbc_servertype = constant.AWS_S3
+			self.jdbc_force_column_lowercase = False
+			self.jdbc_driver = ""
+			self.jdbc_classpath = ""
+			self.jdbc_database = "-"
+
+			self.awsS3bucket = self.jdbc_url.split(';')[0]
+
+			try:
+				self.awsS3assumeRole = self.jdbc_url.split(';assumeRole=')[1].split(';')[0]
+			except:
+				self.awsS3assumeRole = None
+
+			try:
+				self.awsS3proxyServer = self.jdbc_url.split(';proxy=')[1].split(';')[0]
+			except:
+				self.awsS3proxyServer = None
+
+			try:
+				self.awsS3fileFormat = self.jdbc_url.split(';format=')[1].split(';')[0]
+				if self.awsS3fileFormat != "parquet":
+					logging.error("Only parquet files are supported for AWS S3")
+					exit_after_function = True
+			except:
+				logging.error("For AWS S3, you need to specify what file format to use")
+				exit_after_function = True
+
+			try:
+				self.awsS3region = self.jdbc_url.split(';region=')[1].split(';')[0]
+			except:
+				logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
+				exit_after_function = True
+
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
 			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
@@ -1013,6 +1084,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    db_db2as400 = %s"%(self.db_db2as400))
 		logging.debug("    db_mongodb = %s"%(self.db_mongodb))
 		logging.debug("    db_cachedb = %s"%(self.db_cachedb))
+		logging.debug("    db_snowflake = %s"%(self.db_snowflake))
 		logging.debug("    jdbc_servertype = %s"%(self.jdbc_servertype))
 		logging.debug("    jdbc_url = %s"%(self.jdbc_url))
 		logging.debug("    jdbc_username = %s"%(self.jdbc_username))
@@ -1037,16 +1109,8 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.lookupConnectionAlias() - Finished")
 
 		if exit_after_function == True:
-			raise Exception
-
-#	def getMongoUri(self):
-#		mongoUri = "mongodb://%s:%s@%s:%s/"%(
-#			self.jdbc_username,
-#			self.jdbc_password,
-#			self.jdbc_hostname,
-#			self.jdbc_port)
-#	
-#		return mongoUri
+#			raise invalidConfiguration("Error determine correct connection details")
+			raise invalidConfiguration
 
 
 	def getJDBCTableDefinition(self, source_schema, source_table, printInfo=True):
@@ -1099,10 +1163,10 @@ class config(object, metaclass=Singleton):
 		except AttributeError:
 			pass
 
-		except jpype.JavaException as exception:
-			logging.info("Disconnection to database over JDBC failed with the following error:")
-			logging.info(exception.message())
-			pass
+#		except jpype.JavaException as exception:
+#			logging.info("Disconnection to database over JDBC failed with the following error:")
+#			logging.info(exception.message())
+#			pass
 
 		except Exception as exception:
 			logging.info("Unknown error during disconnection to JDBC database:")
@@ -1180,6 +1244,9 @@ class config(object, metaclass=Singleton):
 		if self.db_db2as400 == True:		
 			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
 
+		if self.db_snowflake == True:		
+			query = "select max(\"%s\") from \"%s\".\"%s\""%(column, source_schema, source_table)
+
 		if self.custom_max_query != None:
 			# If a custom query is configured, we just use that instead and ignore the config above
 			query = self.custom_max_query
@@ -1216,6 +1283,10 @@ class config(object, metaclass=Singleton):
 		if self.db_postgresql == True:
 			query = "truncate table %s.%s"%(schema.lower(), table.lower())
 
+		if self.db_snowflake == True:
+#			query = "truncate table \"%s\".\"%s\""%(schema.upper(), table.upper())
+			query = "truncate table \"%s\".\"%s\""%(schema, table)
+
 		if query == None:
 			raise undevelopedFeature("There is no support for this database type in common_config.truncateJDBCTable()") 
 		
@@ -1238,11 +1309,16 @@ class config(object, metaclass=Singleton):
 
 		if self.db_db2udb == True:
 			query = "select count(name) from SYSIBM.SYSTABLES where upper(creator) = '%s' and upper(name) = '%s'"%(schema.upper(), table.upper())
+
 		if self.db_mysql == True:
 			query = "select count(table_name) from information_schema.tables where table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, table)
 
 		if self.db_postgresql == True:
 			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema.lower(), table.lower())
+
+		if self.db_snowflake == True:
+#			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema.upper(), table.upper())
+			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema, table)
 
 		if query == None:
 			raise undevelopedFeature("There is no support for this database type in common_config.checkJDBCTable()") 
@@ -1314,6 +1390,10 @@ class config(object, metaclass=Singleton):
 
 		if self.db_db2as400 == True:		
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
+
+		if self.db_snowflake == True:		
+			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
+#			query = "select count(1) from \"%s\".\"%s\""%(source_schema.upper(), source_table.upper())
 
 		if whereStatement != None and whereStatement != "":
 			query = query + " where " + whereStatement
@@ -1458,6 +1538,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.PROGRESS:     quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.DB2_UDB:      quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.DB2_AS400:    quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.SNOWFLAKE:    quoteAroundColumn = "\""
 
 		return quoteAroundColumn
 
@@ -1465,6 +1546,7 @@ class config(object, metaclass=Singleton):
 		upperCase = False
 		if self.jdbc_servertype == constant.ORACLE:       upperCase = True
 		if self.jdbc_servertype == constant.DB2_UDB:      upperCase = True
+#		if self.jdbc_servertype == constant.SNOWFLAKE:    upperCase = True
 
 		return upperCase
 
@@ -1479,6 +1561,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.PROGRESS:     fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.DB2_UDB:      fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.DB2_AS400:    fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.SNOWFLAKE:    fromTable = "\"%s\".\"%s\""%(schema, table)
 
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable
@@ -1526,6 +1609,9 @@ class config(object, metaclass=Singleton):
 				logging.error("Configuration Key '%s' can only have 0 or 1 in column '%s'"%(key, valueColumn))
 				self.remove_temporary_files()
 				sys.exit(1)
+
+		# if key == "post_data_to_kafka":
+		# 	returnValue = True
 
 		logging.debug("Fetched configuration '%s' as '%s'"%(key, returnValue))
 		logging.debug("Executing common_config.getConfigValue() - Finished")

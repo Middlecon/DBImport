@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.68"
+VERSION = "0.70"
 
 # Database types
 MYSQL = "mysql"
@@ -11,6 +11,8 @@ DB2_UDB = "db2 udb"
 DB2_AS400 = "db2 as400"
 MONGO = "mongo"
 CACHEDB = "cache"
+SNOWFLAKE = "snowflake"
+AWS_S3 = "aws_s3"
 
 # Key constraints
 PRIMARY_KEY = "P"
@@ -25,11 +27,13 @@ IMPORT_PHASE_INCR = "incr"
 IMPORT_PHASE_SLAVE = "slave"
 COPY_PHASE_NONE = "none"
 ETL_PHASE_NONE = "none"
+ETL_PHASE_EXTERNAL = "external"
 ETL_PHASE_INSERT = "insert"
 ETL_PHASE_TRUNCATEINSERT = "truncate_insert"
 ETL_PHASE_MERGEHISTORYAUDIT = "merge_history_audit"
 ETL_PHASE_MERGEONLY = "merge"
 EXPORT_PHASE_FULL = "full"
+EXPORT_PHASE_AWSS3_FULL = "awss3_full"
 EXPORT_PHASE_INCR = "incr"
 
 VALIDATION_METHOD_ROWCOUNT = "rowCount"

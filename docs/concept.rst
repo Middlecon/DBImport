@@ -76,3 +76,8 @@ DBImport support both sqoop and spark. This is selectable on table level and you
 
 If you are running Hive 3.x, all tables in Hive are transactional tables. Sqoop cant export tables that are transactional tables. So if you are running Hive 3.x, you are forced to use spark for the export tool.
 
+AWS S3
+------
+
+Exporting data from Hive to AWS S3 have never been simpler. DBImport supports writing data to S3 in the same way as a normal export works. Support is only available for spark and not with sqoop. This feature is still under tech-preview
+

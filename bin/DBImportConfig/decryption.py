@@ -23,6 +23,9 @@ import base64
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.Random import get_random_bytes
+from Crypto import Random 
+from Crypto.Hash import SHA
 from subprocess import Popen, PIPE
 from ConfigReader import configuration
 from common.Exceptions import *
@@ -69,11 +72,18 @@ class crypto(object):
 		if strToDecrypt == None:
 			return None
 
-		strDecrypted = self.privateKey.decrypt(base64.b64decode(strToDecrypt))
+		sentinel = get_random_bytes(16)
+
+		cipher = PKCS1_v1_5.new(self.privateKey)
+		strDecrypted = cipher.decrypt(base64.b64decode(strToDecrypt), sentinel)
+		# strDecrypted = self.privateKey.decrypt(base64.b64decode(strToDecrypt))
 
 		if len(strDecrypted) > 0 and bytes(strDecrypted[:1]) == b"\x02":
 			pos = strDecrypted.index(b"\x00")
 			strDecrypted = strDecrypted[pos+1:].decode().strip()
+			return strDecrypted
+		elif len(strDecrypted) > 0 and type(strDecrypted) is bytes:
+			strDecrypted = strDecrypted.decode().strip()
 			return strDecrypted
 		else:
 			return None

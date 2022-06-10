@@ -13,9 +13,9 @@ To install DBImport, please follow the steps on this page. That will setup DBImp
         tar -xf dbimport-VERSION.tar
    
 
- #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. Please install these python packages::
+ #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. All required python packages with working versions is available in a requirements.txt file. Please install these python packages::
 
-        pip3.6 install --upgrade pip cryptography crypto pycrypto docutils numpy pandas mysql mysqlclient mysql-connector mysql-connector-python JPype1==0.6.3 jaydebeapi py4j pyhive PyHive reprint requests requests_kerberos thrift_sasl sqlalchemy pymysql sqlalchemy_views sqlalchemy_utils alembic pure-transport psutil daemons flask-restful flask-jsonpify flask-sqlalchemy waitress paste webargs pymongo pendulum kafka-python gssapi
+        pip3.6 install -r requirements_python36.txt
 
 
 Base configuration
@@ -25,10 +25,12 @@ There is a file inside the *conf* directory called *dbimport.cfg*. This file con
 
   - Section [Database], all settings starting with *mysql*. This is the connection to the DBImport configuration database.
   - Section [REST_statistics]. Put *post_column_data* and *post_column_data* to *false* or configure a valid REST interface on *rest_endpoint*
-  - Section [HDFS]. *hdfs_address* should be a valid URL to HDFS
-  - Section [Hive]. *hive_metastore_alchemy_conn* must have a valid Alchemy connection string to the Hive Metastore SQL database
-  - Section [Hive]. *hostname*, *port* and *kerberos_service_name* must all be set against a Hive server with binary transport mode.
+  - Section [Kerberos]. *keytab* and *principal* need to point to a valid keytab file and the principal that it contains.
+  - Section [Hive]. *hive_metastore_alchemy_conn* must have a valid Alchemy connection string to the Hive Metastore SQL database. 
+  - Section [Hive]. *servers*, *port* and *kerberos_service_name* must all be set against a Hive server with binary transport mode.
+  - Section [Spark]. *servers*, *port* and *kerberos_service_name* must all be set against a Hive server with binary transport mode.
   - Section [Airflow]. *airflow_alchemy_conn* must have a valid Alchemy connection string to the Airflow SQL database. Only needed if Airflow integrations will be used
+  - Section [Credentials]. Both public and private keys need to be valid. See SSL keys section further down on this side for more information.
 
 .. note:: If the *hive_remove_locks_by_force* setting (in the configuration table) is set to 1, the user configured for the *hive_metastore_alchemy_conn* must have delete permissions to the *HIVE_LOCKS* table. Other than that, the user only requires select permissions. 
 
@@ -103,8 +105,6 @@ Verified Spark settings for HDP 2.6.5::
         deployMode = client
         yarnqueue = default
         dynamic_allocation = true
-        min_executors = 0
-        max_executors = 20
         executor_memory = 2688M
         hdp_version = 2.6.5.0-292
         hive_library = HiveContext
@@ -118,11 +118,28 @@ Verified Spark settings for HDP 3.1.4::
         deployMode = client
         yarnqueue = default
         dynamic_allocation = true
-        min_executors = 0
-        max_executors = 20
         executor_memory = 2688M
         hdp_version = 3.1.4.0-315
         hive_library = HiveWarehouseSession
+
+Verified Spark settings for CDP 7.1.7 SP1::
+
+        path_append = /opt/cloudera/parcels/CDH/lib/spark/python, /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/lib/spark/python/lib/py4j-0.10.7-src.zip, /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/lib/hive_warehouse_connector/pyspark_hwc-1.0.0.7.1.7.1000-141.zip
+        jar_files = /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/jars/hive-warehouse-connector-assembly-1.0.0.7.1.7.1000-141.jar
+        py_files = /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/lib/hive_warehouse_connector/pyspark_hwc-1.0.0.7.1.7.1000-141.zip
+        master = yarn
+        deployMode = client
+        yarnqueue = default
+        dynamic_allocation = true
+        executor_memory = 2688M
+        hdp_version = 7.1.7.1000-141
+        hive_library = HiveWarehouseSession
+
+*Spark support for AWS S3 exports*
+
+if you are planning to use AWS S3 exports, you need to add the jar files to the Spark configuration. The two files needed is *hadoop-aws-VERSION.jar* and *aws-java-sdk-s3-VERSION.jar*. For the CDP 7.1.7 SP1 example above, replace the jar_files row with the following row:: 
+
+        jar_files = /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/jars/hive-warehouse-connector-assembly-1.0.0.7.1.7.1000-141.jar, /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/jars/hadoop-aws-3.1.1.7.1.7.1000-141.jar, /opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/jars/aws-java-sdk-s3-1.12.124.jar
 
 *Python version for Spark*
 

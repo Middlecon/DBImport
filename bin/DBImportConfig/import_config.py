@@ -214,8 +214,6 @@ class config(object, metaclass=Singleton):
 		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
 		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
 
-#		self.postDataToREST = True
-
 		if self.postDataToREST == False and self.postDataToKafka == False:
 			return
 
@@ -447,6 +445,9 @@ class config(object, metaclass=Singleton):
 
 		self.hiveSplitCount = row[45]
 
+		if self.Hive_DB == "dbimport" and self.Hive_Table == "import_tables_full_external_spark": 
+			self.etl_phase_type = "external" 
+
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
 
@@ -515,6 +516,9 @@ class config(object, metaclass=Singleton):
 				validCombination = True
 
 			if self.import_phase_type == "full" and self.etl_phase_type == "none": 
+				validCombination = True
+
+			if self.import_phase_type == "full" and self.etl_phase_type == "external": 
 				validCombination = True
 
 			if self.import_phase_type == "incr" and self.etl_phase_type == "insert": 
@@ -588,18 +592,6 @@ class config(object, metaclass=Singleton):
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Append"
 
-#		if self.import_type  == "full_no_etl":
-#			self.import_type_description = "Full import of table to Parquet only"
-#			self.importPhase             = constant.IMPORT_PHASE_FULL
-#			self.copyPhase               = constant.COPY_PHASE_NONE
-#			self.etlPhase                = constant.ETL_PHASE_NONE
-#			self.importPhaseDescription  = "Full"
-#			self.copyPhaseDescription    = "No cluster copy"
-#			self.etlPhaseDescription     = "No ETL"
-
-#		if self.import_type == "full_hbase":
-#			self.import_type_description = "Full import of table directly to HBase"
-
 		if self.import_type == "full_merge_direct" or (self.import_phase_type == "full" and self.etl_phase_type == "merge"):
 			self.import_type_description = "Full import and merge of Hive table"
 			self.importPhase             = constant.IMPORT_PHASE_FULL
@@ -617,6 +609,15 @@ class config(object, metaclass=Singleton):
 			self.importPhaseDescription  = "Full"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "No ETL phase"
+
+		if self.import_phase_type == "full" and self.etl_phase_type == "external":
+			self.import_type_description = "Full import with no ETL phase. Will only create the target table as an external table"
+			self.importPhase             = constant.IMPORT_PHASE_FULL
+			self.copyPhase               = constant.COPY_PHASE_NONE
+			self.etlPhase                = constant.ETL_PHASE_EXTERNAL
+			self.importPhaseDescription  = "Full"
+			self.copyPhaseDescription    = "No cluster copy"
+			self.etlPhaseDescription     = "Only create an external table"
 
 		if self.import_type == "full_merge_direct_history" or (self.import_phase_type == "full" and self.etl_phase_type == "merge_history_audit"):
 			self.import_type_description = "Full import and merge of Hive table. Will also create a History table"
@@ -819,6 +820,10 @@ class config(object, metaclass=Singleton):
 		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
 		self.Hive_Delete_DB = importStagingDB
 		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
+
+		if self.etlPhase == constant.ETL_PHASE_EXTERNAL:
+			self.Hive_Import_DB = self.Hive_DB
+			self.Hive_Import_Table = self.Hive_Table 
 
 		logging.debug("Settings from import_config.getImportConfig()")
 		logging.debug("    connection_alias = %s"%(self.connection_alias))
@@ -1230,10 +1235,10 @@ class config(object, metaclass=Singleton):
 					
 			if self.common_config.db_mysql == True:
 				if source_column_type == "bit": 
-					column_type = "tinyint"
+					column_type = "int"
 					sqoop_column_type = "Integer"
 
-				if source_column_type in ("smallint", "mediumint"): 
+				if source_column_type in ("tinyint", "smallint", "mediumint"): 
 					column_type = "int"
 					sqoop_column_type = "Integer"
 		
@@ -1300,6 +1305,15 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub(':null', ':string', column_type)
 				column_type = re.sub('^null$', 'string', column_type)
 
+			if self.common_config.db_snowflake == True:
+				if column_type.startswith("text("): 
+					column_type = "string"
+
+				column_type = re.sub('^timestamp_ltz$', 'timestamp', column_type)
+				column_type = re.sub('^timestamp_ntz$', 'timestamp', column_type)
+				column_type = re.sub('^timestamp_tz$', 'timestamp', column_type)
+				column_type = re.sub('^number$', 'decimal(38,0)', column_type)
+
 			# Hive only allow max 255 in size for char's. If we get a char that is larger than 255, we convert it to a varchar
 			if column_type.startswith("char("):
 				column_precision = int(column_type.split("(")[1].split(")")[0])
@@ -1338,14 +1352,17 @@ class config(object, metaclass=Singleton):
 
 				# Add , between column names in the list
 				if len(self.sqlGeneratedHiveColumnDefinition) > 0: self.sqlGeneratedHiveColumnDefinition = self.sqlGeneratedHiveColumnDefinition + ", "
-			# Add the column to the sqlGeneratedHiveColumnDefinition variable. This will be the base for the auto generated SQL
+				# Add the column to the sqlGeneratedHiveColumnDefinition variable. This will be the base for the auto generated SQL
 				self.sqlGeneratedHiveColumnDefinition += "`" + column_name + "` " + column_type 
 				if source_column_comment != None:
 					self.sqlGeneratedHiveColumnDefinition += " COMMENT '" + source_column_comment + "'"
 
-			# Add the column to the SQL query that can be used by sqoop or spark
+				# Add the column to the SQL query that can be used by sqoop or spark
 				column_name_parquet_supported = self.getParquetColumnName(column_name)
 				quote = self.common_config.getQuoteAroundColumn()
+
+#				if re.search('/', column_name):
+#					print("%s - %s"%(column_name, column_name_parquet_supported))
 
 				if len(self.sqlGeneratedSqoopQuery) == 0: 
 					self.sqlGeneratedSqoopQuery = "select "
@@ -1484,6 +1501,7 @@ class config(object, metaclass=Singleton):
 			.replace('ö', 'o')
 			.replace('#', 'hash')
 			.replace('`', '')
+			.replace('/', '')
 			.replace('\'', '')
 			.replace(';', '')
 			.replace('\n', '')
@@ -2040,6 +2058,8 @@ class config(object, metaclass=Singleton):
 					whereStatement = "%s <= CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 				elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
 					whereStatement = "%s <= STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) + "'%Y-%m-%d %H:%i:%s') "
+				elif self.common_config.jdbc_servertype == constant.SNOWFLAKE and ( whereForSourceTable == True or whereForSqoop == True ):
+					whereStatement = "\"%s\" <= TO_TIMESTAMP('%s', 'yyyy-mm-dd hh24:mi:ss.ff6') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
 				elif whereForSourceTable == True or whereForSqoop == True:
 					if self.sqoopIncrMaxvaluePending != None:
 						whereStatement = "%s <= TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoopIncrMaxvaluePending) 
@@ -2062,6 +2082,8 @@ class config(object, metaclass=Singleton):
 						whereStatement += "and %s > CONVERT(datetime, '%s', 121) "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue)
 					elif self.common_config.jdbc_servertype == constant.MYSQL and ( whereForSourceTable == True or whereForSqoop == True ):
 						whereStatement += "and %s > STR_TO_DATE('%s', "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) + "'%Y-%m-%d %H:%i:%s') "
+					elif self.common_config.jdbc_servertype == constant.SNOWFLAKE and ( whereForSourceTable == True or whereForSqoop == True ):
+						whereStatement += "and \"%s\" > TO_TIMESTAMP('%s', 'yyyy-mm-dd hh24:mi:ss.ff6') "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
 					elif whereForSourceTable == True or whereForSqoop == True:
 						whereStatement += "and %s > TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF') "%(self.sqoop_incr_column, self.sqoop_incr_lastvalue) 
 					else:
@@ -2509,7 +2531,11 @@ class config(object, metaclass=Singleton):
 		if self.sqoop_sql_where_addition == None or self.sqoop_sql_where_addition.strip() == "":
 			return None
 
-		sqlWhere = self.sqoop_sql_where_addition.replace('"', '\'')
+		if self.common_config.db_snowflake == True:
+			sqlWhere = self.sqoop_sql_where_addition
+		else:
+			sqlWhere = self.sqoop_sql_where_addition.replace('"', '\'')
+
 		printCustomSQL = False
 
 		if "${MIN_VALUE}" in sqlWhere:

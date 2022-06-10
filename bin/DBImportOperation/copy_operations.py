@@ -380,7 +380,7 @@ class operation(object, metaclass=Singleton):
 				if self.connectRemoteDBImportInstance(instance = destination):
 					logging.info("Copy HDFS data to instance '%s'"%(destination))
 	
-					distcpCommand = ["hadoop", "distcp", "-D", "yarn.timeline-service.enabled=false", "-overwrite", "-delete", 
+					distcpCommand = ["hadoop", "distcp", "-D", "yarn.timeline-service.enabled=false", "-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue")), "-overwrite", "-delete", 
 						"%s%s"%(sourceHDFSaddress, sourceHDFSdir),
 						"%s%s"%(targetHDFSaddress, targetHDFSdir)]
 
@@ -1406,9 +1406,19 @@ class operation(object, metaclass=Singleton):
 
 					sourceAllColumnDefinitions.rename(columns={'table_id':'source_table_id', 'column_id':'source_column_id'}, inplace=True)	
 					targetAllColumnDefinitions.rename(columns={'table_id':'target_table_id', 'column_id':'target_column_id'}, inplace=True)	
+					#sourceAllColumnDefinitions = sourceAllColumnDefinitions.replace({np.nan: None})
+					#targetAllColumnDefinitions = targetAllColumnDefinitions.replace({np.nan: None})
 
+#					pd.set_option('display.max_columns', None)
+#					print("DEBUG 01")
+#					print(sourceAllColumnDefinitions)
+#					print("===============================================")
+#					print(targetAllColumnDefinitions)
+#					print("===============================================")
 					# Get the difference between source and target column definitions
 					columnDifference = pd.merge(sourceAllColumnDefinitions, targetAllColumnDefinitions, on=None, how='outer', indicator='Exist')			
+#					print(columnDifference)
+#					print("DEBUG 02")
 					columnDifferenceLeftOnly = columnDifference[columnDifference.Exist == "left_only"]
 					columnDifferenceLeftOnly = columnDifferenceLeftOnly.replace({np.nan: None})
 
@@ -1706,7 +1716,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("HDFSsourcePath = %s"%(HDFSsourcePath))
 		logging.debug("HDFStargetPath = %s"%(HDFStargetPath))
 
-		distcpCommand = ["hadoop", "distcp", "-overwrite", "-delete", 
+		distcpCommand = ["hadoop", "distcp", "-D", "mapreduce.job.queuename=%s"%(configuration.get("Sqoop", "yarnqueue")), "-overwrite", "-delete", 
 		"%s"%(HDFSsourcePath),
 		"%s"%(HDFStargetPath)]
 
