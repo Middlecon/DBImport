@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.70"
+VERSION = "0.71"
 
 # Database types
 MYSQL = "mysql"
@@ -13,6 +13,7 @@ MONGO = "mongo"
 CACHEDB = "cache"
 SNOWFLAKE = "snowflake"
 AWS_S3 = "aws_s3"
+INFORMIX = "informix"
 
 # Key constraints
 PRIMARY_KEY = "P"

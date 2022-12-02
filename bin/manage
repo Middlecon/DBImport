@@ -415,8 +415,8 @@ def main(argv):
 			operation = "resetIncrementalExport"
 		elif opt == "--repairIncrementalExport":
 			operation = "repairIncrementalExport"
-		elif opt == "--getAllConnectionPasswords":
-			operation = "getAllConnectionPasswords"
+#		elif opt == "--getAllConnectionPasswords":
+#			operation = "getAllConnectionPasswords"
 		elif opt == "--dropExportTable":
 			operation = "dropExportTable"
 		elif opt == "--addImportTable":
@@ -670,12 +670,9 @@ def main(argv):
 			print(encryptedStr)
 			commonConfig.remove_temporary_files()
 
-		if operation == "getAllConnectionPasswords":
-			commonConfig = common_config.config()
-			commonConfig.printConnectionAliasDetails()
-
-#		if operation == "sendJSONstatistics":
-#			rest.postSQLDataToREST()
+#		if operation == "getAllConnectionPasswords":
+#			commonConfig = common_config.config()
+#			commonConfig.printConnectionAliasDetails()
 
 		if operation == "repairAllIncrementalImports":
 			print("This command will search for incremental tables that have an entry in 'import_stage'. If the entry exists,")

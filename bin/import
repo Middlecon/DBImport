@@ -92,7 +92,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled"])
+		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax="])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -112,6 +112,7 @@ def main(argv):
 	skipHiveTest = False
 	metaDataOnlyImport = False
 	ignoreDisabled = False
+	incrementalMax = None
 
 	if  len(opts) == 0:
 		printHelp()
@@ -154,6 +155,8 @@ def main(argv):
 			runETLPhase = True
 		elif opt == "--ignoreDisabled":
 			ignoreDisabled = True
+		elif opt == "--incrementalMax":
+			incrementalMax = arg
 
 	if displayVersion == True:
 		print("DBImport version: %s"%(constant.VERSION))
@@ -371,7 +374,7 @@ def main(argv):
 		print(" ______________________________________ ")
 		print("|                                      |")
 		print("| Import Phase is already completed.   |") 
-		print("| To continue, run with option '-2'    |") 	
+		print("| To continue, run with option '-E'    |") 	
 		print("|______________________________________|")
 
 		import_operation.remove_temporary_files()
@@ -429,9 +432,11 @@ def main(argv):
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1013) == True:
 						import_operation.runSqoopImport(False)
+						import_operation.import_config.common_config.reconnectJDBC()
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1014) == True:
 						import_operation.runSparkImport(False)
+						import_operation.import_config.common_config.reconnectJDBC()
 
 				if import_operation.runStage(1020) == True: 
 					import_operation.validateImportTool()
@@ -483,13 +488,15 @@ def main(argv):
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1112) == True: 
 						import_operation.saveIncrMinValue()
-						import_operation.runSqoopImport(False)
+						import_operation.runSqoopImport(False, incrementalMax=incrementalMax)
+						import_operation.import_config.common_config.reconnectJDBC()
 						if import_operation.sqoopIncrNoNewRows == True: 
 							import_operation.setStage(1149)
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1113) == True: 
 						import_operation.saveIncrMinValue()
-						import_operation.runSparkImport(False)
+						import_operation.runSparkImport(False, incrementalMax=incrementalMax)
+						import_operation.import_config.common_config.reconnectJDBC()
 						if import_operation.sqoopIncrNoNewRows == True: 
 							import_operation.setStage(1149)
 
@@ -558,9 +565,11 @@ def main(argv):
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1215) == True:
 						import_operation.runSqoopImport(False)
+						import_operation.import_config.common_config.reconnectJDBC()
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1216) == True:
 						import_operation.runSparkImport(False)
+						import_operation.import_config.common_config.reconnectJDBC()
 
 			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
 				if import_operation.import_config.validate_import == True:
@@ -627,6 +636,7 @@ def main(argv):
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1265) == True:
 						import_operation.runSparkImport(False)
+						import_operation.import_config.common_config.reconnectJDBC()
 
 			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
 				if import_operation.import_config.validate_import == True:
@@ -681,6 +691,7 @@ def main(argv):
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.runStage(1315) == True:
 					import_operation.runSparkImportForMongo()
+					import_operation.import_config.common_config.reconnectJDBC()
 
 			if runOnlyFunction == None or runOnlyFunction == "getSourceTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -981,7 +992,7 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3158) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableValidationData()
+						import_operation.getTargetTableValidationData(incrementalMax=incrementalMax)
 
 					if import_operation.runStage(3159) == True: 
 						import_operation.validateTargetTable()
@@ -1347,7 +1358,7 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3308) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableValidationData()
+						import_operation.getTargetTableValidationData(incrementalMax=incrementalMax)
 
 					if import_operation.runStage(3309) == True: 
 						import_operation.validateTargetTable()
@@ -1477,7 +1488,7 @@ def main(argv):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3359) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
-						import_operation.getTargetTableValidationData()
+						import_operation.getTargetTableValidationData(incrementalMax=incrementalMax)
 
 					if import_operation.runStage(3360) == True: 
 						import_operation.validateTargetTable()

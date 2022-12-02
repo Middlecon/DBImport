@@ -1314,6 +1314,15 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^timestamp_tz$', 'timestamp', column_type)
 				column_type = re.sub('^number$', 'decimal(38,0)', column_type)
 
+			if self.common_config.db_informix == True:
+				if source_column_type in ("tinyint", "smallint", "mediumint", "integer"): 
+					column_type = "int"
+					sqoop_column_type = "Integer"
+		
+				if source_column_type == "clob":
+					sqoop_column_type = "String"
+					column_type = "string"
+
 			# Hive only allow max 255 in size for char's. If we get a char that is larger than 255, we convert it to a varchar
 			if column_type.startswith("char("):
 				column_precision = int(column_type.split("(")[1].split(")")[0])
@@ -1942,7 +1951,7 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing import_config.clearValidationData() - Finished")
 
-	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False, ignoreSQLwhereAddition=False):
+	def getIncrWhereStatement(self, forceIncr=False, ignoreIfOnlyIncrMax=False, whereForSourceTable=False, whereForSqoop=False, ignoreSQLwhereAddition=False, incrementalMax=None):
 		""" Returns the where statement that is needed to only work on the rows that was loaded incr """
 		logging.debug("Executing import_config.getIncrWhereStatement()")
 		logging.debug("forceIncr = %s"%(forceIncr))
@@ -2019,7 +2028,13 @@ class config(object, metaclass=Singleton):
 		else:
 			if whereForSqoop == True:
 				# If it is the where for sqoop, we need to get the max value for the configured column and save that into the config database
-				maxValue = self.common_config.getJDBCcolumnMaxValue(self.source_schema, self.source_table, self.sqoop_incr_column)
+
+				if incrementalMax != None:
+					# This way, we can forcefully override the max value in an incremental import
+					maxValue = incrementalMax
+				else:
+					maxValue = self.common_config.getJDBCcolumnMaxValue(self.source_schema, self.source_table, self.sqoop_incr_column)
+
 				if maxValue == None:
 					# If there is no MaxValue, it means that there is no data. And by that, there is no need for a where statement
 					return ""
@@ -2946,6 +2961,7 @@ class config(object, metaclass=Singleton):
 			return returnDict
 
 		logging.info("Getting boundary MIN and MAX values")
+		logging.debug(self.sqoopBoundaryQuery)
 		minMaxValues = self.common_config.executeJDBCquery(self.sqoopBoundaryQuery)
 
 		minValue = minMaxValues.iloc[0].values[0] 
@@ -3142,133 +3158,6 @@ class config(object, metaclass=Singleton):
 		self.common_config.updateAtlasWithRDBMSdata(schemaName = self.source_schema,
 													tableName = self.source_table
 													)
-#													tableComment = self.table_comment
-
-#		# Fetch the remote system schema if we havent before
-#		if self.common_config.source_columns_df.empty == True:
-#			self.common_config.getJDBCTableDefinition(source_schema = self.source_schema, source_table = self.source_table, printInfo = True)
-#
-#		logging.info("Updating Atlas with source database schema")
-#
-#		tableComment = ""
-#		if self.table_comment != None:
-#			tableComment = self.table_comment.replace('\r', "\n")
-#
-#		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
-#		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = self.source_schema,
-#																	tableName = self.source_table, 
-#																	tableComment = tableComment
-#																	)
-#
-#		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
-#		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = self.source_schema, tableName = self.source_table)
-#		if returnDict == None:
-#			return
-#
-#		tableUri = returnDict["tableUri"]
-#		dbUri = returnDict["dbUri"]
-#		dbName = returnDict["dbName"]
-#		instanceUri = returnDict["instanceUri"]
-#		instanceName = returnDict["instanceName"]
-#		instanceType = returnDict["instanceType"]
-#
-#		# Get extended data from jdbc_connections table
-#		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
-#		contactInfo = jdbcConnectionDict["contact_info"]
-#		description = jdbcConnectionDict["description"]
-#		owner = jdbcConnectionDict["owner"]
-#
-#
-#		jsonData["entities"] = []
-#				
-#		# Loop through the columns and add them to the JSON
-#		for index, row in self.common_config.source_columns_df.iterrows():
-#			columnData = {}
-#			columnData["typeName"] = "rdbms_column"
-#			columnData["createdBy"] = "DBImport"
-#			columnData["attributes"] = {}
-#
-#			columnName = row['SOURCE_COLUMN_NAME']
-#			columnUri = self.common_config.getAtlasRdbmsColumnURI(	schemaName = self.source_schema, 
-#																	tableName = self.source_table, 
-#																	columnName = columnName)
-#			if row['IS_NULLABLE'] == "YES":
-#				columnNullable = True
-#			else:
-#				columnNullable = False
-#
-#			columnIsPrimaryKey = False
-#			for keysIndex, keysRow in self.common_config.source_keys_df.iterrows():
-#				if keysRow['COL_NAME'] == columnName and keysRow['CONSTRAINT_TYPE'] == constant.PRIMARY_KEY:
-#					columnIsPrimaryKey = True
-#
-#			columnData["attributes"]["qualifiedName"] = columnUri
-#			columnData["attributes"]["uri"] = columnUri
-#			columnData["attributes"]["owner"] = owner
-#
-#			if row['SOURCE_COLUMN_COMMENT'] != None and row['SOURCE_COLUMN_COMMENT'].strip() != "":
-#				columnData["attributes"]["comment"] = row['SOURCE_COLUMN_COMMENT']
-#
-#			try:
-#				columnLength = int(str(row['SOURCE_COLUMN_LENGTH']).split('.')[0].split(':')[0])
-#			except ValueError:
-#				columnLength = None
-#
-#			if columnLength != None:
-#				columnData["attributes"]["length"] = str(columnLength)
-#
-#			columnData["attributes"]["name"] = columnName
-#			columnData["attributes"]["data_type"] = row['SOURCE_COLUMN_TYPE']
-#			columnData["attributes"]["isNullable"] = columnNullable
-#			columnData["attributes"]["isPrimaryKey"] = columnIsPrimaryKey
-#			columnData["attributes"]["table"] = { "guid": "-100", "typeName": "rdbms_table" }
-#
-#			jsonData["entities"].append(columnData)
-#
-#		logging.debug("JSON to send to Atlas!")
-#		logging.debug(json.dumps(jsonData, indent=3))
-#
-#		response = self.common_config.atlasPostData(URL = self.common_config.atlasRestEntities, data = json.dumps(jsonData))
-#		statusCode = response["statusCode"]
-#		if statusCode != 200:
-#			logging.warning("Request from Atlas when updating source schema was %s."%(statusCode))
-#			self.common_config.atlasEnabled == False
-#
-#		# We now have to find columns that exists in DBImport but not in the source anymore.
-#		# These columns need to be deleted from Atlas
-#
-#		atlasRestURL = "%s/rdbms_table?attr:qualifiedName=%s"%(self.common_config.atlasRestUniqueAttributeType, tableUri)
-#		response = self.common_config.atlasGetData(URL = atlasRestURL)
-#		statusCode = response["statusCode"]
-#		responseData = json.loads(response["data"])
-#
-#		for jsonRefEntities in responseData["referredEntities"]:
-#			jsonRefEntity = responseData["referredEntities"][jsonRefEntities]
-#			if jsonRefEntity["typeName"] == "rdbms_column":
-#				columnQualifiedName = jsonRefEntity["attributes"]["qualifiedName"]
-#				columnName = jsonRefEntity["attributes"]["name"]
-#
-#				# Loop through the source columns to see if it exists in there
-#				foundSourceColumn = False
-#				for index, row in self.common_config.source_columns_df.iterrows():
-#					sourceColumnName = row['SOURCE_COLUMN_NAME']
-#					sourceColumnUri = self.common_config.getAtlasRdbmsColumnURI(schemaName = self.source_schema, 
-#																				tableName = self.source_table, 
-#																				columnName = sourceColumnName)
-#					if sourceColumnName == columnName and sourceColumnUri == columnQualifiedName:
-#						foundSourceColumn = True
-#
-#				if foundSourceColumn == False and jsonRefEntity["status"] == "ACTIVE":
-#					# The column defined in Atlas cant be found on the source, and it's still marked as ACTIVE. Lets delete it!
-#					logging.debug("Deleting Atlas column with qualifiedName = '%s'"%(columnQualifiedName))
-#
-#					atlasRestURL = "%s/rdbms_column?attr:qualifiedName=%s"%(self.common_config.atlasRestUniqueAttributeType, columnQualifiedName)
-#					response = self.common_config.atlasDeleteData(URL = atlasRestURL)
-#					statusCode = response["statusCode"]
-#					if statusCode != 200:
-#						logging.warning("Request from Atlas when deleting old columns was %s."%(statusCode))
-#						self.common_config.atlasEnabled == False
-
 
 		logging.debug("Executing import_config.updateAtlasWithSourceSchema() - Finished")
 

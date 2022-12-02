@@ -691,6 +691,116 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.INFORMIX:
+			query  = "select "
+			query += "trim(st.owner) as schema_name, "
+			query += "trim(st.tabname) as table_name, "
+			query += "'' as table_comment, "
+			query += "trim(sc.colname) as source_column_name, "
+			query += "sc.coltype as source_column_type, "
+			query += "sc.collength as source_column_length, "
+			query += "'' as source_column_scale, "
+			query += "'' as source_column_comment, "
+			query += "'' as is_nullable, "
+			query += "st.tabtype as table_type, "
+			query += "st.created as create_time "
+			query += "from informix.systables st "
+			query += "left join informix.syscolumns sc "
+			query += "  on st.tabid = sc.tabid "
+			query += "where "
+			query += "	st.owner = '%s' "%(schema)
+			if table != None:
+				query += "	and st.tabname = '%s' "%(table)
+			query += "order by st.owner, st.tabname, sc.colno"
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+				
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+				if row[2] == "" or row[2] == None:
+					line_dict["TABLE_COMMENT"] = None
+				else:
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+
+				# Column type column includes not only the column type, but also values like if it allows null or not
+				# More info can be found on https://www.ibm.com/docs/en/informix-servers/12.10?topic=tables-syscolumns
+				columnTypeMaskedValue = row[4]&0x00ff		# 	
+
+				if   columnTypeMaskedValue == 0:	line_dict["SOURCE_COLUMN_TYPE"] = "CHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 1:	line_dict["SOURCE_COLUMN_TYPE"] = "SMALLINT"
+				elif columnTypeMaskedValue == 2:	line_dict["SOURCE_COLUMN_TYPE"] = "INTEGER"
+				elif columnTypeMaskedValue == 2:	line_dict["SOURCE_COLUMN_TYPE"] = "INTEGER"
+				elif columnTypeMaskedValue == 3:	line_dict["SOURCE_COLUMN_TYPE"] = "FLOAT(%s)"%(row[5])
+				elif columnTypeMaskedValue == 4:	line_dict["SOURCE_COLUMN_TYPE"] = "SMALLFLOAT(%s)"%(row[5])
+				# elif columnTypeMaskedValue == 5:	line_dict["SOURCE_COLUMN_TYPE"] = "DECIMAL(%s)"%(row[5])
+				elif columnTypeMaskedValue == 6:	line_dict["SOURCE_COLUMN_TYPE"] = "SERIAL"
+				elif columnTypeMaskedValue == 7:	line_dict["SOURCE_COLUMN_TYPE"] = "DATE"
+				# elif columnTypeMaskedValue == 8:	line_dict["SOURCE_COLUMN_TYPE"] = "MONEY(%s)"%(row[5])
+				elif columnTypeMaskedValue == 9:	line_dict["SOURCE_COLUMN_TYPE"] = "NULL"
+				elif columnTypeMaskedValue == 10:	line_dict["SOURCE_COLUMN_TYPE"] = "DATETIME"
+				elif columnTypeMaskedValue == 11:	line_dict["SOURCE_COLUMN_TYPE"] = "BYTE(%s)"%(row[5])
+				elif columnTypeMaskedValue == 12:	line_dict["SOURCE_COLUMN_TYPE"] = "TEXT(%s)"%(row[5])
+				elif columnTypeMaskedValue == 13:	line_dict["SOURCE_COLUMN_TYPE"] = "VARCHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 14:	line_dict["SOURCE_COLUMN_TYPE"] = "INTERVAL"
+				elif columnTypeMaskedValue == 15:	line_dict["SOURCE_COLUMN_TYPE"] = "NCHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 16:	line_dict["SOURCE_COLUMN_TYPE"] = "NVARCHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 17:	line_dict["SOURCE_COLUMN_TYPE"] = "INT8"
+				elif columnTypeMaskedValue == 18:	line_dict["SOURCE_COLUMN_TYPE"] = "SERIAL8" 
+				elif columnTypeMaskedValue == 19:	line_dict["SOURCE_COLUMN_TYPE"] = "SET"
+				elif columnTypeMaskedValue == 20:	line_dict["SOURCE_COLUMN_TYPE"] = "MULTISET"
+				elif columnTypeMaskedValue == 21:	line_dict["SOURCE_COLUMN_TYPE"] = "LIST"
+				elif columnTypeMaskedValue == 22:	line_dict["SOURCE_COLUMN_TYPE"] = "ROW"
+				elif columnTypeMaskedValue == 23:	line_dict["SOURCE_COLUMN_TYPE"] = "COLLECTION"
+				elif columnTypeMaskedValue == 40:	line_dict["SOURCE_COLUMN_TYPE"] = "LVARCHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 41:	line_dict["SOURCE_COLUMN_TYPE"] = "CLOB"
+				elif columnTypeMaskedValue == 43:	line_dict["SOURCE_COLUMN_TYPE"] = "LVARCHAR(%s)"%(row[5])
+				elif columnTypeMaskedValue == 45:	line_dict["SOURCE_COLUMN_TYPE"] = "BOOLEAN"
+				elif columnTypeMaskedValue == 52:	line_dict["SOURCE_COLUMN_TYPE"] = "BIGINT"
+				elif columnTypeMaskedValue == 53:	line_dict["SOURCE_COLUMN_TYPE"] = "BIGSERIAL" 
+
+				if columnTypeMaskedValue == 5:
+					precision, scale = divmod(row[5], 256)
+					line_dict["SOURCE_COLUMN_TYPE"] = "DECIMAL(%s,%s)"%(precision, scale)
+
+				if columnTypeMaskedValue == 8:
+					precision, scale = divmod(row[5], 256)
+					line_dict["SOURCE_COLUMN_TYPE"] = "MONEY(%s,%s)"%(precision, scale)
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = row[5]
+
+				if row[7] == ""  or row[7] == None:
+					line_dict["SOURCE_COLUMN_COMMENT"] = None
+				else:
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[7]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+
+				if row[4]&0x0100 != 0:
+					line_dict["IS_NULLABLE"] = "NO"
+				else:
+					line_dict["IS_NULLABLE"] = "YES"
+
+				line_dict["TABLE_TYPE"] = row[9]
+
+				try:
+					#line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d %H:%M:%S.%f')
+					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[10], '%Y-%m-%d')
+				except:
+					line_dict["TABLE_CREATE_TIME"] = None
+
+				line_dict["DEFAULT_VALUE"] = None
+				rows_list.append(line_dict)
+			result_df = pd.DataFrame(rows_list)
+
 		logging.debug(result_df)
 		logging.debug("Executing schemaReader.readTable() - Finished")
 		return result_df
@@ -1251,6 +1361,79 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.INFORMIX:
+			query  = "select trim(st.owner), "
+			query += "trim(st.tabname), "
+			query += "trim(si.idxname), "
+			query += "sc.constrtype, "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part1 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part2 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part3 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part4 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part5 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part6 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part7 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part8 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part9 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part10 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part11 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part12 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part13 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part14 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part15 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part16 ) "
+			query += "from systables st "
+			query += "inner join sysindexes si "
+			query += "  on st.tabid = si.tabid "
+			query += "inner join sysconstraints sc "
+			query += "  on st.tabid = sc.tabid "
+			query += "  and sc.idxname = si.idxname "
+			query += "where st.owner = '%s' "%(schema)
+			if table != None:
+				query += "  and st.tabname = '%s' "%(table)
+			query += "  and sc.constrtype = 'P' "
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				schemaName = row[0]
+				tableName = row[1]
+				constraintName = row[2]
+				constraintType = row[3]
+				colKeyPosition = 1
+				colIndex = 3		# 3 + lowest value of colKeyPosition will be the first column in the PK 
+
+				# Informix will only give one row for the PrimaryKey, but 16 columns with columnnames of what columns that is part of the PK. 
+				while colKeyPosition <= 16:
+					if row[colIndex + colKeyPosition] == None:
+						break
+
+					line_dict = {}
+					if table == None:
+						line_dict["SCHEMA_NAME"] = schemaName
+						line_dict["TABLE_NAME"] = tableName
+					line_dict["CONSTRAINT_NAME"] = constraintName
+					line_dict["CONSTRAINT_TYPE"] = constant.PRIMARY_KEY
+					line_dict["COL_NAME"] = row[colIndex + colKeyPosition]
+					line_dict["REFERENCE_SCHEMA_NAME"] = None
+					line_dict["REFERENCE_TABLE_NAME"] = None
+					line_dict["REFERENCE_COL_NAME"] = None
+					line_dict["COL_KEY_POSITION"] = colKeyPosition
+
+					colKeyPosition = colKeyPosition + 1
+					rows_list.append(line_dict)
+
+#				print(rows_list)
+
+			result_df = pd.DataFrame(rows_list)
+
 		# In some cases, we get duplicate Foreign Keys. This removes all duplicate entries
 		result_df.drop_duplicates(keep="first", inplace=True)
 
@@ -1440,11 +1623,85 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.INFORMIX:
+			query  = "select trim(si.idxname), "
+			query += "si.idxtype, "
+			query += "si.clustered, "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part1 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part2 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part3 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part4 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part5 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part6 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part7 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part8 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part9 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part10 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part11 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part12 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part13 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part14 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part15 ), "
+			query += "(select sc.colname from syscolumns sc where sc.tabid = si.tabid and sc.colno = si.part16 ) "
+			query += "from systables st "
+			query += "inner join sysindexes si "
+			query += "  on st.tabid = si.tabid "
+			query += "where st.owner = '%s' "%(schema)
+			query += "  and st.tabname = '%s' "%(table)
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			indexTypeDict = { " ": "No Clustering index", "C": "Clustering index" }
+			uniqueDict = { 
+				"U": "Not unique",
+				"D": "Unique",
+				"G": "Unknown",
+				"u": "Not unique",
+				"d": "Unique",
+				"g": "Unknown",
+			}
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				indexName = row[0]
+				indexUnique = uniqueDict.get(row[1], row[1])
+				indexType = indexTypeDict.get(row[2], row[2])
+				colKeyPosition = 1
+				colIndex = 2		# 2 + lowest value of colKeyPosition will be the first column in the PK 
+
+				# Informix will only give one row for the PrimaryKey, but 16 columns with columnnames of what columns that is part of the PK. 
+				while colKeyPosition <= 16:
+					if row[colIndex + colKeyPosition] == None:
+						break
+
+					line_dict = {}
+					line_dict["Name"] = indexName
+					line_dict["Type"] = indexType
+					line_dict["Unique"] = indexUnique
+					line_dict["Column"] = row[colIndex + colKeyPosition]
+					line_dict["ColumnOrder"] = colKeyPosition
+					# We cant determine if the column allows null or not. So we set it to -1 = Unknown
+					line_dict["isNullable"] = -1
+
+					colKeyPosition = colKeyPosition + 1
+					rows_list.append(line_dict)
+
+			result_df = pd.DataFrame(rows_list)
+
 		if serverType == constant.DB2_AS400:
 			logging.warning("Reading Index information from DB2AS400 connections is not supported. Please contact developer if this is required")
 
 		if serverType == constant.POSTGRESQL:
 			logging.warning("Reading Index information from PostgreSQL connections is not supported. Please contact developer if this is required")
+
+		if serverType == constant.SNOWFLAKE:
+			logging.warning("Reading Index information from Snowflake connections is not supported. Please contact developer if this is required")
 
 		return result_df
 
@@ -1551,6 +1808,17 @@ class source(object):
 					query += "where TABLE_NAME like '%s' "%(tableFilter)
 			query += "order by TABLE_SCHEMA, TABLE_NAME"
 
+		if serverType == constant.INFORMIX:
+			query = "select owner, tabname from informix.systables "
+			if schemaFilter != None:
+				query += "where owner like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				if schemaFilter != None:
+					query += "and tabname like '%s' "%(tableFilter)
+				else:
+					query += "where tabname like '%s' "%(tableFilter)
+			query += "order by owner, tabname"
+
 		logging.debug("SQL Statement executed: %s" % (query) )
 		JDBCCursor.execute(query)
 
@@ -1559,10 +1827,10 @@ class source(object):
 			result_df.columns = ['schema', 'table']
 		else:
 			result_df = pd.DataFrame(columns=['schema', 'table'])
+		print(result_df)
 
 		logging.debug("Executing schemaReader.getJDBCtablesAndViews() - Finished")
 		return result_df
-
 
 
 	def getJdbcTableType(self, serverType, tableTypeFromSource):
@@ -1618,10 +1886,18 @@ class source(object):
 			# T = Table
 			# V = View
 			# X = Auxiliary table
-			if tableTypeFromSource == "A":	tableType = "view"
-			if tableTypeFromSource == "V":	tableType = "view"
+			if   tableTypeFromSource == "A":	tableType = "view"
+			elif tableTypeFromSource == "V":	tableType = "view"
 			else: tableType = "table"
 
+		elif serverType == constant.INFORMIX:
+			# https://www.ibm.com/docs/en/informix-servers/12.10?topic=tables-systables
+			if   tableTypeFromSource == "T":	tableType = "table"
+			elif tableTypeFromSource == "E":	tableType = "external table"
+			elif tableTypeFromSource == "V":	tableType = "view"
+			elif tableTypeFromSource == "Q":	tableType = "sequence"
+			elif tableTypeFromSource == "P":	tableType = "private synonym"
+			elif tableTypeFromSource == "S":	tableType = "public synonym"
 
 		logging.debug("Executing schemaReader.getJdbcTableType() - Finished")
 		return tableType

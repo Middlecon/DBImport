@@ -369,6 +369,14 @@ class initialize(object):
 				classpath='add path to JAR file')
 			self.configDB.execute(query)
 
+		if result_df.empty or (result_df[0] == 'Informix').any() == False:
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
+				database_type='Informix', 
+				version='default', 
+				driver='com.informix.jdbc.IfxDriver', 
+				classpath='add path to JAR file')
+			self.configDB.execute(query)
+
 
 		query = sa.select([configSchema.configuration.configKey])
 		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())

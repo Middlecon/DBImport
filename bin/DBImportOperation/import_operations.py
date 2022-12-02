@@ -201,11 +201,11 @@ class operation(object, metaclass=Singleton):
 		else:
 			self.getImportTableRowCount()
 
-	def getTargetTableValidationData(self):
+	def getTargetTableValidationData(self, incrementalMax=None):
 		if self.import_config.validationMethod == "customQuery":
 			self.runCustomValidationQueryOnTargetTable()
 		else:
-			self.getTargetTableRowCount()
+			self.getTargetTableRowCount(incrementalMax=incrementalMax)
 
 	def runCustomValidationQueryOnImportTable(self):
 		logging.debug("Executing import_operations.runCustomValidationQueryOnImportTable()")
@@ -308,9 +308,9 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def getTargetTableRowCount(self):
+	def getTargetTableRowCount(self, incrementalMax=None):
 		try:
-			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, ignoreSQLwhereAddition=True)
+			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, ignoreSQLwhereAddition=True, incrementalMax=incrementalMax)
 
 #			if self.import_config.importPhase == constant.IMPORT_PHASE_ORACLE_FLASHBACK:
 #				if whereStatement == None:
@@ -897,7 +897,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.runSparkImportForMongo() - Finished")
 
 
-	def runSparkImport(self, PKOnlyImport):
+	def runSparkImport(self, PKOnlyImport, incrementalMax=None):
 		logging.debug("Executing import_operations.runSparkImport()")
 
 		self.sparkStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -907,22 +907,14 @@ class operation(object, metaclass=Singleton):
 		# Fetch the number of executors and sql splits that should be used
 		self.import_config.calculateJobMappers()
 
-		if self.import_config.sqlSessions > 1:
-			# Generate the SQL that fetch the min and max values from the column that is defined in self.import_config.splitByColumn
-			minMaxDict = self.import_config.getMinMaxBoundaryValues()
-		else:
-			minMaxDict = {}
-			minMaxDict['min'] = "Unknown"
-			minMaxDict['max'] = "Unknown"
-
 		rowCount = 0
 		incrWhereStatement = ""
 		if self.import_config.import_is_incremental == True and PKOnlyImport == False and self.import_config.importPhase != constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING:
 
 			if self.import_config.common_config.jdbc_servertype == constant.SNOWFLAKE:
-				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True)
+				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True, incrementalMax=incrementalMax)
 			else:
-				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+				incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True, incrementalMax=incrementalMax).replace('"', '\'')
 
 			if incrWhereStatement == "":
 				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
@@ -944,6 +936,26 @@ class operation(object, metaclass=Singleton):
 					logging.error("DBImport is unable to find the max value for the configured incremental column.")
 					self.import_config.remove_temporary_files()
 					sys.exit(1)
+
+		# Fetch Min and Max values for Boundary query
+		if self.import_config.sqlSessions > 1:
+			self.import_config.generateSqoopSplitBy()
+			if self.import_config.import_is_incremental == True and self.import_config.splitByColumn == self.import_config.sqoop_incr_column:
+				# If it is an incremental import and both splitBy and incr_columns are the same, we can just use the min/max values for the BoundaryValues
+				if self.import_config.sqoopIncrMinvaluePending != None and self.import_config.sqoopIncrMaxvaluePending != None:
+					minMaxDict = {}
+					minMaxDict['min'] = self.import_config.sqoopIncrMinvaluePending
+					minMaxDict['max'] = self.import_config.sqoopIncrMaxvaluePending
+				else:
+					# Generate the SQL that fetch the min and max values from the column that is defined in self.import_config.splitByColumn
+					minMaxDict = self.import_config.getMinMaxBoundaryValues()
+			else:
+				# Generate the SQL that fetch the min and max values from the column that is defined in self.import_config.splitByColumn
+				minMaxDict = self.import_config.getMinMaxBoundaryValues()
+		else:
+			minMaxDict = {}
+			minMaxDict['min'] = "Unknown"
+			minMaxDict['max'] = "Unknown"
 
 		# Create the SQL that will be used to fetch the data. This will be used on a "from" statement
 		if self.import_config.importPhase == constant.IMPORT_PHASE_MSSQL_CHANGE_TRACKING: 
@@ -979,7 +991,6 @@ class operation(object, metaclass=Singleton):
 #		sys.exit(1)
 
 		# Create a valid PYSPARK_SUBMIT_ARGS string
-#		sparkPysparkSubmitArgs = "--driver-library-path /usr/share/java --jars /usr/share/java/mssql-jdbc_auth-9.2.1.x86.dll,"
 		sparkPysparkSubmitArgs = "--jars "
 		sparkJars = ""
 
@@ -1020,6 +1031,7 @@ class operation(object, metaclass=Singleton):
 		# Set required OS parameters
 		os.environ['HDP_VERSION'] = self.import_config.common_config.sparkHDPversion
 		os.environ['PYSPARK_SUBMIT_ARGS'] = sparkPysparkSubmitArgs
+		# print(sparkPysparkSubmitArgs)
 
 		print(" _____________________ ")
 		print("|                     |")
@@ -1086,6 +1098,8 @@ class operation(object, metaclass=Singleton):
 #		print(self.import_config.common_config.jdbc_username)
 #		print(self.import_config.common_config.jdbc_password)
 
+#		print(self.import_config.common_config.jdbc_url)
+#		sparkQuery = '(select "zdsm_soc", "zdsm_succ", "zdsm_stkid", "zdsm_typecdestk" from regix.zsc_dsm) zsc_dsm' 
 #		print(sparkQuery)
 #		sc.stop()
 #		self.import_config.remove_temporary_files()
@@ -1140,6 +1154,7 @@ class operation(object, metaclass=Singleton):
 			elif cFunction == 'Show first 4 chars':
 				df = df.withColumn(cName, udfShowFirstFourCharacters(cName))
 
+#		print(df.schema)
 #		print(df.show())
 #		sc.stop()
 #		self.import_config.remove_temporary_files()
@@ -1150,6 +1165,8 @@ class operation(object, metaclass=Singleton):
 		sys.stdout.flush()
 		df.write.mode('overwrite').format("orc").save(self.import_config.sqoop_hdfs_location)
 		sys.stdout.flush()
+
+		# print("Save completed")
 
 		hdfsDataDf = spark.read.format("orc").load(self.import_config.sqoop_hdfs_location)
 		rowsWrittenBySpark = hdfsDataDf.count()
@@ -1222,7 +1239,7 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing import_operations.deleteSqoopHdfsLocation() - Finished")
 
-	def runSqoopImport(self, PKOnlyImport):
+	def runSqoopImport(self, PKOnlyImport, incrementalMax=None):
 		logging.debug("Executing import_operations.runSqoopImport()")
 
 		self.sqoopStartTimestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -1261,6 +1278,9 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.common_config.db_db2as400 == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
 			sqoopDirectOption = "--direct"
+		if self.import_config.common_config.db_informix == True: 
+			sqoopSourceTable = self.import_config.source_table
+			# sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
 
 		if self.import_config.sqoop_use_generated_sql == True and self.import_config.sqoop_query == None:
 			sqoopQuery = self.import_config.sqlGeneratedSqoopQuery
@@ -1306,7 +1326,7 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.append("--autoreset-to-one-mapper")
 
 		# Progress and DB2 AS400 imports needs to know the class name for the JDBC driver. 
-		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True:
+		if self.import_config.common_config.db_progress == True or self.import_config.common_config.db_db2as400 == True or self.import_config.common_config.db_informix == True:
 			sqoopCommand.extend(["--driver", self.import_config.common_config.jdbc_driver])
 
 		sqoopCommand.extend(["--class-name", "dbimport"]) 
@@ -1349,7 +1369,7 @@ class operation(object, metaclass=Singleton):
 			sqoopCommand.extend(["--boundary-query", self.import_config.sqoopBoundaryQuery])
 
 		if self.import_config.import_is_incremental == True and PKOnlyImport == False:
-			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True).replace('"', '\'')
+			incrWhereStatement = self.import_config.getIncrWhereStatement(whereForSqoop=True, incrementalMax=incrementalMax).replace('"', '\'')
 			if incrWhereStatement == "":
 				# DBImport is unable to find the max value for the configured incremental column. Is the table empty?
 				rowCount = self.import_config.common_config.getJDBCTableRowCount(self.import_config.source_schema, self.import_config.source_table)
@@ -2313,6 +2333,9 @@ class operation(object, metaclass=Singleton):
 			else:
 				compactionMethod = self.import_config.mergeCompactionMethod
 				compactionDescription = compactionMethod
+
+		# Override and disable all compactions. Scania specific and should never be commit to GIT
+		compactionMethod = "none"
 
 		if compactionMethod != "none":
 			logging.info("Running a '%s' compaction on Hive table"%(compactionDescription))

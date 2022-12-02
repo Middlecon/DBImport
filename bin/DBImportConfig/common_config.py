@@ -86,6 +86,7 @@ class config(object, metaclass=Singleton):
 		self.db_cachedb = False
 		self.db_snowflake = False
 		self.db_awss3 = False
+		self.db_informix = False
 		self.jdbc_url = None
 		self.jdbc_hostname = None
 		self.jdbc_port = None
@@ -116,6 +117,7 @@ class config(object, metaclass=Singleton):
 		self.awsS3proxyServer = None
 		self.awsS3bucket = None
 		self.awsS3region = None
+		self.awsS3externalId = None
 		self.awsS3fileFormat = None
 		self.kerberosInitiated = False
 
@@ -617,7 +619,7 @@ class config(object, metaclass=Singleton):
 					self.jdbc_password = ""
 
 #				print("£%s£¤£%s£¤£%s£¤£%s£"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
-				print("£%s£¤£%s£¤£%s£"%(self.dbAlias, self.jdbc_username, self.jdbc_password))
+				print("£%s£¤£%s£¤£%s£¤£DBImport£"%(self.dbAlias, self.jdbc_username, self.jdbc_password))
 
 				if 0 == 1:
 					if "," in self.jdbc_username:
@@ -1065,6 +1067,36 @@ class config(object, metaclass=Singleton):
 				logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
 				exit_after_function = True
 
+			try:
+				self.awsS3externalId = self.jdbc_url.split(';externalId=')[1].split(';')[0]
+			except:
+				self.awsS3externalId = None
+
+		if self.jdbc_url.startswith( 'jdbc:informix-sqli://'): 
+			self.atlasJdbcSourceSupport = True
+			self.db_informix = True
+			self.jdbc_servertype = constant.INFORMIX
+			self.jdbc_force_column_lowercase = False
+			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Informix", "default")
+			self.jdbc_classpath_for_python = self.jdbc_classpath
+
+			self.jdbc_hostname = self.jdbc_url[21:].split(':')[0].split(';')[0].split('/')[0]
+			try:
+				self.jdbc_port = self.jdbc_url[21:].split(':')[1].split('/')[0]
+			except:
+				self.jdbc_port = "1526"
+			if self.jdbc_port.isdigit() == False: self.jdbc_port = "1526"
+
+			try:
+				self.jdbc_database = self.jdbc_url[21:].split('/')[1].split(';')[0].split(':')[0]
+			except:
+				logging.error("Cant determine database based on jdbc_string")
+				exit_after_function = True
+
+			if not "delimident=" in self.jdbc_url.lower(): 
+				logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
+				exit_after_function = True
+
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
 			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
@@ -1085,10 +1117,11 @@ class config(object, metaclass=Singleton):
 		logging.debug("    db_mongodb = %s"%(self.db_mongodb))
 		logging.debug("    db_cachedb = %s"%(self.db_cachedb))
 		logging.debug("    db_snowflake = %s"%(self.db_snowflake))
+		logging.debug("    db_informix = %s"%(self.db_informix))
 		logging.debug("    jdbc_servertype = %s"%(self.jdbc_servertype))
 		logging.debug("    jdbc_url = %s"%(self.jdbc_url))
 		logging.debug("    jdbc_username = %s"%(self.jdbc_username))
-		logging.debug("    jdbc_password = %s"%(self.jdbc_password))
+		logging.debug("    jdbc_password = <ENCRYPTED>")
 		logging.debug("    jdbc_hostname = %s"%(self.jdbc_hostname))
 		logging.debug("    jdbc_port = %s"%(self.jdbc_port))
 		logging.debug("    jdbc_database = %s"%(self.jdbc_database))
@@ -1103,13 +1136,16 @@ class config(object, metaclass=Singleton):
 		logging.debug("    jdbc_trustedservercert_password = %s"%(self.jdbc_trustedservercert_password))
 		logging.debug("    jdbc_hostincert = %s"%(self.jdbc_hostincert))
 		logging.debug("    jdbc_logintimeout = %s"%(self.jdbc_logintimeout))
-		logging.debug("    jdbc_password_file = %s"%(self.jdbc_password_file))
+#		logging.debug("    jdbc_password_file = %s"%(self.jdbc_password_file))
 		logging.debug("    jdbc_oracle_sid = %s"%(self.jdbc_oracle_sid))
 		logging.debug("    jdbc_oracle_servicename = %s"%(self.jdbc_oracle_servicename))
+		logging.debug("    self.awsS3assumeRole = %s"%(self.awsS3assumeRole))
+		logging.debug("    self.awsS3proxyServer = %s"%(self.awsS3proxyServer))
+		logging.debug("    self.awsS3externalId = %s"%(self.awsS3externalId))
+		logging.debug("    self.awsS3region = %s"%(self.awsS3region))
 		logging.debug("Executing common_config.lookupConnectionAlias() - Finished")
 
 		if exit_after_function == True:
-#			raise invalidConfiguration("Error determine correct connection details")
 			raise invalidConfiguration
 
 
@@ -1149,8 +1185,13 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getSourceTableDefinition() - Finished")
 
-	def disconnectFromJDBC(self):
-		logging.debug("Disconnect from JDBC database")
+	def reconnectJDBC(self, logger=""):
+		self.disconnectFromJDBC(logger=logger)
+		self.connectToJDBC(logger=logger)
+
+	def disconnectFromJDBC(self, logger=""):
+		log = logging.getLogger(logger)
+		log.debug("Disconnect from JDBC database")
 
 		if self.db_mongodb == True:
 			# This is a MongoDB connection. Lets rediret to disconnectFromMongo instead
@@ -1164,8 +1205,8 @@ class config(object, metaclass=Singleton):
 			pass
 
 		except Exception as exception:
-			logging.info("Unknown error during disconnection to JDBC database:")
-			logging.info(exception.message())
+			log.info("Unknown error during disconnection to JDBC database:")
+			log.info(exception.message())
 			pass
 
 
@@ -1190,11 +1231,11 @@ class config(object, metaclass=Singleton):
 
 		if self.JDBCCursor == None:
 			log.debug("Connecting to database over JDBC")
-			log.debug("	self.jdbc_username = %s"%(self.jdbc_username))
-			log.debug("	self.jdbc_password = %s"%(self.jdbc_password))
-			log.debug("	self.jdbc_driver = %s"%(self.jdbc_driver))
-			log.debug("	self.jdbc_url = %s"%(self.jdbc_url))
-			log.debug("	self.jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
+			log.debug("   jdbc_username = %s"%(self.jdbc_username))
+			log.debug("   jdbc_password = <ENCRYPTED>")
+			log.debug("   jdbc_driver = %s"%(self.jdbc_driver))
+			log.debug("   jdbc_url = %s"%(self.jdbc_url))
+			log.debug("   jdbc_classpath_for_python = %s"%(self.jdbc_classpath_for_python))
 
 			JDBCCredentials = [ self.jdbc_username, self.jdbc_password ]
 			try:
@@ -1240,6 +1281,9 @@ class config(object, metaclass=Singleton):
 			query = "select max(%s) from \"%s\".\"%s\""%(column, source_schema, source_table)
 
 		if self.db_snowflake == True:		
+			query = "select max(\"%s\") from \"%s\".\"%s\""%(column, source_schema, source_table)
+
+		if self.db_informix == True:		
 			query = "select max(\"%s\") from \"%s\".\"%s\""%(column, source_schema, source_table)
 
 		if self.custom_max_query != None:
@@ -1390,6 +1434,9 @@ class config(object, metaclass=Singleton):
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
 #			query = "select count(1) from \"%s\".\"%s\""%(source_schema.upper(), source_table.upper())
 
+		if self.db_informix == True:		
+			query = "select count(1) from %s.%s"%(source_schema, source_table)
+
 		if whereStatement != None and whereStatement != "":
 			query = query + " where " + whereStatement
 
@@ -1534,6 +1581,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.DB2_UDB:      quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.DB2_AS400:    quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.SNOWFLAKE:    quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.INFORMIX:     quoteAroundColumn = "\""
 
 		return quoteAroundColumn
 
@@ -1557,6 +1605,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.DB2_UDB:      fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.DB2_AS400:    fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.SNOWFLAKE:    fromTable = "\"%s\".\"%s\""%(schema, table)
+		if self.jdbc_servertype == constant.INFORMIX:     fromTable = "%s.%s"%(schema, table)
 
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable

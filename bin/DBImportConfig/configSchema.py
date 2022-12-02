@@ -70,6 +70,8 @@ class airflowCustomDags(Base):
     email = Column(String(256), comment='Email to send message to in case email_on_retry or email_on_failure is set to True. Comma separated list of email addresses')
     email_on_failure = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on failures')
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
+    tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
+    sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
 
 
 class airflowDagSensors(Base):
@@ -105,6 +107,8 @@ class airflowEtlDags(Base):
     email = Column(String(256), comment='Email to send message to in case email_on_retry or email_on_failure is set to True. Comma separated list of email addresses')
     email_on_failure = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on failures')
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
+    tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
+    sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
 
 
 
@@ -137,6 +141,8 @@ class airflowExportDags(Base):
     email = Column(String(256), comment='Email to send message to in case email_on_retry or email_on_failure is set to True. Comma separated list of email addresses')
     email_on_failure = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on failures')
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
+    tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
+    sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
 
 
 
@@ -166,6 +172,8 @@ class airflowImportDags(Base):
     email = Column(String(256), comment='Email to send message to in case email_on_retry or email_on_failure is set to True. Comma separated list of email addresses')
     email_on_failure = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on failures')
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
+    tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
+    sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
 
 
 class autoDiscoveredTable(Base):
@@ -786,7 +794,7 @@ class jdbcConnections(Base):
 class jdbcConnectionsDrivers(Base):
     __tablename__ = 'jdbc_connections_drivers'
 
-    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB', 'CacheDB', 'Snowflake'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
+    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB', 'CacheDB', 'Snowflake', 'Informix'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
     version = Column(String(16), primary_key=True, nullable=False, comment='Free-text field with version. Has nothing to do with version of driver itself.')
     driver = Column(String(128), nullable=False, comment='Java class for JDBC driver')
     classpath = Column(String(255), nullable=False, comment='Full path to JDBC driver/jar file. If more than one file is required, separate them with : and no spaces')

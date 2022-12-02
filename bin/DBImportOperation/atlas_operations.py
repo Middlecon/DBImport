@@ -1444,6 +1444,9 @@ class atlasOperation(object):
 		elif self.jdbc_servertype == constant.DB2_AS400:
 			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
 
+		elif self.jdbc_servertype == constant.INFORMIX:
+			columnUri = "%s.%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, columnName, self.jdbc_hostname, self.jdbc_port)
+
 		else:
 			logging.warning("The Atlas integrations does not support this database type. Atlas integration disabled")
 			self.atlasEnabled = False
@@ -1531,6 +1534,14 @@ class atlasOperation(object):
 			instanceUri = "DB2AS400@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
 			instanceName = "DB2"
 			instanceType = "DB2"
+
+		elif self.jdbc_servertype == constant.INFORMIX:
+			tableUri = "%s.%s.%s@%s:%s"%(self.jdbc_database, schemaName, tableName, self.jdbc_hostname, self.jdbc_port)
+			dbUri = "%s@%s:%s"%(self.jdbc_database, self.jdbc_hostname, self.jdbc_port)
+			dbName = self.jdbc_database
+			instanceUri = "INFORMIX@%s:%s"%(self.jdbc_hostname, self.jdbc_port)
+			instanceName = "INFORMIX"
+			instanceType = "INFORMIX"
 
 		else:
 			logging.warning("The Atlas integrations does not support this database type. Atlas integration disabled")

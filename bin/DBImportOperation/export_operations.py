@@ -958,11 +958,21 @@ class operation(object, metaclass=Singleton):
 										region_name=self.export_config.common_config.awsS3region)
 
 				sts = session.client('sts')
-				response = sts.assume_role(
-					RoleArn=self.export_config.common_config.awsS3assumeRole,
-					RoleSessionName='DBImport_export_%s.%s'%(self.hiveDB, self.hiveTable)
-					# DurationSeconds=3600  # how many seconds these credentials will work
-					)
+				roleSessionName='DBImport_export_%s.%s'%(self.hiveDB, self.hiveTable)
+
+				if self.export_config.common_config.awsS3externalId == None:
+					response = sts.assume_role(
+						RoleArn=self.export_config.common_config.awsS3assumeRole,
+						RoleSessionName=roleSessionName[0:64]
+						# DurationSeconds=3600  # how many seconds these credentials will work
+						)
+				else:
+					response = sts.assume_role(
+						RoleArn=self.export_config.common_config.awsS3assumeRole,
+						RoleSessionName=roleSessionName[0:64],
+						ExternalId=self.export_config.common_config.awsS3externalId
+						# DurationSeconds=3600  # how many seconds these credentials will work
+						)
 
 				credentials = response['Credentials']
 				logging.debug(credentials)
