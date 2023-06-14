@@ -6,16 +6,29 @@ Installation
 
 To install DBImport, please follow the steps on this page. That will setup DBImport and make you able to import your first database in notime.
 
- #. Download the source package from the latest release from the `GitHub Release Page <https://github.com/BerryOsterlund/DBImport/releases>`_. Create a directory and unpack the file::
+Download the source package from the latest release from the `GitHub Release Page <https://github.com/BerryOsterlund/DBImport/releases>`_. Create a directory and unpack the file::
 
         mkdir /usr/local/dbimport
         cd /usr/local/dbimport
         tar -xf dbimport-VERSION.tar
    
 
- #. There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is developed on Python 3.6. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. All required python packages with working versions is available in a requirements.txt file. Please install these python packages::
+There is a number of Python dependencies that needs to be in place before DBImport can start. As of python itself, DBImport is verified with Python 3.6 and 3.8. Other versions may work but it's not tested. It's also preferable to use a virtual environment for Python, but creating a virtual environment is not part of this documentation. All required python packages with working versions is available in a requirements.txt file, one for each verified version of python. The version you select will also depend on what Spark version is installed in your cluster 
+
+
+**Python 3.6**
+
+This version of python works with both Spark2 and Spark3. Please install the python packages for version 3.6::
 
         pip3.6 install -r requirements_python36.txt
+
+
+**Python 3.8**
+
+When running python 3.8, you also need to run Spark3. If not, you will get errors in the ETL / Hive steps when running DBImport. Please install the python packages for version 3.8::
+
+        pip3.8 install -r requirements_python38.txt
+
 
 
 Base configuration
@@ -146,6 +159,50 @@ if you are planning to use AWS S3 exports, you need to add the jar files to the 
 Both the local DBImport code and the spark code must run with the same python version. In order to do so, set the PYSPARK_PYTHON variable to the python version you are running before you execute the import or exports::
 
     export PYSPARK_PYTHON=python3.6
+
+Support for Spark3
+------------------
+
+The most obvious activity to enable Spark3 is to of course install Spark3 in the cluster. If you are using CDP, Spark3 is available as a separate Parcel and will be installed in parallel with Spark2, both being active in the cluster at the same time. Once Spark3 is installed, you need to tell DBImport to use the jar files from Spark3 instead of Spark2.
+
+Verified Spark settings for CDP 7.1.8::
+
+        path_append = /opt/cloudera/parcels/SPARK3/lib/spark3/python, /opt/cloudera/parcels/SPARK3/lib/spark3/python/lib/py4j-0.10.9.5-src.zip, /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/pyspark_hwc-spark3-1.0.0.3.3.7180.5-1.zip
+        jar_files = /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/hive-warehouse-connector-spark3-assembly-1.0.0.3.3.7180.5-1.jar
+        py_files = /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/pyspark_hwc-spark3-1.0.0.3.3.7180.5-1.zip
+
+        master = yarn
+        deployMode = client
+        yarnqueue = default
+        dynamic_allocation = true
+        executor_memory = 2688M
+        hdp_version = 7.1.8.11-3 
+        hive_library = HiveWarehouseSession
+
+
+Iceberg
+-------
+
+.. note:: Iceberg support is in tech-preview state and havent been used as much in a stable production environment as normal imports have. Please keep this in mind when using it.
+
+As Iceberg isn’t fully supported yet by CDP Private Cloud Base Edition, we need to manually install Iceberg and enable support for it. Download the Iceberg spark jar from Apache Iceberg homepage and upload that jar file to all nodes in the cluster. During development of Iceberg support in DBImport, the file and version used together with CDP 7.1.8 was *iceberg-spark-runtime-3.3_2.12-1.1.0.jar*.
+To enable DBImport to use Iceberg file format, you need to add the jar file to the *[Spark] jar_files* configuration in the config file.
+
+Verified Spark settings for CDP 7.1.8 with Iceberg::
+
+        path_append = /opt/cloudera/parcels/SPARK3/lib/spark3/python, /opt/cloudera/parcels/SPARK3/lib/spark3/python/lib/py4j-0.10.9.5-src.zip, /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/pyspark_hwc-spark3-1.0.0.3.3.7180.5-1.zip
+        jar_files = /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/hive-warehouse-connector-spark3-assembly-1.0.0.3.3.7180.5-1.jar, /opt/datalake/jars/iceberg-spark-runtime-3.3_2.12-1.1.0.jar
+        py_files = /opt/cloudera/parcels/SPARK3/lib/hwc_for_spark3/pyspark_hwc-spark3-1.0.0.3.3.7180.5-1.zip
+
+Due to a limitation in CDP regarding TEZ-4248 implementation, CDP Private Cloud Base Edition cant access the Iceberg tables through Hive. But Impala and direct spark access works fine. Regardless of Hive working or not, the following settings must be enabled in the HiveServer2 in CDP for Iceberg to work even with Impala.
+
+====================================== ===========================================================================================
+hive.vectorized.execution.enabled      false
+iceberg.engine.hive.enabled            true
+tez.mrreader.config.update.properties  hive.io.file.readcolumn.names,hive.io.file.readcolumn.ids
+====================================== ===========================================================================================
+
+
 
 Atlas
 --------------------

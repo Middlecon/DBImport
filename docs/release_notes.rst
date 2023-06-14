@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+v0.80 
+------------------------------
+
+**New Features**
+
+  - Ability to use Spark as the ETL engine instead of Hive (experimental)
+  - Support for SQLAnywhere databases
+  - Support for Spark3
+  - Support for Iceberg as a file format (requires Spark3 and Spark as ETL)
+  - Impala metadata validation after Import is completed
+
 v0.70 
 ------------------------------
 

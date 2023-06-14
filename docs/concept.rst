@@ -76,6 +76,13 @@ DBImport support both sqoop and spark. This is selectable on table level and you
 
 If you are running Hive 3.x, all tables in Hive are transactional tables. Sqoop cant export tables that are transactional tables. So if you are running Hive 3.x, you are forced to use spark for the export tool.
 
+ETL Engine
+----------
+
+After Import is completed there will be an ETL step. This is where data is being loaded from the initial save on hdfs and gets loaded in the target table accessible through Hive. This is also where History tables are created. Default ETL Engine is Hive. This means that after Spark or Sqoop have loaded the data, a session to Hive is established and the load from the data saved on HDFS too Hive will start.
+
+From version 0.8, there is now also support to use Spark as the ETL engine. The benefit for this is that it will already have most of the data loaded in memory and by that, reduce the amount of I/O required. It also removes the need to start a Hive session and running the queries through that. Running with Spark as the ETL engine will also force the usage of Iceberg as the table format. At the release date of DBImport V0.8, CDP Private Cloud v7.1.8 does not support Iceberg out of the box. So additional steps needs to be taken in order to get Iceberg support in the current version of CDP. For more information on how to do this, please read under Installation.
+
 AWS S3
 ------
 
