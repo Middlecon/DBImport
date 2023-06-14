@@ -18,13 +18,17 @@
 import os
 import sys
 import configparser
+from common.Exceptions import *
 
-def get(section, key):
+def get(section, key, exitOnError=True):
 	try:
 		return config[section][key]
 	except KeyError:
-		print("[%s] '%s' Key was not found in configuration file. Please check settings"%(section,key))
-		sys.exit(1)
+		if exitOnError == True:
+			print("[%s] '%s' Key was not found in configuration file. Please check settings"%(section,key))
+			sys.exit(1)
+		else:
+			raise invalidConfiguration("[%s] '%s' Key was not found in configuration file. Please check settings"%(section,key))
 
 try:
 	DBImport_Home = os.environ['DBIMPORT_HOME']

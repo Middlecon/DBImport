@@ -23,6 +23,7 @@ import sys
 import getopt
 import logging
 import psutil
+import signal
 from datetime import date, datetime, time, timedelta
 from common import constants as constant
 from ConfigReader import configuration
@@ -78,7 +79,6 @@ def main(argv):
 		sys.exit(0)
 
 	logdir = configuration.get("Server", "logdir")
-#	logfile = "%s/dbimport_server.log"%(logdir)
 	pidfile = configuration.get("Server", "pidfile")
 	if configuration.get("Server", "distCP_separate_logs").lower() == "true":
 		distCP_separate_logs = True
@@ -105,25 +105,20 @@ def main(argv):
 	setupLogger(name="restServer", logfile="%s/restServer.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
 	setupLogger(name="werkzeug", logfile="%s/restServer.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
 	setupLogger(name="waitress", logfile="%s/restServer.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
-#	setupLogger(name="wsgi", logfile="%s/restServer_access.log"%(logdir), logFormat='%(message)s', loggingLevel=loggingLevel, logPropagate=logPropagate)
-	setupLogger(name="restServerAccess", logfile="%s/restServer_access.log"%(logdir), logFormat='%(message)s', loggingLevel=loggingLevel, logPropagate=logPropagate)
 
 	if distCP_separate_logs == False: 
 		distCPlogfile = "%s/distCP.log"%(logdir)
 		setupLogger(name="distCP", logfile=distCPlogfile, logFormat=logFormat, loggingLevel=loggingLevel)
 	else:
 		distCPthreads = int(configuration.get("Server", "distCP_threads"))
-#		if distCPthreads == 0:
-#			log.error("'distCP_threads' configuration in configfile must be larger than 0")
-#			sys.exit(1)
 
 		for threadID in range(0, distCPthreads):
 			distCPlogName = "distCP-thread%s"%(str(threadID))
 			distCPlogfile = "%s/distCP-thread%s.log"%(logdir, str(threadID))
 			setupLogger(name=distCPlogName, logfile=distCPlogfile, logFormat=logFormat, loggingLevel=loggingLevel)
 
-	
 	d = daemon.serverDaemon(pidfile=pidfile)
+	d.setConfig(action=action, logFormat=logFormat)
 
 	if action == "start":
 		print("Starting DBImport Server")

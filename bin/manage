@@ -888,6 +888,11 @@ def main(argv):
 			else:
 				commonConfig.connectToJDBC()
 				print("Connected successfully")
+
+			commonConfig.disconnectFromJDBC()
+#			commonConfig.connectToImpala()
+#			commonConfig.disconnectFromImpala()
+
 			commonConfig.remove_temporary_files()
 
 	# Error handling for the entire stage block

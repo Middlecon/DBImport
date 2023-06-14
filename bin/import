@@ -65,6 +65,7 @@ def printHelp():
 	print ("                     - copySchema")
 	print ("                     - copyFiles")
 	print ("                     - compaction")
+	print ("                     - invalidateImpala")
 	sys.exit(1)
 	
 def printBox(messageList):
@@ -92,7 +93,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax="])
+		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax=", "logWithTimestamp"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -113,6 +114,7 @@ def main(argv):
 	metaDataOnlyImport = False
 	ignoreDisabled = False
 	incrementalMax = None
+	logWithTimestamp = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -157,6 +159,8 @@ def main(argv):
 			ignoreDisabled = True
 		elif opt == "--incrementalMax":
 			incrementalMax = arg
+		elif opt == "--logWithTimestamp":
+			logWithTimestamp = True
 
 	if displayVersion == True:
 		print("DBImport version: %s"%(constant.VERSION))
@@ -172,14 +176,20 @@ def main(argv):
 		runETLPhase = True
 
 	if runOnlyFunction != None:
-		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas", "compaction", "metaDataOnly"):
+		if runOnlyFunction not in ("getSourceTableSchema", "onlyMain", "sqoop", "importData", "createImportTable", "getImportTableRowCount", "getTargetTableRowCount", "createTargetTable", "removeHiveLocks", "truncateTargetTable", "loadDataFromImportTable", "createStatistics", "getSourceTableRowCount", "mergeTable", "createHistoryTable", "createDeleteTable", "copySchema", "copyFiles", "updateAtlas", "compaction", "metaDataOnly", "invalidateImpala"):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
 	if loggingLevel == logging.DEBUG:
-		logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+		if logWithTimestamp == True:
+			logging.basicConfig(format='%(asctime)s %(levelname)s %(funcName)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
+		else:
+			logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
 	else:
-		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
+		if logWithTimestamp == True:
+			logging.basicConfig(format='%(asctime)s %(levelname)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
+		else:
+			logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20Import
 	sys.stdout.write(u"\u001b[35m")  # Magenta
@@ -265,6 +275,7 @@ def main(argv):
 
 	print("ETL Phase:                %s"%(etlPhaseDescription))
 	print("Import Tool:              %s"%(import_operation.import_config.importTool))
+	print("ETL Engine:               %s"%(import_operation.import_config.etlEngine))
 	print("JDBC Connection name:     %s"%(import_operation.import_config.common_config.dbAlias))
 	print("Source hostname:          %s"%(import_operation.import_config.common_config.jdbc_hostname))
 	print("Source database type:     %s"%(import_operation.import_config.common_config.jdbc_servertype))
@@ -401,6 +412,8 @@ def main(argv):
 	
 				newStage = 0
 				if stage == 1020: newStage = 1011 
+				if stage == 1015: newStage = 1011		# Spark ETL import validation 
+				if stage == 1017: newStage = 1016		# Spark ETL target validation 
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous import failed and this execution |") 	
@@ -431,11 +444,12 @@ def main(argv):
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1013) == True:
-						import_operation.runSqoopImport(False)
+						import_operation.runSqoopImport(PKOnlyImport = False)
 						import_operation.import_config.common_config.reconnectJDBC()
 				if import_operation.import_config.importTool == "spark": 
+#					if import_operation.runStage(1014, 1017) == True:
 					if import_operation.runStage(1014) == True:
-						import_operation.runSparkImport(False)
+						import_operation.runSparkImport(PKOnlyImport = False)
 						import_operation.import_config.common_config.reconnectJDBC()
 
 				if import_operation.runStage(1020) == True: 
@@ -444,8 +458,6 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "updateAtlas": 
 				if import_operation.runStage(1045) == True: 
 					import_operation.updateAtlasWithImportData()
-#					import_operation.updateAtlasWithSourceSchema()
-#					import_operation.updateAtlasWithImportLineage()
 	
 			if runOnlyFunction == None:
 				import_operation.setStage(1049)
@@ -488,14 +500,14 @@ def main(argv):
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1112) == True: 
 						import_operation.saveIncrMinValue()
-						import_operation.runSqoopImport(False, incrementalMax=incrementalMax)
+						import_operation.runSqoopImport(PKOnlyImport = False, incrementalMax=incrementalMax)
 						import_operation.import_config.common_config.reconnectJDBC()
 						if import_operation.sqoopIncrNoNewRows == True: 
 							import_operation.setStage(1149)
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1113) == True: 
 						import_operation.saveIncrMinValue()
-						import_operation.runSparkImport(False, incrementalMax=incrementalMax)
+						import_operation.runSparkImport(PKOnlyImport = False, incrementalMax=incrementalMax)
 						import_operation.import_config.common_config.reconnectJDBC()
 						if import_operation.sqoopIncrNoNewRows == True: 
 							import_operation.setStage(1149)
@@ -564,11 +576,11 @@ def main(argv):
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 				if import_operation.import_config.importTool == "sqoop": 
 					if import_operation.runStage(1215) == True:
-						import_operation.runSqoopImport(False)
+						import_operation.runSqoopImport(PKOnlyImport = False)
 						import_operation.import_config.common_config.reconnectJDBC()
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1216) == True:
-						import_operation.runSparkImport(False)
+						import_operation.runSparkImport(PKOnlyImport = False)
 						import_operation.import_config.common_config.reconnectJDBC()
 
 			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
@@ -632,10 +644,10 @@ def main(argv):
 			if ( runOnlyFunction == None or runOnlyFunction == "importData" ) and skipImportData == False:
 #				if import_operation.import_config.importTool == "sqoop": 
 #					if import_operation.runStage(1264) == True:
-#						import_operation.runSqoopImport(False)
+#						import_operation.runSqoopImport(PKOnlyImport = False)
 				if import_operation.import_config.importTool == "spark": 
 					if import_operation.runStage(1265) == True:
-						import_operation.runSparkImport(False)
+						import_operation.runSparkImport(PKOnlyImport = False)
 						import_operation.import_config.common_config.reconnectJDBC()
 
 			if runOnlyFunction == None or runOnlyFunction in ("getSourceTableRowCount", "metaDataOnly"):
@@ -700,7 +712,7 @@ def main(argv):
 							import_operation.getMongoRowCount()
 	
 			if import_operation.runStage(1325) == True: 
-				import_operation.validateSqoopRowCount()
+				import_operation.validateImportTool()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(1349)
@@ -761,6 +773,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+#			if (runOnlyFunction == None or runOnlyFunction == "createImportTable") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3050) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
@@ -770,6 +783,7 @@ def main(argv):
 					import_operation.updateExternalImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+#			if (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3052) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.getImportTableValidationData()
@@ -778,6 +792,7 @@ def main(argv):
 					import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+#			if (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3054) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.removeHiveLocks()
@@ -791,12 +806,12 @@ def main(argv):
 					import_operation.updatePKonTargetTable()
 					import_operation.updateFKonTargetTable()
 
-			if runOnlyFunction == None or runOnlyFunction == "truncateTargetTable":
+			if (runOnlyFunction == None or runOnlyFunction == "truncateTargetTable"):
 				if import_operation.runStage(3056) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.truncateTargetTable()
 		
-			if runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable":
+			if (runOnlyFunction == None or runOnlyFunction == "loadDataFromImportTable"):
 				if import_operation.runStage(3057) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.loadDataFromImportToTargetTable()
@@ -804,8 +819,9 @@ def main(argv):
 				if import_operation.runStage(3058) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
-			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
+			if (runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount"):
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3059) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
@@ -813,6 +829,10 @@ def main(argv):
 
 					if import_operation.runStage(3060) == True: 
 						import_operation.validateTargetTable()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3095) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -893,6 +913,7 @@ def main(argv):
 				if import_operation.runStage(3107) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -948,6 +969,7 @@ def main(argv):
 					import_operation.setStage(3160)
 
 			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+#			if (runOnlyFunction == None or runOnlyFunction == "createImportTable") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3150) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
@@ -957,6 +979,7 @@ def main(argv):
 					import_operation.updateExternalImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+#			if (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3152) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
@@ -966,6 +989,7 @@ def main(argv):
 						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+#			if (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3154) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.removeHiveLocks()
@@ -987,6 +1011,7 @@ def main(argv):
 				if import_operation.runStage(3157) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1040,6 +1065,7 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
+			# if (runOnlyFunction == None or runOnlyFunction == "createImportTable") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3200) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
@@ -1051,6 +1077,7 @@ def main(argv):
 					import_operation.updateExternalImportView()
 
 			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
+			# if (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.import_config.validate_import == True:
 					if import_operation.runStage(3202) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
@@ -1060,6 +1087,7 @@ def main(argv):
 						import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
+			# if (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3204) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.removeHiveLocks()
@@ -1113,6 +1141,7 @@ def main(argv):
 				if import_operation.runStage(3209) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1233,6 +1262,7 @@ def main(argv):
 				if import_operation.runStage(3258) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1353,6 +1383,7 @@ def main(argv):
 				if import_operation.runStage(3307) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1483,6 +1514,7 @@ def main(argv):
 				if import_operation.runStage(3358) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1594,9 +1626,9 @@ def main(argv):
 
 					if import_operation.import_config.incr_maxvalue == None: 
 						# If it's an initial or reinitialized load, we need to remove old lines from target table
-						deleteNotUpdatedRows = True
+						ChangeDataTrackingInitialLoad = True
 					else:
-						deleteNotUpdatedRows = False
+						ChangeDataTrackingInitialLoad = False
 
 					etl_operation.mergeHiveTables(
 						sourceDB = import_operation.import_config.Hive_Import_DB, 
@@ -1611,12 +1643,13 @@ def main(argv):
 						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 						datalakeSource = import_operation.import_config.datalake_source,
 						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-						deleteNotUpdatedRows = deleteNotUpdatedRows
+						ChangeDataTrackingInitialLoad = ChangeDataTrackingInitialLoad
 					)
 
 				if import_operation.runStage(3407) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1779,6 +1812,7 @@ def main(argv):
 				if import_operation.runStage(3508) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -1885,9 +1919,9 @@ def main(argv):
 
 					if import_operation.import_config.incr_maxvalue == None: 
 						# If it's an initial or reinitialized load, we need to remove old lines from target table
-						deleteNotUpdatedRows = True
+						ChangeDataTrackingInitialLoad = True
 					else:
-						deleteNotUpdatedRows = False
+						ChangeDataTrackingInitialLoad = False
 
 					etl_operation.mergeHiveTables(
 						sourceDB = import_operation.import_config.Hive_Import_DB, 
@@ -1904,7 +1938,7 @@ def main(argv):
 						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 						datalakeSource = import_operation.import_config.datalake_source,
 						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-						deleteNotUpdatedRows = deleteNotUpdatedRows,
+						ChangeDataTrackingInitialLoad = ChangeDataTrackingInitialLoad,
 						oracleFlashbackImportTable = import_operation.import_config.Hive_Import_Table
 					)
 
@@ -2018,9 +2052,11 @@ def main(argv):
 
 					if import_operation.import_config.incr_maxvalue == None: 
 						# If it's an initial or reinitialized load, we need to remove old lines from target table
-						deleteNotUpdatedRows = True
+						ChangeDataTrackingInitialLoad = True
+						sourceIsIncremental = False
 					else:
-						deleteNotUpdatedRows = False
+						ChangeDataTrackingInitialLoad = False
+						sourceIsIncremental = True
 
 					etl_operation.mergeHiveTables(
 						sourceDB = import_operation.import_config.Hive_Import_DB, 
@@ -2028,19 +2064,20 @@ def main(argv):
 						targetDB = import_operation.import_config.Hive_DB, 
 						targetTable = import_operation.import_config.Hive_Table, 
 						createHistoryAudit = False,
-						sourceIsIncremental = True,
+						sourceIsIncremental = sourceIsIncremental,
 						sourceIsImportTable = True,
 						mssqlChangeTrackingSource = True,
-						softDelete = None,
+						softDelete = False,
 						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 						datalakeSource = import_operation.import_config.datalake_source,
 						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-						deleteNotUpdatedRows = deleteNotUpdatedRows
+						ChangeDataTrackingInitialLoad = ChangeDataTrackingInitialLoad
 					)
 
 				if import_operation.runStage(3608) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
@@ -2145,8 +2182,14 @@ def main(argv):
 					import_operation.createHistoryTable()
 					import_operation.updateHistoryTable()
 
-			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
+			if runOnlyFunction == None or runOnlyFunction == "createDeleteTable":
 				if import_operation.runStage(3657) == True: 
+					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					import_operation.createDeleteTable()
+					import_operation.updateDeleteTable()
+
+			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
+				if import_operation.runStage(3658) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
 					if import_operation.import_config.isExternalViewRequired() == True:
@@ -2156,9 +2199,11 @@ def main(argv):
 
 					if import_operation.import_config.incr_maxvalue == None: 
 						# If it's an initial or reinitialized load, we need to remove old lines from target table
-						deleteNotUpdatedRows = True
+						ChangeDataTrackingInitialLoad = True
+						sourceIsIncremental = False
 					else:
-						deleteNotUpdatedRows = False
+						ChangeDataTrackingInitialLoad = False
+						sourceIsIncremental = True
 
 					etl_operation.mergeHiveTables(
 						sourceDB = import_operation.import_config.Hive_Import_DB, 
@@ -2167,37 +2212,40 @@ def main(argv):
 						targetTable = import_operation.import_config.Hive_Table, 
 						historyDB = import_operation.import_config.Hive_History_DB, 
 						historyTable = import_operation.import_config.Hive_History_Table, 
+						targetDeleteDB = import_operation.import_config.Hive_Delete_DB, 
+						targetDeleteTable = import_operation.import_config.Hive_Delete_Table, 
 						createHistoryAudit = True,
-						sourceIsIncremental = True,
+						sourceIsIncremental = sourceIsIncremental,
 						sourceIsImportTable = True,
 						mssqlChangeTrackingSource = True,
-						softDelete = None,
+						softDelete = False,
 						mergeTime = import_operation.import_config.sqoop_last_execution_timestamp,
 						datalakeSource = import_operation.import_config.datalake_source,
 						PKColumns = import_operation.import_config.getPKcolumns(PKforMerge=True),
-						deleteNotUpdatedRows = deleteNotUpdatedRows,
+						ChangeDataTrackingInitialLoad = ChangeDataTrackingInitialLoad,
 						mssqlChangeTrackingImportTable = import_operation.import_config.Hive_Import_Table
 					)
 
-				if import_operation.runStage(3658) == True: 
+				if import_operation.runStage(3659) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.updateStatisticsOnTargetTable()
+					import_operation.purgeIcebergVersionsOnTargetTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getTargetTableRowCount":
 				if import_operation.import_config.validate_import == True:
-					if import_operation.runStage(3659) == True: 
+					if import_operation.runStage(3660) == True: 
 						import_operation.connectToHive(forceSkipTest=skipHiveTest)
 						import_operation.getTargetTableValidationData()
 
-					if import_operation.runStage(3660) == True: 
+					if import_operation.runStage(3661) == True: 
 						import_operation.validateTargetTable()
 
 			if runOnlyFunction == None:
-				if import_operation.runStage(3661) == True: 
+				if import_operation.runStage(3662) == True: 
 					import_operation.saveIncrPendingValues()
 
 			if runOnlyFunction == None or runOnlyFunction == "compaction":
-				if import_operation.runStage(3662) == True: 
+				if import_operation.runStage(3663) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
 
@@ -2231,9 +2279,9 @@ def main(argv):
 					print("|_____________________________|")
 				print("")
 
-#				if runETLPhase == True:
-#					# We can only clear the stage at the end of stage 2. 
-#					import_operation.clearStage()
+				if runETLPhase == True:
+					# We can only clear the stage at the end of stage 2. 
+					import_operation.clearStage()
 
 		import_operation.import_config.common_config.disconnectFromJDBC()
 		import_operation.remove_temporary_files()

@@ -499,7 +499,9 @@ class source(object):
 			query += "	character_maximum_length, " 
 			query += "	pg_catalog.col_description(c.oid, tab_columns.ordinal_position::int) as column_comment, "
 			query += "	is_nullable, " 
-			query += "	tab_tables.table_type " 
+			query += "	tab_tables.table_type, " 
+			query += "	numeric_precision,     " 
+			query += "	numeric_scale          " 
 			query += "FROM information_schema.columns AS tab_columns " 
 			query += "LEFT JOIN pg_catalog.pg_class c "
 			query += "	ON c.relname = tab_columns.table_name "
@@ -534,7 +536,9 @@ class source(object):
 					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
 				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
 
-				if row[5] == None:
+				if row[4] == "numeric":
+					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(self.removeNewLine(row[4]), row[9], row[10])
+				elif row[5] == None:
 					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
 				else:
 					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
@@ -801,6 +805,83 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.SQLANYWHERE:
+			query =  "select "
+			query += "   db.dbspace_name as table_schema, "
+			query += "   t.table_name, "
+			query += "   trem.remarks, " 
+			query += "   c.column_name, "
+			query += "   c.base_type_str, "
+#			query += "   c.character_maximum_length, "
+			query += "   crem.remarks, "
+			query += "   c.nulls, " 
+			query += "   c.width, " 
+			query += "   c.scale, " 
+			query += "   t.table_type " 
+#			query += "   t.create_time " 
+			query += "from sys.systabcol c "
+			query += "left join sys.systab t " 
+			query += "   on c.table_id = t.table_id "
+			query += "left join sys.sysdbspace db " 
+			query += "   on t.dbspace_id = db.dbspace_id "
+			query += "left join sys.sysremark trem " 
+			query += "   on t.object_id = trem.object_id "
+			query += "left join sys.sysremark crem " 
+			query += "   on c.object_id = crem.object_id "
+			#query += "where c.table_schema = '%s' "%(database)
+			if table != None:
+				#query += "   and c.table_name = '%s' "%(table)
+				query += "where t.table_name = '%s' "%(table)
+			query += "order by t.table_name, c.column_id "
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = self.removeNewLine(row[0])
+					line_dict["TABLE_NAME"] = self.removeNewLine(row[1])
+
+				if row[2] == "" or row[2] == None:
+					line_dict["TABLE_COMMENT"] = None
+				else:
+					line_dict["TABLE_COMMENT"] = self.removeNewLine(row[2]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+
+				line_dict["SOURCE_COLUMN_NAME"] = self.removeNewLine(row[3])
+
+#				if row[4] == "decimal":
+#					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s,%s)"%(self.removeNewLine(row[4]), row[8], row[9])
+#				elif row[5] == None:
+#					line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
+#				else:
+#					line_dict["SOURCE_COLUMN_TYPE"] = "%s(%s)"%(self.removeNewLine(row[4]), row[5])
+				line_dict["SOURCE_COLUMN_TYPE"] = self.removeNewLine(row[4])
+
+				line_dict["SOURCE_COLUMN_LENGTH"] = None
+
+				if row[5] == None or row[5] == "":
+					line_dict["SOURCE_COLUMN_COMMENT"] = None
+				else:
+					line_dict["SOURCE_COLUMN_COMMENT"] = self.removeNewLine(row[5]).encode('ascii', 'ignore').decode('unicode_escape', 'ignore')
+
+				line_dict["IS_NULLABLE"] = row[6]
+
+				line_dict["TABLE_TYPE"] = row[9]
+
+#				try:
+#					line_dict["TABLE_CREATE_TIME"] = datetime.strptime(row[11], '%Y-%m-%d %H:%M:%S')
+#				except:
+				line_dict["TABLE_CREATE_TIME"] = None
+				line_dict["DEFAULT_VALUE"] = None
+
+				rows_list.append(line_dict)
+			result_df = pd.DataFrame(rows_list)
 		logging.debug(result_df)
 		logging.debug("Executing schemaReader.readTable() - Finished")
 		return result_df
@@ -1434,6 +1515,120 @@ class source(object):
 
 			result_df = pd.DataFrame(rows_list)
 
+		if serverType == constant.SQLANYWHERE:
+#			query  = "SELECT "
+#			query += "	distinct kcu.constraint_schema AS SCHEMA_NAME, " 
+#			query += "	kcu.table_name AS TABLE_NAME, " 
+#			query += "	c.conname AS CONSTRAINT_NAME, " 
+#			query += "	'%s' AS CONSTRAINT_TYPE, "%(constant.PRIMARY_KEY)
+#			query += "	CASE WHEN pg_get_constraintdef(c.oid) LIKE 'PRIMARY KEY %' "
+#			query += "		THEN substring(pg_get_constraintdef(c.oid), 14, position(')' in pg_get_constraintdef(c.oid))-14) "
+#			query += "	END AS COL_NAME, " 
+#			query += "	'' AS REFERENCE_SCHEMA_NAME, " 
+#			query += "	'' AS REFERENCE_TABLE_NAME, " 
+#			query += "	'' AS REFERENCE_COL_NAME " 
+#			query += "FROM pg_catalog.pg_constraint c "
+#			query += "LEFT JOIN information_schema.key_column_usage kcu "
+#			query += "	ON c.conname = kcu.constraint_name "
+#			query += "LEFT JOIN information_schema.tables ist " 
+#			query += "	ON ist.table_schema = kcu.constraint_schema "
+#			query += "	AND ist.table_name = kcu.table_name "
+#			query += "WHERE "
+#			query += "	c.contype = 'p' "
+#			query += "	AND pg_get_constraintdef(c.oid) LIKE 'PRIMARY KEY %' "
+#			query += "	AND ist.table_catalog = '%s' "%(database)
+#			query += "	AND kcu.constraint_schema ='%s' "%(schema)
+#			if table != None:
+#				query += "	AND kcu.table_name = '%s' "%(table)
+
+			query =  "select "
+			# query += "   db.dbspace_name as schema_name, "
+			query += "   u.user_name as schema_name, "
+			query += "   t.table_name, "
+			query += "   i.index_name as constraint_name, "
+			query += "	'%s' as constraint_type, "%(constant.PRIMARY_KEY)
+			query += "   tc.column_name, " 
+			query += "	'' AS REFERENCE_SCHEMA_NAME, " 
+			query += "	'' AS REFERENCE_TABLE_NAME, " 
+			query += "	'' AS REFERENCE_COL_NAME, " 
+			query += "	ic.sequence as COL_KEY_POSITION " 
+			query += "from sys.systab t "
+			query += "left join sys.sysuser u " 
+			query += "   on t.creator = u.user_id "
+			# query += "left join sys.sysdbspace db " 
+			# query += "   on t.dbspace_id = db.dbspace_id "
+			query += "left join sys.sysidx i " 
+			query += "   on t.table_id = i.table_id "
+			query += "left join sys.sysidxcol ic " 
+			query += "   on  t.table_id = ic.table_id "
+			query += "   and i.index_id = ic.index_id "
+			query += "left join sys.systabcol tc " 
+			query += "   on  t.table_id = tc.table_id "
+			query += "   and ic.column_id = tc.column_id "
+			query += "where i.index_category = 1 "
+
+			if table != None:
+				query += "and u.user_name = '%s' "%(schema)
+				query += "and t.table_name = '%s' "%(table)
+			query += "order by i.index_name, ic.sequence asc "
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			rows_list = []
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				line_dict = {}
+				if table == None:
+					line_dict["SCHEMA_NAME"] = row[0]
+					line_dict["TABLE_NAME"] = row[1]
+				line_dict["CONSTRAINT_NAME"] = row[2]
+				line_dict["CONSTRAINT_TYPE"] = row[3]
+				line_dict["COL_NAME"] = row[4]
+				line_dict["REFERENCE_SCHEMA_NAME"] = row[5]
+				line_dict["REFERENCE_TABLE_NAME"] = row[6]
+				line_dict["REFERENCE_COL_NAME"] = row[7]
+				line_dict["COL_KEY_POSITION"] = int(row[8])
+				rows_list.append(line_dict)
+
+
+			query = "select foreign_creator, foreign_tname, primary_creator, primary_tname, role as index_name, columns from sys.SYSFOREIGNKEYS "
+			query += "where foreign_creator = '%s' "%(schema)
+			query += "and foreign_tname = '%s' "%(table)
+
+			logging.debug("SQL Statement executed: %s" % (query) )
+			try:
+				JDBCCursor.execute(query)
+			except jaydebeapi.DatabaseError as errMsg:
+				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
+				return result_df
+
+			for row in JDBCCursor.fetchall():
+				logging.debug(row)
+				columnCounter = 0
+				for columnKey in row[5].split(","):
+					line_dict = {}
+					if table == None:
+						line_dict["SCHEMA_NAME"] = row[0]
+						line_dict["TABLE_NAME"] = row[1]
+					line_dict["CONSTRAINT_NAME"] = row[4]
+					line_dict["CONSTRAINT_TYPE"] = constant.FOREIGN_KEY
+					line_dict["COL_NAME"] = columnKey.split(" IS ")[0]
+					line_dict["REFERENCE_SCHEMA_NAME"] = row[2]
+					line_dict["REFERENCE_TABLE_NAME"] = row[3]
+					line_dict["REFERENCE_COL_NAME"] = columnKey.split(" IS ")[1]
+					line_dict["COL_KEY_POSITION"] = columnCounter
+					columnCounter += 1
+					rows_list.append(line_dict)
+
+			result_df = pd.DataFrame(rows_list)
+
+
+
 		# In some cases, we get duplicate Foreign Keys. This removes all duplicate entries
 		result_df.drop_duplicates(keep="first", inplace=True)
 
@@ -1819,6 +2014,20 @@ class source(object):
 					query += "where tabname like '%s' "%(tableFilter)
 			query += "order by owner, tabname"
 
+		if serverType == constant.SQLANYWHERE:
+			query = "select u.user_name, t.table_name from sys.systab t "
+			query += "left join sys.sysdbspace db " 
+			query += "   on t.dbspace_id = db.dbspace_id "
+			query += "left join sys.sysuser u " 
+			query += "   on t.creator = u.user_id "
+			query += "where db.dbspace_name != 'temporary' "
+			if schemaFilter != None:
+				query += "   and u.user_name like '%s' "%(schemaFilter)
+			if tableFilter != None:
+				query += "   and t.table_name like '%s' "%(tableFilter)
+			query += "order by t.table_name"
+
+
 		logging.debug("SQL Statement executed: %s" % (query) )
 		JDBCCursor.execute(query)
 
@@ -1827,7 +2036,6 @@ class source(object):
 			result_df.columns = ['schema', 'table']
 		else:
 			result_df = pd.DataFrame(columns=['schema', 'table'])
-		print(result_df)
 
 		logging.debug("Executing schemaReader.getJDBCtablesAndViews() - Finished")
 		return result_df
@@ -1898,6 +2106,16 @@ class source(object):
 			elif tableTypeFromSource == "Q":	tableType = "sequence"
 			elif tableTypeFromSource == "P":	tableType = "private synonym"
 			elif tableTypeFromSource == "S":	tableType = "public synonym"
+
+		elif serverType == constant.SQLANYWHERE:
+			# https://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.help.sqlanywhere.12.0.1/dbreference/systabcol-system-view.html
+			if   tableTypeFromSource == "1":	tableType = "table"
+			elif tableTypeFromSource == "2":	tableType = "Materialized view"
+			elif tableTypeFromSource == "3":	tableType = "Global temporary table"
+			elif tableTypeFromSource == "4":	tableType = "Local temporary table"
+			elif tableTypeFromSource == "5":	tableType = "Text index base table"
+			elif tableTypeFromSource == "6":	tableType = "Text index global temporary table"
+			elif tableTypeFromSource == "21":	tableType = "view"
 
 		logging.debug("Executing schemaReader.getJdbcTableType() - Finished")
 		return tableType

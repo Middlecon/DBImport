@@ -33,11 +33,10 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy_utils import create_view
-# from setupOperation.schema import *
-#from setupOperation import schema
 from DBImportConfig import configSchema
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text
+from sqlalchemy.orm import aliased, sessionmaker, Query
 from alembic.config import Config
 from alembic import command as alembicCommand
 
@@ -286,455 +285,535 @@ class initialize(object):
 
 
 	def updateConfigurationValues(self):
-		
-		query = sa.select([configSchema.jdbcConnectionsDrivers.database_type])
-		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
+		session = self.configDBSession()
 
-		if result_df.empty or (result_df[0] == 'DB2 AS400').any() == False:
+		# Create a list of all available JDBC drivers
+		result_df = (session.query(
+				configSchema.jdbcConnectionsDrivers.database_type
+			)
+			.select_from(configSchema.jdbcConnectionsDrivers)
+			.all()
+			)
+
+		listOfDBtypes = []
+		for i in result_df:
+			listOfDBtypes.append(i[0])
+
+
+		# Create a list of all available configuration keys
+		result_df = (session.query(
+				configSchema.configuration.configKey
+			)
+			.select_from(configSchema.configuration)
+			.all()
+			)
+
+		listOfConfKeys = []
+		for i in result_df:
+			listOfConfKeys.append(i[0])
+
+
+		# JDBC Connection Drivers table
+		if 'DB2 AS400' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='DB2 AS400', 
 				version='default', 
 				driver='com.ibm.as400.access.AS400JDBCDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'DB2 UDB').any() == False:
+		if 'DB2 UDB' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='DB2 UDB', 
 				version='default', 
 				driver='com.ibm.db2.jcc.DB2Driver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'MySQL').any() == False:
+		if 'MySQL' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='MySQL', 
 				version='default', 
 				driver='com.mysql.jdbc.Driver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'Oracle').any() == False:
+		if 'Oracle' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Oracle', 
 				version='default', 
 				driver='oracle.jdbc.driver.OracleDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'PostgreSQL').any() == False:
+		if 'PostgreSQL' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='PostgreSQL', 
 				version='default', 
 				driver='org.postgresql.Driver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'Progress DB').any() == False:
+		if 'Progress DB' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Progress DB', 
 				version='default', 
 				driver='com.ddtek.jdbc.openedge.OpenEdgeDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'SQL Server').any() == False:
+		if 'SQL Server' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='SQL Server', 
 				version='default', 
 				driver='com.microsoft.sqlserver.jdbc.SQLServerDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='SQL Server', 
 				version='jTDS', 
 				driver='net.sourceforge.jtds.jdbc.Driver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'CacheDB').any() == False:
+		if 'CacheDB' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='CacheDB', 
 				version='default', 
 				driver='com.intersys.jdbc.CacheDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'Snowflake').any() == False:
+		if 'Snowflake' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Snowflake', 
 				version='default', 
 				driver='net.snowflake.client.jdbc.SnowflakeDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'Informix').any() == False:
+		if 'Informix' not in listOfDBtypes:
 			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
 				database_type='Informix', 
 				version='default', 
 				driver='com.informix.jdbc.IfxDriver', 
 				classpath='add path to JAR file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
+
+		if 'SQL Anywhere' not in listOfDBtypes:
+			query = sa.insert(configSchema.jdbcConnectionsDrivers).values(
+				database_type='SQL Anywhere', 
+				version='default', 
+				driver='com.sybase.jdbc4.jdbc.SybDriver',
+				classpath='add path to JAR file')
+			session.execute(query)
+			session.commit()
 
 
-		query = sa.select([configSchema.configuration.configKey])
-		result_df = pd.DataFrame(self.configDB.execute(query).fetchall())
+		# Configuration table
 
-		if result_df.empty or (result_df[0] == 'airflow_disable').any() == False:
+
+		if 'airflow_disable' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_disable', 
 				valueInt='0', 
 				description='Disable All executions from Airflow. This is what the \"start\" Task is looking at')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'export_stage_disable').any() == False:
+		if 'export_stage_disable' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='export_stage_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Export tasks from starting and running tasks will stop after the current stage is completed.')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'export_staging_database').any() == False:
+		if 'export_staging_database' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='export_staging_database', 
 				valueStr='etl_export_staging', 
 				description='Name of staging database to use during Exports')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'export_start_disable').any() == False:
+		if 'export_start_disable' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='export_start_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Export tasks from starting. Running tasks will be completed')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'import_stage_disable').any() == False:
+		if 'import_stage_disable' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_stage_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new tasks from starting and running Import tasks will stop after the current stage is completed.')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'import_staging_database').any() == False:
+		if 'import_staging_database' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_staging_database', 
 				valueStr='etl_import_staging', 
 				description='Name of staging database to use during Imports')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'import_start_disable').any() == False:
+		if 'import_start_disable' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_start_disable', 
 				valueInt='0', 
 				description='With 1, you prevent new Import tasks from starting. Running tasks will be completed')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 			
-		if result_df.empty or (result_df[0] == 'hive_remove_locks_by_force').any() == False:
+		if 'hive_remove_locks_by_force' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_remove_locks_by_force', 
 				valueInt='0', 
 				description='With 1, DBImport will remove Hive locks before import by force')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_major_compact_after_merge').any() == False:
+		if 'hive_major_compact_after_merge' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_major_compact_after_merge', 
 				valueInt='0', 
 				description='With 1, DBImport will run a major compaction after the merge operations is completed')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_validate_before_execution').any() == False:
+		if 'hive_validate_before_execution' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_validate_before_execution', 
 				valueInt='1', 
 				description='With 1, DBImport will run a group by query agains the validate table and verify the result against reference values hardcoded in DBImport')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_validate_table').any() == False:
+		if 'hive_validate_table' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_validate_table', 
 				valueStr='dbimport.validate_table', 
 				description='The table to run the validate query against')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_print_messages').any() == False:
+		if 'hive_print_messages' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_print_messages', 
 				valueInt='0', 
 				description='With 1, Hive will print additional messages during SQL operations')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dbimport_commandpath').any() == False:
+		if 'airflow_dbimport_commandpath' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dbimport_commandpath', 
 				valueStr='sudo -iu ${SUDO_USER} /usr/local/dbimport/', 
 				description='This is the path to DBImport. If sudo is required, this can be added here aswell. Use the variable ${SUDO_USER} instead of hardcoding the sudo username. Must end with a /')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_sudo_user').any() == False:
+		if 'airflow_sudo_user' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_sudo_user', 
 				valueStr='dbimport', 
 				description='What user will Airflow sudo to for executing DBImport. This value will replace the ${SUDO_USER} variable in airflow_dbimport_commandpath setting')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_major_version').any() == False:
+		if 'airflow_major_version' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_major_version', 
 				valueInt='2', 
 				description='What is the major version of Airflow? 1 or 2 is valid options. Controls how the DAG files are generated')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dag_directory').any() == False:
+		if 'airflow_dag_directory' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_directory', 
 				valueStr='/usr/local/airflow/dags', 
 				description='Airflow path to DAG directory')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dag_staging_directory').any() == False:
+		if 'airflow_dag_staging_directory' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_staging_directory', 
 				valueStr='/usr/local/airflow/dags_generated_from_dbimport', 
 				description='Airflow path to staging DAG directory')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dummy_task_queue').any() == False:
+		if 'airflow_dummy_task_queue' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dummy_task_queue', 
 				valueStr='default', 
 				description='Queue to use for dummy tasks (stop, stage_one_complete and more)')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dag_file_permission').any() == False:
+		if 'airflow_dag_file_permission' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_file_permission', 
 				valueStr='660', 
 				description='File permission of created DAG file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'airflow_dag_file_group').any() == False:
+		if 'airflow_dag_file_group' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_file_group', 
 				valueStr='airflow', 
 				description='Group owner of created DAG file')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'timezone').any() == False:
+		if 'timezone' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='timezone', 
 				valueStr='UTC', 
 				description='The timezone that the configured times are meant for (example is Europe/Stockholm) ')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'cluster_name').any() == False:
+		if 'cluster_name' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='cluster_name', 
 				valueStr='hadoopcluster', 
 				description='Name of Hadoop cluster')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hdfs_address').any() == False:
+		if 'hdfs_address' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hdfs_address', 
 				valueStr='hdfs://hadoopcluster:8020', 
 				description='Address to HDFS')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hdfs_blocksize').any() == False:
+		if 'hdfs_blocksize' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hdfs_blocksize', 
 				valueStr='134217728', 
 				description='The HDFS blocksize in bytes. Can usually be found in /etc/hadoop/conf/hdfs-site.xml (search for dfs.blocksize)')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hdfs_basedir').any() == False:
+		if 'hdfs_basedir' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hdfs_basedir', 
 				valueStr='/apps/dbimport', 
 				description='The base dir to write data to. Example /apps/dbimport')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'sqoop_import_default_mappers').any() == False:
+		if 'export_default_sessions' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='sqoop_import_default_mappers', 
-				valueInt='12', 
-				description='How many mappers should be used for tables who have never been imported before')
-			self.configDB.execute(query)
+				configKey='export_default_sessions', 
+				valueInt='4', 
+				description='How many SQL sessions should be used for tables that have never been exported before')
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'sqoop_import_max_mappers').any() == False:
+		if 'export_max_sessions' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='sqoop_import_max_mappers', 
+				configKey='export_max_sessions', 
 				valueInt='32', 
-				description='The maximum number of mappers to use during imports')
-			self.configDB.execute(query)
+				description='The maximum number of SQL sessions to use during export')
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'sqoop_export_default_mappers').any() == False:
+		if 'import_default_sessions' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='sqoop_export_default_mappers', 
-				valueInt='2', 
-				description='How many mappers should be used for tables who have never been exported before')
-			self.configDB.execute(query)
+				configKey='import_default_sessions', 
+				valueInt='4', 
+				description='How many SQL sessions should be used for tables that have never been imported before')
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'sqoop_export_max_mappers').any() == False:
+		if 'import_max_sessions' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='sqoop_export_max_mappers', 
+				configKey='import_max_sessions', 
 				valueInt='32', 
-				description='The maximum number of mappers to use during exports')
-			self.configDB.execute(query)
+				description='The maximum number of SQL sessions to use during imports')
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'spark_import_default_executors').any() == False:
+		if 'spark_max_executors' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
-				configKey='spark_import_default_executors', 
-				valueInt='12', 
-				description='How many executors should be used for tables who have never been imported before')
-			self.configDB.execute(query)
+				configKey='spark_max_executors', 
+				valueInt='128', 
+				description='The default value for maximum number of spark executors')
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'spark_import_max_executors').any() == False:
-			query = sa.insert(configSchema.configuration).values(
-				configKey='spark_import_max_executors', 
-				valueInt='32', 
-				description='The maximum number of executors to use during imports')
-			self.configDB.execute(query)
-
-		if result_df.empty or (result_df[0] == 'spark_export_default_executors').any() == False:
-			query = sa.insert(configSchema.configuration).values(
-				configKey='spark_export_default_executors', 
-				valueInt='2', 
-				description='How many executors should be used for tables who have never been exported before')
-			self.configDB.execute(query)
-
-		if result_df.empty or (result_df[0] == 'spark_export_max_executors').any() == False:
-			query = sa.insert(configSchema.configuration).values(
-				configKey='spark_export_max_executors', 
-				valueInt='32', 
-				description='The maximum number of executors to use during exports')
-			self.configDB.execute(query)
-
-		if result_df.empty or (result_df[0] == 'atlas_discovery_interval').any() == False:
+		if 'atlas_discovery_interval' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='atlas_discovery_interval', 
 				valueInt='24', 
 				description='How many hours there should pass between each Atlas discovery of a jdbc connection')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'import_process_empty').any() == False:
+		if 'import_process_empty' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_process_empty', 
 				valueInt='0', 
 				description='If 1, then the import will do a full processing of import even if they contain no data.')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_insert_only_tables').any() == False:
+		if 'hive_insert_only_tables' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_insert_only_tables', 
 				valueInt='1', 
 				description='If 1, then the non-merge tables in Hive will be ACID insert-only')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'hive_acid_with_clusteredby').any() == False:
+		if 'hive_acid_with_clusteredby' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='hive_acid_with_clusteredby', 
 				valueInt='0', 
 				description='If 1, then ACID tables will be created with a clustered by option based on the PK. Not required with Hive3 and later')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'post_airflow_dag_operations').any() == False:
+		if 'post_airflow_dag_operations' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_airflow_dag_operations', 
 				valueInt='0', 
 				description='Post start and stop activities for Airflow DAGs to Kafka and/or Rest, depending on what is enabled')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'post_data_to_rest').any() == False:
+		if 'post_data_to_rest' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_data_to_rest', 
 				valueInt='0', 
 				description='Enable the REST endpoint to be able to receive information regarding completed imports and exports')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'post_data_to_rest_extended').any() == False:
+		if 'post_data_to_rest_extended' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_data_to_rest_extended', 
 				valueInt='0', 
 				description='Enable extended statistics in the REST data')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'post_data_to_kafka').any() == False:
+		if 'post_data_to_kafka' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_data_to_kafka', 
 				valueInt='0', 
 				description='Enable the Kafka endpoint to be able to receive information regarding completed imports and exports')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'post_data_to_kafka_extended').any() == False:
+		if 'post_data_to_kafka_extended' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_data_to_kafka_extended', 
 				valueInt='0', 
 				description='Enable extended statistics in Kafka data')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'kafka_brokers').any() == False:
+		if 'kafka_brokers' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='kafka_brokers', 
 				valueStr='localhost:9092', 
 				description='Comma separeted list of Kafka brokers')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'kafka_trustcafile').any() == False:
+		if 'kafka_trustcafile' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='kafka_trustcafile', 
 				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
 				description='Kafka CA Trust file for SSL')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'kafka_securityprotocol').any() == False:
+		if 'kafka_securityprotocol' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='kafka_securityprotocol', 
 				valueStr='SASL_SSL', 
 				description='Kafka Security Protocol')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'kafka_saslmechanism').any() == False:
+		if 'kafka_saslmechanism' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='kafka_saslmechanism', 
 				valueStr='GSSAPI', 
 				description='Kafka SASL mechanism')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'kafka_topic').any() == False:
+		if 'kafka_topic' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='kafka_topic', 
 				valueStr='dbimport_topic', 
 				description='Kafka topic to send the data to')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'rest_url').any() == False:
+		if 'rest_url' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='rest_url', 
 				valueStr='https://localhost:8443/dbimport', 
 				description='Rest server URL')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'rest_timeout').any() == False:
+		if 'rest_timeout' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='rest_timeout', 
 				valueInt='5', 
 				description='Timeout for the REST call')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'rest_verifyssl').any() == False:
+		if 'rest_verifyssl' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='rest_verifyssl', 
 				valueInt='1', 
 				description='Verify SSL certificate during REST call')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
 
-		if result_df.empty or (result_df[0] == 'rest_trustcafile').any() == False:
+		if 'rest_trustcafile' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='rest_trustcafile', 
 				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
 				description='REST CA Trust file for SSL')
-			self.configDB.execute(query)
+			session.execute(query)
+			session.commit()
+
+		if 'impala_invalidate_metadata' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='impala_invalidate_metadata', 
+				valueInt='0', 
+				description='If 1, then DBImport will connect to Impala and invalidate or refresh the metadata after import is completed')
+			session.execute(query)
+			session.commit()
 

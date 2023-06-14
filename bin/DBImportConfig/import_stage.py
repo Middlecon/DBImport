@@ -82,7 +82,11 @@ class stage(object):
 		elif stage == 1012: stageDescription = "Get source table rowcount"
 		elif stage == 1013: stageDescription = "Sqoop import"
 		elif stage == 1014: stageDescription = "Spark import"
-		elif stage == 1020: stageDescription = "Validate sqoop import"
+		elif stage == 1015: stageDescription = "Validate spark import table"
+		elif stage == 1016: stageDescription = "Spark ETL"
+		elif stage == 1017: stageDescription = "Validate spark target table"
+		elif stage == 1018: stageDescription = "Spark ETL finished"
+		elif stage == 1020: stageDescription = "Validate import"
 		elif stage == 1045: stageDescription = "Update Atlas"
 		elif stage == 1049: stageDescription = "Import Phase Completed"
 
@@ -92,7 +96,7 @@ class stage(object):
 		elif stage == 1112: stageDescription = "Sqoop import"
 		elif stage == 1113: stageDescription = "Spark import"
 		elif stage == 1120: stageDescription = "Get source table rowcount"
-		elif stage == 1121: stageDescription = "Validate sqoop import"
+		elif stage == 1121: stageDescription = "Validate import"
 		elif stage == 1145: stageDescription = "Update Atlas"
 		elif stage == 1149: stageDescription = "Import Phase Completed"
 
@@ -143,6 +147,7 @@ class stage(object):
 		elif stage == 3058: stageDescription = "Update Hive statistics on target table"
 		elif stage == 3059: stageDescription = "Get Target table rowcount"
 		elif stage == 3060: stageDescription = "Validate target table"
+		elif stage == 3095: stageDescription = "Invalidate Impala metadata"
 
 		# Import_Phase_FULL & ETL_Phase_INSERT
 		elif stage == 3100: stageDescription = "Connecting to Hive"
@@ -298,12 +303,13 @@ class stage(object):
 		elif stage == 3654: stageDescription = "Removing Hive locks by force"
 		elif stage == 3655: stageDescription = "Creating the target table"
 		elif stage == 3656: stageDescription = "Creating the history table"
-		elif stage == 3657: stageDescription = "Merge Import table with Target table"
-		elif stage == 3658: stageDescription = "Update Hive statistics on target table"
-		elif stage == 3659: stageDescription = "Get Target table rowcount"
-		elif stage == 3660: stageDescription = "Validate target table"
-		elif stage == 3661: stageDescription = "Saving pending incremental values"
-		elif stage == 3662: stageDescription = "Running major compaction on Target table"
+		elif stage == 3657: stageDescription = "Creating the delete table"
+		elif stage == 3658: stageDescription = "Merge Import table with Target table"
+		elif stage == 3659: stageDescription = "Update Hive statistics on target table"
+		elif stage == 3660: stageDescription = "Get Target table rowcount"
+		elif stage == 3661: stageDescription = "Validate target table"
+		elif stage == 3662: stageDescription = "Saving pending incremental values"
+		elif stage == 3663: stageDescription = "Running major compaction on Target table"
 
 		return stageDescription
 
@@ -327,6 +333,10 @@ class stage(object):
 		elif stage == 1012: stageShortName = "get_source_rowcount"
 		elif stage == 1013: stageShortName = "sqoop"
 		elif stage == 1014: stageShortName = "spark"
+		elif stage == 1015: stageShortName = "validate_import_table"
+		elif stage == 1016: stageShortName = "spark_etl"
+		elif stage == 1017: stageShortName = "validate_target_table"
+		elif stage == 1018: stageShortName = "skip"
 		elif stage == 1020: stageShortName = "validate_sqoop_import"
 		elif stage == 1045: stageShortName = "atlas_schema"
 		elif stage == 1049: stageShortName = "skip"
@@ -388,6 +398,7 @@ class stage(object):
 		elif stage == 3058: stageShortName = "update_statistics"
 		elif stage == 3059: stageShortName = "get_target_rowcount"
 		elif stage == 3060: stageShortName = "validate_target_table"
+		elif stage == 3095: stageShortName = "skip"
 
 		# Import_Phase_FULL & ETL_Phase_INSERT
 		elif stage == 3100: stageShortName = "connect_to_hive"
@@ -542,12 +553,13 @@ class stage(object):
 		elif stage == 3654: stageShortName = "clear_hive_locks"
 		elif stage == 3655: stageShortName = "create_target_table"
 		elif stage == 3656: stageShortName = "create_history_table"
-		elif stage == 3657: stageShortName = "merge_table"
-		elif stage == 3658: stageShortName = "update_statistics"
-		elif stage == 3659: stageShortName = "get_target_rowcount"
-		elif stage == 3660: stageShortName = "validate_target_table"
-		elif stage == 3661: stageShortName = "skip"
+		elif stage == 3657: stageShortName = "create_delete_table"
+		elif stage == 3658: stageShortName = "merge_table"
+		elif stage == 3659: stageShortName = "update_statistics"
+		elif stage == 3660: stageShortName = "get_target_rowcount"
+		elif stage == 3661: stageShortName = "validate_target_table"
 		elif stage == 3662: stageShortName = "skip"
+		elif stage == 3663: stageShortName = "skip"
 
 		elif stage == 9999: stageShortName = "skip"
 
@@ -856,6 +868,7 @@ class stage(object):
 		self.stageDurationStop = time.monotonic()
 		self.stageDurationTime = self.stageDurationStop - self.stageDurationStart
 
+		logging.debug("Setting stage to %s"%(newStage))
 		logging.debug("stageTimeStart: %s"%(self.stageTimeStart))
 		logging.debug("stageTimeStop:  %s"%(self.stageTimeStop))
 		logging.debug("stageDurationStart: %s"%(self.stageDurationStart))

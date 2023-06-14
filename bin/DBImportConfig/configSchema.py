@@ -72,6 +72,7 @@ class airflowCustomDags(Base):
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
+    retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
 
 
 class airflowDagSensors(Base):
@@ -109,15 +110,7 @@ class airflowEtlDags(Base):
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
-
-
-
-#class airflowExecutionType(Base):
-#    __tablename__ = 'airflow_execution_type'
-#    __table_args__ = {'comment': 'This table is used only in Legacy DBImport'}
-#
-#    executionid = Column(Integer, primary_key=True, autoincrement=True)
-#    execution_type = Column(Text, nullable=False)
+    retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
 
 
 class airflowExportDags(Base):
@@ -143,6 +136,7 @@ class airflowExportDags(Base):
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
+    retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
 
 
 
@@ -174,6 +168,7 @@ class airflowImportDags(Base):
     email_on_retries = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='Send email on retries')
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
+    retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
 
 
 class autoDiscoveredTable(Base):
@@ -518,6 +513,9 @@ class importStatistic(Base):
     spark_duration = Column(Integer)
     spark_start = Column(DateTime)
     spark_stop = Column(DateTime)
+    spark_etl_duration = Column(Integer)
+    spark_etl_start = Column(DateTime)
+    spark_etl_stop = Column(DateTime)
     clear_hive_locks_duration = Column(Integer)
     clear_hive_locks_start = Column(DateTime)
     clear_hive_locks_stop = Column(DateTime)
@@ -612,6 +610,9 @@ class importStatisticsLast(Base):
     spark_duration = Column(Integer)
     spark_start = Column(DateTime)
     spark_stop = Column(DateTime)
+    spark_etl_duration = Column(Integer)
+    spark_etl_start = Column(DateTime)
+    spark_etl_stop = Column(DateTime)
     clear_hive_locks_duration = Column( Integer)
     clear_hive_locks_start = Column( DateTime)
     clear_hive_locks_stop = Column( DateTime)
@@ -695,6 +696,7 @@ class importTables(Base):
     import_phase_type = Column(Enum('full', 'incr', 'oracle_flashback', 'mssql_change_tracking'), nullable=True, comment="What method to use for Import phase", server_default=text("'full'"))
     etl_phase_type = Column(Enum('truncate_insert', 'insert', 'merge', 'merge_history_audit', 'none', 'external'), nullable=True, comment="What method to use for ETL phase", server_default=text("'truncate_insert'"))
     import_tool = Column(Enum('spark', 'sqoop'), server_default=text("'sqoop'"), nullable=False, comment='What tool should be used for importing data')
+    etl_engine = Column(Enum('hive', 'spark'), server_default=text("'hive'"), nullable=False, comment='What engine will be used to process etl stage')
     last_update_from_source = Column(DateTime, comment='Timestamp of last schema update from source')
     sqoop_sql_where_addition = Column(String(1024), comment='Will be added AFTER the SQL WHERE. If it\'s an incr import, this will be after the incr limit statements. Example "orderId > 1000"')
     nomerge_ingestion_sql_addition = Column(String(2048), comment='This will be added to the data ingestion of None-Merge imports (full, full_direct and incr). Usefull to filter out data from import tables to target tables')
@@ -727,6 +729,7 @@ class importTables(Base):
     hive_merge_heap = Column(Integer, comment='Should be a multiple of Yarn container size. If NULL then it will use the default specified in Yarn and TEZ')
     hive_split_count = Column(Integer, comment='Sets tez.grouping.split-count in the Hive session')
     spark_executor_memory = Column(String(8), comment='Memory used by spark when importing data. Overrides default value in global configuration')
+    spark_executors = Column(Integer, comment='Number of Spark executors to use. Overrides default value in global configuration')
     concatenate_hive_table = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'-1'"))
     split_by_column = Column(String(64), comment='Column to split by when doing import with multiple sessions')
     sqoop_query = Column(Text, comment='Use a custom query in sqoop to read data from source table')
@@ -794,7 +797,7 @@ class jdbcConnections(Base):
 class jdbcConnectionsDrivers(Base):
     __tablename__ = 'jdbc_connections_drivers'
 
-    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB', 'CacheDB', 'Snowflake', 'Informix'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
+    database_type = Column(Enum('DB2 AS400', 'DB2 UDB', 'MySQL', 'Oracle', 'PostgreSQL', 'Progress DB', 'SQL Server', 'MongoDB', 'CacheDB', 'Snowflake', 'Informix', 'SQL Anywhere'), primary_key=True, nullable=False, comment='Name of database type.  Name is hardcoded into Python scripts, so use only defined values')
     version = Column(String(16), primary_key=True, nullable=False, comment='Free-text field with version. Has nothing to do with version of driver itself.')
     driver = Column(String(128), nullable=False, comment='Java class for JDBC driver')
     classpath = Column(String(255), nullable=False, comment='Full path to JDBC driver/jar file. If more than one file is required, separate them with : and no spaces')
@@ -863,7 +866,8 @@ class airflowTasks(Base):
     airflow_pool = Column(String(64), comment='Airflow Pool to use.')
     airflow_priority = Column(TINYINT(4), comment='Airflow Priority. Higher number, higher priority')
     include_in_airflow = Column(TINYINT(4), nullable=False, server_default=text("'1'"), comment='Enable or disable the Task in the DAG during creation of DAG file.')
-    task_dependency_in_main = Column(String(256), comment='If placement is In Main, this defines a dependency for the Task. Comma separated list')
+    task_dependency_downstream = Column(String(256), comment='Defines the downstream dependency for the Task. Comma separated list')
+    task_dependency_upstream = Column(String(256), comment='Defines the upstream dependency for the Task. Comma separated list')
     task_config = Column(String(512), comment='The configuration for the Task. Depends on what Task type it is.')
     sensor_poke_interval = Column(Integer, nullable=True, comment='Poke interval for sensors in seconds')
     sensor_timeout_minutes = Column(Integer, nullable=True, comment='Timeout for sensors in minutes')

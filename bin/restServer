@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+#!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import os
+import time
+import sys
+import getopt
+import logging
+import psutil
+import signal
+from datetime import date, datetime, time, timedelta
+from common import constants as constant
+from ConfigReader import configuration
+from Server import restServer
+import uvicorn
+from gunicorn.app.wsgiapp import WSGIApplication
+from gunicorn import glogging 
+
+class StandaloneApplication(WSGIApplication):
+	def __init__(self, app_uri, options=None):
+		self.options = options or {}
+		self.app_uri = app_uri
+		super().__init__()
+
+	def load_config(self):
+		config = {
+			key: value
+			for key, value in self.options.items()
+			if key in self.cfg.settings and value is not None
+		}
+		for key, value in config.items():
+			self.cfg.set(key.lower(), value)
+
+	def on_starting(server):
+		print("PREHOOK - Server has started")
+
+
+def printHelp():
+	print ("Usage: ./restServer [-d] <options>")
+	print ("  -d, --daemon       Start the restServer in daemon mode.")
+	print ("")
+	print ("Options:")
+	print ("  --help             Show this help message and exit")
+	print ("  -v, --debug        Turn on extensive debug output.")
+	print ("  -V, --version      Displays the version of DBImport")
+	sys.exit(1)
+
+def setupLogger(name, logfile, logFormat, loggingLevel, logPropagate=True):
+	newLogger = logging.getLogger(name)
+	newLogger.propagate = logPropagate
+	logHandler = logging.FileHandler(logfile)
+	logHandler.setFormatter(logging.Formatter(logFormat))
+	logHandler.setLevel(loggingLevel)
+	newLogger.addHandler(logHandler)
+
+def main(argv):
+
+	loggingLevel = logging.INFO
+	displayVersion = False
+	daemonMode = False
+
+	if argv != []:
+		try:
+			# action = sys.argv[1]
+			opts, args = getopt.getopt(argv, "dvVh", ["daemon", "version", "help", "debug"])
+		except getopt.GetoptError:
+			printHelp()
+	
+		for opt, arg in opts:
+			if opt in ("-d", "--daemon"):
+				daemonMode = True
+			elif opt in ("-h", "--help"):
+				printHelp()
+			elif opt in ("-V", "--version"):
+				displayVersion = True
+			elif opt in ("-v", "--debug"):
+				loggingLevel = logging.DEBUG
+
+	if displayVersion == True:
+		print("DBImport version: %s"%(constant.VERSION))
+		sys.exit(0)
+	
+	logdir = configuration.get("Server", "logdir")
+	pidfile = configuration.get("Server", "pidfile")
+	restServer_address = configuration.get("Server", "restServer_address")
+	restServer_port = configuration.get("Server", "restServer_port")
+	restServer_workers = configuration.get("Server", "restServer_workers")
+	restServer_keyfile = configuration.get("Server", "restServer_keyfile")
+	restServer_certfile = configuration.get("Server", "restServer_certfile")
+
+	if loggingLevel == logging.DEBUG:
+		logFormat = '%(asctime)s %(levelname)s %(name)s %(funcName)s - %(message)s'
+	else:
+		logFormat = '%(asctime)s %(levelname)s - %(message)s'
+
+	logging.basicConfig(format=logFormat, level=loggingLevel)
+	logPropagate = True
+
+	logging.info("Starting restServer")
+	glogging.Logger.datefmt = ""
+	glogging.Logger.error_fmt = logFormat
+	glogging.Logger.access_fmt = logFormat
+	glogging.Logger.syslog_fmt = logFormat
+
+	if loggingLevel == logging.DEBUG:
+		gunicornDebugLevel = "debug"
+	else:
+		gunicornDebugLevel = "info"
+
+	if daemonMode == True:
+		gunicornAccessLog = "%s/restServer_access.log"%(logdir)
+		gunicornErrorLog = "%s/restServer.log"%(logdir)
+	else:
+		gunicornAccessLog = "-"
+		gunicornErrorLog = "-"
+
+#	restServerLog = logging.getLogger("restServerAccess")
+	options = {
+		"bind": "%s:%s"%(restServer_address, restServer_port),
+		"workers": int(restServer_workers),
+		"worker_class": "uvicorn.workers.UvicornWorker",
+		"loglevel": gunicornDebugLevel,
+		"accesslog": gunicornAccessLog,
+		"errorlog": gunicornErrorLog,
+		"daemon": "false",
+		"threaded": "True",
+		# "logger_class": logging.getLogger("restServerAccess"),
+		# "logger_class": "restServerAccess",
+		"keyfile": "/localhome/boszkk/l5891p.sss.se.scania.com.key",
+		"certfile": "/localhome/boszkk/l5891p.sss.se.scania.com.cert",
+	}
+	StandaloneApplication("Server.restServer:app", options).run()
+
+
+if __name__ == "__main__":
+	try:
+		main(sys.argv[1:])
+	except getopt.GetoptError:
+		printHelp()
+
+

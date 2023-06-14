@@ -48,7 +48,7 @@ from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func
 from sqlalchemy.orm import aliased, sessionmaker, Query
 from Server import atlasDiscovery
-from Server import restServer
+
 
 class distCP(threading.Thread):
 	def __init__(self, name, distCPreqQueue, distCPresQueue, threadStopEvent, loggerName):
@@ -150,6 +150,10 @@ class distCP(threading.Thread):
 
 class serverDaemon(run.RunDaemon):
 
+	def setConfig(self, action, logFormat):
+		self.action = action
+		self.logFormat = logFormat
+
 	def run(self):
 		# This is the main event loop where the 'real' daemonwork happens
 		log = logging.getLogger("server")
@@ -163,6 +167,8 @@ class serverDaemon(run.RunDaemon):
 			self.debugLogLevel = True
 
 		self.common_config = common_config.config()
+
+		self.logdir = configuration.get("Server", "logdir")
 
 		self.crypto = self.common_config.crypto
 		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
@@ -183,11 +189,6 @@ class serverDaemon(run.RunDaemon):
 		self.atlasDiscoveryThread = atlasDiscovery.atlasDiscovery(self.threadStopEvent)
 		self.atlasDiscoveryThread.daemon = True
 		self.atlasDiscoveryThread.start()
-
-		# Start the REST Server Thread
-		self.restServerThread = restServer.restServer(self.threadStopEvent)
-		self.restServerThread.daemon = True
-		self.restServerThread.start()
 
 		# Start the distCP threads
 		if configuration.get("Server", "distCP_separate_logs").lower() == "true":

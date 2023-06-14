@@ -43,9 +43,6 @@ from DBImportConfig import common_config
 
 import sqlalchemy as sa
 from DBImportOperation import hiveSchema
-#from sqlalchemy.orm import Session, sessionmaker
-#from sqlalchemy.ext.automap import automap_base
-# from setupOperation import schema
 from sqlalchemy.sql import alias, select
 from sqlalchemy.orm import aliased, sessionmaker 
 from sqlalchemy.pool import QueuePool
@@ -145,57 +142,6 @@ class operation(object, metaclass=Singleton):
 
 		logging.debug("Executing common_operations.checkHiveMetaStore() - Finished")
 
-#	def checkTimeWindow(self, connection_alias):
-#		logging.debug("Executing common_operations.checkTimeWindow()")
-#		logging.info("Checking if we are allowed to use this jdbc connection at this time")
-#
-#		query = "select timewindow_start, timewindow_stop from jdbc_connections where dbalias = %s"
-#		self.mysql_cursor.execute(query, (connection_alias, ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-#		currentTime = str(datetime.now().strftime('%H:%M:%S'))
-#		timeWindowStart = None
-#		timeWindowStop = None
-#
-#		if row[0] != None: timeWindowStart = str(row[0])
-#		if row[1] != None: timeWindowStop = str(row[1])
-#
-#		if timeWindowStart == None and timeWindowStop == None:
-#			logging.info("SUCCESSFUL: This JDBC connection is allowed to be accessed at any time during the day.")
-#			return
-#		elif timeWindowStart == None or timeWindowStop == None: 
-#			logging.error("Atleast one of the TimeWindow settings are NULL in the database. Only way to disable the Time Window")
-#			logging.error("function is to put NULL into both columns. Otherwise the configuration is marked as invalid and will exit")
-#			logging.error("as it's not running inside a correct Time Window.")
-#			logging.error("Invalid TimeWindow configuration")
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		elif timeWindowStart > timeWindowStop:
-#			logging.error("The value in timewindow_start column is larger than the value in timewindow_stop.")
-#			logging.error("Invalid TimeWindow configuration")
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		elif timeWindowStart == timeWindowStop:
-#			logging.error("The value in timewindow_start column is the same as the value in timewindow_stop.")
-#			logging.error("Invalid TimeWindow configuration")
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		elif currentTime < timeWindowStart or currentTime > timeWindowStop:
-#			logging.error("We are not allowed to access this JDBC Connection outside the configured Time Window")
-#			logging.info("    Current time:     %s"%(currentTime))
-#			logging.info("    TimeWindow Start: %s"%(timeWindowStart))
-#			logging.info("    TimeWindow Stop:  %s"%(timeWindowStop))
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		else:		
-#			logging.info("SUCCESSFUL: There is a configured Time Window for this operation, and we are running inside that window.")
-# 
-#		logging.debug("    currentTime = %s"%(currentTime))
-#		logging.debug("    timeWindowStart = %s"%(timeWindowStart))
-#		logging.debug("    timeWindowStop = %s"%(timeWindowStop))
-#		logging.debug("Executing common_operations.checkTimeWindow() - Finished")
-
 	def checkHiveDB(self, hiveDB):
 		logging.debug("Executing common_operations.checkHiveDB()")
 
@@ -224,35 +170,6 @@ class operation(object, metaclass=Singleton):
 
 		return result
 
-#		result_df = pd.DataFrame(self.hiveMetaSession.query(TBLS.TBL_NAME, TBLS.TBL_TYPE, DBS.NAME).select_from(TBLS).join(DBS, TBLS.DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).all())
-#		print(result_df)
-
-#	def isHiveColumnQuotationNeeded(self, hiveDB, hiveTable, column):
-#		""" Returns True or False if column quotation is needed for this column """
-#		logging.debug("Executing common_operations.isHiveColumnQuotationNeeded()")
-#		quotationNeeded = True
-#
-#		query  = "select c.TYPE_NAME "
-#		query += "from COLUMNS_V2 c "
-#		query += "   left join SDS s on c.CD_ID = s.CD_ID "
-#		query += "   left join TBLS t on s.SD_ID = t.SD_ID "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where "
-#		query += "   c.COLUMN_NAME = %s "
-#		query += "   and d.NAME = %s "
-#		query += "   and t.TBL_NAME = %s"
-#		self.mysql_cursor.execute(query, (column.lower(), hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-#		columnType = row[0]
-#
-#		if columnType in ("int", "integer", "bigint", "tinyint", "smallint", "decimal", "double", "float", "boolean"):
-#			quotationNeeded = False
-#
-#		logging.debug("Quotation needed: %s"%(quotationNeeded))
-#		logging.debug("Executing common_operations.isHiveColumnQuotationNeeded() - Finished")
-#		return quotationNeeded
 
 	def getTableLocation(self, hiveDB, hiveTable):
 		logging.debug("Executing common_operations.getExternalTableLocation()")
@@ -311,6 +228,34 @@ class operation(object, metaclass=Singleton):
 		else:
 			return False
 
+	def isHiveTableExternalIcebergFormat(self, hiveDB, hiveTable):
+		logging.debug("Executing common_operations.isExternalHiveTableIcebergFormat()")
+
+		if self.isHiveTableExternal(hiveDB, hiveTable) == False: return False
+
+		session = self.hiveMetaSession()
+		TBLS = aliased(hiveSchema.TBLS, name="T")
+		TABLE_PARAMS = aliased(hiveSchema.TABLE_PARAMS, name="TP")
+		DBS = aliased(hiveSchema.DBS, name="D")
+		SDS = aliased(hiveSchema.SDS, name="S")
+
+		try:
+			row = session.query(TABLE_PARAMS.PARAM_VALUE) \
+				.select_from(TBLS) \
+				.join(DBS) \
+				.join(TABLE_PARAMS) \
+				.filter(TBLS.TBL_NAME == hiveTable.lower()) \
+				.filter(DBS.NAME == hiveDB.lower()) \
+				.filter(TABLE_PARAMS.PARAM_KEY == "table_type") \
+				.one()
+		except sa.orm.exc.NoResultFound:
+			return False
+
+		if row[0] == "ICEBERG":
+			return True
+		else:
+			return False
+
 	def isHiveTableExternal(self, hiveDB, hiveTable):
 		logging.debug("Executing common_operations.isHiveTableExternal()")
 
@@ -322,16 +267,6 @@ class operation(object, metaclass=Singleton):
 			row = session.query(TBLS.TBL_TYPE).select_from(TBLS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
 		except sa.orm.exc.NoResultFound:
 			raise rowNotFound("Cant get TBLS.TBL_TYPE from Hive Meta Database")
-
-#		query = "select t.TBL_TYPE from TBLS t left join DBS d on t.DB_ID = d.DB_ID where d.NAME = %s and t.TBL_NAME = %s"
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-#		print(row)
-
-#		self.common_config.remove_temporary_files()
-#		sys.exit(1)
 
 		if row[0] == "EXTERNAL_TABLE":
 			return True
@@ -375,10 +310,7 @@ class operation(object, metaclass=Singleton):
 																	username='dummy', 
 																	password='dummy')
 
-#						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none', 'hive.merge.mapredfiles': 'true'})
 						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none'})
-#						self.hive_conn = hive.connect(thrift_transport=transport, configuration = {'hive.llap.execution.mode': 'none', 'hive.stats.autogather': 'false'})
-#						self.hive_conn = hive.connect(thrift_transport=transport)
 
 					else:
 						self.hive_conn = hive.connect(	host = hive_hostname, 
@@ -387,23 +319,11 @@ class operation(object, metaclass=Singleton):
 														auth = "KERBEROS", 
 														kerberos_service_name = self.hive_kerberos_service_name, 
 														configuration = {'hive.llap.execution.mode': 'none'} )
-#						self.hive_conn = hive.connect(	host = hive_hostname, 
-#														port = hive_port, 
-#														database = "default", 
-#														auth = "KERBEROS", 
-#														kerberos_service_name = self.hive_kerberos_service_name )
 
 					self.hive_cursor = self.hive_conn.cursor()
 					self.hive_hostname = hive_hostname
 					self.hive_port = hive_port
 					
-#					self.executeHiveQuery("set hive.optimize.reducededuplication.min.reducer=1")
-#					self.executeHiveQuery("set hive.auto.convert.join=false")
-#					self.executeHiveQuery("set hive.merge.mapredfiles=true")
-#					self.executeHiveQuery("set hive.merge.mapfiles=true")
-#					self.executeHiveQuery("set hive.optimize.bucketmapjoin.sortedmerge=true")
-#					self.executeHiveQuery("set hive.merge.smallfiles.avgsize=32000000")
-
 
 				except TypeError:
 					logging.warning("Could not connect to Hive at %s:%s. This might be because the address was not resolvable in the DNS"%(hive_hostname, hive_port))
@@ -457,11 +377,9 @@ class operation(object, metaclass=Singleton):
 				firstQuotePosition = SQLerrorMessage.find("\"")
 				secondQuotePosition = SQLerrorMessage[firstQuotePosition + 1:].find("\"")
 				SQLerrorMessage = SQLerrorMessage[firstQuotePosition + 1:firstQuotePosition + secondQuotePosition + 1 ]
-#				logging.error(SQLerrorMessage)
 				raise SQLerror(SQLerrorMessage) 
 			else:
 				raise SQLerror(errMsg) 
-#				logging.error(errMsg)
 			
 		status = self.hive_cursor.poll().operationState
 		headers = self.hive_cursor.poll().progressUpdateResponse.headerNames
@@ -627,6 +545,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.dropHiveTable()")
 		logging.info("Dropping table %s.%s"%(hiveDB, hiveTable))
 
+		self.connectToHive(forceSkipTest = True, quiet=True)
 		self.executeHiveQuery("drop table if exists `%s`.`%s`"%(hiveDB, hiveTable))
 
 		logging.debug("Executing common_operations.dropHiveTable() - Finished")
@@ -699,26 +618,6 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.getPKname() - Finished")
 		return row[0]
 
-#		query  = "select k.CONSTRAINT_NAME "
-#		query += "from KEY_CONSTRAINTS k "
-#		query += "   left join TBLS t on k.PARENT_TBL_ID = t.TBL_ID "
-#		query += "   left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where k.CONSTRAINT_TYPE = 0 "
-#		query += "   and d.NAME = %s "
-#		query += "   and t.TBL_NAME = %s "
-#		query += "group by k.CONSTRAINT_NAME" 
-#
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		if self.mysql_cursor.rowcount == 0:
-#			logging.debug("Executing common_operations.getPKname() - Finished")
-#			return None
-#		else:
-#			row = self.mysql_cursor.fetchone()
-#			print(row)
-#			logging.debug("Executing common_operations.getPKname() - Finished")
-#			return row[0]
 
 	def getForeignKeysFromHive(self, hiveDB, hiveTable):
 		""" Reads the ForeignKeys from the Hive Metastore tables and return the result in a Pandas DF """
@@ -791,11 +690,6 @@ class operation(object, metaclass=Singleton):
 			) 
 		session.commit()
 	
-#		query  = "delete from HIVE_LOCKS where HL_DB = %s and HL_TABLE = %s " 
-#		self.mysql_cursor.execute(query, (hiveDB, hiveTable ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#		self.mysql_conn.commit()
-
 		logging.debug("Executing common_operations.removeHiveLocksByForce() - Finished")
 
 	def truncateHiveTable(self, hiveDB, hiveTable):
@@ -858,7 +752,6 @@ class operation(object, metaclass=Singleton):
 		""" Compute Hive statistics on a Hive table """
 		logging.debug("Executing common_operations.updateHiveTableStatistics()")
 
-		# self.executeHiveQuery("analyze table `%s`.`%s` compute statistics for columns "%(hiveDB, hiveTable))
 		self.executeHiveQuery("analyze table `%s`.`%s` compute statistics "%(hiveDB, hiveTable))
 		logging.debug("Executing common_operations.updateHiveTableStatistics() - Finished")
 
@@ -884,7 +777,6 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing common_operations.convertHiveTableToACID()")
 		logging.info("Converting table to an ACID & Transactional enabled table")
 
-#		buckets = self.calculateNumberOfBuckets(hiveDB, hiveTable)
 		buckets = 1
 		hiveTableBucketed = "%s_hive_bucketed"%(hiveTable)
 		logging.info("The new table will use %s buckets"%(buckets))
@@ -991,20 +883,6 @@ class operation(object, metaclass=Singleton):
 			.filter(TABLE_PARAMS.PARAM_KEY == 'transactional')
 			.one_or_none())
 
-#		query  = "select tp.PARAM_VALUE "
-#		query += "from TABLE_PARAMS tp "
-#		query += "	left join TBLS t on tp.TBL_ID = t.TBL_ID "
-#		query += "	left join DBS d on t.DB_ID = d.DB_ID "
-#		query += "where "
-#		query += "	d.NAME = %s "
-#		query += "	and t.TBL_NAME = %s "
-#		query += "	and tp.PARAM_KEY = 'transactional' "
-#
-#		self.mysql_cursor.execute(query, (hiveDB.lower(), hiveTable.lower() ))
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		row = self.mysql_cursor.fetchone()
-
 		returnValue = False
 		if row != None:
 			if row[0].lower() == "true":
@@ -1104,33 +982,6 @@ class operation(object, metaclass=Singleton):
 
 		if len(result_df) == 0:
 			return pd.DataFrame(columns=['hiveDB', 'hiveTable'])
-
-#		query  = "select d.NAME as hiveDB, t.TBL_NAME as hiveTable "
-#		query += "from TBLS t "
-#		query += "	left join DBS d on t.DB_ID = d.DB_ID "
-#
-#		if dbFilter != None:
-#			query += "where d.NAME like '%s' "%(dbFilter)
-#		if tableFilter != None:
-#			if dbFilter != None:
-#				query += "and t.TBL_NAME like '%s' "%(tableFilter)
-#			else:
-#				query += "where t.TBL_NAME like '%s' "%(tableFilter)
-#		query += "order by d.NAME, t.TBL_NAME"
-#
-#
-#		self.mysql_cursor.execute(query)
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		if self.mysql_cursor.rowcount == 0:
-#			return pd.DataFrame()
-#
-#		result_df = pd.DataFrame(self.mysql_cursor.fetchall())
-#
-#		if len(result_df) > 0:
-#			result_df.columns = ['hiveDB', 'hiveTable']
-#
-#		print(result_df)
 
 		logging.debug("Executing common_operations.getHiveTables() - Finished")
 		return result_df

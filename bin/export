@@ -214,7 +214,7 @@ def main(argv):
 				if stage == 105: newStage = 104
 				if stage == 108: newStage = 106
 				if stage == 109: newStage = 100
-				if stage == 110: newStage = 100
+				if stage == 111: newStage = 100
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous export failed and this execution |")
@@ -409,7 +409,7 @@ def main(argv):
 				newStage = 0
 				if stage == 156: newStage = 154
 				if stage == 159: newStage = 150
-				if stage == 160: newStage = 150
+				if stage == 161: newStage = 150
 				print(" ________________________________________________________ ")
 				print("|                                                        |")
 				print("| WARNING: The previous export failed and this execution |")

@@ -176,7 +176,8 @@ class initialize(object):
 				airflowExportDags.email_on_failure,
 				airflowExportDags.email_on_retries,
 				airflowExportDags.tags,
-				airflowExportDags.sla_warning_time
+				airflowExportDags.sla_warning_time,
+				airflowExportDags.retry_exponential_backoff
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -200,7 +201,8 @@ class initialize(object):
 				airflowImportDags.email_on_failure,
 				airflowImportDags.email_on_retries,
 				airflowImportDags.tags,
-				airflowImportDags.sla_warning_time
+				airflowImportDags.sla_warning_time,
+				airflowImportDags.retry_exponential_backoff
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -220,7 +222,8 @@ class initialize(object):
 				airflowEtlDags.email_on_failure,
 				airflowEtlDags.email_on_retries,
 				airflowEtlDags.tags,
-				airflowEtlDags.sla_warning_time
+				airflowEtlDags.sla_warning_time,
+				airflowEtlDags.retry_exponential_backoff
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -236,7 +239,8 @@ class initialize(object):
 				airflowCustomDags.email_on_failure,
 				airflowCustomDags.email_on_retries,
 				airflowCustomDags.tags,
-				airflowCustomDags.sla_warning_time
+				airflowCustomDags.sla_warning_time,
+				airflowCustomDags.retry_exponential_backoff
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -302,7 +306,7 @@ class initialize(object):
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -426,7 +430,7 @@ class initialize(object):
 			metaDataImportOption = ""
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -727,7 +731,7 @@ class initialize(object):
 			retries = int(DAG['retries'])
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
@@ -756,7 +760,7 @@ class initialize(object):
 			return True
 
 
-	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None):
+	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None, retryExponentialBackoff=None):
 		session = self.configDBSession()
 
 		self.sensorStartTask = "start"
@@ -834,6 +838,11 @@ class initialize(object):
 			self.DAGfile.write("    'email_on_retry': True,\n")
 		else:
 			self.DAGfile.write("    'email_on_retry': False,\n")
+
+		if retryExponentialBackoff == 1:
+			self.DAGfile.write("    'retry_exponential_backoff': True,\n")
+		else:
+			self.DAGfile.write("    'retry_exponential_backoff': False,\n")
 
 		self.DAGfile.write("    'retries': 0,\n")
 		self.DAGfile.write("    'pool': '%s',\n"%(defaultPool))
@@ -1020,7 +1029,8 @@ class initialize(object):
 					airflowTasks.placement,
 					airflowTasks.airflow_pool,
 					airflowTasks.airflow_priority,
-					airflowTasks.task_dependency_in_main,
+					airflowTasks.task_dependency_downstream,
+					airflowTasks.task_dependency_upstream,
 					airflowTasks.task_config,
 					airflowTasks.jdbc_dbalias,
 					airflowTasks.hive_db,
@@ -1036,7 +1046,13 @@ class initialize(object):
 				.all()).fillna('')
 
 		taskDependencies = ""
-		allTaskDependencies = tasks.filter(['task_dependency_in_main'])
+		allTaskDependencies = tasks.filter(['task_name', 'task_dependency_upstream', 'task_dependency_downstream', 'placement'])
+		allTaskDependenciesUpstream = tasks.filter(['task_dependency_upstream'])
+		allTaskDependenciesDownstream = tasks.filter(['task_dependency_downstream'])
+		taskDependencyWarningPrinted = False
+
+#		print(allTaskDependencies)
+#		print(type(allTaskDependencies))
 
 		for index, row in tasks.iterrows():
 			sensorPokeInterval = row['sensor_poke_interval']
@@ -1290,46 +1306,151 @@ class initialize(object):
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
+#			if row['placement'] == "before main":
+#				taskDependencies += "%s.set_downstream(%s)\n"%(self.preStartTask, row['task_name'])
+#				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.preStopTask)
+#				taskDependencies += "\n"
+				
+#			if row['placement'] == "after main":
+#				taskDependencies += "%s.set_downstream(%s)\n"%(self.postStartTask, row['task_name'])
+#				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.postStopTask)
+#				taskDependencies += "\n"
+
 			if row['placement'] == "before main":
-				taskDependencies += "%s.set_downstream(%s)\n"%(self.preStartTask, row['task_name'])
-				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.preStopTask)
-				taskDependencies += "\n"
-				
-			if row['placement'] == "after main":
-				taskDependencies += "%s.set_downstream(%s)\n"%(self.postStartTask, row['task_name'])
-				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.postStopTask)
-				taskDependencies += "\n"
-				
+				tempStartTask = self.preStartTask
+				tempStopTask = self.preStopTask
+
 			if row['placement'] == "in main":
-				if row['task_dependency_in_main'] == '':
-					taskDependencies += "%s.set_downstream(%s)\n"%(self.mainStartTask, row['task_name'])
-				else:
-					# Check if there is any dependencies for this task
-					for dep in row['task_dependency_in_main'].split(','):	
-						dep = dep.strip()
-						if dep == "main_start":
-							dep = self.mainStartTask
+				tempStartTask = self.mainStartTask
+				tempStopTask = self.mainStopTask
 
-						taskDependencies += "%s.set_downstream(%s)\n"%(dep, row['task_name'])
+			if row['placement'] == "after main":
+				tempStartTask = self.postStartTask
+				tempStopTask = self.postStopTask
 
-				# We also need to check if there is any dependencies on this task. If there is, we dont add a set_downstream as that will be handled by the other task
-				foundDependency = False
-				# for depIndex, dep in allTaskDependencies.iterrows():
-				for dep in allTaskDependencies.values:
-					# for depTask in dep['task_dependency_in_main'].split(','):
-					for depTask in dep[0].split(','):
-						depTask = depTask.strip()
-						if depTask != '' and depTask == row['task_name']:
-							foundDependency = True
+			for depIndex, depRow in allTaskDependencies.iterrows():
+				if ( row['task_name'] == depRow['task_dependency_upstream'] or row['task_name'] == depRow['task_dependency_downstream'] ) and row['placement'] != depRow['placement']: 
+					if taskDependencyWarningPrinted == False:
+						logging.warning("Issue on DAG '%s'"%(dagName))
+						logging.warning("There are custom tasks that have dependencies between 'in_main' and 'after_main'. This is not supported and the dependencies will be incorrect in Airflow")
+						taskDependencyWarningPrinted = True
+				
+			# if row['placement'] == "in main" or row['placement'] == "after main":
+			if 1 == 1:
+#				if row['task_dependency_in_main_downstream'] == '':
+#					# No dependency, set to "mainStart" task, what ever that might be
+#					taskDependencies += "%s.set_downstream(%s)\n"%(self.mainStartTask, row['task_name'])
+#				else:
+#					# Check if there is any dependencies for this task
+#					for dep in row['task_dependency_in_main_downstream'].split(','):	
+#						dep = dep.strip()
+#						if dep == "main_start":
+#							dep = self.mainStartTask
+#
+#						taskDependencies += "%s.set_downstream(%s)\n"%(dep, row['task_name'])
+				
+				downStreamFound = False
+				upStreamFound = False
 
-				if foundDependency == False:
-					taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.mainStopTask)
+				for depIndex, depRow in allTaskDependencies.iterrows():
+					for depOnDep in depRow['task_dependency_downstream'].split(','):
+						# depOnDep contains that tasks dependencies and we need to check if there is a dependency against the task we are working on
+						depOnDep = depOnDep.strip()
+						if depRow['placement'] == row['placement']:
+							# Only do this if both placements are the same
+							if row['task_name'] == depOnDep:
+								# There is a match that means there is a downstrem dependency for another ask agains the current task
+								upStreamFound = True
+
+					for depOnDep in depRow['task_dependency_upstream'].split(','):
+						# depOnDep contains that tasks dependencies and we need to check if there is a dependency against the task we are working on
+						depOnDep = depOnDep.strip()
+						if depRow['placement'] == row['placement']:
+							# Only do this if both placements are the same
+							if row['task_name'] == depOnDep:
+								# There is a match that means there is a downstrem dependency for another ask agains the current task
+								downStreamFound = True
+
+
+				for dep in row['task_dependency_downstream'].split(','):
+					dep = dep.strip()
+					if dep == "":
+						continue
+
+					# Get the task that this have a depenceny against and check if it's in the same placement
+					depRow = allTaskDependencies.loc[allTaskDependencies['task_name'] == dep, ['placement']]
+					if depRow.empty == False:
+						depRowValue = depRow.values[0][0]
+						if depRow.values[0][0] == row['placement']:
+							# Only do this if both placements are the same
+							taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], dep)
+							downStreamFound = True
+						else:
+							logging.warning("Downstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
+					else:
+						# The depRow dataframe is empty. So the dependent task is not a customTask, but instead from import_tables or export_tables. So we just add it as a dependency
+						taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], dep)
+						downStreamFound = True
+
+				for dep in row['task_dependency_upstream'].split(','):	
+					dep = dep.strip()
+					if dep == "":
+						continue
+
+					# Get the task that this have a depenceny against and check if it's in the same placement
+					depRow = allTaskDependencies.loc[allTaskDependencies['task_name'] == dep, ['placement']]
+					if depRow.empty == False:
+						depRowValue = depRow.values[0][0]
+						if depRow.values[0][0] == row['placement']:
+							# Only do this if both placements are the same
+							taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], dep)
+							upStreamFound = True
+						else:
+							logging.warning("Upstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
+					else:
+						# The depRow dataframe is empty. So the dependent task is not a customTask, but instead from import_tables or export_tables. So we just add it as a dependency
+						taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], dep)
+						upStreamFound = True
+
+				
+				if upStreamFound == False:
+					taskDependencies += "%s.set_downstream(%s)\n"%(tempStartTask, row['task_name'])
+				
+				if downStreamFound == False:
+					taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], tempStopTask)
+
+				# Check if other tasks have this task as upstream or downstream
+#				for depIndex, depRow in allTaskDependencies.iterrows():
+#					pass
+
+#				if row['task_dependency_in_main_upstream'] == '':
+#					# No dependency, set to "mainStart" task, what ever that might be
+#					# taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], self.mainStartTask)
+#					taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], tempStartTask)
+#				else:
+#					# Check if there is any dependencies for this task
+#					for dep in row['task_dependency_in_main_upstream'].split(','):	
+#						dep = dep.strip()
+#						taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], dep)
+#
+#				if row['task_dependency_in_main_downstream'] != '':
+#					for dep in row['task_dependency_in_main_downstream'].split(','):
+#						dep = dep.strip()
+#						taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], dep)
+
+				# We also need to check if there is any dependencies on this task. If there is, we dont add a set_downstream to the stop taks as that will be handled by the other task
+#				foundDependency = False
+#				for dep in allTaskDependenciesUpstream.values:
+#					for depTask in dep[0].split(','):
+#						depTask = depTask.strip()
+#						if depTask != '' and depTask == row['task_name']:
+#							foundDependency = True
+#
+#				if foundDependency == False and row['task_dependency_downstream'] == '':
+#					# taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.mainStopTask)
+#					taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], tempStopTask)
 
 				taskDependencies += "\n"
-
-#				self.DAGfile.close()
-#				self.common_config.remove_temporary_files()
-#				sys.exit(1)
 
 
 		self.DAGfile.write(taskDependencies)

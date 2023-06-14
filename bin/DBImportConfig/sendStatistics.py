@@ -172,7 +172,7 @@ class sendStatistics(object):
 		""" Publish data to Kafka topic """
 		logging.debug("Executing sendStatistics.publishKafkaData")
 
-		logging.info("Sending data to Kafka topic")
+		logging.info("Sending statistics data to Kafka topic")
 		logging.debug("Sending the following JSON to Kafka: %s"% (jsonData))
 		kafkaLogger = logging.getLogger('kafka')
 		kafkaLogger.setLevel(logging.ERROR)

@@ -47,7 +47,6 @@ class config(object, metaclass=Singleton):
 		self.targetTable = targetTable
 
 		self.common_config = common_config.config()
-#		self.rest = rest.restInterface()
 		self.sendStatistics = sendStatistics.sendStatistics()
 
 		self.startDate = self.common_config.startDate
@@ -98,14 +97,6 @@ class config(object, metaclass=Singleton):
 		self.stage = export_stage.stage(self.mysql_conn, connectionAlias=connectionAlias, targetSchema=targetSchema, targetTable=targetTable)
 		
 		logging.debug("Executing export_config.__init__() - Finished")
-
-#	def setHiveTable(self, hiveDB, hiveTable):
-#		""" Sets the parameters to work against a new Hive database and table """
-#		self.hiveDB = hiveDB.lower()
-#		self.hiveTable = hiveTable.lower()
-#
-#		self.common_config.setHiveTable(hiveDB, hiveTable)
-#		self.stage.setHiveTable(hiveDB, hiveTable)
 
 	def logHiveColumnAdd(self, column, columnType, description=None, hiveDB=None, hiveTable=None):
 		self.common_config.logHiveColumnAdd(column=column, columnType=columnType, description=description, hiveDB=hiveDB, hiveTable=hiveTable) 
@@ -168,7 +159,6 @@ class config(object, metaclass=Singleton):
 			hive_table = self.hiveTable,
 			export_phase = self.exportPhase,
 			incremental = self.exportIsIncremental,
-#			size=self.sqoop_last_size,
 			rows=self.sqoop_last_rows,
 			sessions=self.sqoop_last_mappers
 		)
@@ -179,8 +169,6 @@ class config(object, metaclass=Singleton):
 
 		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
 		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
-
-#		self.postDataToREST = True
 
 		if self.postDataToREST == False and self.postDataToKafka == False:
 			return
@@ -356,7 +344,7 @@ class config(object, metaclass=Singleton):
 
 		self.datalakeSourceConnection = row[0]
 
-#		# Set the name of the history tables, temporary tables and such
+		# Set the name of the history tables, temporary tables and such
 		self.hiveExportTempDB = self.common_config.getConfigValue(key = "export_staging_database")
 		if self.targetSchema == "-":
 			self.hiveExportTempTable = self.connectionAlias.replace('-', '_') + "__" + self.targetTable + "__exporttemptable"
@@ -455,7 +443,6 @@ class config(object, metaclass=Singleton):
 		for index, row in columnsDF.iterrows():
 			columnName = row['name']
 			columnType = row['type']
-#			columnComment = row['comment'].replace("\"", "'")
 			columnComment = self.common_config.stripUnwantedCharComment(row['comment'])
 			columnOrder = row['idx']
 
@@ -610,11 +597,6 @@ class config(object, metaclass=Singleton):
 		sourceTable = self.hiveTable
 		historyTableExport = False
 
-		if columnName == "_globalid":
-			print(sourceDB)
-			print(sourceTable)
-			print(columnType)
-
 		if sourceTable.endswith('_history'):
 			# First check to see that we dont have a import table that actually is called _history in the end
 			query = "select count(hive_table) from import_tables where hive_db = %s and hive_table = %s"
@@ -731,8 +713,6 @@ class config(object, metaclass=Singleton):
 
 			if columnType == "string":
 				raise invalidConfiguration("Error: Exports of column '%s' with type 'string' to Oracle is not supported. Please set another columntype in 'target_column_type' or ignore this column in the export."%(columnName))
-#				columnType = "clob"
-#				mapColumnJava = "String"
 
 		if self.common_config.db_mysql == True:
 			columnType = re.sub('^string$', 'text', columnType)
@@ -759,12 +739,6 @@ class config(object, metaclass=Singleton):
 			columnType = re.sub('^char\(', 'TEXT(', columnType)
 			columnType = re.sub('^varchar\(', 'TEXT(', columnType)
 			
-		if columnName == "_globalid":
-			print("===============================")
-			print(sourceDB)
-			print(sourceTable)
-			print(columnType)
-
 		logging.debug("Executing export_config.convertColumnTypeForTargetTable() - Finished")
 		return columnType, mapColumnJava
 
@@ -792,8 +766,6 @@ class config(object, metaclass=Singleton):
 		elif self.common_config.jdbc_servertype in (constant.SNOWFLAKE):
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
-#			targetSchema = self.targetSchema.upper()
-#			targetTable = self.targetTable.upper()
 
 		self.sqoop_mapcolumnjava=[]
 		firstLoop = True
@@ -1021,8 +993,12 @@ class config(object, metaclass=Singleton):
 		# Some columns types must be changed as the function to read the schema will return a precision, but we
 		# dont have that in the configuration. If this is not done, there will be an alter table every time an export
 		# is running and it wont really change anything. 
-		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'^FLOAT\(.*\)', 'FLOAT')
-		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'^varchar\(-1\)', 'varchar(max)')
+		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'^FLOAT\(.*\)', 'FLOAT', regex=True)
+		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'^varchar\(-1\)', 'varchar(max)', regex=True)
+
+		# Remove newline in columntype
+		columnsSourceOnlyNameType['type'] = columnsSourceOnlyNameType['type'].str.replace(r'\n$|\r$', '', regex=True)
+		columnsTargetOnlyNameType['type'] = columnsTargetOnlyNameType['type'].str.replace(r'\n$|\r$', '', regex=True)
 
 		# Merge and find the difference
 		columnsMergeOnlyNameType = pd.merge(columnsSourceOnlyNameType, columnsTargetOnlyNameType, on=None, how='outer', indicator='Exist')
@@ -1066,7 +1042,7 @@ class config(object, metaclass=Singleton):
 				(columnsMergeOnlyNameType['Exist'] == 'right_only')]
 				).reset_index().at[0, 'type']
 
-			logging.info("Column %s changed type from %s to %s"%(row["name"], previous_columnType, row["type"]))
+			logging.info("Column %s changed type from '%s' to '%s'"%(row["name"], previous_columnType, row["type"]))
 			self.logTargetColumnTypeChange(row['name'], columnType=row['type'], previous_columnType=previous_columnType, dbAlias=self.connectionAlias, database=self.common_config.jdbc_database, schema=targetSchema, table=targetTable)
 
 		# Check for comment changes
@@ -1085,6 +1061,7 @@ class config(object, metaclass=Singleton):
 		columnsTarget.drop('TABLE_CREATE_TIME', axis=1, inplace=True)
 		columnsTarget.drop('DEFAULT_VALUE', axis=1, inplace=True)
 		columnsTarget['comment'].replace('', None, inplace = True)        # Replace blank column comments with None as it would otherwise trigger an alter table on every run
+		columnsTarget['comment'].replace('nan', None, inplace = True)     
 
 		if alterTableExecuted == True and self.common_config.jdbc_servertype == constant.DB2_UDB:
 			# DB2 require a reorg if the table was changed
@@ -1092,7 +1069,10 @@ class config(object, metaclass=Singleton):
 			query = "call SYSPROC.ADMIN_CMD('REORG TABLE %s.%s')"%(targetSchema, targetTable)
 			self.common_config.executeJDBCquery(query)
 
+		# print(columnsSource)
+		# print(columnsTarget)
 		columnsMerge = pd.merge(columnsSource, columnsTarget, on=None, how='outer', indicator='Exist')
+		# print(columnsMerge)
 		for index, row in columnsMerge.loc[columnsMerge['Exist'] == 'left_only'].iterrows():
 			if row['comment'] == None: row['comment'] = ""
 
@@ -1183,8 +1163,6 @@ class config(object, metaclass=Singleton):
 			query  = "create table %s.%s ("%(targetSchema, targetTable) 
 
 		elif self.common_config.jdbc_servertype in (constant.SNOWFLAKE):
-#			targetSchema = self.targetSchema.upper()
-#			targetTable = self.targetTable.upper()
 			targetSchema = self.targetSchema
 			targetTable = self.targetTable
 			query  = "create table \"%s\".\"%s\" ("%(targetSchema, targetTable) 
@@ -1291,16 +1269,6 @@ class config(object, metaclass=Singleton):
 			query += "sqoop_last_mappers = %s"
 			self.sqoop_last_mappers = sqoopMappers
 			queryParam.append(sqoopMappers)
-
-#		if self.validate_source == "sqoop":
-#			logging.info("Saving the imported row count as the number of rows in the source system.")
-#			if self.import_is_incremental == True:
-#				query += "  ,source_rowcount = NULL "
-#				query += "  ,source_rowcount_incr = %s "
-#			else:
-#				query += "  ,source_rowcount = %s "
-#				query += "  ,source_rowcount_incr = NULL "
-#			queryParam.append(sqoopRows)
 
 		if firstSet == False:
 			# Only run this if any of the set columns are not None
@@ -1415,34 +1383,14 @@ class config(object, metaclass=Singleton):
 					validateTextTarget = "Target table"
 					validateTextSource = "Hive table"
 					validateText = validateTextTarget
-#				elif self.sqoop_incr_validation_method == "full" and incremental == False:
 				else:
 					query  = "select hive_rowcount, target_rowcount from export_tables where table_id = %s "
 					validateTextTarget = "Target table (incr)"
 					validateTextSource = "Hive table (incr)"
 					validateText = "Target table"
-#				else:
-#					raise undevelopedFeature("Only full validation is supported")
-#					# We are not validating the sqoop export, but the validation is an incremental export and
-#					# we are going to validate only the incremental part of the export (what sqoop exported)
-#					query  = "select source_rowcount_incr, hive_rowcount from export_tables where table_id = %s "
-#					validateTextTarget = "Hive table (incr)"
-#					validateTextSource = "Source table (incr)"
-#					validateText = "Hive table"
 			else:
 				raise undevelopedFeature("Unsupported validation")
-#				if self.export_is_incremental == False:
-#					# Sqoop validation for full exports
-#					query  = "select source_rowcount from export_tables where table_id = %s "
-#					validateTextTarget = "Sqoop export"
-#					validateTextSource = "Source table"
-#					validateText = validateTextTarget
-#				else:
-#					# Sqoop validation for incremental exports
-#					query  = "select source_rowcount_incr from export_tables where table_id = %s "
-#					validateTextTarget = "Sqoop export (incr)"
-#					validateTextSource = "Source table (incr)"
-#					validateText = "Sqoop export"
+
 			self.mysql_cursor01.execute(query, (self.tableID, ))
 			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 
@@ -1495,23 +1443,14 @@ class config(object, metaclass=Singleton):
 		if row != None and row[0] == 0: 
 			logging.warning("Unsupported value of 0 in column 'max_export_sessions' in table 'jdbc_connections'")
 
-		if self.exportTool == "sqoop":
-			# Fetch the configured max and default value from configuration file
-			sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "sqoop_export_max_mappers"))
-			sqlSessionsDefault = int(self.common_config.getConfigValue(key = "sqoop_export_default_mappers"))
+		sqlSessionsMaxFromConfig = int(self.common_config.getConfigValue(key = "export_max_sessions"))
+		sqlSessionsDefault = int(self.common_config.getConfigValue(key = "export_default_sessions"))
 
-			if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
-			if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
-			if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
+		if sqlSessionsMax == None: sqlSessionsMax = sqlSessionsMaxFromConfig 
+		if sqlSessionsMaxFromConfig < sqlSessionsMax: sqlSessionsMax = sqlSessionsMaxFromConfig
+		if sqlSessionsDefault > sqlSessionsMax: sqlSessionsDefault = sqlSessionsMax
 
-		elif self.exportTool == "spark":
-			# Fetch the configured max and default value from configuration file
-			self.sparkMaxExecutors = int(self.common_config.getConfigValue(key = "spark_export_max_executors"))
-			sparkDefaultExecutors = int(self.common_config.getConfigValue(key = "spark_export_default_executors"))
-
-			if sqlSessionsMax !=  None and sqlSessionsMax > 0:
-				self.sparkMaxExecutors = sqlSessionsMax
-
+		self.sparkMaxExecutors = sqlSessionsMax
 
 		# Execute SQL query that calculates the value
 		query = ("select sqoop_last_size, " 
@@ -1558,17 +1497,6 @@ class config(object, metaclass=Singleton):
 			else:
 				# If 'mappers' is set to -1, we just use the value from the default configuration
 				self.sqlSessions = self.sparkMaxExecutors
-
-# TODO: Add support for multiple splits for exports. Not supported bu Spark JDBC write implementation as of 2.3.2
-#			if self.sqoopMappers > 0:
-#				self.sqlSessions = self.sqoopMappers
-#				logging.info("Setting the number of SQL splits to %s (fixed value)"%(self.sqlSessions))
-#			else:
-#				if self.sqlSessions == None:
-#					logging.info("Cant find the previous export size so it's impossible to calculate the correct amount of SQL splits. Will default to %s"%(sparkDefaultExecutors))
-#					self.sqlSessions = sparkDefaultExecutors
-#				else:
-#					logging.info("The import will use %s SQL splits in the source system."%(self.sqlSessions))
 
 		logging.debug("Executing export_config.calculateJobMappers() - Finished")
 
@@ -1751,128 +1679,5 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing export_config.addExportTable() - Finished")
 		return returnValue
 
-
-	def OLDupdateAtlasWithRDBMSdata(self):
-		""" This will update Atlas metadata with the information about the target table schema """
-		logging.debug("Executing export_config.updateAtlasWithSourceSchema()")
-
-		if self.common_config.atlasEnabled == False:
-			return
-
-		targetSchema = self.targetSchema
-		targetTable = self.targetTable
-
-		if self.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
-			targetSchema = self.targetSchema.upper()
-			targetTable = self.targetTable.upper()
-
-		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
-			targetSchema = self.targetSchema.lower()
-			targetTable = self.targetTable.lower()
-
-		# Fetch the remote system schema again as it might have been updated in the export
-		self.common_config.getJDBCTableDefinition(source_schema = targetSchema, source_table = targetTable, printInfo=False)
-
-		self.common_config.updateAtlasWithRDBMSdata(schemaName = targetSchema,
-													tableName = targetTable 
-													)
-
-		logging.debug("Executing export_config.updateAtlasWithSourceSchema() - Finished")
-
-
-	def OLDupdateAtlasWithExportLineage(self):
-		""" This will update Atlas lineage for the export process """
-		logging.debug("Executing export_config.updateAtlasWithExportLineage()")
-
-		if self.common_config.atlasEnabled == False:
-			return
-
-		logging.info("Updating Atlas with export lineage")
-
-		tableComment = ""
-
-		targetSchema = self.targetSchema
-		targetTable = self.targetTable
-
-		if self.common_config.jdbc_servertype in (constant.ORACLE, constant.DB2_UDB):
-			targetSchema = self.targetSchema.upper()
-			targetTable = self.targetTable.upper()
-
-		if self.common_config.jdbc_servertype in (constant.POSTGRESQL):
-			targetSchema = self.targetSchema.lower()
-			targetTable = self.targetTable.lower()
-
-		# Get the referredEntities part of the JSON. This is common for both import and export as the rdbms_* in Atlas is the same
-		jsonData = self.common_config.getAtlasRdbmsReferredEntities(schemaName = targetSchema,
-																	tableName = targetTable
-																	)
-
-		# Get the unique names for the rdbms_* entities. This is common for both import and export as the rdbms_* in Atlas is the same
-		returnDict = self.common_config.getAtlasRdbmsNames(schemaName = targetSchema, tableName = targetTable)
-		if returnDict == None:
-			return
-
-		tableUri = returnDict["tableUri"]
-		dbUri = returnDict["dbUri"]
-		dbName = returnDict["dbName"]
-		instanceUri = returnDict["instanceUri"]
-		instanceName = returnDict["instanceName"]
-		instanceType = returnDict["instanceType"]
-
-		# Get extended data from jdbc_connections table
-		jdbcConnectionDict = self.common_config.getAtlasJdbcConnectionData()
-		contactInfo = jdbcConnectionDict["contact_info"]
-		description = jdbcConnectionDict["description"]
-		owner = jdbcConnectionDict["owner"]
-
-		clusterName = self.common_config.getConfigValue(key = "cluster_name")
-
-		startStopDict = self.stage.getStageStartStop(stage = self.exportTool)
-
-		processName = "%s.%s.%s@DBimport"%(self.connectionAlias, targetSchema, targetTable)
-
-		if self.tempTableNeeded == True:
-			hiveQualifiedName = "%s.%s@%s"%(self.hiveExportTempDB, self.hiveExportTempTable, clusterName)
-		else:
-			hiveQualifiedName = "%s.%s@%s"%(self.hiveDB, self.hiveTable, clusterName)
-
-		jsonData["referredEntities"]["-500"] = {}
-		jsonData["referredEntities"]["-500"]["guid"] = "-500"
-		jsonData["referredEntities"]["-500"]["typeName"] = "hive_table"
-		jsonData["referredEntities"]["-500"]["attributes"] = {}
-		jsonData["referredEntities"]["-500"]["attributes"]["qualifiedName"] = hiveQualifiedName
-		jsonData["referredEntities"]["-500"]["attributes"]["name"] = self.hiveTable
-
-		lineageData = {}
-		lineageData["typeName"] = "DBImport_Process"
-		lineageData["createdBy"] = "DBImport"
-		lineageData["attributes"] = {}
-		lineageData["attributes"]["qualifiedName"] = processName
-		lineageData["attributes"]["uri"] = processName
-		lineageData["attributes"]["name"] = processName
-		lineageData["attributes"]["operation"] = "export"
-		lineageData["attributes"]["commandlineOpts"] = self.fullExecutedCommand
-		lineageData["attributes"]["description"] = "Export of %s.%s"%(self.hiveDB, self.hiveTable)
-		lineageData["attributes"]["startTime"] = startStopDict["startTime"]
-		lineageData["attributes"]["endTime"] = startStopDict["stopTime"]
-		lineageData["attributes"]["userName"] = getpass.getuser()
-		lineageData["attributes"]["exportTool"] = self.exportTool
-		lineageData["attributes"]["inputs"] = [{ "guid": "-500", "typeName": "hive_table" }]
-		lineageData["attributes"]["outputs"] = [{ "guid": "-100", "typeName": "rdbms_table" }]
-
-		jsonData["entities"] = []
-		jsonData["entities"].append(lineageData)
-
-		logging.debug(json.dumps(jsonData, indent=3))
-
-		response = self.common_config.atlasPostData(URL = self.common_config.atlasRestEntities, data = json.dumps(jsonData))
-		statusCode = response["statusCode"]
-		if statusCode != 200:
-			logging.warning("Request from Atlas when updating export lineage was %s."%(statusCode))
-			self.common_config.atlasEnabled == False
-
-#		print(response)
-
-		logging.debug("Executing export_config.updateAtlasWithExportLineage() - Finished")
 
 

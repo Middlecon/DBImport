@@ -67,8 +67,6 @@ class operation(object, metaclass=Singleton):
 				self.common_operations = common_operations.operation()
 	
 				self.export_config.getExportConfig()
-				# self.export_config.common_config.lookupConnectionAlias(connection_alias=self.connectionAlias)
-				# self.export_config.lookupConnectionAlias()
 	
 				self.hiveDB = self.export_config.hiveDB
 				self.hiveTable = self.export_config.hiveTable
@@ -78,7 +76,6 @@ class operation(object, metaclass=Singleton):
 				self.checkHiveDB(self.hiveDB)
 				self.checkHiveTable(self.hiveDB, self.hiveTable)
 	
-#				self.export_config.setHiveTable(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
 				self.common_operations.setHiveTable(Hive_DB=self.hiveDB, Hive_Table=self.hiveTable)
 				self.hiveTableIsTransactional = self.common_operations.isHiveTableTransactional(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
 				self.hiveTableIsView = self.common_operations.isHiveTableView(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
@@ -363,22 +360,12 @@ class operation(object, metaclass=Singleton):
 		print("=============================================================================================================================")
 
 		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-#			if addSchemaToTable == True:
-#				hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
-#			else:
-#				hiveTable = row['table'].lower()
-#			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, hiveTable, dbalias, row['schema'], row['table']))
 			print("%-20s %-40s %-30s %-20s %s"%(row['hiveDB'], row['hiveTable'], dbalias, schema, row['targetTable']))
 
 		answer = input("Do you want to add these exports to DBImport? (y/N): ")
 		if answer == "y":
 			print("")
 			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-#			for index, row in mergeDFLeftOnly.iterrows():
-#				if addSchemaToTable == True:
-#					hiveTable = "%s_%s"%(row['schema'].lower().strip(), row['table'].lower().strip())
-#				else:
-#					hiveTable = row['table'].lower()
 				addResult = self.export_config.addExportTable(
 					dbalias=dbalias,
 					schema=schema,
@@ -459,7 +446,6 @@ class operation(object, metaclass=Singleton):
 			else:
 				columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=False)
 
-#			columnsDF = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True)
 			query  = "create table `%s`.`%s` ("%(self.hiveExportTempDB, self.hiveExportTempTable)
 
 			firstLoop = True
@@ -608,8 +594,6 @@ class operation(object, metaclass=Singleton):
 			# This will iterate over columns that only exists in the config and not in Hive. We add these to Hive
 			fullRow = columnsConfig.loc[columnsConfig['name'] == row['name']].iloc[0]
 			query = "alter table `%s`.`%s` add columns (`%s` %s"%(hiveDB, hiveTable, fullRow['name'], fullRow['type'])
-#			if fullRow['comment'] != None:
-#				query += " COMMENT \"%s\""%(fullRow['comment'])
 			query += ")"
 
 			self.common_operations.executeHiveQuery(query)
@@ -855,18 +839,24 @@ class operation(object, metaclass=Singleton):
 
 		# Create a valid PYSPARK_SUBMIT_ARGS string
 		sparkPysparkSubmitArgs = "--jars "
+		sparkJars = ""
+
 		firstLoop = True
 		if self.export_config.common_config.sparkJarFiles.strip() != "":
 			for jarFile in self.export_config.common_config.sparkJarFiles.split(","):
 				if firstLoop == False:
 					sparkPysparkSubmitArgs += ","
+					sparkJars += ","
 				sparkPysparkSubmitArgs += jarFile.strip()
+				sparkJars += jarFile.strip()
 				firstLoop = False
 
 		for jarFile in self.export_config.common_config.jdbc_classpath.split(":"):
 			if firstLoop == False:
 				sparkPysparkSubmitArgs += ","
+				sparkJars += ","
 			sparkPysparkSubmitArgs += jarFile.strip()
+			sparkJars += jarFile.strip()
 			firstLoop = False
 
 		if self.export_config.common_config.sparkPyFiles.strip() != "":
@@ -881,7 +871,6 @@ class operation(object, metaclass=Singleton):
 		sparkPysparkSubmitArgs += " pyspark-shell"
 
 		# Set required OS parameters
-		os.environ['HDP_VERSION'] = self.export_config.common_config.sparkHDPversion
 		os.environ['PYSPARK_SUBMIT_ARGS'] = sparkPysparkSubmitArgs
 
 		logging.debug("")
@@ -914,15 +903,15 @@ class operation(object, metaclass=Singleton):
 		conf.setMaster(self.export_config.common_config.sparkMaster)
 		conf.set('spark.submit.deployMode', self.export_config.common_config.sparkDeployMode )
 		conf.setAppName('DBImport Export - %s.%s'%(self.hiveDB, self.hiveTable))
-		conf.set('spark.jars', self.export_config.common_config.jdbc_classpath)
+		conf.set('spark.jars', sparkJars)
 		conf.set('spark.executor.memory', self.export_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.export_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
-#		conf.set('spark.executor.heartbeatInterval', '200000')
-#		conf.set('spark.network.timeout', '300000')
 		conf.set('spark.hive.llap.execution.mode', 'only')
-#		conf.set('spark.datasource.hive.warehouse.read.mode', 'JDBC_CLUSTER')
+		conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions')
 		conf.set('spark.datasource.hive.warehouse.read.mode', 'DIRECT_READER_V1')
+		conf.set('spark.sql.parquet.int96RebaseModeInWrite', 'LEGACY')
+
 		if self.export_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
 			conf.set('spark.dynamicAllocation.enabled', 'true')
@@ -1019,20 +1008,23 @@ class operation(object, metaclass=Singleton):
 		elif self.export_config.common_config.sparkHiveLibrary == "HiveContext":
 			# Configuration for HDP 2.x
 			sc = SparkContext(conf=conf)
+			spark = SparkSession(sc)
 
 		yarnApplicationID = sc.applicationId
 		logging.info("Yarn application started with id %s"%(yarnApplicationID))
-
 		sys.stdout.flush()
 
 		# Determine Spark version and find incompatable exports
-		sparkVersion = sc.version
+		sparkVersionSplit = spark.version.split(".")
+		sparkMajorVersion = int(sparkVersionSplit[0])
+		sparkVersion = "%s.%s.%s"%(sparkVersionSplit[0], sparkVersionSplit[1], sparkVersionSplit[2])
+		logging.info("Running with Spark Version %s"%(sparkVersion))
 		
-		if sparkVersion.endswith(self.export_config.common_config.sparkHDPversion):
-			sparkVersion = sparkVersion.replace('.%s'%(self.export_config.common_config.sparkHDPversion), '') 
+#		if sparkVersion.endswith(self.export_config.common_config.sparkHDPversion):
+#			sparkVersion = sparkVersion.replace('.%s'%(self.export_config.common_config.sparkHDPversion), '') 
 
-		if sparkVersion.count('.') > 2:
-			logging.warning("Cant determine Spark version. Did you set a proper 'hdp_version' in the configuration file?")
+#		if sparkVersion.count('.') > 2:
+#			logging.warning("Cant determine Spark version. Did you set a proper 'hdp_version' in the configuration file?")
 
 		if sparkVersion < "2.3.2" and columnStartingWithUnderscoreFound == True:
 			logging.error("Spark version 2.3.2 or higher is required to export columns starting with '_'. This export is running with version %s"%(sparkVersion))
@@ -1056,8 +1048,6 @@ class operation(object, metaclass=Singleton):
 
 		if self.export_config.sqlWhereAddition != None:
 			df = df.filter("(%s)" % (self.export_config.sqlWhereAddition))
-
-		# df.show()
 
 		if self.export_config.common_config.jdbc_servertype == constant.AWS_S3:
 			logging.info("Writing data to AWS S3 Bucket")
@@ -1214,7 +1204,6 @@ class operation(object, metaclass=Singleton):
 		print("")
 
 		# Start Sqoop
-#		sh_session = subprocess.Popen(sqoopCommandList, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		sh_session = subprocess.Popen(sqoopCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 		# Print Stdout and stderr while sqoop is running

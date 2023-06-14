@@ -87,6 +87,7 @@ class config(object, metaclass=Singleton):
 		self.db_snowflake = False
 		self.db_awss3 = False
 		self.db_informix = False
+		self.db_sqlanywhere = False
 		self.jdbc_url = None
 		self.jdbc_hostname = None
 		self.jdbc_port = None
@@ -121,6 +122,12 @@ class config(object, metaclass=Singleton):
 		self.awsS3fileFormat = None
 		self.kerberosInitiated = False
 
+		self.impalaDriver = None
+		self.impalaClasspath = None
+		self.impalaAddress = None
+		self.impalaJDBCConn = None
+		self.impalaJDBCCursor = None
+
 		self.sparkPathAppend = None
 		self.sparkPysparkSubmitArgs = None
 		self.sparkJarFiles = None
@@ -132,7 +139,7 @@ class config(object, metaclass=Singleton):
 		self.sparkMinExecutors = None
 		self.sparkMaxExecutors = None
 		self.sparkExecutorMemory = None
-		self.sparkHDPversion = None
+#		self.sparkHDPversion = None
 		self.sparkHiveLibrary = None
 
 		self.sourceSchema = None
@@ -166,7 +173,7 @@ class config(object, metaclass=Singleton):
 		self.sparkDeployMode = configuration.get("Spark", "deployMode")
 		self.sparkYarnQueue = configuration.get("Spark", "yarnqueue")
 		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
-		self.sparkHDPversion = configuration.get("Spark", "hdp_version")
+#		self.sparkHDPversion = configuration.get("Spark", "hdp_version")
 		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
 
 		if configuration.get("Spark", "dynamic_allocation").lower() == "true":
@@ -571,10 +578,6 @@ class config(object, metaclass=Singleton):
 			self.mysql_cursor.execute(query, (encryptedStr, connection_alias))
 			self.mysql_conn.commit()
 
-#		decryptedStr = self.crypto.decrypt(encryptedStr)
-#
-#		print("DECRYPTED VALUE USING STANDARD DECODING")
-#		print("[%s]"%(decryptedStr))
 
 	def getJDBCDriverConfig(self, databaseType, version):
 		logging.debug("Executing common_config.getJDBCDriverConfig()")
@@ -609,16 +612,12 @@ class config(object, metaclass=Singleton):
 				self.lookupConnectionAlias(connection_alias = row[0], exceptionIfFailureToDecrypt=False)
 			except:
 				pass
-#				print("%s -- Unable to decrypt password"%(row[0]))
-#				print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 			else:
-#				print("'%s','%s','%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_hostname, self.jdbc_port, self.jdbc_database))
 				if self.jdbc_username == None:
 					self.jdbc_username = ""
 				if self.jdbc_password == None:
 					self.jdbc_password = ""
 
-#				print("£%s£¤£%s£¤£%s£¤£%s£"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 				print("£%s£¤£%s£¤£%s£¤£DBImport£"%(self.dbAlias, self.jdbc_username, self.jdbc_password))
 
 				if 0 == 1:
@@ -635,9 +634,6 @@ class config(object, metaclass=Singleton):
 						print("self.jdbc_username contains ¤")
 						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 	
-#					if "," in self.jdbc_password:
-#						print("self.jdbc_password contains ,")
-#						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 					if "'" in self.jdbc_password:
 						print("self.jdbc_password contains '")
 						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
@@ -651,9 +647,6 @@ class config(object, metaclass=Singleton):
 					if "," in self.jdbc_url:
 						print("self.jdbc_url contains ,")
 						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
-#					if "'" in self.jdbc_url:
-#						print("self.jdbc_url contains '")
-#						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 					if "£" in self.jdbc_url:
 						print("self.jdbc_url contains £")
 						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
@@ -661,9 +654,6 @@ class config(object, metaclass=Singleton):
 						print("self.jdbc_url contains ¤")
 						print("'%s','%s','%s','%s'"%(self.dbAlias, self.jdbc_username, self.jdbc_password, self.jdbc_url))
 
-#			print('.', end='', flush=True)
-#			if counter > 5:
-#				break
 		print()
 	
 		logging.debug("Executing common_config.printConnectionAliasDetails() - Finished")
@@ -971,8 +961,6 @@ class config(object, metaclass=Singleton):
 			self.db_mongodb = True
 			self.jdbc_servertype = constant.MONGO
 			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MongoDB", "default")
-#			self.jdbc_driver = "no-jdbc-driver-for-mongodb"
-#			self.jdbc_classpath = "/usr/share/java/mongo/mongo-spark-connector_2.11-2.3.3.jar:/usr/share/java/mongo/bson-3.11.2.jar:/usr/share/java/mongo/mongodb-driver-core-3.11.2.jar:/usr/share/java/mongo/mongo-java-driver-3.11.2.jar"
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[8:].split(':')[0]
@@ -1097,6 +1085,35 @@ class config(object, metaclass=Singleton):
 				logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
 				exit_after_function = True
 
+		if self.jdbc_url.startswith( 'jdbc:sybase:Tds:'): 
+			self.atlasJdbcSourceSupport = True
+			self.db_sqlanywhere = True
+			self.jdbc_servertype = constant.SQLANYWHERE
+			self.jdbc_force_column_lowercase = False
+			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Anywhere", "default")
+			self.jdbc_classpath_for_python = self.jdbc_classpath
+
+			self.jdbc_hostname = self.jdbc_url[16:].split('?')[0]
+			if ":" in self.jdbc_hostname:
+				self.jdbc_port = self.jdbc_hostname.split(':')[1]
+				self.jdbc_hostname = self.jdbc_hostname.split(':')[0]
+			else:
+				self.jdbc_port = "2638"
+
+			if self.jdbc_port.isdigit() == False: self.jdbc_port = "2638"
+
+
+		# Add Impala drivers to CP if configured in config file
+		try:
+			self.impalaDriver = configuration.get("Impala", "driver", exitOnError=False)
+			self.impalaClasspath = configuration.get("Impala", "class", exitOnError=False)
+			self.impalaAddress = configuration.get("Impala", "address", exitOnError=False)
+			if self.impalaDriver != None:
+				self.jdbc_classpath += ":%s"%(self.impalaDriver)
+				self.jdbc_classpath_for_python = self.jdbc_classpath
+		except:
+			pass
+
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
 			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
@@ -1136,7 +1153,6 @@ class config(object, metaclass=Singleton):
 		logging.debug("    jdbc_trustedservercert_password = %s"%(self.jdbc_trustedservercert_password))
 		logging.debug("    jdbc_hostincert = %s"%(self.jdbc_hostincert))
 		logging.debug("    jdbc_logintimeout = %s"%(self.jdbc_logintimeout))
-#		logging.debug("    jdbc_password_file = %s"%(self.jdbc_password_file))
 		logging.debug("    jdbc_oracle_sid = %s"%(self.jdbc_oracle_sid))
 		logging.debug("    jdbc_oracle_servicename = %s"%(self.jdbc_oracle_servicename))
 		logging.debug("    self.awsS3assumeRole = %s"%(self.awsS3assumeRole))
@@ -1205,13 +1221,58 @@ class config(object, metaclass=Singleton):
 			pass
 
 		except Exception as exception:
-			log.info("Unknown error during disconnection to JDBC database:")
+			log.info("Unknown error during disconnection from JDBC database:")
 			log.info(exception.message())
 			pass
 
 
 		self.JDBCCursor = None
 		
+
+	def connectToImpala(self, logger=""):
+		log = logging.getLogger(logger)
+		if self.impalaDriver == None:
+			log.info("Impala is not configured")
+			return
+
+		if self.impalaJDBCCursor == None:
+			log.info("Connecting to Impala")
+			log.debug("Connecting to Impala over JDBC")
+			log.debug("   impalaDriver = %s"%(self.impalaDriver))
+			log.debug("   impalaClasspath = %s"%(self.impalaClasspath))
+			log.debug("   impalaAddress = %s"%(self.impalaAddress))
+
+			try:
+				JDBCCredentials = [ self.jdbc_username, self.jdbc_password ]
+
+				self.impalaJDBCConn = jaydebeapi.connect(self.impalaClasspath, self.impalaAddress, [], self.impalaDriver)
+				self.impalaJDBCCursor = self.impalaJDBCConn.cursor()
+				log.info("Connected to Impala")
+			except Exception as exception:
+				log.error("Connection to Impala failed with the following error:")
+				log.error(exception.message())
+
+
+	def disconnectFromImpala(self, logger=""):
+		log = logging.getLogger(logger)
+		log.info("Disconnecting from Impala")
+
+		try:
+			self.impalaJDBCCursor.close()
+			self.impalaJDBCConn.close()
+
+		except AttributeError:
+			pass
+
+		except Exception as exception:
+			log.info("Unknown error during disconnection from Impala:")
+			log.info(exception.message())
+			pass
+
+
+		self.impalaJDBCCursor = None
+		
+
 	def connectToJDBC(self, allJarFiles=False, exitIfFailure=True, logger="", printError=True):
 		log = logging.getLogger(logger)
 
@@ -1228,6 +1289,11 @@ class config(object, metaclass=Singleton):
 			for row in self.mysql_cursor.fetchall():
 				if row[0] != "add path to JAR file":
 					self.jdbc_classpath_for_python.append(row[0])
+
+		if self.jdbc_driver == None:
+			log.error("There is no support for the configured JDBC Connection on this db alias. Please check configuration")
+			self.remove_temporary_files()
+			sys.exit(1)
 
 		if self.JDBCCursor == None:
 			log.debug("Connecting to database over JDBC")
@@ -1323,7 +1389,6 @@ class config(object, metaclass=Singleton):
 			query = "truncate table %s.%s"%(schema.lower(), table.lower())
 
 		if self.db_snowflake == True:
-#			query = "truncate table \"%s\".\"%s\""%(schema.upper(), table.upper())
 			query = "truncate table \"%s\".\"%s\""%(schema, table)
 
 		if query == None:
@@ -1356,7 +1421,6 @@ class config(object, metaclass=Singleton):
 			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema.lower(), table.lower())
 
 		if self.db_snowflake == True:
-#			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema.upper(), table.upper())
 			query = "select count(table_name) from information_schema.tables where table_catalog = '%s' and table_schema = '%s' and table_name = '%s'"%(self.jdbc_database, schema, table)
 
 		if query == None:
@@ -1402,6 +1466,33 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.executeJDBCquery() - Finished")
 		return result_df
 
+	def executeImpalaQuery(self, query):
+		""" Executes a query against Impala and return the values in a Pandas DF """
+		logging.debug("Executing common_config.executeImpalaQuery()")
+
+		logging.debug("Query to execute: %s"%(query))
+		try:
+			self.connectToImpala()
+			self.impalaJDBCCursor.execute(query)
+		except jaydebeapi.DatabaseError as errMsg:
+			raise SQLerror(errMsg)	
+
+		result_df = pd.DataFrame()
+		try:
+			result_df = pd.DataFrame(self.impalaJDBCCursor.fetchall())
+			if result_df.empty == False:
+				result_df_columns = []
+				for columns in self.impalaJDBCCursor.description:
+					result_df_columns.append(columns[0])    # Name of the column is in the first position
+				result_df.columns = result_df_columns
+		except jaydebeapi.Error:
+			logging.debug("An error was raised during impalaJDBCCursor.fetchall(). This happens during SQL operations that dont return any rows like 'create table'")
+			
+		# Set the correct column namnes in the DataFrame
+
+		logging.debug("Executing common_config.executeImpalaQuery() - Finished")
+		return result_df
+
 
 	def getJDBCTableRowCount(self, source_schema, source_table, whereStatement=None):
 		logging.debug("Executing common_config.getJDBCTableRowCount()")
@@ -1432,9 +1523,11 @@ class config(object, metaclass=Singleton):
 
 		if self.db_snowflake == True:		
 			query = "select count(1) from \"%s\".\"%s\""%(source_schema, source_table)
-#			query = "select count(1) from \"%s\".\"%s\""%(source_schema.upper(), source_table.upper())
 
 		if self.db_informix == True:		
+			query = "select count(1) from %s.%s"%(source_schema, source_table)
+
+		if self.db_sqlanywhere == True:		
 			query = "select count(1) from %s.%s"%(source_schema, source_table)
 
 		if whereStatement != None and whereStatement != "":
@@ -1478,7 +1571,6 @@ class config(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
-#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, value, description ) "
 		query += "values "
@@ -1499,7 +1591,6 @@ class config(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
-#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
 		query += "values "
@@ -1517,7 +1608,6 @@ class config(object, metaclass=Singleton):
 		if hiveDB == None: hiveDB = self.Hive_DB
 		if hiveTable == None: hiveTable = self.Hive_Table
 
-#		query  = "insert into hive_table_change_history "
 		query  = "insert into table_change_history "
 		query += "( hive_db, hive_table, column_name, eventtime, event, previous_value, value, description ) "
 		query += "values "
@@ -1582,6 +1672,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.DB2_AS400:    quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.SNOWFLAKE:    quoteAroundColumn = "\""
 		if self.jdbc_servertype == constant.INFORMIX:     quoteAroundColumn = "\""
+		if self.jdbc_servertype == constant.SQLANYWHERE:  quoteAroundColumn = "`"
 
 		return quoteAroundColumn
 
@@ -1589,7 +1680,6 @@ class config(object, metaclass=Singleton):
 		upperCase = False
 		if self.jdbc_servertype == constant.ORACLE:       upperCase = True
 		if self.jdbc_servertype == constant.DB2_UDB:      upperCase = True
-#		if self.jdbc_servertype == constant.SNOWFLAKE:    upperCase = True
 
 		return upperCase
 
@@ -1606,6 +1696,7 @@ class config(object, metaclass=Singleton):
 		if self.jdbc_servertype == constant.DB2_AS400:    fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.SNOWFLAKE:    fromTable = "\"%s\".\"%s\""%(schema, table)
 		if self.jdbc_servertype == constant.INFORMIX:     fromTable = "%s.%s"%(schema, table)
+		if self.jdbc_servertype == constant.SQLANYWHERE:  fromTable = "%s"%(table)
 
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable
@@ -1616,10 +1707,10 @@ class config(object, metaclass=Singleton):
 		returnValue = None
 		boolValue = False
 	
-		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_airflow_dag_operations", "rest_verifyssl"):
+		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata"):
 			valueColumn = "valueInt"
 			boolValue = True
-		elif key in ("sqoop_import_default_mappers", "sqoop_import_max_mappers", "sqoop_export_default_mappers", "sqoop_export_max_mappers", "spark_export_default_executors", "spark_export_max_executors", "spark_import_default_executors", "spark_import_max_executors", "atlas_discovery_interval", "airflow_major_version", "rest_timeout"):
+		elif key in ("spark_max_executors", "import_default_sessions", "import_max_sessions", "export_default_sessions", "export_max_sessions", "atlas_discovery_interval", "airflow_major_version", "rest_timeout"):
 			valueColumn = "valueInt"
 		elif key in ("import_staging_database", "export_staging_database", "hive_validate_table", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile"):
 			valueColumn = "valueStr"
@@ -1634,28 +1725,30 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor.execute(query)
 		row = self.mysql_cursor.fetchone()
 
-		if valueColumn == "valueInt":
-			returnValue = int(row[0])
+		try:
+			if valueColumn == "valueInt":
+				returnValue = int(row[0])
+	
+			if valueColumn == "valueStr":
+				returnValue = row[0]
+				if returnValue == None or returnValue.strip() == "":
+					logging.error("Configuration Key '%s' must have a value in '%s'"%(key, valueColumn))
+					self.remove_temporary_files()
+					sys.exit(1)
 
-		if valueColumn == "valueStr":
-			returnValue = row[0]
-			if returnValue == None or returnValue.strip() == "":
-				logging.error("Configuration Key '%s' must have a value in '%s'"%(key, valueColumn))
-				self.remove_temporary_files()
-				sys.exit(1)
-
-		if boolValue == True:
-			if returnValue == 1:
-				returnValue = True
-			elif returnValue == 0:
-				returnValue = False
-			else:
-				logging.error("Configuration Key '%s' can only have 0 or 1 in column '%s'"%(key, valueColumn))
-				self.remove_temporary_files()
-				sys.exit(1)
-
-		# if key == "post_data_to_kafka":
-		# 	returnValue = True
+			if boolValue == True:
+				if returnValue == 1:
+					returnValue = True
+				elif returnValue == 0:
+					returnValue = False
+				else:
+					logging.error("Configuration Key '%s' can only have 0 or 1 in column '%s'"%(key, valueColumn))
+					self.remove_temporary_files()
+					sys.exit(1)
+		except TypeError:
+			logging.error("Configuration key '%s' cant be found. Have you upgraded the database schema to the latest version?"%(key))
+			self.remove_temporary_files()
+			sys.exit(1)
 
 		logging.debug("Fetched configuration '%s' as '%s'"%(key, returnValue))
 		logging.debug("Executing common_config.getConfigValue() - Finished")
@@ -1836,11 +1929,6 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (query))
 		self.mysql_cursor.execute(query, (datatype, destination, json))
 		self.mysql_conn.commit()
-
-#		query = "insert into json_to_rest (type, status, jsondata) values ('import_statistics', 0, %s)"
-#		self.mysql_cursor.execute(query, (json.dumps(jsonDataREST), ))
-#		self.mysql_conn.commit()
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
 
 		logging.debug("Executing common_config.saveJsonToDatabase() - Finished")
 

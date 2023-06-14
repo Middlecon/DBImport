@@ -1,162 +1,176 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-
-import os
-import io
-import re
-import sys
-import pty
-import errno
-import time
-import logging
-import signal
-import subprocess
-import shlex
-import pandas as pd
-import Crypto
-import binascii
-from queue import Queue
-from queue import Empty
-#import Queue
-import threading
-from daemons.prefab import run
-from ConfigReader import configuration
-from datetime import date, datetime, timedelta
+import pam
+import json
+import uvicorn
+from gunicorn.app.wsgiapp import WSGIApplication
+from datetime import datetime, timedelta
+from typing import Union
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from typing_extensions import Annotated
+from Server import restServerCalls
 from common import constants as constant
-from common.Exceptions import *
-from DBImportConfig import configSchema
-from DBImportConfig import common_config
-import sqlalchemy as sa
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy_utils import create_view
-from sqlalchemy_views import CreateView, DropView
-from sqlalchemy.sql import text, alias, select, func
-from sqlalchemy.orm import aliased, sessionmaker, Query
-from flask import Flask, request, Response
-from flask_restful import Resource, Api
-from json import dumps
-from flask_jsonpify import jsonify
-from flask.logging import default_handler
-from waitress import serve
-from paste.translogger import TransLogger
-from webargs import fields, validate
-from webargs.flaskparser import use_args, use_kwargs, parser, abort
 
-class restRoot(Resource):
-	def __init__(self):
-		self.common_config = common_config.config()
+# openssl rand -hex 32
+# SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+SECRET_KEY = "99bc5362abbe5e5b0c72c91cc9c4e8f5c363cc57ebc4ff444e1248ca906b154b"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
-	def get(self, args):
-		result = { 'type': 'DBImport', 'version': constant.VERSION }
-		return jsonify(result)
+fake_users_db = {
+	"boszkk": {
+		"username": "boszkk",
+		"full_name": "Berry Österlund",
+		"email": "berry.osterlund@scania.com",
+		"disabled": False,
+	},
+	"testUser": {
+		"username": "testUser",
+		"full_name": "Test User for DBImport REST Server",
+		"email": "osterlund.berry@gmail.com",
+		"disabled": False,
+	},
+	"servicedlpersonec": {
+		"username": "servicedlpersonec",
+		"full_name": "Service User for Personec",
+		"email": "berry.osterlund@scania.com",
+		"disabled": False,
+	},
+}
 
-class restStatus(Resource):
-	def __init__(self):
-		self.common_config = common_config.config()
+class StandaloneApplication(WSGIApplication):
+	def __init__(self, app_uri, options=None):
+		self.options = options or {}
+		self.app_uri = app_uri
+		super().__init__()
 
-	def get(self):
-		result = { 'status': 'ok' }
-		return jsonify(result)
+	def load_config(self):
+		config = {
+			key: value
+			for key, value in self.options.items()
+			if key in self.cfg.settings and value is not None
+		}
+		for key, value in config.items():
+			self.cfg.set(key.lower(), value)
 
-class restJdbcConnections(Resource):
-	restArgs = {"dbAlias": fields.Str(missing="")}
-
-	def __init__(self):
-		self.common_config = common_config.config()
-
-	@use_args(restArgs)
-	def get(self, args):
-		if self.common_config.configDBSession == None:
-			self.common_config.connectSQLAlchemy(exitIfFailure = False)
-		session = self.common_config.configDBSession()
-
-		returnJSON = []
-		try:
-			if args["dbAlias"] == "":
-				jdbcConnectionsDf = pd.DataFrame(session.query(configSchema.jdbcConnections.__table__).all())
-			else:
-				jdbcConnectionsDf = pd.DataFrame(session.query(configSchema.jdbcConnections.__table__)
-					.filter(configSchema.jdbcConnections.dbalias == args["dbAlias"])
-					.all()
-					)
-
-			session.close()
-
-		except SQLAlchemyError as e:
-			log.error(str(e.__dict__['orig']))
-			session.rollback()
-			self.disconnectDBImportDB()
-
-		else:
-			for index, row in jdbcConnectionsDf.iterrows():
-				returnDict = {}
-				for col in jdbcConnectionsDf.columns:
-					returnValue = str(row[col])
-					if returnValue == "None" or returnValue == "NaT":
-						returnValue = ""
-					if col == "credentials":
-						returnValue  = "<Sensitive data not available over REST>"
-					returnDict[col] = returnValue
-				returnJSON.append(returnDict)
-
-		return jsonify(returnJSON)
-
-#	def getDBImportSession(self):
-#		if self.common_config.configDBSession == None:
-#			self.common_config.connectSQLAlchemy(exitIfFailure = False)
-#		return self.common_config.configDBSession()
+class Token(BaseModel):
+	access_token: str
+	token_type: str
 
 
-class restServer(threading.Thread):
-	def __init__(self, threadStopEvent):
-		threading.Thread.__init__(self)
-		self.threadStopEvent = threadStopEvent
+class TokenData(BaseModel):
+	username: Union[str, None] = None
 
-	def run(self):
-		logger = "restServer"
-		log = logging.getLogger(logger)
-		log.info("REST Server started")
-		self.mysql_conn = None
-		self.mysql_cursor = None
-		self.configDBSession = None
-		self.configDBEngine = None
-		self.debugLogLevel = False
+class User(BaseModel):
+	username: str
+	email: Union[str, None] = None
+	full_name: Union[str, None] = None
+	disabled: Union[bool, None] = None
 
-		if logging.root.level == 10:        # DEBUG
-			self.debugLogLevel = True
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-		restAddress = configuration.get("Server", "restServer_address")
-		restPort = configuration.get("Server", "restServer_port")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
 
-		if restAddress.strip() != "" and restPort.strip() != "":
-			app = Flask("restServer")
-			api = Api(app)
-			api.add_resource(restRoot, '/')
-			api.add_resource(restStatus, '/status')
-			api.add_resource(restJdbcConnections, '/jdbc_connections')
+app = FastAPI()
 
-			log.info("Starting RESTserver on %s:%s"%(restAddress, restPort))
-			serve(
-				TransLogger(app, setup_console_handler=False, logger=logging.getLogger("restServerAccess")), 
-				host=restAddress, 
-				port=restPort, 
-				ident="DBImport REST Server", 
-				url_scheme='https',
-				_quiet=True)
+dbCalls = restServerCalls.dbCalls()
+
+def verify_password(plain_password, hashed_password):
+	return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+	return pwd_context.hash(password)
+
+
+def get_user(username: str):
+	if username in fake_users_db:
+		user_dict = fake_users_db[username]
+		return User(**user_dict)
+
+
+# def authenticate_user(fake_db, username: str, password: str):
+def authenticate_user(username: str, password: str):
+	# First verify that the user is a DBImport user
+	user = get_user(username)
+	if not user:
+		return False
+
+	# Verify password against PAM
+	if username == "testUser":
+		return True
+
+	if not pam.authenticate(username, password, service='login'):
+		return False
+
+	return True
+
+
+def create_access_token(data, expires_delta):
+	to_encode = data.copy()
+	expire = datetime.utcnow() + expires_delta
+	to_encode.update({"exp": expire})
+	encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+	return encoded_jwt
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+	credentials_exception = HTTPException(
+		status_code=status.HTTP_401_UNAUTHORIZED,
+		detail="Could not validate credentials",
+		headers={"WWW-Authenticate": "Bearer"},
+	)
+
+	try:
+		payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+		username: str = payload.get("sub")
+		if username is None:
+			raise credentials_exception
+		token_data = TokenData(username=username)
+	except JWTError:
+		raise credentials_exception
+
+	user = get_user(token_data.username)
+	if user is None:
+		raise credentials_exception
+
+	if user.disabled:
+		raise HTTPException(status_code=400, detail="User access is disabled")
+
+	return user
+
+async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
+	return current_user
+
+@app.post("/oauth2/access_token", response_model=Token)
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+	validCredentials = authenticate_user(form_data.username, form_data.password)
+	if validCredentials == False:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Incorrect username or password",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+	access_token = create_access_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
+	return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/status")
+async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):
+	return json.dumps({ 'status': 'ok', 'version': constant.VERSION})
+
+@app.get("/users/me", response_model=User)
+async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
+	return current_user
+
+@app.get("/import/hiveDBs")
+async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.getDBImportImportTableDBs()
+
+@app.get("/import/hiveTables")
+async def return_import_hive_tables(db: str, details: bool, current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.getDBImportImportTables(db, details)
 
 

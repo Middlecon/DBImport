@@ -1,5 +1,5 @@
 # DBImport specific
-VERSION = "0.71"
+VERSION = "0.80.003"
 
 # Database types
 MYSQL = "mysql"
@@ -14,6 +14,7 @@ CACHEDB = "cache"
 SNOWFLAKE = "snowflake"
 AWS_S3 = "aws_s3"
 INFORMIX = "informix"
+SQLANYWHERE = "sqlanywhere"
 
 # Key constraints
 PRIMARY_KEY = "P"
@@ -39,6 +40,9 @@ EXPORT_PHASE_INCR = "incr"
 
 VALIDATION_METHOD_ROWCOUNT = "rowCount"
 VALIDATION_METHOD_CUSTOMQUERY = "customQuery"
+
+ETL_ENGINE_HIVE = "hive"
+ETL_ENGINE_SPARK = "spark"
 
 # General result
 RESULT_OK = "ok"
