@@ -1632,8 +1632,6 @@ class config(object, metaclass=Singleton):
 			logging.error("Unknown error when deleting old index data from DBImport configuration database")
 			raise(e)
 
-
-
 		try:
 			for index, row in self.common_config.source_index_df.sort_values(by=['Name', 'ColumnOrder']).iterrows():
 	
@@ -1652,7 +1650,12 @@ class config(object, metaclass=Singleton):
 						"    `column_is_nullable` "
 						") values ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )")
 
-				columnType = self.common_config.source_columns_df.loc[self.common_config.source_columns_df['SOURCE_COLUMN_NAME'] == row[3], 'SOURCE_COLUMN_TYPE'].iloc[0]
+				try:
+					columnType = self.common_config.source_columns_df.loc[self.common_config.source_columns_df['SOURCE_COLUMN_NAME'] == row[3], 'SOURCE_COLUMN_TYPE'].iloc[0]
+				except IndexError:
+					# There are examples where an index indicate that a specific columns should be included, but that column does not exist in the table. 
+					# If that is the case, we will get an IndexError here and that is what we need to handle as it obvious is incorrect
+					continue
 
 				try:
 					self.mysql_cursor02.execute(query, (self.table_id, self.Hive_DB, self.Hive_Table, row[0], row[1], row[2], row[3], columnType, row[4], row[5] ))

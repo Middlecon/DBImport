@@ -173,7 +173,6 @@ class config(object, metaclass=Singleton):
 		self.sparkDeployMode = configuration.get("Spark", "deployMode")
 		self.sparkYarnQueue = configuration.get("Spark", "yarnqueue")
 		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
-#		self.sparkHDPversion = configuration.get("Spark", "hdp_version")
 		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
 
 		if configuration.get("Spark", "dynamic_allocation").lower() == "true":

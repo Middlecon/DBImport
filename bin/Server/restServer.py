@@ -23,19 +23,19 @@ fake_users_db = {
 	"boszkk": {
 		"username": "boszkk",
 		"full_name": "Berry Österlund",
-		"email": "berry.osterlund@scania.com",
+		"email": "berry.osterlund@test.com",
 		"disabled": False,
 	},
 	"testUser": {
 		"username": "testUser",
 		"full_name": "Test User for DBImport REST Server",
-		"email": "osterlund.berry@gmail.com",
+		"email": "berry.osterlund@middlecon.se",
 		"disabled": False,
 	},
 	"servicedlpersonec": {
-		"username": "servicedlpersonec",
-		"full_name": "Service User for Personec",
-		"email": "berry.osterlund@scania.com",
+		"username": "servicedl",
+		"full_name": "Service User",
+		"email": "berry.osterlund@test.com",
 		"disabled": False,
 	},
 }
@@ -99,8 +99,8 @@ def authenticate_user(username: str, password: str):
 		return False
 
 	# Verify password against PAM
-	if username == "testUser":
-		return True
+#	if username == "testUser":
+#		return True
 
 	if not pam.authenticate(username, password, service='login'):
 		return False

@@ -1020,12 +1020,6 @@ class operation(object, metaclass=Singleton):
 		sparkVersion = "%s.%s.%s"%(sparkVersionSplit[0], sparkVersionSplit[1], sparkVersionSplit[2])
 		logging.info("Running with Spark Version %s"%(sparkVersion))
 		
-#		if sparkVersion.endswith(self.export_config.common_config.sparkHDPversion):
-#			sparkVersion = sparkVersion.replace('.%s'%(self.export_config.common_config.sparkHDPversion), '') 
-
-#		if sparkVersion.count('.') > 2:
-#			logging.warning("Cant determine Spark version. Did you set a proper 'hdp_version' in the configuration file?")
-
 		if sparkVersion < "2.3.2" and columnStartingWithUnderscoreFound == True:
 			logging.error("Spark version 2.3.2 or higher is required to export columns starting with '_'. This export is running with version %s"%(sparkVersion))
 			sc.stop()
