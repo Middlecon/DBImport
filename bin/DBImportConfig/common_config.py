@@ -805,7 +805,8 @@ class config(object, metaclass=Singleton):
 
 			if self.jdbc_url.startswith('jdbc:oracle:thin:@ldap'):
 				pattern = r'@ldap://([^:/]+):(\d+)/([^,]+),'
-				if pattern is None:
+				r = re.search(pattern, self.jdbc_url)
+				if r is None:
 					logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
 					exit_after_function = True
 			else:
