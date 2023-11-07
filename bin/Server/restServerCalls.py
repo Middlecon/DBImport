@@ -261,3 +261,62 @@ class dbCalls:
 	
 
 		
+	def getDBImportImportTableDetails(self, db, table):
+		""" Returns all import table details """
+		log = logging.getLogger()
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		importTables = aliased(configSchema.importTables)
+		listOfTables = []
+
+		# Return a list of hive tables without the details
+		importTablesData = (session.query(*)
+				.select_from(importTables)
+				.filter((importTables.hive_db == db) & (importTables.hive_table == table))
+				.all()).fillna('')
+			)
+
+			for row in importTablesData:
+				listOfTables.append(row[0])
+
+#		else:
+#			# Return a list of Hive tables with details
+#			importTablesData = (session.query(
+#						importTables.hive_table,
+#						importTables.dbalias,
+#						importTables.source_schema,
+#						importTables.source_table,
+#						importTables.import_phase_type,
+#						importTables.etl_phase_type,
+#						importTables.import_tool
+#					)
+#					.select_from(importTables)
+#					.filter(importTables.hive_db == db)
+#					.all()
+#				)
+#
+#			for row in importTablesData:
+#				tempDict = {}
+#				tempDict['hiveTable'] = row[0]
+#				tempDict['dbAlias'] = row[1]
+#				tempDict['sourceSchema'] = row[2]
+#				tempDict['sourceTable'] = row[3]
+#				tempDict['importPhaseType'] = row[4]
+#				tempDict['etlPhaseType'] = row[5]
+#				tempDict['importTool'] = row[6]
+#
+#				listOfTables.append(tempDict)
+
+
+		jsonResult = json.dumps(listOfTables)
+		session.close()
+
+		return jsonResult
+	
+
+		

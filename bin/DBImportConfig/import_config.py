@@ -145,9 +145,10 @@ class config(object, metaclass=Singleton):
 		self.mongoImport = None
 
 		self.common_config = common_config.config(Hive_DB, Hive_Table)
+		self.common_config.operationType = "import"
 		self.sendStatistics = sendStatistics.sendStatistics()
 
-		self.startDate    = self.common_config.startDate
+		self.startDate = self.common_config.startDate
 		self.mysql_conn = self.common_config.mysql_conn
 		self.mysql_cursor01 = self.mysql_conn.cursor(buffered=True)
 		self.mysql_cursor02 = self.mysql_conn.cursor(buffered=True)
@@ -355,7 +356,8 @@ class config(object, metaclass=Singleton):
 				"    mergeCompactionMethod, "
 				"    hive_split_count, "
 				"    etl_engine, "
-				"    spark_executors "
+				"    spark_executors, "
+				"    last_update_from_source "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -453,6 +455,8 @@ class config(object, metaclass=Singleton):
 		self.hiveSplitCount = row[45]
 		self.etlEngine = row[46]
 		self.sparkMaxExecutors = row[47]
+		
+		self.common_config.operationTimestamp = row[48]
 
 #		invalidateImpalaMetadataValue = row[48]
 		invalidateImpalaMetadataValue = -1
@@ -941,6 +945,14 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
 
+		# We re-read the date just to make sure we have the exakt same in common_config. This will later be used to group yarn applications per import
+		query = "select last_update_from_source from import_tables where hive_db = %s and hive_table = %s "
+		self.mysql_cursor01.execute(query, (self.Hive_DB, self.Hive_Table))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		row = self.mysql_cursor01.fetchone()
+		self.common_config.operationTimestamp = row[0]
+
 		logging.debug("Executing import_config.updateLastUpdateFromSource() - Finished")
 
 	def saveIncrMinValue(self):
@@ -986,7 +998,6 @@ class config(object, metaclass=Singleton):
 		logging.debug("")
 		logging.debug("Executing import_config.removeFKforTable()")
 
-		# Update the import_tables.last_update_from_source with the current date
 		query = "delete from import_foreign_keys where table_id = %s"
 		logging.debug("")
 		logging.debug("Deleting FK's from import_foreign_keys")

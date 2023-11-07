@@ -72,7 +72,11 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor = None
 		self.tempdir = None
 		self.startDate = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f') 
+		self.operationType = None
 		self.dbAlias = None
+		self.targetSchema = None
+		self.targetTable = None
+
 
 		# Variables used in lookupConnectionAlias
 		self.db_mssql = False
@@ -141,6 +145,9 @@ class config(object, metaclass=Singleton):
 		self.sparkExecutorMemory = None
 #		self.sparkHDPversion = None
 		self.sparkHiveLibrary = None
+
+		self.operationTimestamp = None
+		self.yarnApplicationStart = None
 
 		self.sourceSchema = None
 		self.tableType = None
@@ -236,7 +243,6 @@ class config(object, metaclass=Singleton):
 		else:
 			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
 
-		logging.debug("startDate = %s"%(self.startDate))
 		logging.debug("Executing common_config.__init__() - Finished")
 
 	def disconnectConfigDatabase(self):
@@ -1938,3 +1944,52 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.saveJsonToDatabase() - Finished")
 
+
+	def updateYarnStatistics(self, yarnApplicationID, operationTool, yarnContainersTotal = None, yarnContainersFailed = None, yarnContainersKilled = None): 
+		""" insert or update data to yarn_statistics """
+		logging.debug("Executing common_config.updateYarnStatistics()")
+
+		query = None
+		startStopDate = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		if yarnContainersTotal == None:
+			# If it's None, it means that it was called when query was started. At this stage, we need to insert the data
+
+			if self.operationType == "import": 
+				self.yarnApplicationStart = startStopDate
+
+				query  = "insert into yarn_statistics "
+				query += "( yarn_application_id, operation_timestamp, operation_tool, operation_type, hive_db, hive_table, application_start ) "
+				query += "values "
+				query += "( %s, %s, %s, 'import', %s, %s, %s )"
+
+				logging.debug("SQL Statement executed: %s" % (query))
+				self.mysql_cursor.execute(query, (yarnApplicationID, self.operationTimestamp, operationTool, self.Hive_DB, self.Hive_Table, startStopDate))
+				self.mysql_conn.commit()
+
+			if self.operationType == "export": 
+				self.yarnApplicationStart = startStopDate
+
+				query  = "insert into yarn_statistics "
+				query += "( yarn_application_id, operation_timestamp, operation_tool, operation_type, dbalias, target_schema, target_table, application_start ) "
+				query += "values "
+				query += "( %s, %s, %s, 'export', %s, %s, %s, %s )"
+
+				logging.debug("SQL Statement executed: %s" % (query))
+				self.mysql_cursor.execute(query, (yarnApplicationID, self.operationTimestamp, operationTool, self.dbAlias, self.targetSchema, self.targetTable, startStopDate))
+				self.mysql_conn.commit()
+
+
+		else:
+			if self.yarnApplicationStart == None:
+				# This is just a protection-function and should under normal operations never happen as a query must start before we get any data up update about. 
+				return
+
+			query  = "update yarn_statistics "
+			query += "set application_stop = %s, yarn_containers_total = %s, yarn_containers_failed = %s, yarn_containers_killed = %s "
+			query += "where yarn_application_id = %s and application_start = %s"
+
+			logging.debug("SQL Statement executed: %s" % (query))
+			self.mysql_cursor.execute(query, (startStopDate, yarnContainersTotal, yarnContainersFailed, yarnContainersKilled, yarnApplicationID, self.yarnApplicationStart))
+			self.mysql_conn.commit()
+
+		logging.debug("Executing common_config.updateYarnStatistics() - Finished")

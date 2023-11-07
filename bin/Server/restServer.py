@@ -32,7 +32,7 @@ fake_users_db = {
 		"email": "berry.osterlund@middlecon.se",
 		"disabled": False,
 	},
-	"servicedlpersonec": {
+	"servicedl": {
 		"username": "servicedl",
 		"full_name": "Service User",
 		"email": "berry.osterlund@test.com",
@@ -172,5 +172,9 @@ async def return_import_hive_db(current_user: Annotated[User, Depends(get_curren
 @app.get("/import/hiveTables")
 async def return_import_hive_tables(db: str, details: bool, current_user: Annotated[User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTables(db, details)
+
+@app.get("/import/hiveTableDetails")
+async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.getDBImportImportTableDetails(db, table)
 
 

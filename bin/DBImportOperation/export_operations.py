@@ -36,6 +36,9 @@ import pandas as pd
 import numpy as np
 import time
 import boto3
+import json
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL
 
 class operation(object, metaclass=Singleton):
 	def __init__(self, connectionAlias=None, targetSchema=None, targetTable=None):
@@ -932,6 +935,8 @@ class operation(object, metaclass=Singleton):
 				self.sqoopMappers = self.export_config.sparkMaxExecutors
 
 		if self.export_config.common_config.jdbc_servertype == constant.AWS_S3:
+			conf.set('spark.sql.parquet.datetimeRebaseModeInWrite', 'LEGACY')
+
 			if self.export_config.common_config.awsS3proxyServer != None:
 				os.environ['HTTPS_PROXY'] = self.export_config.common_config.awsS3proxyServer
 				awsS3proxyHost = self.export_config.common_config.awsS3proxyServer.split('//')[1].split(':')[0]
@@ -1010,9 +1015,11 @@ class operation(object, metaclass=Singleton):
 			sc = SparkContext(conf=conf)
 			spark = SparkSession(sc)
 
-		yarnApplicationID = sc.applicationId
-		logging.info("Yarn application started with id %s"%(yarnApplicationID))
+		self.yarnApplicationID = sc.applicationId
+		logging.info("Yarn application started with id %s"%(self.yarnApplicationID))
 		sys.stdout.flush()
+
+		self.export_config.common_config.updateYarnStatistics(self.yarnApplicationID, "spark")
 
 		# Determine Spark version and find incompatable exports
 		sparkVersionSplit = spark.version.split(".")
@@ -1059,6 +1066,21 @@ class operation(object, metaclass=Singleton):
 											table=sparkWriteTable,
 											properties=JDBCconnectionProperties
 										)
+		sparkURL = "%s/api/v1/applications/%s/allexecutors"%(sc.uiWebUrl, self.yarnApplicationID)
+		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
+		sparkAuth = HTTPKerberosAuth(force_preemptive=True, principal=self.kerberosPrincipal, mutual_authentication=OPTIONAL)
+
+		response = requests.get(sparkURL, auth=sparkAuth, verify=False)
+		responseJson = response.json()
+
+		sparkExecutorCount = 0
+		for i in responseJson:
+			if i["id"] != "driver":
+				sparkExecutorCount += 1
+
+		self.export_config.common_config.updateYarnStatistics(self.yarnApplicationID, "spark",
+		yarnContainersTotal = sparkExecutorCount)
+
 			
 		time.sleep(1)	# Sleep 1 sec in order to avoid Yarn applications finished before program is able to get state		
 		sc.stop()
@@ -1401,4 +1423,5 @@ class operation(object, metaclass=Singleton):
 		if validateResult == False:
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
+
 

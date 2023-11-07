@@ -73,6 +73,7 @@ class airflowCustomDags(Base):
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
     retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
+    concurrency = Column(TINYINT(4), nullable=True, comment='Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration')
 
 
 class airflowDagSensors(Base):
@@ -111,6 +112,7 @@ class airflowEtlDags(Base):
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
     retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
+    concurrency = Column(TINYINT(4), nullable=True, comment='Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration')
 
 
 class airflowExportDags(Base):
@@ -137,6 +139,7 @@ class airflowExportDags(Base):
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
     retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
+    concurrency = Column(TINYINT(4), nullable=True, comment='Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration')
 
 
 
@@ -169,6 +172,7 @@ class airflowImportDags(Base):
     tags = Column(String(256), nullable=True, comment='Comma seperated list of Airflow tags that will be set on the Dag')
     sla_warning_time = Column(Time, nullable=True, comment='Maximum time this DAG should run before Airflow triggers a SLA miss')
     retry_exponential_backoff = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, 0 = Run with a fixed time of 5 min between the task retries')
+    concurrency = Column(TINYINT(4), nullable=True, comment='Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration')
 
 
 class autoDiscoveredTable(Base):

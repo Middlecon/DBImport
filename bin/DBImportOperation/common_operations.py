@@ -389,6 +389,7 @@ class operation(object, metaclass=Singleton):
 		firstOutputLine = True
 		errorsFound = False
 		linesToJumpUp = 0
+		yarnApplicationID = None
 		while status in (TOperationState.INITIALIZED_STATE, TOperationState.RUNNING_STATE):
 			# If the user configured to print the logs, we do it here
 			logs = self.hive_cursor.fetch_logs()
@@ -398,6 +399,10 @@ class operation(object, metaclass=Singleton):
 				else:
 					if ( "Executing on YARN cluster with App id" in message ):
 						print(message)
+						if yarnApplicationID == None:
+							# In rare cases, this happened twice with duplicate key error. With this IF statement, that problem is gone
+							yarnApplicationID = "application_" + message.split("application_")[1].split(")")[0]
+							self.common_config.updateYarnStatistics(yarnApplicationID, "hive")
 
 				if re.search('^ERROR ', message):	
 					logging.error("An ERROR occured in the Hive execution")
@@ -441,14 +446,29 @@ class operation(object, metaclass=Singleton):
 
 		# At this point, the query is not running anymore. We now print the last result of the Vertex informaton
 		rowsPrinted = False
+		yarnContainersTotal = 0
+		yarnContainersFailed = 0
+		yarnContainersKilled = 0
 		for row in self.hive_cursor.poll().progressUpdateResponse.rows:
 			try:
 				print("%-16s %12s %12s %11s %11s %9s %9s %8s %8s"%(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]))
+				if row[2] == "SUCCEEDED":
+					yarnContainersTotal += int(row[3])
+					yarnContainersFailed += int(row[7])
+					yarnContainersKilled += int(row[8])
 			except IndexError:
 				print(headers)
 			rowsPrinted = True
 		if rowsPrinted == True: print("")		# So we get passed the elapsed time message
 		print("")
+
+		if yarnApplicationID != None: 
+			self.common_config.updateYarnStatistics(yarnApplicationID, "hive", yarnContainersTotal, yarnContainersFailed, yarnContainersKilled)
+#			print("yarnApplicationID: %s"%yarnApplicationID)
+#			print("yarnContainersTotal: %s"%yarnContainersTotal)
+#			print("yarnContainersFailed: %s"%yarnContainersFailed)
+#			print("yarnContainersKilled: %s"%yarnContainersKilled)
+#			print("")
 
 		# If the user configured to print the logs, we do it here
 		logs = self.hive_cursor.fetch_logs()

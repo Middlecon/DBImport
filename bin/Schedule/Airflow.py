@@ -177,7 +177,8 @@ class initialize(object):
 				airflowExportDags.email_on_retries,
 				airflowExportDags.tags,
 				airflowExportDags.sla_warning_time,
-				airflowExportDags.retry_exponential_backoff
+				airflowExportDags.retry_exponential_backoff,
+				airflowExportDags.concurrency
 			)
 			.select_from(airflowExportDags)
 			.all()).fillna('')
@@ -202,7 +203,8 @@ class initialize(object):
 				airflowImportDags.email_on_retries,
 				airflowImportDags.tags,
 				airflowImportDags.sla_warning_time,
-				airflowImportDags.retry_exponential_backoff
+				airflowImportDags.retry_exponential_backoff,
+				airflowImportDags.concurrency
 			)
 			.select_from(airflowImportDags)
 			.all()).fillna('')
@@ -223,7 +225,8 @@ class initialize(object):
 				airflowEtlDags.email_on_retries,
 				airflowEtlDags.tags,
 				airflowEtlDags.sla_warning_time,
-				airflowEtlDags.retry_exponential_backoff
+				airflowEtlDags.retry_exponential_backoff,
+				airflowEtlDags.concurrency
 			)
 			.select_from(airflowEtlDags)
 			.all()).fillna('')
@@ -240,7 +243,8 @@ class initialize(object):
 				airflowCustomDags.email_on_retries,
 				airflowCustomDags.tags,
 				airflowCustomDags.sla_warning_time,
-				airflowCustomDags.retry_exponential_backoff
+				airflowCustomDags.retry_exponential_backoff,
+				airflowCustomDags.concurrency
 			)
 			.select_from(airflowCustomDags)
 			.all()).fillna('')
@@ -306,7 +310,7 @@ class initialize(object):
 		usedPools.append(defaultPool)
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'], concurrency = DAG['concurrency'])
 
 		session = self.configDBSession()
 		exportTables = aliased(configSchema.exportTables)
@@ -430,7 +434,7 @@ class initialize(object):
 			metaDataImportOption = ""
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'], concurrency = DAG['concurrency'])
 
 		session = self.configDBSession()
 		importTables = aliased(configSchema.importTables)
@@ -731,7 +735,7 @@ class initialize(object):
 			retries = int(DAG['retries'])
 
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
-		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'])
+		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'], concurrency = DAG['concurrency'])
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
@@ -760,7 +764,7 @@ class initialize(object):
 			return True
 
 
-	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None, retryExponentialBackoff=None):
+	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None, retryExponentialBackoff=None, concurrency=None):
 		session = self.configDBSession()
 
 		self.sensorStartTask = "start"
@@ -861,6 +865,12 @@ class initialize(object):
 
 		if tags != None and tags.strip() != "":
 			self.DAGfile.write("    tags=[%s],\n"%((', '.join(['"{}"'.format(value) for value in [x.strip() for x in tags.split(",")]]))))
+
+		try:
+			if int(concurrency) > 0: 
+				self.DAGfile.write("    concurrency=%s,\n"%(int(concurrency)))
+		except ValueError:
+		 	pass
 
 		self.DAGfile.write("    schedule_interval=%s)\n"%(cronSchedule))
 

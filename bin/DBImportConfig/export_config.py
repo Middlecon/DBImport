@@ -47,6 +47,10 @@ class config(object, metaclass=Singleton):
 		self.targetTable = targetTable
 
 		self.common_config = common_config.config()
+		self.common_config.operationType = "export"
+		self.common_config.targetSchema = targetSchema
+		self.common_config.targetTable = targetTable
+
 		self.sendStatistics = sendStatistics.sendStatistics()
 
 		self.startDate = self.common_config.startDate
@@ -228,7 +232,8 @@ class config(object, metaclass=Singleton):
 		query += "    validationCustomQueryTargetSQL, "
 		query += "    validationCustomQueryHiveValue, "
 		query += "    validationCustomQueryTargetValue, "
-		query += "    forceCreateTempTable "
+		query += "    forceCreateTempTable, "
+		query += "    last_update_from_hive "
 		query += "from export_tables "
 		query += "where "
 		query += "    dbalias = %s " 
@@ -264,6 +269,7 @@ class config(object, metaclass=Singleton):
 		self.validationCustomQueryHiveValue = row[18]
 		self.validationCustomQueryTargetValue = row[19]
 		self.forceCreateTempTable = row[20]
+		self.common_config.operationTimestamp = row[21]
 
 		if self.validateExport == 0:
 			self.validateExport = False
@@ -433,6 +439,14 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor01.execute(query, (self.startDate, self.tableID))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		self.mysql_conn.commit()
+
+		# We re-read the date just to make sure we have the exakt same in common_config. This will later be used to group yarn applications per import
+		query = "select last_update_from_hive from export_tables where table_id = %s "
+		self.mysql_cursor01.execute(query, (self.tableID,))
+		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
+
+		row = self.mysql_cursor01.fetchone()
+		self.common_config.operationTimestamp = row[0]
 
 		logging.debug("Executing export_config.updateLastUpdateFromHive() - Finished")
 

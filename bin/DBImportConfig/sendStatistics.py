@@ -215,6 +215,10 @@ class sendStatistics(object):
 			logging.error("Unrecognized broker version. Are you connecting to a secure Kafka broker without the correct security protocols?")
 			kafkaError = True
 
+		except kafka.errors.KafkaTimeoutError:
+			logging.error("Timeout error when trying to send statistics to Kafka")
+			kafkaError = True
+
 		if kafkaError == True:
 			result = False
 

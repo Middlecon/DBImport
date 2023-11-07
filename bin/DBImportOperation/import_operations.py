@@ -38,6 +38,9 @@ import numpy as np
 import time
 import base64
 import importlib
+import json
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL
 
 class operation(object, metaclass=Singleton):
 	def __init__(self, Hive_DB=None, Hive_Table=None):
@@ -56,12 +59,19 @@ class operation(object, metaclass=Singleton):
 		self.sqoopRows = None
 		self.sqoopIncrMaxValuePending = None
 		self.sqoopIncrNoNewRows = None
+		self.sqoopLaunchedMapTasks = None
+		self.sqoopFailedMapTasks = None
+		self.sqoopKilledMapTasks = None
+		self.sqoopLaunchedReduceTasks = None
+		self.sqoopFailedReduceTasks = None
+		self.sqoopKilledReduceTasks = None
 		self.sparkContext = None
 		self.spark = None
 		self.sparkUDF = None
 		self.udfHashColumn = None
 		self.udfReplaceCharWithStar = None
 		self.udfShowFirstFourCharacters = None
+		self.yarnApplicationID = None
 
 		self.globalHiveConfigurationSet = False
 
@@ -755,8 +765,8 @@ class operation(object, metaclass=Singleton):
 		spark.sql("set spark.sql.orc.impl=native")
 		sys.stdout.flush()
 
-		yarnApplicationID = sc.applicationId
-		logging.info("Yarn application started with id %s"%(yarnApplicationID))
+		self.yarnApplicationID = sc.applicationId
+		logging.info("Yarn application started with id %s"%(self.yarnApplicationID))
 		sys.stdout.flush()
 		
 		print("Loading data from Mongo")
@@ -1076,9 +1086,12 @@ class operation(object, metaclass=Singleton):
 			self.udfShowFirstFourCharacters = pyspark.sql.functions.udf(sparkUDF.showFirstFourCharacters, pyspark.sql.types.StringType())
 
 		# get Yarn info
-		yarnApplicationID = self.sparkContext.applicationId
-		logging.info("Yarn application started with id %s"%(yarnApplicationID))
+		self.yarnApplicationID = self.sparkContext.applicationId
+		logging.info("Yarn application started with id %s"%(self.yarnApplicationID))
+		self.import_config.common_config.updateYarnStatistics(self.yarnApplicationID, "spark") 
+
 		sys.stdout.flush()
+		# self.stopSpark()
 		
 		self.spark.sql("set spark.sql.orc.impl=native")
 
@@ -1086,6 +1099,23 @@ class operation(object, metaclass=Singleton):
 
 
 	def stopSpark(self):
+		# Connect to the Spark UI and request the API to get the total number of Executors used. This will be saved in the 'yarn_statistics' table
+		sparkURL = "%s/api/v1/applications/%s/allexecutors"%(self.sparkContext.uiWebUrl, self.yarnApplicationID)
+		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
+		sparkAuth = HTTPKerberosAuth(force_preemptive=True, principal=self.kerberosPrincipal, mutual_authentication=OPTIONAL)
+
+		requests.packages.urllib3.disable_warnings()		# Disable SSL/Cert warnings for Spark application API call
+		response = requests.get(sparkURL, auth=sparkAuth, verify=False)
+		responseJson = response.json()
+
+		sparkExecutorCount = 0
+		for i in responseJson:
+			if i["id"] != "driver":
+				sparkExecutorCount += 1
+
+		self.import_config.common_config.updateYarnStatistics(self.yarnApplicationID, "spark", 
+			yarnContainersTotal = sparkExecutorCount) 
+
 		self.sparkContext.stop()
 		self.sparkContext = None
 		self.spark = None
@@ -1392,6 +1422,13 @@ class operation(object, metaclass=Singleton):
 		# Fetch the number of mappers that should be used
 		self.import_config.calculateJobMappers()
 
+		self.sqoopLaunchedMapTasks = None
+		self.sqoopFailedMapTasks = None
+		self.sqoopKilledMapTasks = None
+		self.sqoopLaunchedReduceTasks = None
+		self.sqoopFailedReduceTasks = None
+		self.sqoopKilledReduceTasks = None
+
 		# Sets the correct sqoop table and schema that will be used if a custom SQL is not used
 		sqoopQuery = ""
 		sqoopSourceSchema = [] 
@@ -1587,6 +1624,22 @@ class operation(object, metaclass=Singleton):
 		if self.sqoopSize == None: self.sqoopSize = 0
 		if self.sqoopRows == None: self.sqoopRows = 0
 		
+		# Update table 'yarn_statistics'
+		yarnContainersTotal = 0
+		yarnContainersFailed = 0
+		yarnContainersKilled = 0
+		if self.sqoopLaunchedMapTasks != None:		yarnContainersTotal  += self.sqoopLaunchedMapTasks 
+		if self.sqoopLaunchedReduceTasks != None:	yarnContainersTotal  += self.sqoopLaunchedReduceTasks 
+		if self.sqoopFailedMapTasks != None:		yarnContainersFailed += self.sqoopFailedMapTasks 
+		if self.sqoopFailedReduceTasks != None:		yarnContainersFailed += self.sqoopFailedReduceTasks 
+		if self.sqoopKilledMapTasks != None:		yarnContainersKilled += self.sqoopKilledMapTasks 
+		if self.sqoopKilledReduceTasks != None:		yarnContainersKilled += self.sqoopKilledReduceTasks 
+
+		self.import_config.common_config.updateYarnStatistics(self.yarnApplicationID, "sqoop", 
+			yarnContainersTotal  = yarnContainersTotal, 
+			yarnContainersFailed = yarnContainersFailed, 
+			yarnContainersKilled = yarnContainersKilled)
+
 		# Check for errors in output
 		sqoopWarning = False
 
@@ -1670,6 +1723,19 @@ class operation(object, metaclass=Singleton):
 		# 19/04/24 07:13:00 INFO tool.ImportTool: No new rows detected since last import.
 		if "No new rows detected since last import" in row:
 			self.sqoopIncrNoNewRows = True
+
+		# 23/10/04 04:52:07 INFO impl.YarnClientImpl: Submitted application application_1695989285495_0371
+		if "Submitted application application_" in row:
+			self.yarnApplicationID = row.split("Submitted application ")[1].strip()
+			self.import_config.common_config.updateYarnStatistics(self.yarnApplicationID, "sqoop")
+
+		# Used for updating table 'yarn_statistics' after Sqoop is finished
+		if "Launched map tasks=" in row:	self.sqoopLaunchedMapTasks = int(row.split("=")[1].strip())
+		if "Failed map tasks=" in row:		self.sqoopFailedMapTasks = int(row.split("=")[1].strip())
+		if "Killed map tasks=" in row:		self.sqoopKilledMapTasks = int(row.split("=")[1].strip())
+		if "Launched reduce tasks=" in row:	self.sqoopLaunchedReduceTasks = int(row.split("=")[1].strip())
+		if "Failed reduce tasks=" in row:		self.sqoopFailedReduceTasks = int(row.split("=")[1].strip())
+		if "Killed reduce tasks=" in row:		self.sqoopKilledReduceTasks = int(row.split("=")[1].strip())
 
 	def connectToHive(self, forceSkipTest=False):
 		logging.debug("Executing import_operations.connectToHive()")
@@ -2635,9 +2701,6 @@ class operation(object, metaclass=Singleton):
 			else:
 				compactionMethod = self.import_config.mergeCompactionMethod
 				compactionDescription = compactionMethod
-
-		# Override and disable all compactions. Scania specific and should never be commit to GIT
-		compactionMethod = "none"
 
 		if compactionMethod != "none":
 			logging.info("Running a '%s' compaction on Hive table"%(compactionDescription))
