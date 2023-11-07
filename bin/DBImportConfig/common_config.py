@@ -803,31 +803,38 @@ class config(object, metaclass=Singleton):
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_database = "-"
 
-			try:
-				self.jdbc_hostname = self.jdbc_url.split("(HOST=")[1].split(')')[0]
-			except:
-				logging.error("Cant determine hostname based on jdbc_string")
-				exit_after_function = True
+			if self.jdbc_url.startswith('jdbc:oracle:thin:@ldap'):
+				pattern = r'@ldap://([^:/]+):(\d+)/([^,]+),'
+				r = re.search(pattern, self.jdbc_url)
+				if r is None:
+					logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
+					exit_after_function = True
+			else:
+				try:
+					self.jdbc_hostname = self.jdbc_url.split("(HOST=")[1].split(')')[0]
+				except:
+					logging.error("Cant determine hostname based on jdbc_string")
+					exit_after_function = True
 
-			try:
-				self.jdbc_port = self.jdbc_url.split("(PORT=")[1].split(')')[0]
-			except:
-				logging.error("Cant determine port based on jdbc_string")
-				exit_after_function = True
+				try:
+					self.jdbc_port = self.jdbc_url.split("(PORT=")[1].split(')')[0]
+				except:
+					logging.error("Cant determine port based on jdbc_string")
+					exit_after_function = True
 
-			try:
-				self.jdbc_oracle_sid = self.jdbc_url.split("(SID=")[1].split(')')[0]
-			except:
-				self.jdbc_oracle_sid = None
+				try:
+					self.jdbc_oracle_sid = self.jdbc_url.split("(SID=")[1].split(')')[0]
+				except:
+					self.jdbc_oracle_sid = None
 
-			try:
-				self.jdbc_oracle_servicename = self.jdbc_url.split("(SERVICE_NAME=")[1].split(')')[0]
-			except:
-				self.jdbc_oracle_servicename = None
+				try:
+					self.jdbc_oracle_servicename = self.jdbc_url.split("(SERVICE_NAME=")[1].split(')')[0]
+				except:
+					self.jdbc_oracle_servicename = None
 
-			if self.jdbc_oracle_sid == None and self.jdbc_oracle_servicename == None:
-				logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
-				exit_after_function = True
+				if self.jdbc_oracle_sid == None and self.jdbc_oracle_servicename == None:
+					logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
+					exit_after_function = True
 
 
 		if self.jdbc_url.startswith( 'jdbc:mysql:'): 
