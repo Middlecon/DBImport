@@ -219,6 +219,11 @@ class sendStatistics(object):
 			logging.error("Timeout error when trying to send statistics to Kafka")
 			kafkaError = True
 
+		except ssl.SSLCertVerificationError:
+			logging.error("SSL Certificate error when communicating with Kafka")
+			kafkaError = True
+			
+
 		if kafkaError == True:
 			result = False
 
