@@ -185,9 +185,9 @@ class operation(object, metaclass=Singleton):
 
 			logging.info("")	# Just to get a blank row before connecting to Hive
 
-	def checkHiveDB(self, hiveDB):
+	def checkDB(self, hiveDB):
 		try:
-			self.common_operations.checkHiveDB(hiveDB)
+			self.common_operations.checkDB(hiveDB)
 		except databaseNotFound as errMsg:
 			logging.error(errMsg)
 			self.import_config.remove_temporary_files()
@@ -1272,8 +1272,8 @@ class operation(object, metaclass=Singleton):
 			if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 				# ETL Engine is Spark, that means IceBerg tables
 
-				if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
-					if self.common_operations.isHiveTableExternalIcebergFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
+				if self.common_operations.checkTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == True:
+					if self.common_operations.isTableExternalIcebergFormat(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table) == False:
 						# Staging table exists and is not an Iceberg table. We need to drop it in Hive
 						logging.warning("Staging table exists and is not an Iceberg table. Dropping the staging table")
 						self.common_operations.connectToHive(forceSkipTest=True)
@@ -1770,7 +1770,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.createExternalImportView()")
 
 		if self.import_config.isExternalViewRequired() == True:
-			if self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View) == False:
+			if self.common_operations.checkTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View) == False:
 				logging.info("Creating External Import View")
 
 				query = "create view `%s`.`%s` as %s "%(
@@ -1792,7 +1792,7 @@ class operation(object, metaclass=Singleton):
 
 			hiveDB = self.import_config.Hive_Import_DB
 			hiveView = self.import_config.Hive_Import_View
-			columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveView, includeType=True, excludeDataLakeColumns=True) 
+			columnsHive = self.common_operations.getColumns(hiveDB, hiveView, includeType=True, excludeDataLakeColumns=True) 
 			columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 			columnsDiffCount  = len(columnsMerge.loc[columnsMerge['Exist'] != 'both'])
 
@@ -1830,19 +1830,19 @@ class operation(object, metaclass=Singleton):
 			hiveTable = self.Hive_Table
 			hdfsLocation = self.import_config.sqoop_hdfs_location_sparkETL
 
-		if self.common_operations.checkHiveTable(hiveDB, hiveTable) == True:
+		if self.common_operations.checkTable(hiveDB, hiveTable) == True:
 			# Table exist, so we need to make sure that it's a managed table and not an external table
-			if self.common_operations.isHiveTableExternalParquetFormat(hiveDB, hiveTable) == False and self.import_config.importTool == "sqoop":
+			if self.common_operations.isTableExternalParquetFormat(hiveDB, hiveTable) == False and self.import_config.importTool == "sqoop":
 				logging.info("Dropping %s table as it's not an external table based on parquet"%(tableType))
 				self.common_operations.dropHiveTable(hiveDB, hiveTable)
 				self.common_operations.reconnectHiveMetaStore()
 
-			if self.common_operations.isHiveTableExternalOrcFormat(hiveDB, hiveTable) == False and self.import_config.importTool in ("spark", "local"):
+			if self.common_operations.isTableExternalOrcFormat(hiveDB, hiveTable) == False and self.import_config.importTool in ("spark", "local"):
 				logging.info("Dropping %s table as it's not an external table based on ORC"%(tableType))
 				self.common_operations.dropHiveTable(hiveDB, hiveTable)
 				self.common_operations.reconnectHiveMetaStore()
 
-		if self.common_operations.checkHiveTable(hiveDB, hiveTable) == False:
+		if self.common_operations.checkTable(hiveDB, hiveTable) == False:
 			# Import table does not exist. We just create it in that case
 			logging.info("Creating External %s Table"%(tableType))
 
@@ -1897,7 +1897,7 @@ class operation(object, metaclass=Singleton):
 
 	def convertHiveTableToACID(self):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-			if self.common_operations.isHiveTableTransactional(self.Hive_DB, self.Hive_Table) == False:
+			if self.common_operations.isTableTransactional(self.Hive_DB, self.Hive_Table) == False:
 				self.common_operations.convertHiveTableToACID(self.Hive_DB, self.Hive_Table, createDeleteColumn=self.import_config.soft_delete_during_merge, createMergeColumns=True)
 
 	def addHiveDBImportColumns(self, mergeOperation):
@@ -1908,7 +1908,7 @@ class operation(object, metaclass=Singleton):
 			logging.error("addHiveDBImportColumns() is not handled yet for Spark!")
 			return
 
-		columns = self.common_operations.getHiveColumns(hiveDB=self.Hive_DB, hiveTable=self.Hive_Table, includeType=False, includeComment=False)
+		columns = self.common_operations.getColumns(hiveDB=self.Hive_DB, hiveTable=self.Hive_Table, includeType=False, includeComment=False)
 
 		if columns[columns['name'] == 'datalake_source'].empty == True and self.import_config.datalake_source != None:
 			query = "alter table `%s`.`%s` add columns ( datalake_source varchar(256) )"%(self.Hive_DB, self.Hive_Table)
@@ -2032,7 +2032,7 @@ class operation(object, metaclass=Singleton):
 		Hive_Delete_Table = self.import_config.Hive_Delete_Table
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-			if self.common_operations.checkHiveTable(Hive_Delete_DB, Hive_Delete_Table) == False:
+			if self.common_operations.checkTable(Hive_Delete_DB, Hive_Delete_Table) == False:
 				# Target table does not exist. We just create it in that case
 				logging.info("Creating Delete table %s.%s in Hive"%(Hive_Delete_DB, Hive_Delete_Table))
 				if self.import_config.common_config.getConfigValue(key = "hive_insert_only_tables") == True:
@@ -2056,15 +2056,15 @@ class operation(object, metaclass=Singleton):
 				self.common_operations.reconnectHiveMetaStore()
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			if self.common_operations.checkHiveTable(Hive_Delete_DB, Hive_Delete_Table) == True:
+			if self.common_operations.checkTable(Hive_Delete_DB, Hive_Delete_Table) == True:
 				# Table exist, so we need to make sure that it's an Iceberg table and not something else
 
-				if self.common_operations.isHiveTableExternalIcebergFormat(Hive_Delete_DB, Hive_Delete_Table) == False:
+				if self.common_operations.isTableExternalIcebergFormat(Hive_Delete_DB, Hive_Delete_Table) == False:
 					logging.info("Delete table is not a Iceberg table. Dropping and recreating the Delete table")
 					self.common_operations.dropHiveTable(Hive_Delete_DB, Hive_Delete_Table)
 
 			# We need to check again as the table might just been droped because it was an external table to begin with
-			if self.common_operations.checkHiveTable(Hive_Delete_DB, Hive_Delete_Table) == False:
+			if self.common_operations.checkTable(Hive_Delete_DB, Hive_Delete_Table) == False:
 
 				logging.info("Creating Delete table %s.%s in Spark"%(Hive_Delete_DB, Hive_Delete_Table))
 
@@ -2091,7 +2091,7 @@ class operation(object, metaclass=Singleton):
 		Hive_History_Table = self.import_config.Hive_History_Table
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-			if self.common_operations.checkHiveTable(Hive_History_DB, Hive_History_Table) == False:
+			if self.common_operations.checkTable(Hive_History_DB, Hive_History_Table) == False:
 				# Target table does not exist. We just create it in that case
 				logging.info("Creating History table %s.%s in Hive"%(Hive_History_DB, Hive_History_Table))
 				if self.import_config.common_config.getConfigValue(key = "hive_insert_only_tables") == True:
@@ -2112,10 +2112,10 @@ class operation(object, metaclass=Singleton):
 				self.common_operations.reconnectHiveMetaStore()
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			if self.common_operations.checkHiveTable(Hive_History_DB, Hive_History_Table) == True:
+			if self.common_operations.checkTable(Hive_History_DB, Hive_History_Table) == True:
 				# Table exist, so we need to make sure that it's an Iceberg table and not something else
 
-				if self.common_operations.isHiveTableExternalIcebergFormat(Hive_History_DB, Hive_History_Table) == False:
+				if self.common_operations.isTableExternalIcebergFormat(Hive_History_DB, Hive_History_Table) == False:
 					# Table exists and is not an Iceberg table
 					raise undevelopedFeature("The history table already exists, but it's not an Iceberg table. Convertion between manage table and external Iceberg table is not handled automatically. Please save the data and drop the table manually to continue with the import")
 				else:
@@ -2148,15 +2148,15 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.createTargetTable()")
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-			if self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table) == True:
+			if self.common_operations.checkTable(self.Hive_DB, self.Hive_Table) == True:
 				# Table exist, so we need to make sure that it's a managed table and not an external table
-				if self.common_operations.isHiveTableExternal(self.Hive_DB, self.Hive_Table) == True:
+				if self.common_operations.isTableExternal(self.Hive_DB, self.Hive_Table) == True:
 					if self.import_config.importPhase == constant.IMPORT_PHASE_FULL:
 						# If the import stage is full, it's safe to drop the table and recreate it as the import have all the data anyway
 						self.common_operations.dropHiveTable(self.Hive_DB, self.Hive_Table)
 
 			# We need to check again as the table might just been droped because it was an external table to begin with
-			if self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table) == False:
+			if self.common_operations.checkTable(self.Hive_DB, self.Hive_Table) == False:
 				# Target table does not exist. We just create it in that case
 				logging.info("Creating Target table %s.%s in Hive"%(self.Hive_DB, self.Hive_Table))
 
@@ -2188,10 +2188,10 @@ class operation(object, metaclass=Singleton):
 				self.common_operations.reconnectHiveMetaStore()
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			if self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table) == True:
+			if self.common_operations.checkTable(self.Hive_DB, self.Hive_Table) == True:
 				# Table exist, so we need to make sure that it's an Iceberg table and not something else
 
-				if self.common_operations.isHiveTableExternalIcebergFormat(self.Hive_DB, self.Hive_Table) == False:
+				if self.common_operations.isTableExternalIcebergFormat(self.Hive_DB, self.Hive_Table) == False:
 					# Table exists and is not an Iceberg table
 					logging.warning("Target table exists and is not an Iceberg table")
 					if self.import_config.importPhase == constant.IMPORT_PHASE_FULL:
@@ -2201,7 +2201,7 @@ class operation(object, metaclass=Singleton):
 						raise undevelopedFeature("This is an incremental import and the target table already exists, but it's not an Iceberg table. Convertion between manage table and external Iceberg table is not handled automatically. Please save the data and drop the table manually to continue with the import")
 
 			# We need to check again as the table might just been droped because it was an external table to begin with
-			if self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table) == False:
+			if self.common_operations.checkTable(self.Hive_DB, self.Hive_Table) == False:
 				# Target table does not exist. We just create it in that case
 				logging.info("Creating Target table %s.%s in Spark"%(self.Hive_DB, self.Hive_Table))
 
@@ -2312,7 +2312,7 @@ class operation(object, metaclass=Singleton):
 		# TODO: If there are less columns in the source table together with a rename of a column, then it wont work. Needs to be handled
 		logging.debug("Executing import_operations.updateHiveTable()")
 		columnsConfig = self.import_config.getColumnsFromConfigDatabase(restrictColumns=restrictColumns, sourceIsParquetFile=sourceIsParquetFile, includeAllColumns=False) 
-		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
+		columnsHive   = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
 
 		# If we are working on the import table, we need to change some column types to handle Parquet files
 		if self.import_config.importTool == "sqoop":
@@ -2443,7 +2443,7 @@ class operation(object, metaclass=Singleton):
 							self.import_config.logHiveColumnTypeChange(rowInConfig['name'], rowInConfig['type'], previous_columnType=rowInHive["type"], hiveDB=hiveDB, hiveTable=hiveTable) 
 
 			self.common_operations.reconnectHiveMetaStore()
-			columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
+			columnsHive   = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
 			columnsHiveOnlyName = columnsHive.filter(['name'])
 			columnsMergeOnlyName = pd.merge(columnsConfigOnlyName, columnsHiveOnlyName, on=None, how='outer', indicator='Exist')
 
@@ -2461,7 +2461,7 @@ class operation(object, metaclass=Singleton):
 
 		# Check for changed column types
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
+		columnsHive = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, excludeDataLakeColumns=True) 
 
 		columnsConfigOnlyNameType = columnsConfig.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsHiveOnlyNameType = columnsHive.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
@@ -2499,7 +2499,7 @@ class operation(object, metaclass=Singleton):
 
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
+		columnsHive = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
 
 		try:
 			columnsHive['comment'].replace(['^$'], [None], regex=True, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
@@ -2543,7 +2543,7 @@ class operation(object, metaclass=Singleton):
 			logging.info("No Primary Key informaton exists for this table.")
 		else:
 			logging.info("Creating Primary Key on table.")
-			PKonHiveTable = self.common_operations.getPKfromTable(hiveDB, hiveTable)
+			PKonHiveTable = self.common_operations.getPK(hiveDB, hiveTable)
 			PKinConfigDB = self.import_config.getPKcolumns()
 			self.common_operations.reconnectHiveMetaStore()
 
@@ -2602,7 +2602,7 @@ class operation(object, metaclass=Singleton):
 			return
 
 		foreignKeysFromConfig = self.import_config.getForeignKeysFromConfig()
-		foreignKeysFromHive   = self.common_operations.getForeignKeysFromHive(hiveDB, hiveTable)
+		foreignKeysFromHive   = self.common_operations.getFKs(hiveDB, hiveTable)
 	
 		if foreignKeysFromConfig.empty == True and foreignKeysFromHive.empty == True:
 			logging.info("No Foreign Keys informaton exists for this table")
@@ -2633,7 +2633,7 @@ class operation(object, metaclass=Singleton):
 				# This will iterate over ForeignKeys that only exists in the DBImport configuration database
 				# If it doesnt exist in Hive, we create it
 
-				if self.common_operations.checkHiveTable(row['ref_hive_db'], row['ref_hive_table'], ) == True:
+				if self.common_operations.checkTable(row['ref_hive_db'], row['ref_hive_table'], ) == True:
 					query = "alter table `%s`.`%s` add constraint %s foreign key ("%(hiveDB, hiveTable, row['fk_name'])
 					firstLoop = True
 					for column in row['source_column_name'].split(','):
@@ -2665,12 +2665,12 @@ class operation(object, metaclass=Singleton):
 	def removeHiveLocks(self,):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			if self.import_config.common_config.getConfigValue(key = "hive_remove_locks_by_force") == True:
-				self.common_operations.removeHiveLocksByForce(self.Hive_DB, self.Hive_Table)
-				self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-				self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
-				self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Import_PKonly_DB, self.import_config.Hive_Import_PKonly_Table)
-				self.common_operations.removeHiveLocksByForce(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table)
-				self.common_operations.removeHiveLocksByForce(self.import_config.Hive_HistoryTemp_DB, self.import_config.Hive_HistoryTemp_Table)
+				self.common_operations.removeLocksByForce(self.Hive_DB, self.Hive_Table)
+				self.common_operations.removeLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+				self.common_operations.removeLocksByForce(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_View)
+				self.common_operations.removeLocksByForce(self.import_config.Hive_Import_PKonly_DB, self.import_config.Hive_Import_PKonly_Table)
+				self.common_operations.removeLocksByForce(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table)
+				self.common_operations.removeLocksByForce(self.import_config.Hive_HistoryTemp_DB, self.import_config.Hive_HistoryTemp_Table)
 
 	def runHiveMajorCompaction(self,):
 		self.common_operations.connectToHive(forceSkipTest=True)
@@ -2738,8 +2738,8 @@ class operation(object, metaclass=Singleton):
 
 	def loadDataFromImportToTargetTable(self,):
 		logging.info("Loading data from import table to target table")
-		importTableExists = self.common_operations.checkHiveTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-		targetTableExists = self.common_operations.checkHiveTable(self.Hive_DB, self.Hive_Table)
+		importTableExists = self.common_operations.checkTable(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+		targetTableExists = self.common_operations.checkTable(self.Hive_DB, self.Hive_Table)
 	
 		if importTableExists == False:
 			logging.error("The import table %s.%s does not exist"%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table))

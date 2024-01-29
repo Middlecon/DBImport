@@ -696,7 +696,7 @@ class initialize(object):
 			if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
 				try:
 					logging.info("Creating the Airflow pool '%s' with 24 slots"%(pool))
-					newPool = airflowSchema.slotPool(pool=pool, slots=24)
+					newPool = airflowSchema.slotPool(pool=pool, slots=24, include_deferred=0)
 					session.add(newPool)
 					session.commit()
 				except sa.exc.IntegrityError:

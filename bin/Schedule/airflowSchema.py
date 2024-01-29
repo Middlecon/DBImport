@@ -1,5 +1,6 @@
 # coding: utf-8
 from sqlalchemy import *
+from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT, SMALLINT
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql import alias, select, func
 from sqlalchemy.ext.declarative import declarative_base
@@ -15,4 +16,5 @@ class slotPool(Base):
     pool = Column(String(50), nullable=True, unique=True)
     slots = Column(Integer, nullable=True)
     description = Column(Text, nullable=True)
+    include_deferred = Column(TINYINT(4), nullable=False)
 

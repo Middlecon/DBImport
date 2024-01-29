@@ -34,7 +34,7 @@ def printHelp():
 	print ("  --skipImportData   Dont run the import data command. Useful when the files are correct and you need to recreate Hive tables")
 	print ("  --ignoreTime       Ignores the start and stop time for the table. Will run outside that window regardless")
 	print ("  --resetStage       Starts from the beginning regardless of previous problems")
-	print ("  -h [Hive Database], --Hive_DB=[Hive Database]")
+	print ("  -d [Hive Database], -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
 	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
 	print ("                     Hive table")
@@ -93,7 +93,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "mvVICE12f:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax=", "logWithTimestamp"])
+		opts, args = getopt.getopt(argv, "mvVICE12f:d:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax=", "logWithTimestamp"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -120,7 +120,7 @@ def main(argv):
 		printHelp()
 
 	for opt, arg in opts:
-		if opt in ("-h", "--Hive_DB"):
+		if opt in ("-d", "-h", "--Hive_DB"):
 			Hive_DB = arg
 		elif opt in ("-t", "--Hive_Table"):
 			Hive_Table = arg
@@ -304,9 +304,6 @@ def main(argv):
 		import_operation.setStageOnlyInMemory()
 
 	stage = import_operation.getStage()
-
-	# Check if the configured Hive database exists
-	import_operation.checkHiveDB(Hive_DB.lower())
 
 	if import_operation.import_config.common_config.checkKerberosTicket() == False:
 		logging.error("There is no valid Kerberos ticket available. Please create one before running this command")
@@ -736,6 +733,10 @@ def main(argv):
 
 				if runOnlyFunction == None:
 					import_operation.setStage(2099)
+
+		# Check if the configured Hive database exists
+		# This should be after the Import phase as we want it to run even if the Catalog is inaccessable
+		import_operation.checkDB(Hive_DB.lower())
 
 
 		# ******************************************

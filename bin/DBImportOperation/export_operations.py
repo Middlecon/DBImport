@@ -76,12 +76,12 @@ class operation(object, metaclass=Singleton):
 				self.hiveExportTempDB = self.export_config.hiveExportTempDB
 				self.hiveExportTempTable = self.export_config.hiveExportTempTable
 
-				self.checkHiveDB(self.hiveDB)
-				self.checkHiveTable(self.hiveDB, self.hiveTable)
+				self.checkDB(self.hiveDB)
+				self.checkTable(self.hiveDB, self.hiveTable)
 	
 				self.common_operations.setHiveTable(Hive_DB=self.hiveDB, Hive_Table=self.hiveTable)
-				self.hiveTableIsTransactional = self.common_operations.isHiveTableTransactional(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
-				self.hiveTableIsView = self.common_operations.isHiveTableView(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
+				self.hiveTableIsTransactional = self.common_operations.isTableTransactional(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
+				self.hiveTableIsView = self.common_operations.isTableView(hiveDB=self.hiveDB, hiveTable=self.hiveTable)
 	
 			except invalidConfiguration as errMsg:
 				logging.error(errMsg)
@@ -146,10 +146,10 @@ class operation(object, metaclass=Singleton):
 
 	def removeHiveLocks(self):
 		if self.export_config.common_config.getConfigValue(key = "hive_remove_locks_by_force") == True:
-			self.common_operations.removeHiveLocksByForce(self.hiveExportTempDB, self.hiveExportTempTable)
+			self.common_operations.removeLocksByForce(self.hiveExportTempDB, self.hiveExportTempTable)
 
-	def checkHiveTable(self, hiveDB, hiveTable):
-		if self.common_operations.checkHiveTable(hiveDB, hiveTable) == False:
+	def checkTable(self, hiveDB, hiveTable):
+		if self.common_operations.checkTable(hiveDB, hiveTable) == False:
 			logging.error("Hive table '%s' cant be found in '%s' database"%(hiveTable, hiveDB))
 			self.export_config.remove_temporary_files()
 			sys.exit(1)
@@ -194,9 +194,9 @@ class operation(object, metaclass=Singleton):
 			except:
 				pass
 
-	def checkHiveDB(self, hiveDB):
+	def checkDB(self, hiveDB):
 		try:
-			self.common_operations.checkHiveDB(hiveDB)
+			self.common_operations.checkDB(hiveDB)
 		except databaseNotFound as errMsg:
 			logging.error(errMsg)
 			self.export_config.remove_temporary_files()
@@ -208,7 +208,7 @@ class operation(object, metaclass=Singleton):
 	def getHiveTableSchema(self):
 		try:
 			self.export_config.updateLastUpdateFromHive()
-			self.export_config.saveColumnData(columnsDF = self.common_operations.getHiveColumns(self.hiveDB, self.hiveTable, includeType=True, includeComment=True, includeIdx=True))
+			self.export_config.saveColumnData(columnsDF = self.common_operations.getColumns(self.hiveDB, self.hiveTable, includeType=True, includeComment=True, includeIdx=True))
 		except invalidConfiguration as errMsg:
 			logging.error(errMsg)
 			self.export_config.remove_temporary_files()
@@ -303,7 +303,7 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing export_operations.discoverAndAddTablesFromHive()")
 		errorDuringAdd = False
 
-		sourceDF = self.common_operations.getHiveTables(dbFilter=dbFilter, tableFilter=tableFilter)
+		sourceDF = self.common_operations.getTables(dbFilter=dbFilter, tableFilter=tableFilter)
 
 		if len(sourceDF) == 0:
 			print("There are no tables in the source database that we dont already have in DBImport")
@@ -433,14 +433,14 @@ class operation(object, metaclass=Singleton):
 		return maxValue
 
 	def updateStatisticsOnExportedTable(self,):
-		if self.common_operations.isHiveTableView(hiveDB = self.hiveDB, hiveTable = self.hiveTable) == False:
+		if self.common_operations.isTableView(hiveDB = self.hiveDB, hiveTable = self.hiveTable) == False:
 			logging.info("Updating the Hive statistics on the exported table")
 			self.common_operations.updateHiveTableStatistics(self.hiveDB, self.hiveTable)
 
 	def createExportTempTable(self):
 		logging.debug("Executing export_operations.createExportTempTable()")
 
-		if self.common_operations.checkHiveTable(self.hiveExportTempDB, self.hiveExportTempTable) == False:
+		if self.common_operations.checkTable(self.hiveExportTempDB, self.hiveExportTempTable) == False:
 			# Target table does not exist. We just create it in that case
 			logging.info("Creating Export Temp table %s.%s in Hive"%(self.hiveExportTempDB, self.hiveExportTempTable))
 
@@ -502,7 +502,7 @@ class operation(object, metaclass=Singleton):
 		hiveDB = self.hiveExportTempDB
 		hiveTable = self.hiveExportTempTable
 
-		columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeIdx=False)
+		columnsHive   = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeIdx=False)
 
 		if self.export_config.exportTool == "sqoop":
 			columnsConfig = self.export_config.getColumnsFromConfigDatabase(excludeColumns=True, getReplacedColumnTypes=True)
@@ -588,7 +588,7 @@ class operation(object, metaclass=Singleton):
 						self.export_config.logHiveColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
 
 			self.common_operations.reconnectHiveMetaStore()
-			columnsHive   = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeIdx=False)
+			columnsHive   = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeIdx=False)
 			columnsHiveOnlyName = columnsHive.filter(['name'])
 			columnsMergeOnlyName = pd.merge(columnsConfigOnlyName, columnsHiveOnlyName, on=None, how='outer', indicator='Exist')
 
@@ -606,7 +606,7 @@ class operation(object, metaclass=Singleton):
 
 		# Check for changed column types
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeIdx=False, includeComment=True)
+		columnsHive = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeIdx=False, includeComment=True)
 
 		columnsConfigOnlyNameType = columnsConfig.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsHiveOnlyNameType = columnsHive.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
@@ -637,7 +637,7 @@ class operation(object, metaclass=Singleton):
 
 		# Check for change column comments
 		self.common_operations.reconnectHiveMetaStore()
-		columnsHive = self.common_operations.getHiveColumns(hiveDB, hiveTable, includeType=True, includeIdx=False, includeComment=True)
+		columnsHive = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeIdx=False, includeComment=True)
 		columnsHive['comment'].replace('', None, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
 		columnsMerge = pd.merge(columnsConfig, columnsHive, on=None, how='outer', indicator='Exist')
 
