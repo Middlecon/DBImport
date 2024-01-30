@@ -20,12 +20,13 @@ import io
 import sys
 import logging
 import time 
+import json 
 from common.Singleton import Singleton
 from common.Exceptions import *
 import common.Exceptions
 from ConfigReader import configuration
 from datetime import date, datetime, timedelta
-# import pandas as pd
+import pandas as pd
 # import sqlalchemy as sa
 from DBImportConfig import common_config
 from DBImportOperation import hiveSchema
@@ -33,6 +34,7 @@ from DBImportOperation import hiveSchema
 # from sqlalchemy.orm import aliased, sessionmaker 
 # from sqlalchemy.pool import QueuePool
 
+import botocore
 import boto3
 
 
@@ -48,200 +50,131 @@ class glueCatalog(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 
-		self.glueClient = boto3.client('glue')
+		self.AWSregion = configuration.get("Metastore", "aws_region")
+		self.glueClient = boto3.client('glue', region_name = self.AWSregion)
 
-		tables = self.glueClient.get_tables(DatabaseName='test')
-		print(type(tables))
-		print(tables)
+		# self.checkDB("amwsktst_history_uat")
+		# self.checkTable("amwsktst_history_uat", "braks01")
+		# self.getTableLocation("amwsktst_history_uat", "braks01")
+		# self.isTableExternalIcebergFormat("amwsktst_history_uat", "braks01")
+		# self.isTableExternal("amwsktst_history_uat", "braks01")
+		self.getColumns("amwsktst_history_uat", "braks01")
 
-#		self.hiveConnectStr = configuration.get("Metastore", "hive_metastore_alchemy_conn")
-#		self.hiveMetaDB = None
-#		self.hiveMetaSession = None
+		logging.debug("Executing glueCatalog.__init__() - Finished")
 
-#	def connectToHiveMetastoreDB(self):
-#
-#		logging.info("Connecting to Hive Metastore with Direct DB connection")
-#
-#		try:
-#			self.hiveMetaDB = sa.create_engine(self.hiveConnectStr, echo = self.debugLogLevel, pool_pre_ping=True)
-#			self.hiveMetaDB.connect()
-#			self.hiveMetaSession = sessionmaker(bind=self.hiveMetaDB)
-#		except sa.exc.OperationalError as err:
-#			logging.error("%s"%err)
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
-#		except:
-#			print("Unexpected error: ")
-#			print(sys.exc_info())
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
-#
-#		logging.debug("Executing glueCatalog.__init__() - Finished")
 
 	def checkDB(self, hiveDB):
 		logging.debug("Executing glueCatalog.checkDB()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		DBS = hiveSchema.DBS
-#
-#		try:
-#			row = session.query(DBS.NAME).filter(DBS.NAME == hiveDB).one()
-#		except sa.orm.exc.NoResultFound:
-#			raise databaseNotFound("Can't find database '%s' in Hive"%(hiveDB))
-#
+		try:
+			response = self.glueClient.get_database(Name = hiveDB)
+#			print(response)
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+			raise databaseNotFound("Can't find database '%s' in Glue Catalog"%(hiveDB))
+			# raise catalogError("Can't find database '%s' in Glue Catalog"%(hiveDB))
+
 		logging.debug("Executing glueCatalog.checkDB() - Finished")
+
 
 	def checkTable(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.checkTable()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#
-#		result = True
-#		try:
-#			row = session.query(TBLS.TBL_NAME, TBLS.TBL_TYPE, DBS.NAME).select_from(TBLS).join(DBS, TBLS.DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
-#		except sa.orm.exc.NoResultFound:
-#			result = False
-#
+		result = False
+		try:
+			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
+#			print(response)
+			result = True
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+
 		logging.debug("Executing glueCatalog.checkTable() - Finished")
-#		return result
+		return result
 
 
 	def getTableLocation(self, hiveDB, hiveTable):
-		logging.debug("Executing glueCatalog.getExternalTableLocation()")
+		logging.debug("Executing glueCatalog.getTableLocation()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#		SDS = aliased(hiveSchema.SDS, name="S")
-#
-#		try:
-#			row = session.query(SDS.LOCATION).select_from(TBLS).join(SDS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
-#		except sa.orm.exc.NoResultFound:
-#			raise rowNotFound("Cant get SDS.LOCATION from Hive Meta Database"%(hiveDB))
-#
-		logging.debug("Executing glueCatalog.getExternalTableLocation() - Finished")
-#		return row[0]
+		try:
+			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
+			location = response["Table"]["StorageDescriptor"]["Location"]
+#			print(location)
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+			raise catalogError("Error when reading table location from Glue Catalog")
+
+		logging.debug("Executing glueCatalog.getTableLocation() - Finished")
+		return location
+
 
 	def isTableExternalOrcFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableExternalOrcFormat()")
-
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		if self.isTableExternal(hiveDB, hiveTable) == False: return False
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#		SDS = aliased(hiveSchema.SDS, name="S")
-#
-#		try:
-#			row = session.query(SDS.INPUT_FORMAT).select_from(TBLS).join(SDS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
-#		except sa.orm.exc.NoResultFound:
-#			raise rowNotFound("Cant get SDS.INPUT_FORMAT from Hive Meta Database"%(hiveDB))
-#
+		logging.warning("glueCatalog.isTableExternalOrcFormat() is undeveloped. Please contact developer if this is needed")
 		logging.debug("Executing glueCatalog.isTableExternalOrcFormat() - Finished")
-#		if row[0] == "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat":
-#			return True
-#		else:
-#			return False
+
 
 	def isTableExternalParquetFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableExternalParquetFormat()")
-
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		if self.isTableExternal(hiveDB, hiveTable) == False: return False
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#		SDS = aliased(hiveSchema.SDS, name="S")
-#
-#		try:
-#			row = session.query(SDS.INPUT_FORMAT).select_from(TBLS).join(SDS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
-#		except sa.orm.exc.NoResultFound:
-#			raise rowNotFound("Cant get SDS.INPUT_FORMAT from Hive Meta Database"%(hiveDB))
-
+		logging.warning("glueCatalog.isTableExternalParquetFormat() is undeveloped. Please contact developer if this is needed")
 		logging.debug("Executing glueCatalog.isTableExternalParquetFormat() - Finished")
-#		if row[0] == "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat":
-#			return True
-#		else:
-#			return False
+
 
 	def isTableExternalIcebergFormat(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableExternalIcebergFormat()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		if self.isTableExternal(hiveDB, hiveTable) == False: return False
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		TABLE_PARAMS = aliased(hiveSchema.TABLE_PARAMS, name="TP")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#		SDS = aliased(hiveSchema.SDS, name="S")
-#
-#		try:
-#			row = session.query(TABLE_PARAMS.PARAM_VALUE) \
-#				.select_from(TBLS) \
-#				.join(DBS) \
-#				.join(TABLE_PARAMS) \
-#				.filter(TBLS.TBL_NAME == hiveTable.lower()) \
-#				.filter(DBS.NAME == hiveDB.lower()) \
-#				.filter(TABLE_PARAMS.PARAM_KEY == "table_type") \
-#				.one()
-#		except sa.orm.exc.NoResultFound:
-#			return False
+		returnValue = False
+		try:
+			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
+			tableType = response["Table"]["TableType"]
+			parameterTableType = response["Table"]["Parameters"]["table_type"]
+
+			if tableType == "EXTERNAL_TABLE" and parameterTableType == "ICEBERG":
+				returnValue = True
+
+#			print(response)
+#			print("========================================")
+#			print(parameterTableType)
+#			print("========================================")
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+			raise catalogError("Error when checking table type in Glue Catalog")
 
 		logging.debug("Executing glueCatalog.isTableExternalIcebergFormat() - Finished")
-#		if row[0] == "ICEBERG":
-#			return True
-#		else:
-#			return False
+		return returnValue
+
 
 	def isTableExternal(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableExternal()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#
-#		try:
-#			row = session.query(TBLS.TBL_TYPE).select_from(TBLS).join(DBS).filter(TBLS.TBL_NAME == hiveTable.lower()).filter(DBS.NAME == hiveDB.lower()).one()
-#		except sa.orm.exc.NoResultFound:
-#			raise rowNotFound("Cant get TBLS.TBL_TYPE from Hive Meta Database")
-#
-#		if row[0] == "EXTERNAL_TABLE":
-#			return True
-#		else:
-#			return False
+		returnValue = False
+		try:
+			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
+			tableType = response["Table"]["TableType"]
+
+			if tableType == "EXTERNAL_TABLE":
+				returnValue = True
+
+#			print(response)
+#			print("========================================")
+#			print(tableType)
+#			print("========================================")
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+			raise catalogError("Error when checking table type in Glue Catalog")
+
+		logging.debug("Executing glueCatalog.isTableExternal() - Finished")
+		return returnValue
 
 
 	def getPK(self, hiveDB, hiveTable, quotedColumns=False):
 		""" Reads the PK from the Hive Metadatabase and return a comma separated string with the information """
 		logging.debug("Executing glueCatalog.getPK()")
 
+		logging.warning("No support for Primary Key with Glue Catalog in current version of DBImport") 
 #		if self.hiveMetaSession == None:
 #			self.connectToHiveMetastoreDB()
 #
-#		result = ""
+		result = ""
 #
 #		PKerrorFound = False
 #
@@ -276,12 +209,14 @@ class glueCatalog(object, metaclass=Singleton):
 #
 #		logging.debug("Primary Key columns: %s"%(result))
 		logging.debug("Executing glueCatalog.getPK() - Finished")
-#		return result
+		return result
 
 
 	def getPKname(self, hiveDB, hiveTable):
 		""" Returns the name of the Primary Key that exists on the table. Returns None if it doesnt exist """
 		logging.debug("Executing glueCatalog.getPKname()")
+
+		logging.warning("No support for Primary Key with Glue Catalog in current version of DBImport") 
 #
 #		if self.hiveMetaSession == None:
 #			self.connectToHiveMetastoreDB()
@@ -309,12 +244,14 @@ class glueCatalog(object, metaclass=Singleton):
 #		logging.debug("PK Name: %s"%(row[0]))
 		logging.debug("Executing glueCatalog.getPKname() - Finished")
 #		return row[0]
+		return None
 
 
 	def getFKs(self, hiveDB, hiveTable):
 		""" Reads the ForeignKeys from the Hive Metastore tables and return the result in a Pandas DF """
 		logging.debug("Executing glueCatalog.getFKs()")
 
+		logging.warning("No support for Foreign Key with Glue Catalog in current version of DBImport") 
 #		if self.hiveMetaSession == None:
 #			self.connectToHiveMetastoreDB()
 #
@@ -361,121 +298,86 @@ class glueCatalog(object, metaclass=Singleton):
 #			.reset_index())
 
 		logging.debug("Executing glueCatalog.getFKs() - Finished")
-		return result_df.sort_values(by=['fk_name'], ascending=True)
+#		return result_df.sort_values(by=['fk_name'], ascending=True)
+		return pd.DataFrame(columns=['fk_name', 'source_hive_db', 'source_hive_table', 'ref_hive_db', 'ref_hive_table', 'source_column_name', 'ref_column_name'])
 
 
 	def removeLocksByForce(self, hiveDB, hiveTable):
 		""" Removes the locks on the Hive table from the Hive Metadatabase """
 		logging.debug("Executing glueCatalog.removeLocksByForce()")
-
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#
-#		lockCount = (session.query(hiveSchema.HIVE_LOCKS)
-#					.filter(hiveSchema.HIVE_LOCKS.HL_DB == hiveDB)
-#					.filter(hiveSchema.HIVE_LOCKS.HL_TABLE == hiveTable)
-#					.count()
-#					) 
-#
-#		if lockCount > 0:
-#			logging.warning("Removing %s locks from table %s.%s by force"%(lockCount, hiveDB, hiveTable))
-#			self.common_config.logImportFailure(hiveDB=hiveDB, hiveTable=hiveTable, severity="Warning", errorText="%s locks removed by force"%(lockCount))  
-#
-#		(session.query(hiveSchema.HIVE_LOCKS)
-#			.filter(hiveSchema.HIVE_LOCKS.HL_DB == hiveDB)
-#			.filter(hiveSchema.HIVE_LOCKS.HL_TABLE == hiveTable)
-#			.delete()
-#			) 
-#		session.commit()
-#	
+		# This is not needed with Glue Catalog, but code must be here anyway
 		logging.debug("Executing glueCatalog.removeLocksByForce() - Finished")
 
 
 	def getColumns(self, hiveDB, hiveTable, includeType=False, includeComment=False, includeIdx=False, forceColumnUppercase=False, excludeDataLakeColumns=False):
-		""" Returns a pandas DataFrame with all columns in the specified Hive table """		
+		""" Returns a pandas DataFrame with all columns in the specified table """		
 		logging.debug("Executing glueCatalog.getColumns()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		COLUMNS = aliased(hiveSchema.COLUMNS_V2, name="C")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#		SDS = aliased(hiveSchema.SDS, name="S")
-#		CDS = aliased(hiveSchema.CDS)
-#
-#		result_df = pd.DataFrame(session.query(
-#					COLUMNS.COLUMN_NAME.label("name"),
-#					COLUMNS.TYPE_NAME.label("type"),
-#					COLUMNS.COMMENT.label("comment"),
-#					COLUMNS.INTEGER_IDX.label("idx")
-#				)
-#				.select_from(CDS)
-#				.join(SDS)
-#				.join(COLUMNS)
-#				.join(TBLS)
-#				.join(DBS)
-#				.filter(TBLS.TBL_NAME == hiveTable)
-#				.filter(DBS.NAME == hiveDB)
-#				.order_by(COLUMNS.INTEGER_IDX)
-#				.all())
-#
-#		if includeType == False:
-#			result_df.drop('type', axis=1, inplace=True)
+		try:
+			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
+			columns = response["Table"]["StorageDescriptor"]["Columns"]
+
+			normalizedColumnList = []
+			normalizedColumn = {}
+			for column in columns:
+				normalizedColumn = {}
+				normalizedColumn["name"] = column["Name"]
+				normalizedColumn["type"] = column["Type"]
+
+				try:
+					normalizedColumn["comment"] = json.loads(column["Comment"])["name"].replace('`', '')
+#					normalizedColumn["is_pk"] = json.loads(column["Comment"])["is_pk"]
+				except json.decoder.JSONDecodeError:
+					normalizedColumn["comment"] = column["Comment"]
+#					normalizedColumn["is_pk"] = False
+#				normalizedColumn["Parameters"] = column["Parameters"]
+					
+				normalizedColumnList.append(normalizedColumn)
+
+#			print(normalizedColumnList)
+
+			result_df = pd.json_normalize(normalizedColumnList)
+#			print(result_df)
+
+#			print(response)
+#			print("========================================")
+#			print(columns)
+#			print("========================================")
+		except botocore.exceptions.ClientError as error:
+			logging.error(error)
+			raise catalogError("Error when checking table type in Glue Catalog")
+
+
+		if includeType == False:
+			result_df.drop('type', axis=1, inplace=True)
 #			
-#		if includeComment == False:
-#			result_df.drop('comment', axis=1, inplace=True)
+		if includeComment == False:
+			result_df.drop('comment', axis=1, inplace=True)
 #			
+#		This is needed for exports
 #		if includeIdx == False:
 #			result_df.drop('idx', axis=1, inplace=True)
 #			
-#		if forceColumnUppercase == True:
-#			result_df['name'] = result_df['name'].str.upper()
+		if forceColumnUppercase == True:
+			result_df['name'] = result_df['name'].str.upper()
 #			
-#		if excludeDataLakeColumns == True:
-#			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
+		if excludeDataLakeColumns == True:
+			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
 #
 #		# Index needs to be reset if anything was droped in the DF. 
 #		# The merge will otherwise indicate that there is a difference and table will be recreated
-#		result_df.reset_index(drop=True, inplace=True)
-#
+		result_df.reset_index(drop=True, inplace=True)
+
 		logging.debug("Executing glueCatalog.getColumns() - Finished")
-#		return result_df
+		print(result_df)
+		return result_df
 
 #
 	def isTableTransactional(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableTransactional()")
-
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TABLE_PARAMS = aliased(hiveSchema.TABLE_PARAMS, name="TP")
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#
-#		row = (session.query(
-#				TABLE_PARAMS.PARAM_VALUE.label("param_value")
-#			)
-#			.select_from(TABLE_PARAMS)
-#			.join(TBLS)
-#			.join(DBS)
-#			.filter(TBLS.TBL_NAME == hiveTable)
-#			.filter(DBS.NAME == hiveDB)
-#			.filter(TABLE_PARAMS.PARAM_KEY == 'transactional')
-#			.one_or_none())
-#
-#		returnValue = False
-#		if row != None:
-#			if row[0].lower() == "true":
-#				returnValue = True
-#
-#		logging.debug("isTableTransactional = %s"%(returnValue))
+		# Always True for Glue Catalog
 		logging.debug("Executing glueCatalog.isTableTransactional() - Finished")
-#		return returnValue
+		return True
 
 
 	def isTableView(self, hiveDB, hiveTable):

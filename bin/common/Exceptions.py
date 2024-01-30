@@ -27,3 +27,4 @@ class foreignKeyError(Exception): pass
 class atlasError(Exception): pass
 class connectionError(Exception): pass
 class schemaError(Exception): pass
+class catalogError(Exception): pass
