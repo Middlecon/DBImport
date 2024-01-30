@@ -42,6 +42,7 @@ import pandas as pd
 from DBImportConfig import common_config
 
 from catalogService import hiveDirect 
+from catalogService import glue 
 
 import sqlalchemy as sa
 from DBImportOperation import hiveSchema
@@ -89,6 +90,8 @@ class operation(object, metaclass=Singleton):
 		self.metastore_type = configuration.get("Metastore", "metastore_type")
 		if self.metastore_type == "hive_direct":
 			self.metastore = hiveDirect.hiveMetastoreDirect()
+		elif self.metastore_type == "glue_catalog":
+			self.metastore = glue.glueCatalog()
 		else:
 			raise invalidConfiguration("Configuration 'metastore_type' under [Metastore] in the configuration file contains an invalid option")
 
