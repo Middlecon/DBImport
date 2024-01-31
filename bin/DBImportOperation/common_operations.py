@@ -61,6 +61,7 @@ class operation(object, metaclass=Singleton):
 		self.Hive_Table = Hive_Table	 
 		self.hive_conn = None
 		self.hive_cursor = None
+		self.sparkCatalogName = None
 		self.debugLogLevel = False
 
 		if logging.root.level == 10:		# DEBUG
@@ -91,8 +92,10 @@ class operation(object, metaclass=Singleton):
 		self.metastore_type = configuration.get("Metastore", "metastore_type")
 		if self.metastore_type == constant.CATALOG_HIVE_DIRECT:
 			self.metastore = hiveDirect.hiveMetastoreDirect()
+			self.sparkCatalogName = "hive"
 		elif self.metastore_type == constant.CATALOG_GLUE:
 			self.metastore = glue.glueCatalog()
+			self.sparkCatalogName = "glue"
 		else:
 			raise invalidConfiguration("Configuration 'metastore_type' under [Metastore] in the configuration file contains an invalid option")
 

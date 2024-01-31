@@ -336,7 +336,6 @@ def main(argv):
 		# So if the previous import failed, and it's only the ETL part left, we should still be able to finish the import
 		import_operation.checkTimeWindow()
 
-
 	if ( runImportPhase == True and runETLPhase == False and runCopyPhase == False ) and runOnlyFunction == None:
 		print(" _____________________ ")
 		print("|                     |")

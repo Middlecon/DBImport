@@ -59,6 +59,7 @@ class glueCatalog(object, metaclass=Singleton):
 		# self.isTableExternalIcebergFormat("amwsktst_history_uat", "braks01")
 		# self.isTableExternal("amwsktst_history_uat", "braks01")
 		# self.getColumns("amwsktst_history_uat", "braks01")
+		self.getColumns("etl_import_staging", "dbimport__import_tables_full_truncate_insert__staging")
 		# self.getTables()
 
 		logging.debug("Executing glueCatalog.__init__() - Finished")
@@ -87,7 +88,8 @@ class glueCatalog(object, metaclass=Singleton):
 #			print(response)
 			result = True
 		except botocore.exceptions.ClientError as error:
-			logging.error(error)
+			if error.response['Error']['Code'] != 'EntityNotFoundException':
+				logging.error(error)
 
 		logging.debug("Executing glueCatalog.checkTable() - Finished")
 		return result
@@ -314,9 +316,19 @@ class glueCatalog(object, metaclass=Singleton):
 		""" Returns a pandas DataFrame with all columns in the specified table """		
 		logging.debug("Executing glueCatalog.getColumns()")
 
+
+#		print(hiveDB)
+#		print(hiveTable)
+#		print(includeType)
+#		print(includeComment)
+#		print(includeIdx)
+#		print(forceColumnUppercase)
+#		print(excludeDataLakeColumns)
+
 		try:
 			response = self.glueClient.get_table(DatabaseName = hiveDB, Name = hiveTable)
 			columns = response["Table"]["StorageDescriptor"]["Columns"]
+#			print(columns)
 
 			normalizedColumnList = []
 			normalizedColumn = {}
@@ -330,6 +342,8 @@ class glueCatalog(object, metaclass=Singleton):
 #					normalizedColumn["is_pk"] = json.loads(column["Comment"])["is_pk"]
 				except json.decoder.JSONDecodeError:
 					normalizedColumn["comment"] = column["Comment"]
+				except KeyError:
+					normalizedColumn["comment"] = None
 #					normalizedColumn["is_pk"] = False
 #				normalizedColumn["Parameters"] = column["Parameters"]
 					
@@ -370,7 +384,6 @@ class glueCatalog(object, metaclass=Singleton):
 		result_df.reset_index(drop=True, inplace=True)
 
 		logging.debug("Executing glueCatalog.getColumns() - Finished")
-		print(result_df)
 		return result_df
 
 #

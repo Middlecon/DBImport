@@ -335,7 +335,7 @@ class operation(object, metaclass=Singleton):
 			logging.info("Reading the number of rows from %s.%s"%(hiveDB, hiveTable))
 			rowCount = 0
 
-			query = "select count(1) as rowcount from hive.`%s`.`%s` "%(hiveDB, hiveTable)
+			query = "select count(1) as rowcount from %s.`%s`.`%s` "%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
 			if whereStatement != None:
 				query += "where " + whereStatement
 			else:
@@ -1034,18 +1034,26 @@ class operation(object, metaclass=Singleton):
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
-				# conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+				conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-extensions-3.4_2.12:1.4.3,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
 				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
 				conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
+				# conf.set('spark.sql.defaultCatalog', 'glue')
+				conf.set('spark.sql.catalog.glue', 'org.apache.iceberg.spark.SparkCatalog')
+				conf.set('spark.sql.catalog.glue.warehouse', 's3://my-bucket/my/key/prefix')
+				conf.set('spark.sql.catalog.glue.catalog-impl', 'org.apache.iceberg.aws.glue.GlueCatalog')
+				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
+				# conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
+				# conf.set('spark.sql.catalog.local.type', 'hadoop')
+				# conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
 			else:
 				conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
-			conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
-			conf.set('spark.sql.catalog.hive.type', 'hive')
-			conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
-			conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
-			conf.set('spark.sql.catalog.local.type', 'hadoop')
-			conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
+				conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
+				conf.set('spark.sql.catalog.hive.type', 'hive')
+				conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
+				conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
+				conf.set('spark.sql.catalog.local.type', 'hadoop')
+				conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
 
 		if self.import_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
@@ -1215,10 +1223,18 @@ class operation(object, metaclass=Singleton):
 		partitionColumn = "%s%s%s"%(quoteAroundColumn, str(self.import_config.splitByColumn).lower(), quoteAroundColumn)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			icebergStagingTable = "hive.%s.%s"%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-			icebergPKOnlyDeletedTable = "hive.%s.%s__pkonly__deleted"%(self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
-			icebergTargetTable = "hive.%s.%s"%(self.import_config.Hive_DB, self.import_config.Hive_Table)
-			icebergHistoryTable = "hive.%s.%s_history"%(self.import_config.Hive_DB, self.import_config.Hive_Table)
+
+			icebergStagingTable = "%s.%s.%s"%(self.common_operations.sparkCatalogName, self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+			icebergPKOnlyDeletedTable = "%s.%s.%s__pkonly__deleted"%(self.common_operations.sparkCatalogName, self.import_config.Hive_Import_DB, self.import_config.Hive_Import_Table)
+			icebergTargetTable = "%s.%s.%s"%(self.common_operations.sparkCatalogName, self.import_config.Hive_DB, self.import_config.Hive_Table)
+			icebergHistoryTable = "%s.%s.%s_history"%(self.common_operations.sparkCatalogName, self.import_config.Hive_DB, self.import_config.Hive_Table)
+
+#			print("----------------------------------------------------------------------------")
+#			print("icebergStagingTable       = %s"%(icebergStagingTable))
+#			print("icebergPKOnlyDeletedTable = %s"%(icebergPKOnlyDeletedTable))
+#			print("icebergTargetTable        = %s"%(icebergTargetTable))
+#			print("icebergHistoryTable       = %s"%(icebergHistoryTable))
+#			print("----------------------------------------------------------------------------")
 
 		# Only run the import if the stage have a shortname of "spark". This way, we dont have to bother about individual stage numbers
 		if self.import_config.getStageShortName(self.import_config.getStage()) == "spark":
@@ -1294,7 +1310,7 @@ class operation(object, metaclass=Singleton):
 				logging.info("Dropping old Iceberg Import table")
 				sys.stdout.flush()
 				try:
-					self.spark.sql('drop table %s purge'%(icebergStagingTable))
+					self.spark.sql('drop table if exists %s purge'%(icebergStagingTable))
 				except pyspark.sql.utils.AnalysisException as e: 
 					if "Table or view not found" in str(e):
 						pass
@@ -1395,10 +1411,12 @@ class operation(object, metaclass=Singleton):
 
 		self.startSpark()
 		logging.info("Expire older Iceberg snapshots on Target table")
-		self.spark.sql("CALL hive.system.expire_snapshots(table => '%s', older_than => TIMESTAMP '%s', retain_last => 1, stream_results => true)"%(icebergTargetTable, deleteOlderThan))
+		# logging.warning("LINE REMARKED - MUST BE FIXED")
+		self.spark.sql("CALL %s.system.expire_snapshots(table => '%s', older_than => TIMESTAMP '%s', retain_last => 1, stream_results => true)"%(self.common_operations.sparkCatalogName, icebergTargetTable, deleteOlderThan))
 
 		logging.info("Removing orphan Iceberg files on Target table")
-		self.spark.sql("CALL hive.system.remove_orphan_files(table => '%s', older_than => TIMESTAMP '%s')"%(icebergTargetTable, deleteOlderThan))
+		# logging.warning("LINE REMARKED - MUST BE FIXED")
+		self.spark.sql("CALL %s.system.remove_orphan_files(table => '%s', older_than => TIMESTAMP '%s')"%(self.common_operations.sparkCatalogName, icebergTargetTable, deleteOlderThan))
 
 
 		logging.debug("Executing import_operations.purgeIcebergVersionsOnTargetTable() - Finsihed")
@@ -1972,7 +1990,7 @@ class operation(object, metaclass=Singleton):
 
 		queryList = []
 		if icebergTable == True:
-			query  = "create table hive.`%s`.`%s` ("%(hiveDB, hiveTable)
+			query  = "create table %s.`%s`.`%s` ("%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
 		else:
 			query  = "create table `%s`.`%s` ("%(hiveDB, hiveTable)
 		columnsDF = self.import_config.getColumnsFromConfigDatabase(includeAllColumns=False) 
@@ -2739,7 +2757,7 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			logging.info("Truncating Target table in Spark")
 			self.startSpark()
-			self.spark.sql("truncate table hive.`%s`.`%s`"%(self.Hive_DB, self.Hive_Table))
+			self.spark.sql("truncate table %s.`%s`.`%s`"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table))
 
 	
 	def updateStatisticsOnTargetTable(self,):
@@ -2793,7 +2811,7 @@ class operation(object, metaclass=Singleton):
 		if icebergTable == False:
 			query = "insert into `%s`.`%s` ("%(targetDB, targetTable)
 		else:
-			query = "insert into hive.`%s`.`%s` ("%(targetDB, targetTable)
+			query = "insert into %s.`%s`.`%s` ("%(self.common_operations.sparkCatalogName, targetDB, targetTable)
 
 		query += columnDefinitionTarget
 		if self.import_config.datalake_source != None:
@@ -2814,7 +2832,7 @@ class operation(object, metaclass=Singleton):
 		if icebergTable == False:
 			query += " from `%s`.`%s` "%(sourceDB, sourceTable)
 		else:
-			query += " from hive.`%s`.`%s` "%(sourceDB, sourceTable)
+			query += " from %s.`%s`.`%s` "%(self.common_operations.sparkCatalogName, sourceDB, sourceTable)
 
 		if self.import_config.nomerge_ingestion_sql_addition != None:
 			query += self.import_config.nomerge_ingestion_sql_addition
