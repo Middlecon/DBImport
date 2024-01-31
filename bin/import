@@ -294,10 +294,6 @@ def main(argv):
 	print("")
 	sys.stdout.flush()
 
-	# DEBUG TEXT
-	print(import_operation.common_operations.getTables(dbFilter="user_boszkk"))
-	sys.exit(2)
-
 
 	# To handle backward combability. 
 	if runOnlyFunction == "sqoop":

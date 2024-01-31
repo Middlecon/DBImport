@@ -31,6 +31,7 @@ from pyhive import exc
 from common.Singleton import Singleton
 from common.Exceptions import *
 import common.Exceptions
+from common import constants as constant
 from TCLIService.ttypes import TOperationState
 from requests_kerberos import HTTPKerberosAuth, REQUIRED
 import kerberos
@@ -88,9 +89,9 @@ class operation(object, metaclass=Singleton):
 
 		# Metastore connections
 		self.metastore_type = configuration.get("Metastore", "metastore_type")
-		if self.metastore_type == "hive_direct":
+		if self.metastore_type == constant.CATALOG_HIVE_DIRECT:
 			self.metastore = hiveDirect.hiveMetastoreDirect()
-		elif self.metastore_type == "glue_catalog":
+		elif self.metastore_type == constant.CATALOG_GLUE:
 			self.metastore = glue.glueCatalog()
 		else:
 			raise invalidConfiguration("Configuration 'metastore_type' under [Metastore] in the configuration file contains an invalid option")

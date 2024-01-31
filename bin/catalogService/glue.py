@@ -58,7 +58,8 @@ class glueCatalog(object, metaclass=Singleton):
 		# self.getTableLocation("amwsktst_history_uat", "braks01")
 		# self.isTableExternalIcebergFormat("amwsktst_history_uat", "braks01")
 		# self.isTableExternal("amwsktst_history_uat", "braks01")
-		self.getColumns("amwsktst_history_uat", "braks01")
+		# self.getColumns("amwsktst_history_uat", "braks01")
+		# self.getTables()
 
 		logging.debug("Executing glueCatalog.__init__() - Finished")
 
@@ -383,35 +384,18 @@ class glueCatalog(object, metaclass=Singleton):
 	def isTableView(self, hiveDB, hiveTable):
 		logging.debug("Executing glueCatalog.isTableView()")
 
-#		if self.hiveMetaSession == None:
-#			self.connectToHiveMetastoreDB()
-#
-#		session = self.hiveMetaSession()
-#		TBLS = aliased(hiveSchema.TBLS, name="T")
-#		DBS = aliased(hiveSchema.DBS, name="D")
-#
-#		row = (session.query(
-#				TBLS.TBL_TYPE
-#			)
-#			.select_from(TBLS)
-#			.join(DBS)
-#			.filter(TBLS.TBL_NAME == hiveTable)
-#			.filter(DBS.NAME == hiveDB)
-#			.one_or_none())
-#
-#		returnValue = False
-#
-#		if row[0] == "VIRTUAL_VIEW":
-#			returnValue = True
-#
-#		logging.debug("isTableView = %s"%(returnValue))
+		raise undevelopedFeature("glueCatalog.isTableView() is undeveloped. Please contact the developers of DBImport")
+
+		returnValue = False
 		logging.debug("Executing glueCatalog.isTableView() - Finished")
-#		return returnValue
+		return returnValue
 
 
 	def getTables(self, dbFilter=None, tableFilter=None):
 		""" Return all tables from specific Hive DB """
 		logging.debug("Executing glueCatalog.getTables()")
+
+		raise undevelopedFeature("glueCatalog.getTables() is undeveloped. Please contact the developers of DBImport")
 
 #		if self.hiveMetaSession == None:
 #			self.connectToHiveMetastoreDB()

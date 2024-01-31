@@ -1024,11 +1024,22 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		conf.set('spark.driver.log.persistToDfs.enabled', 'false')
-		conf.set('spark.yarn.keytab', self.import_config.common_config.kerberosKeytab)
-		conf.set('spark.yarn.principal', self.import_config.common_config.kerberosPrincipal)
+		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+			# This also means we are running with Spark2
+			conf.set('spark.yarn.keytab', self.import_config.common_config.kerberosKeytab)
+			conf.set('spark.yarn.principal', self.import_config.common_config.kerberosPrincipal)
+		else:
+			conf.set('spark.kerberos.keytab', self.import_config.common_config.kerberosKeytab)
+			conf.set('spark.kerberos.principal', self.import_config.common_config.kerberosPrincipal)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
+				# conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-extensions-3.4_2.12:1.4.3,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
+				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
+				conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
+			else:
+				conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 			conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
 			conf.set('spark.sql.catalog.hive.type', 'hive')
 			conf.set('spark.sql.catalog.hive.cache-enabled', 'false')

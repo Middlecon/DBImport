@@ -135,6 +135,7 @@ class config(object, metaclass=Singleton):
 		self.sparkPathAppend = None
 		self.sparkPysparkSubmitArgs = None
 		self.sparkJarFiles = None
+		self.sparkPackages = None
 		self.sparkPyFiles = None
 		self.sparkMaster = None
 		self.sparkDeployMode = None
@@ -175,6 +176,7 @@ class config(object, metaclass=Singleton):
 
 		self.sparkPathAppend = configuration.get("Spark", "path_append")
 		self.sparkJarFiles = configuration.get("Spark", "jar_files")
+		self.sparkPackages = configuration.get("Spark", "packages")
 		self.sparkPyFiles = configuration.get("Spark", "py_files")
 		self.sparkMaster = configuration.get("Spark", "master")
 		self.sparkDeployMode = configuration.get("Spark", "deployMode")
@@ -1120,7 +1122,7 @@ class config(object, metaclass=Singleton):
 			self.impalaDriver = configuration.get("Impala", "driver", exitOnError=False)
 			self.impalaClasspath = configuration.get("Impala", "class", exitOnError=False)
 			self.impalaAddress = configuration.get("Impala", "address", exitOnError=False)
-			if self.impalaDriver != None:
+			if self.impalaDriver != None and self.impalaDriver.startswith("/path/to/") == False:
 				self.jdbc_classpath += ":%s"%(self.impalaDriver)
 				self.jdbc_classpath_for_python = self.jdbc_classpath
 		except:

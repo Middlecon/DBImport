@@ -44,6 +44,9 @@ VALIDATION_METHOD_CUSTOMQUERY = "customQuery"
 ETL_ENGINE_HIVE = "hive"
 ETL_ENGINE_SPARK = "spark"
 
+CATALOG_HIVE_DIRECT = "hive_direct"
+CATALOG_GLUE = "glue_catalog"
+
 # General result
 RESULT_OK = "ok"
 RESULT_FAILED = "failed"
