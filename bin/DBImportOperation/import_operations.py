@@ -1020,6 +1020,7 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
 		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
 		conf.set('spark.jars', sparkJars)
+		conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
@@ -1035,17 +1036,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
 				conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
-				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-extensions-3.4_2.12:1.4.3,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
-				# conf.set('spark.jars.packages', 'org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.4.3')
-				conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
-				# conf.set('spark.sql.defaultCatalog', 'glue')
 				conf.set('spark.sql.catalog.glue', 'org.apache.iceberg.spark.SparkCatalog')
-				conf.set('spark.sql.catalog.glue.warehouse', 's3://my-bucket/my/key/prefix')
+				conf.set('spark.sql.catalog.glue.warehouse', 'tjoho')
 				conf.set('spark.sql.catalog.glue.catalog-impl', 'org.apache.iceberg.aws.glue.GlueCatalog')
 				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
-				# conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
-				# conf.set('spark.sql.catalog.local.type', 'hadoop')
-				# conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
 			else:
 				conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 				conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
@@ -1054,6 +1048,8 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
 				conf.set('spark.sql.catalog.local.type', 'hadoop')
 				conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
+
+			conf.set('spark.sql.debug.maxToStringFields', 1000)
 
 		if self.import_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')
