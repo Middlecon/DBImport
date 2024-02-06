@@ -116,6 +116,7 @@ class config(object, metaclass=Singleton):
 		self.create_foreign_keys_table = None
 		self.create_foreign_keys_connection = None
 		self.importTool = None
+		self.etlEngine = None
 		self.spark_executor_memory = None
 		self.sparkMaxExecutors = None
 		self.split_by_column = None
@@ -1431,6 +1432,13 @@ class config(object, metaclass=Singleton):
 				columnForceString = self.getColumnForceString(column_name)
 				if columnForceString == True:
 					column_type = "string"
+
+			if self.etlEngine == constant.ETL_ENGINE_SPARK:
+				# This means Iceberg file format. So we need to handle conversion between Hive and Iceberg column types
+				# https://docs.cloudera.com/cdw-runtime/1.5.1/iceberg-how-to/topics/iceberg-data-types.html?
+				if column_type.startswith("char(") == True or column_type.startswith("varchar(") == True:
+					column_type = "string"
+
 
 			if includeColumnInImport == True:
 				if sqoopColumnTypeOverride != None:
