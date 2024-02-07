@@ -550,12 +550,23 @@ class operation(object, metaclass=Singleton):
 		if answer == "y":
 			print("")
 			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-				addResult = self.import_config.addImportTable(
-					hiveDB=hiveDB, 
-					hiveTable=row['hiveTable'].lower(),
-					dbalias=dbalias,
-					schema=row['schema'].strip(),
-					table=row['table'].strip())
+				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+					addResult = self.import_config.addImportTable(
+			    		hiveDB=hiveDB, 
+			    		hiveTable=row['hiveTable'].lower(),
+			    		dbalias=dbalias,
+			    		schema=row['schema'].strip(),
+			    		table=row['table'].strip(),
+						catalog=constant.CATALOG_HIVE_DIRECT)
+
+				elif self.common_operations.metastore_type == constant.CATALOG_GLUE:
+					addResult = self.import_config.addImportTable(
+			    		hiveDB=hiveDB, 
+			    		hiveTable=row['hiveTable'].lower(),
+			    		dbalias=dbalias,
+			    		schema=row['schema'].strip(),
+			    		table=row['table'].strip(),
+						catalog=constant.CATALOG_GLUE)
 
 				if addResult == False:
 					errorDuringAdd = True
@@ -1972,6 +1983,7 @@ class operation(object, metaclass=Singleton):
 					elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 						query = "alter table `%s`.`%s`.`%s` rename column datalake_insert to datalake_import" \
 								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+						print(query)
 						self.spark.sql(query)
 
 					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -1985,6 +1997,7 @@ class operation(object, metaclass=Singleton):
 					elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 						query = "alter table `%s`.`%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\" )" \
 								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+						print(query)
 						self.spark.sql(query)
 
 					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -1999,6 +2012,7 @@ class operation(object, metaclass=Singleton):
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 					query = "alter table `%s`.`%s`.`%s` rename column datalake_import to datalake_insert" \
 							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+					print(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2012,6 +2026,7 @@ class operation(object, metaclass=Singleton):
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\" )" \
 							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+					print(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2026,6 +2041,7 @@ class operation(object, metaclass=Singleton):
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_iud string COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
 							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+					print(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2039,6 +2055,7 @@ class operation(object, metaclass=Singleton):
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")" \
 							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+					print(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2053,6 +2070,7 @@ class operation(object, metaclass=Singleton):
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
 							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+					print(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2428,6 +2446,7 @@ class operation(object, metaclass=Singleton):
 			self.startSpark()
 			import pyspark
 
+#		pd.set_option('display.max_rows', None)
 #		print(columnsConfig)
 #		print("==============================================")
 #		print(columnsHive)
@@ -2482,25 +2501,25 @@ class operation(object, metaclass=Singleton):
 					self.createExternalImportTable()
 					self.common_operations.reconnectHiveMetaStore()
 
-			if hiveDB == self.Hive_DB and hiveTable == self.Hive_Table and self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-				# This is an update for a target table that is used with Spark as the ETL engine. In other words, it's an external table based on Iceberg files
-				foundColumnError = False
-				for hiveIndex, hiveRow in columnsHiveOnlyName.iterrows():
-					hiveName = hiveRow['name']
-					indexInConfig = -1
-					if len(columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName]) > 0:
-						# Row in Hive exists in Config aswell. Need to check position
-						indexInConfig = columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName].index.tolist()[0]
-						if hiveIndex != indexInConfig:
-							foundColumnError = True
-	
-				if foundColumnError == True:
-					# There was an error with the column order. We need to drop and recreate
-					logging.warning("The column order was not correct in the External Target Table. As this is a ORC table, we will have to drop and recreate it. This is needed because Hive tables based on ORC files does not support reordering of columns")
-					self.common_operations.dropHiveTable(hiveDB, hiveTable)
-					self.createExternalTargetTable()
-					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
-						self.common_operations.reconnectHiveMetaStore()
+#			if hiveDB == self.Hive_DB and hiveTable == self.Hive_Table and self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+#				# This is an update for a target table that is used with Spark as the ETL engine. In other words, it's an external table based on Iceberg files
+#				foundColumnError = False
+#				for hiveIndex, hiveRow in columnsHiveOnlyName.iterrows():
+#					hiveName = hiveRow['name']
+#					indexInConfig = -1
+#					if len(columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName]) > 0:
+#						# Row in Hive exists in Config aswell. Need to check position
+#						indexInConfig = columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName].index.tolist()[0]
+#						if hiveIndex != indexInConfig:
+#							foundColumnError = True
+#	
+#				if foundColumnError == True:
+#					# There was an error with the column order. We need to drop and recreate
+#					logging.warning("The column order was not correct in the External Target Table. As this is a ORC table, we will have to drop and recreate it. This is needed because Hive tables based on ORC files does not support reordering of columns")
+#					self.common_operations.dropHiveTable(hiveDB, hiveTable)
+#					self.createExternalTargetTable()
+#					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+#						self.common_operations.reconnectHiveMetaStore()
 
 
 		logging.debug("columnsConfigOnlyName")

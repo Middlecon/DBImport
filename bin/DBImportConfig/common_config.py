@@ -166,6 +166,7 @@ class config(object, metaclass=Singleton):
 		# SQLAlchemy connection variables
 		self.configDB = None
 		self.configDBSession = None
+		self.mysqlConnectionDetails = None
 
 		self.debugLogLevel = False
 		if logging.root.level == 10:        # DEBUG
@@ -218,32 +219,34 @@ class config(object, metaclass=Singleton):
 
 #		# Fetch configuration about HDFS
 
-		# Fetch configuration about MySQL database and how to connect to it
-		mysql_hostname = configuration.get("Database", "mysql_hostname")
-		mysql_port =     configuration.get("Database", "mysql_port")
-		mysql_database = configuration.get("Database", "mysql_database")
-		mysql_username = configuration.get("Database", "mysql_username")
-		mysql_password = configuration.get("Database", "mysql_password")
+#		# Fetch configuration about MySQL database and how to connect to it
+#		mysql_hostname = configuration.get("Database", "mysql_hostname")
+#		mysql_port =     configuration.get("Database", "mysql_port")
+#		mysql_database = configuration.get("Database", "mysql_database")
+#		mysql_username = configuration.get("Database", "mysql_username")
+#		mysql_password = configuration.get("Database", "mysql_password")
+#
+#		# Esablish a connection to the DBImport database in MySQL
+#		try:
+#			self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
+#												 port=mysql_port, 
+#												 database=mysql_database, 
+#												 user=mysql_username, 
+#												 password=mysql_password)
+#		except mysql.connector.Error as err:
+#			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+#				logging.error("Something is wrong with your user name or password")
+#			elif err.errno == errorcode.ER_BAD_DB_ERROR:
+#				logging.error("Database does not exist")
+#			else:
+#				logging.error("%s"%err)
+#			logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
+#			self.remove_temporary_files()
+#			sys.exit(1)
+#		else:
+#			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
 
-		# Esablish a connection to the DBImport database in MySQL
-		try:
-			self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
-												 port=mysql_port, 
-												 database=mysql_database, 
-												 user=mysql_username, 
-												 password=mysql_password)
-		except mysql.connector.Error as err:
-			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-				logging.error("Something is wrong with your user name or password")
-			elif err.errno == errorcode.ER_BAD_DB_ERROR:
-				logging.error("Database does not exist")
-			else:
-				logging.error("%s"%err)
-			logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
-			self.remove_temporary_files()
-			sys.exit(1)
-		else:
-			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
+		self.reconnectConfigDatabase(printReconnectMessage=False)
 
 		logging.debug("Executing common_config.__init__() - Finished")
 
@@ -253,24 +256,82 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor.close()
 		self.mysql_conn.close()
 
-	def reconnectConfigDatabase(self):
-		if self.mysql_conn.is_connected() == False:
-			logging.warn("Connection to MySQL have been lost. Reconnecting...")
 
-			# Fetch configuration about MySQL database and how to connect to it
-			mysql_hostname = configuration.get("Database", "mysql_hostname")
-			mysql_port =     configuration.get("Database", "mysql_port")
-			mysql_database = configuration.get("Database", "mysql_database")
-			mysql_username = configuration.get("Database", "mysql_username")
-			mysql_password = configuration.get("Database", "mysql_password")
+	def getMysqlCredentials(self):
+		# Fetch configuration about MySQL database and how to connect to it
+
+		if self.mysqlConnectionDetails != None:
+			# This information is already fetched from the configuration. Just return the fetched values
+			return self.mysqlConnectionDetails
+
+		mysql_hostname = configuration.get("Database", "mysql_hostname")
+		mysql_port =     configuration.get("Database", "mysql_port")
+		mysql_database = configuration.get("Database", "mysql_database")
+		mysql_username = configuration.get("Database", "mysql_username")
+		mysql_password = configuration.get("Database", "mysql_password")
+
+		if mysql_password == "" and mysql_username == "":
+			# No password is configured. Lets try the AWS get_secret function if configured
+			aws_secret_name = None
+			aws_region_name = None
+
+			try:
+				aws_secret_name = configuration.get("Database", "aws_secret_name", exitOnError=False)
+				aws_region_name = configuration.get("Database", "aws_region_name", exitOnError=False)
+			except invalidConfiguration:
+				pass
+
+			if aws_secret_name != None and aws_region_name != None:
+				import boto3
+				from botocore.exceptions import ClientError
+
+				# Create a Secrets Manager client
+				session = boto3.session.Session()
+				client = session.client(
+						service_name='secretsmanager',
+						region_name=aws_region_name
+						)
+
+				try:
+					get_secret_value_response = client.get_secret_value(
+						SecretId=aws_secret_name
+					)
+				except ClientError as e:
+					# For a list of exceptions thrown, see
+					# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+					raise e
+
+			rds_credentials = json.loads(get_secret_value_response['SecretString'])
+			mysql_username = rds_credentials["username"]
+			mysql_password = rds_credentials["password"]
+
+		self.mysqlConnectionDetails = {}
+		self.mysqlConnectionDetails["mysql_hostname"] = mysql_hostname
+		self.mysqlConnectionDetails["mysql_port"] = mysql_port
+		self.mysqlConnectionDetails["mysql_database"] = mysql_database
+		self.mysqlConnectionDetails["mysql_username"] = mysql_username
+		self.mysqlConnectionDetails["mysql_password"] = mysql_password
+
+		# print(mysql_username)
+		# print(mysql_password)
+	
+		return self.mysqlConnectionDetails
+
+
+	def reconnectConfigDatabase(self, printReconnectMessage=True):
+		if self.mysql_conn == None or self.mysql_conn.is_connected() == False:
+			if printReconnectMessage == True:
+				logging.warn("Connection to MySQL have been lost. Reconnecting...")
+
+			mysqlCredentials = self.getMysqlCredentials()
 
 			# Esablish a connection to the DBImport database in MySQL
 			try:
-				self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
-													 port=mysql_port, 
-													 database=mysql_database, 
-													 user=mysql_username, 
-													 password=mysql_password)
+				self.mysql_conn = mysql.connector.connect(host=mysqlCredentials["mysql_hostname"], 
+													 port=mysqlCredentials["mysql_port"], 
+													 database=mysqlCredentials["mysql_database"], 
+													 user=mysqlCredentials["mysql_username"], 
+													 password=mysqlCredentials["mysql_password"])
 			except mysql.connector.Error as err:
 				if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
 					logging.error("Something is wrong with your user name or password")
@@ -324,12 +385,14 @@ class config(object, metaclass=Singleton):
 			# If we already have a connection, we just say that it's ok....
 			return True
 
+		mysqlCredentials = self.getMysqlCredentials()
+
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
-			configuration.get("Database", "mysql_username"),
-			configuration.get("Database", "mysql_password"),
-			configuration.get("Database", "mysql_hostname"),
-			configuration.get("Database", "mysql_port"),
-			configuration.get("Database", "mysql_database"))
+			mysqlCredentials["mysql_username"], 
+			mysqlCredentials["mysql_password"],
+			mysqlCredentials["mysql_hostname"], 
+			mysqlCredentials["mysql_port"], 
+			mysqlCredentials["mysql_database"]) 
 
 		try:
 			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel, pool_pre_ping=True)

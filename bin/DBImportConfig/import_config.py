@@ -3001,19 +3001,33 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing import_config.getImportTables() - Finished")
 		return result_df
 
-	def addImportTable(self, hiveDB, hiveTable, dbalias, schema, table):
+	def addImportTable(self, hiveDB, hiveTable, dbalias, schema, table, catalog):
 		""" Add source table to import_tables """
 		logging.debug("Executing import_config.addImportTable()")
 		returnValue = True
 
-		query = ("insert into import_tables "
+		if catalog == constant.CATALOG_HIVE_DIRECT:
+			query = ("insert into import_tables "
 				"("
 				"    hive_db, "
 				"    hive_table, "
 				"    dbalias, "
 				"    source_schema, "
-				"    source_table  "
-				") values ( %s, %s, %s, %s, %s )")
+				"    source_table,  "
+				"    etl_engine  "
+				") values ( %s, %s, %s, %s, %s, 'hive' )")
+		elif catalog == constant.CATALOG_GLUE:
+			query = ("insert into import_tables "
+				"("
+				"    hive_db, "
+				"    hive_table, "
+				"    dbalias, "
+				"    source_schema, "
+				"    source_table,  "
+				"    etl_engine  "
+				") values ( %s, %s, %s, %s, %s, 'spark' )")
+		else:
+			raise invalidConfiguration("catalog option supplied to import_config.addImportTable does not contain a valid option")
 
 		logging.debug("hiveDB:    %s"%(hiveDB))
 		logging.debug("hiveTable: %s"%(hiveTable))
