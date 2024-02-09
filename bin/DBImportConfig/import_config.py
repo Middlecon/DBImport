@@ -23,7 +23,7 @@ import math
 import ssl
 import requests
 import getpass
-import urllib
+# import urllib
 import jpype
 from requests_kerberos import HTTPKerberosAuth
 from ConfigReader import configuration
@@ -459,7 +459,7 @@ class config(object, metaclass=Singleton):
 		
 		self.common_config.operationTimestamp = row[48]
 
-#		invalidateImpalaMetadataValue = row[48]
+#		invalidateImpalaMetadataValue = row[49]
 		invalidateImpalaMetadataValue = -1
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
@@ -610,6 +610,7 @@ class config(object, metaclass=Singleton):
 			self.importPhaseDescription  = "Full"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Append"
+			etlEngineSparkSupported = True
 
 		if self.import_type == "full_merge_direct" or (self.import_phase_type == "full" and self.etl_phase_type == "merge"):
 			self.import_type_description = "Full import and merge of Hive table"
@@ -619,6 +620,7 @@ class config(object, metaclass=Singleton):
 			self.importPhaseDescription  = "Full"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "Merge"
+			etlEngineSparkSupported = True
 
 		if self.import_phase_type == "full" and self.etl_phase_type == "none":
 			self.import_type_description = "Full import with no ETL phace"
@@ -628,6 +630,7 @@ class config(object, metaclass=Singleton):
 			self.importPhaseDescription  = "Full"
 			self.copyPhaseDescription    = "No cluster copy"
 			self.etlPhaseDescription     = "No ETL phase"
+			etlEngineSparkSupported = True
 
 		if self.import_phase_type == "full" and self.etl_phase_type == "external":
 			self.import_type_description = "Full import with no ETL phase. Will only create the target table as an external table"

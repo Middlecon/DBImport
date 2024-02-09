@@ -1033,7 +1033,8 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.submit.deployMode', self.import_config.common_config.sparkDeployMode )
 		conf.setAppName('DBImport Import - %s.%s'%(self.Hive_DB, self.Hive_Table))
 		conf.set('spark.jars', sparkJars)
-		conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
+		if self.import_config.common_config.sparkPackages != None and self.import_config.common_config.sparkPackages != "":
+			conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
@@ -2866,6 +2867,9 @@ class operation(object, metaclass=Singleton):
 		compactionMethod = "none"
 		andWait = False
 		compactionDescription = ""
+
+		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+			return
 
 		if self.import_config.mergeCompactionMethod == "default":
 			if self.import_config.common_config.getConfigValue(key = "hive_major_compact_after_merge") == True:

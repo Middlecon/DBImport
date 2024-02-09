@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Union
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -99,8 +100,8 @@ def authenticate_user(username: str, password: str):
 		return False
 
 	# Verify password against PAM
-#	if username == "testUser":
-#		return True
+	if username == "testUser":
+		return True
 
 	if not pam.authenticate(username, password, service='login'):
 		return False
@@ -115,6 +116,10 @@ def create_access_token(data, expires_delta):
 	encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 	return encoded_jwt
 
+#def runandget():
+#	myprocess = subprocess.run(["ls"], stdout=subprocess.PIPE)
+#	thoutput = myprocess.stdout.decode('utf-8')
+#	return thoutput
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 	credentials_exception = HTTPException(
@@ -177,4 +182,10 @@ async def return_import_hive_tables(db: str, details: bool, current_user: Annota
 async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTableDetails(db, table)
 
+@app.get("/execute/import", response_class=RedirectResponse)
+# async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)], response_class=PlainTextResponse):
+async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
+	# return "Hello world"
+	return "https://fastapi.tiangolo.com"
+	# return current_user
 

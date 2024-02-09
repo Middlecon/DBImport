@@ -177,7 +177,10 @@ class config(object, metaclass=Singleton):
 
 		self.sparkPathAppend = configuration.get("Spark", "path_append")
 		self.sparkJarFiles = configuration.get("Spark", "jar_files")
-		self.sparkPackages = configuration.get("Spark", "packages")
+		try:
+			self.sparkPackages = configuration.get("Spark", "packages", exitOnError=False)
+		except invalidConfiguration:
+			logging.warning("Configuration option 'packages' under [Spark] in the configuration file is missing. Please update your config file")
 		self.sparkPyFiles = configuration.get("Spark", "py_files")
 		self.sparkMaster = configuration.get("Spark", "master")
 		self.sparkDeployMode = configuration.get("Spark", "deployMode")

@@ -91,7 +91,7 @@ starlette==0.27.0
 thrift==0.16.0
 thrift-sasl==0.4.3
 typing_extensions==4.7.1
-urllib3==1.26.18
+urllib3==1.25.11
 uvicorn==0.22.0
 uvloop==0.18.0
 waitress==2.1.2
