@@ -930,6 +930,10 @@ def main(argv):
 					if import_operation.runStage(3109) == True: 
 						import_operation.validateTargetTable()
 
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3145) == True: 
+					import_operation.invalidateImpala()
+
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
 
@@ -1031,6 +1035,10 @@ def main(argv):
 			if runOnlyFunction == None:
 				if import_operation.runStage(3160) == True: 
 					import_operation.saveIncrPendingValues()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3195) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1164,6 +1172,10 @@ def main(argv):
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
 
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3245) == True: 
+					import_operation.invalidateImpala()
+
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
 	
@@ -1284,6 +1296,10 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3295) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1409,6 +1425,10 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3345) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1540,6 +1560,10 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3395) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1676,6 +1700,10 @@ def main(argv):
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
 
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3445) == True: 
+					import_operation.invalidateImpala()
+
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
 
@@ -1731,6 +1759,10 @@ def main(argv):
 
 					if import_operation.runStage(3453) == True: 
 						import_operation.validateImportTable()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3495) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1828,6 +1860,10 @@ def main(argv):
 
 					if import_operation.runStage(3510) == True: 
 						import_operation.validateTargetTable()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3545) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -1968,6 +2004,10 @@ def main(argv):
 					import_operation.runHiveCompaction()
 #					import_operation.runHiveMajorCompaction()
 
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3595) == True: 
+					import_operation.invalidateImpala()
+
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
 
@@ -2102,6 +2142,10 @@ def main(argv):
 				if import_operation.runStage(3612) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3645) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)
@@ -2254,6 +2298,10 @@ def main(argv):
 				if import_operation.runStage(3663) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.runHiveCompaction()
+
+			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
+				if import_operation.runStage(3695) == True: 
+					import_operation.invalidateImpala()
 
 			if runOnlyFunction == None:
 				import_operation.setStage(9999)

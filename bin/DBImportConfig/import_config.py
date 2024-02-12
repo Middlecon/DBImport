@@ -358,7 +358,8 @@ class config(object, metaclass=Singleton):
 				"    hive_split_count, "
 				"    etl_engine, "
 				"    spark_executors, "
-				"    last_update_from_source "
+				"    last_update_from_source, "
+				"    invalidate_impala "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -459,8 +460,8 @@ class config(object, metaclass=Singleton):
 		
 		self.common_config.operationTimestamp = row[48]
 
-#		invalidateImpalaMetadataValue = row[49]
-		invalidateImpalaMetadataValue = -1
+		invalidateImpalaMetadataValue = row[49]
+#		invalidateImpalaMetadataValue = -1
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))

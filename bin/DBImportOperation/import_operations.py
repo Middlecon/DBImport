@@ -1189,6 +1189,7 @@ class operation(object, metaclass=Singleton):
 					self.import_config.remove_temporary_files()
 					sys.exit(1)
 
+
 		# Fetch Min and Max values for Boundary query
 		if self.import_config.sqlSessions > 1:
 			self.import_config.generateSqoopSplitBy()
@@ -1224,6 +1225,12 @@ class operation(object, metaclass=Singleton):
 		else:
 			sparkQuery = "(%s) %s"%(self.import_config.getSQLtoReadFromSource(), self.Hive_Table)
 
+#		print("import_is_incremental: %s"%self.import_config.import_is_incremental)
+#		print("incrWhereStatement: %s"%incrWhereStatement)
+#		print("Rowcount: %s"%rowCount)
+#		print("sparkQuery: %s"%sparkQuery)
+#		self.import_config.remove_temporary_files()
+#		sys.exit(1)
 
 		# Start the spark session
 		self.startSpark()
