@@ -2372,7 +2372,6 @@ class operation(object, metaclass=Singleton):
 			self.updateHiveTable(self.Hive_DB, self.Hive_Table)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			# logging.error("updateTargetTable() is not handled yet for Spark!")
 			logging.info("Updating Target table columns based on source system schema")
 			self.updateHiveTable(self.Hive_DB, self.Hive_Table)
 
@@ -2508,27 +2507,6 @@ class operation(object, metaclass=Singleton):
 					self.common_operations.dropHiveTable(hiveDB, hiveTable)
 					self.createExternalImportTable()
 					self.common_operations.reconnectHiveMetaStore()
-
-#			if hiveDB == self.Hive_DB and hiveTable == self.Hive_Table and self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-#				# This is an update for a target table that is used with Spark as the ETL engine. In other words, it's an external table based on Iceberg files
-#				foundColumnError = False
-#				for hiveIndex, hiveRow in columnsHiveOnlyName.iterrows():
-#					hiveName = hiveRow['name']
-#					indexInConfig = -1
-#					if len(columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName]) > 0:
-#						# Row in Hive exists in Config aswell. Need to check position
-#						indexInConfig = columnsConfigOnlyName.loc[columnsConfigOnlyName['name'] == hiveName].index.tolist()[0]
-#						if hiveIndex != indexInConfig:
-#							foundColumnError = True
-#	
-#				if foundColumnError == True:
-#					# There was an error with the column order. We need to drop and recreate
-#					logging.warning("The column order was not correct in the External Target Table. As this is a ORC table, we will have to drop and recreate it. This is needed because Hive tables based on ORC files does not support reordering of columns")
-#					self.common_operations.dropHiveTable(hiveDB, hiveTable)
-#					self.createExternalTargetTable()
-#					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
-#						self.common_operations.reconnectHiveMetaStore()
-
 
 		logging.debug("columnsConfigOnlyName")
 		logging.debug(columnsConfigOnlyName)
@@ -2670,7 +2648,28 @@ class operation(object, metaclass=Singleton):
 				try:
 					self.spark.sql(query)
 				except pyspark.sql.utils.AnalysisException as e:
-					raise SQLerror(str(e))
+					if "Cannot update" in str(e) and "cannot be cast to" in str(e):
+						if self.import_config.import_is_incremental == False and self.import_config.import_with_merge == False:
+							# This is a full import without merge. So it's safe to drop the column and recreate it
+							logging.info("Alter type of column '%s' failed due to incompatible column types. But as this is a full none-merge import, we will drop and recreate the column instead")
+							try:
+								query = "alter table `%s`.`%s`.`%s` drop column `%s` " \
+										%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName)
+								self.spark.sql(query)
+
+								query = "alter table `%s`.`%s`.`%s` add columns (`%s` %s) " \
+										%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName, columnType)
+								self.spark.sql(query)
+
+							except pyspark.sql.utils.AnalysisException as e:
+								raise SQLerror(str(e))
+						else:
+							logging.error("The source table schema have changed. During alter of column to change the type in the Iceberg table, Spark returned an error.")
+							logging.error("This mostly means that the column types change is not supported and cant be handled by DBImport automatically. ")
+							logging.error("To get out of this problem, the table needs to be recreated manually before a successful import can be executed again")
+							raise SQLerror(str(e))
+					else:
+						raise SQLerror(str(e))
 
 			# Get the previous column type from the Pandas DF with right_only in Exist column
 			previous_columnType = (columnsMergeOnlyNameType.loc[

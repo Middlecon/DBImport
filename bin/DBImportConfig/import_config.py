@@ -1439,9 +1439,17 @@ class config(object, metaclass=Singleton):
 
 			if self.etlEngine == constant.ETL_ENGINE_SPARK:
 				# This means Iceberg file format. So we need to handle conversion between Hive and Iceberg column types
+				# The logic is to first translate source columns to Hive and from Hive to Iceberg. That is a far simpler thing
+				# compared to translate all different source tables to Iceberg as well
 				# https://docs.cloudera.com/cdw-runtime/1.5.1/iceberg-how-to/topics/iceberg-data-types.html?
 				if column_type.startswith("char(") == True or column_type.startswith("varchar(") == True:
 					column_type = "string"
+
+				if source_column_type == "bit": 
+					column_type = "boolean"
+
+				if column_type in ("tinyint", "smallint"): 
+					column_type = "int"
 
 
 			if includeColumnInImport == True:
