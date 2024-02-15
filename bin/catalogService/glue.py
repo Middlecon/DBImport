@@ -50,8 +50,8 @@ class glueCatalog(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 
-		self.AWSregion = configuration.get("Metastore", "aws_region")
-		self.glueClient = boto3.client('glue', region_name = self.AWSregion)
+#		self.AWSregion = configuration.get("Metastore", "aws_region")
+		self.glueClient = boto3.client('glue', region_name = self.common_config.awsRegion)
 
 		# self.checkDB("amwsktst_history_uat")
 		# self.checkTable("amwsktst_history_uat", "braks01")

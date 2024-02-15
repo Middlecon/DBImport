@@ -180,16 +180,17 @@ def main(argv):
 			printHelp()
 
 	# Initiate the logging functions with the correct level
+
 	if loggingLevel == logging.DEBUG:
 		if logWithTimestamp == True:
-			logging.basicConfig(format='%(asctime)s %(levelname)s %(funcName)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
+			logging.basicConfig(stream=sys.stdout, format='%(asctime)s %(levelname)s %(funcName)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
 		else:
-			logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+			logging.basicConfig(stream=sys.stdout, format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
 	else:
 		if logWithTimestamp == True:
-			logging.basicConfig(format='%(asctime)s %(levelname)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
+			logging.basicConfig(stream=sys.stdout, format='%(asctime)s %(levelname)s - %(message)s', level=loggingLevel, datefmt='%Y-%m-%d %H:%M:%S')
 		else:
-			logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
+			logging.basicConfig(stream=sys.stdout, format='%(levelname)s - %(message)s', level=loggingLevel)
 
 	# Font created at http://patorjk.com/software/taag/#p=display&f=Big&t=DBImport%20-%20Import
 	sys.stdout.write(u"\u001b[35m")  # Magenta

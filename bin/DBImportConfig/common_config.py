@@ -144,7 +144,6 @@ class config(object, metaclass=Singleton):
 		self.sparkMinExecutors = None
 		self.sparkMaxExecutors = None
 		self.sparkExecutorMemory = None
-#		self.sparkHDPversion = None
 		self.sparkHiveLibrary = None
 
 		self.operationTimestamp = None
@@ -187,6 +186,12 @@ class config(object, metaclass=Singleton):
 		self.sparkYarnQueue = configuration.get("Spark", "yarnqueue")
 		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
 		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
+
+		self.awsRegion = None
+		try:
+			self.awsRegion = configuration.get("AWS", "region", exitOnError=False)
+		except invalidConfiguration:
+			pass
 
 		if configuration.get("Spark", "dynamic_allocation").lower() == "true":
 			self.sparkDynamicAllocation = True
@@ -273,40 +278,41 @@ class config(object, metaclass=Singleton):
 		mysql_username = configuration.get("Database", "mysql_username")
 		mysql_password = configuration.get("Database", "mysql_password")
 
-		if mysql_password == "" and mysql_username == "":
+		if mysql_password == "" and mysql_username == "" and self.awsRegion != None:
 			# No password is configured. Lets try the AWS get_secret function if configured
 			aws_secret_name = None
-			aws_region_name = None
 
 			try:
 				aws_secret_name = configuration.get("Database", "aws_secret_name", exitOnError=False)
-				aws_region_name = configuration.get("Database", "aws_region_name", exitOnError=False)
 			except invalidConfiguration:
-				pass
+				raise invalidConfiguration("Credentials configuration to configuration database in config file is incorrect. Either use username/password or a AWS Secret Manager name") 
+				# pass
 
-			if aws_secret_name != None and aws_region_name != None:
-				import boto3
-				from botocore.exceptions import ClientError
+			import boto3
+			from botocore.exceptions import ClientError
 
-				# Create a Secrets Manager client
-				session = boto3.session.Session()
-				client = session.client(
-						service_name='secretsmanager',
-						region_name=aws_region_name
-						)
-
-				try:
-					get_secret_value_response = client.get_secret_value(
-						SecretId=aws_secret_name
+			# Create a Secrets Manager client
+			session = boto3.session.Session()
+			client = session.client(
+					service_name='secretsmanager',
+					region_name=self.awsRegion
 					)
-				except ClientError as e:
-					# For a list of exceptions thrown, see
-					# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-					raise e
+
+			try:
+				get_secret_value_response = client.get_secret_value(
+					SecretId=aws_secret_name
+				)
+			except ClientError as e:
+				# For a list of exceptions thrown, see
+				# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+				raise e
 
 			rds_credentials = json.loads(get_secret_value_response['SecretString'])
 			mysql_username = rds_credentials["username"]
 			mysql_password = rds_credentials["password"]
+
+		elif mysql_password == "" or mysql_username == "":
+			raise invalidConfiguration("Credentials configuration to configuration database in config file is incorrect. Either use username/password or a AWS Secret Manager name") 
 
 		self.mysqlConnectionDetails = {}
 		self.mysqlConnectionDetails["mysql_hostname"] = mysql_hostname
