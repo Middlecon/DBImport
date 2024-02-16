@@ -122,9 +122,9 @@ def main(argv):
 
 	# Initiate the logging functions with the correct level
 	if loggingLevel == logging.DEBUG:
-		logging.basicConfig(format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
+		logging.basicConfig(stream=sys.stdout, format='%(levelname)s %(funcName)s - %(message)s', level=loggingLevel)
 	else:
-		logging.basicConfig(format='%(levelname)s - %(message)s', level=loggingLevel)
+		logging.basicConfig(stream=sys.stdout, format='%(levelname)s - %(message)s', level=loggingLevel)
 
 	if connectionAlias == None or targetSchema == None or targetTable == None:
 		printHelp()

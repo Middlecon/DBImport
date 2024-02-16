@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy_utils import create_view
 from DBImportConfig import configSchema
+from DBImportConfig import common_config
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text
 from sqlalchemy.orm import aliased, sessionmaker, Query
@@ -58,16 +59,16 @@ class initialize(object):
 #			self.remove_temporary_files()
 			sys.exit(1)
 
+		self.common_config = common_config.config()
 
 		# Fetch configuration about MySQL database and how to connect to it
-		self.configHostname = configuration.get("Database", "mysql_hostname")
-		self.configPort =     configuration.get("Database", "mysql_port")
-		self.configDatabase = configuration.get("Database", "mysql_database")
-		self.configUsername = configuration.get("Database", "mysql_username")
-		self.configPassword = configuration.get("Database", "mysql_password")
+		self.databaseCredentials = self.common_config.getMysqlCredentials()
+		self.configHostname = self.databaseCredentials["mysql_hostname"]
+		self.configPort =     self.databaseCredentials["mysql_port"]
+		self.configDatabase = self.databaseCredentials["mysql_database"]
+		self.configUsername = self.databaseCredentials["mysql_username"]
+		self.configPassword = self.databaseCredentials["mysql_password"]
 
-		# Esablish a SQLAlchemy connection to the DBImport database 
-#		try:
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			self.configUsername, 
 			self.configPassword, 
@@ -75,6 +76,7 @@ class initialize(object):
 			self.configPort, 
 			self.configDatabase)
 
+		# Esablish a SQLAlchemy connection to the DBImport database 
 		try:
 			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
 			self.configDB.connect()
@@ -816,4 +818,17 @@ class initialize(object):
 				description='If 1, then DBImport will connect to Impala and invalidate or refresh the metadata after import is completed')
 			session.execute(query)
 			session.commit()
+
+		if 'rest_trustcafile' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='rest_trustcafile', 
+				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
+				description='REST CA Trust file for SSL')
+			session.execute(query)
+			session.commit()
+
+#		query = sa.update(configSchema.configuration).where(configKey='airflow_dag_directory').values(
+#				description='Airflow path to DAG directory. When using AWS MWAA, this is the name of the S3 bucket.')
+#		session.execute(query)
+#		session.commit()
 
