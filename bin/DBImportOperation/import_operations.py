@@ -96,6 +96,44 @@ class operation(object, metaclass=Singleton):
 
 		self.import_config.getImportConfig()
 		self.startDate = self.import_config.startDate
+
+		self.Hive_Import_DB = self.import_config.Hive_Import_DB 
+		self.Hive_Import_Table = self.import_config.Hive_Import_Table 
+		self.Hive_Import_View = self.import_config.Hive_Import_View 
+		self.Hive_History_DB = self.import_config.Hive_History_DB 
+		self.Hive_History_Table = self.import_config.Hive_History_Table 
+		self.Hive_HistoryTemp_DB = self.import_config.Hive_HistoryTemp_DB 
+		self.Hive_HistoryTemp_Table = self.import_config.Hive_HistoryTemp_Table 
+		self.Hive_Import_PKonly_DB = self.import_config.Hive_Import_PKonly_DB
+		self.Hive_Import_PKonly_Table = self.import_config.Hive_Import_PKonly_Table 
+		self.Hive_Delete_DB = self.import_config.Hive_Delete_DB 
+		self.Hive_Delete_Table = self.import_config.Hive_Delete_Table 
+		self.Hive_ColumnName_Import = self.import_config.Hive_ColumnName_Import 
+		self.Hive_ColumnName_Insert = self.import_config.Hive_ColumnName_Insert 
+		self.Hive_ColumnName_Update = self.import_config.Hive_ColumnName_Update
+		self.Hive_ColumnName_Delete = self.import_config.Hive_ColumnName_Delete
+		self.Hive_ColumnName_IUD = self.import_config.Hive_ColumnName_IUD
+		self.Hive_ColumnName_HistoryTimestamp = self.import_config.Hive_ColumnName_HistoryTimestamp
+
+		self.common_operations.setTableAndColumnNames(
+			Hive_Import_DB = self.Hive_Import_DB, 
+			Hive_Import_Table = self.Hive_Import_Table, 
+			Hive_Import_View = self.Hive_Import_View, 
+			Hive_History_DB = self.Hive_History_DB, 
+			Hive_History_Table = self.Hive_History_Table, 
+			Hive_HistoryTemp_DB = self.Hive_HistoryTemp_DB, 
+			Hive_HistoryTemp_Table = self.Hive_HistoryTemp_Table, 
+			Hive_Import_PKonly_DB = self.Hive_Import_PKonly_DB, 
+			Hive_Import_PKonly_Table = self.Hive_Import_PKonly_Table, 
+			Hive_Delete_DB = self.Hive_Delete_DB, 
+			Hive_Delete_Table = self.Hive_Delete_Table, 
+			Hive_ColumnName_Import = self.Hive_ColumnName_Import, 
+			Hive_ColumnName_Insert = self.Hive_ColumnName_Insert, 
+			Hive_ColumnName_Update = self.Hive_ColumnName_Update,
+			Hive_ColumnName_Delete = self.Hive_ColumnName_Delete, 
+			Hive_ColumnName_IUD = self.Hive_ColumnName_IUD,
+			Hive_ColumnName_HistoryTimestamp = self.Hive_ColumnName_HistoryTimestamp)
+
 		self.import_config.lookupConnectionAlias()
 
 	def remove_temporary_files(self):
@@ -344,6 +382,7 @@ class operation(object, metaclass=Singleton):
 				query += "limit 1"
 
 			self.startSpark()
+			logging.info(query)
 			tableSizeResult = self.spark.sql(query)
 			rowCount = int(tableSizeResult.first()['rowcount'])
 
@@ -357,10 +396,12 @@ class operation(object, metaclass=Singleton):
 			whereStatement = self.import_config.getIncrWhereStatement(ignoreIfOnlyIncrMax=True, ignoreSQLwhereAddition=True, incrementalMax=incrementalMax)
 
 			if whereStatement == None and self.import_config.import_with_merge == True and self.import_config.soft_delete_during_merge == True:
-				whereStatement = "datalake_iud != 'D' or datalake_iud is null"
+				# whereStatement = "datalake_iud != 'D' or datalake_iud is null"
+				whereStatement = "%s != 'D' or %s is null"%(self.Hive_ColumnName_IUD, self.Hive_ColumnName_IUD)
 
 			if whereStatement == None and self.import_config.importPhase == constant.IMPORT_PHASE_FULL and self.import_config.etlPhase == constant.ETL_PHASE_INSERT:
-				whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
+				# whereStatement = "datalake_import == '%s'"%(self.import_config.sqoop_last_execution_timestamp)
+				whereStatement = "%s == '%s'"%(self.Hive_ColumnName_Import, self.import_config.sqoop_last_execution_timestamp)
 
 			logging.debug("whereStatement: %s"%(whereStatement))
 
@@ -1327,7 +1368,9 @@ class operation(object, metaclass=Singleton):
 				logging.info("Dropping old Iceberg Import table")
 				sys.stdout.flush()
 				try:
-					self.spark.sql('drop table if exists %s purge'%(icebergStagingTable))
+					query = "drop table if exists %s purge"%(icebergStagingTable)
+					logging.info(query)
+					self.spark.sql(query)
 				except pyspark.sql.utils.AnalysisException as e: 
 					if "Table or view not found" in str(e):
 						pass
@@ -1951,20 +1994,8 @@ class operation(object, metaclass=Singleton):
 		logging.debug("Executing import_operations.createHiveMergeColumns()")
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-#			logging.error("addHiveDBImportColumns() is not handled yet for Spark!")
-#			return
-
 			self.startSpark()
 			import pyspark
-
-#						if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-#							query = "alter table `%s`.`%s` change column `%s` `%s` %s"%(hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'], rowInHive['type'])
-#							self.common_operations.executeHiveQuery(query)
-#
-#						elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-#							query = "alter table `%s`.`%s`.`%s` rename column `%s` to %s" \
-#									%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'])
-#							self.spark.sql(query)
 
 		columns = self.common_operations.getColumns(hiveDB=self.Hive_DB, hiveTable=self.Hive_Table, includeType=False, includeComment=False)
 
@@ -1974,7 +2005,8 @@ class operation(object, metaclass=Singleton):
 				self.common_operations.executeHiveQuery(query)
 
 			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-				query = "alter table `%s`.`%s`.`%s` add columns ( datalake_source string )"%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
+				query = "alter table `%s`.`%s`.`%s` add columns ( datalake_source string )"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+				logging.info(query)
 				self.spark.sql(query)
 
 			if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -1983,102 +2015,131 @@ class operation(object, metaclass=Singleton):
 
 		if mergeOperation == False:
 			if self.import_config.create_datalake_import_column == True:
-				if columns[columns['name'] == 'datalake_insert'].empty == False and columns[columns['name'] == 'datalake_import'].empty == True:
+				# if columns[columns['name'] == 'datalake_insert'].empty == False and columns[columns['name'] == 'datalake_import'].empty == True:
+				if columns[columns['name'] == self.Hive_ColumnName_Insert].empty == False and columns[columns['name'] == self.Hive_ColumnName_Import].empty == True:
 					if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-						query = "alter table `%s`.`%s` change column datalake_insert datalake_import timestamp"%(self.Hive_DB, self.Hive_Table)
+						# query = "alter table `%s`.`%s` change column datalake_insert datalake_import timestamp"%(self.Hive_DB, self.Hive_Table)
+						query = "alter table `%s`.`%s` change column %s %s timestamp" \
+							%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Insert, self.Hive_ColumnName_Import)
 						self.common_operations.executeHiveQuery(query)
 
 					elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-						query = "alter table `%s`.`%s`.`%s` rename column datalake_insert to datalake_import" \
-								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-						print(query)
+						query = "alter table `%s`.`%s`.`%s` rename column %s to %s" \
+							%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Insert, self.Hive_ColumnName_Import)
+#						print(query)
+						logging.info(query)
 						self.spark.sql(query)
 
 					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 						self.common_operations.reconnectHiveMetaStore()
 
-				elif columns[columns['name'] == 'datalake_import'].empty == True:
+				# elif columns[columns['name'] == 'datalake_import'].empty == True:
+				elif columns[columns['name'] == self.Hive_ColumnName_Import].empty == True:
 					if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-						query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
+						# query = "alter table `%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\")"%(self.Hive_DB, self.Hive_Table)
+						query = "alter table `%s`.`%s` add columns ( %s timestamp COMMENT \"Import time from source database\")" \
+							%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Import)
 						self.common_operations.executeHiveQuery(query)
 
 					elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-						query = "alter table `%s`.`%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\" )" \
-								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-						print(query)
+						#query = "alter table `%s`.`%s`.`%s` add columns ( datalake_import timestamp COMMENT \"Import time from source database\" )" \
+						#		%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+						query = "alter table `%s`.`%s`.`%s` add columns ( %s timestamp COMMENT \"Import time from source database\" )" \
+								%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Import)
+#						print(query)
+						logging.info(query)
 						self.spark.sql(query)
 
 					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 						self.common_operations.reconnectHiveMetaStore()
 
 		else:
-			if columns[columns['name'] == 'datalake_import'].empty == False:
+			# if columns[columns['name'] == 'datalake_import'].empty == False:
+			# if columns[columns['name'] == self.Hive_ColumnName_Import].empty == False:
+			if columns[columns['name'] == self.Hive_ColumnName_Import].empty == False and columns[columns['name'] == self.Hive_ColumnName_Insert].empty == True:
 				if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-					query = "alter table `%s`.`%s` change column datalake_import datalake_insert timestamp"%(self.Hive_DB, self.Hive_Table)
+					# query = "alter table `%s`.`%s` change column datalake_import datalake_insert timestamp"%(self.Hive_DB, self.Hive_Table)
+					query = "alter table `%s`.`%s` change column %s %s timestamp" \
+						%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Import, self.Hive_ColumnName_Insert)
 					self.common_operations.executeHiveQuery(query)
 
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					query = "alter table `%s`.`%s`.`%s` rename column datalake_import to datalake_insert" \
-							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-					print(query)
+					#query = "alter table `%s`.`%s`.`%s` rename column datalake_import to datalake_insert" \
+					#		%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+					query = "alter table `%s`.`%s`.`%s` rename column %s to %s" \
+							%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Import, self.Hive_ColumnName_Insert)
+#					print(query)
+					logging.info(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 					self.common_operations.reconnectHiveMetaStore()
 
-			elif columns[columns['name'] == 'datalake_insert'].empty == True:
+			# elif columns[columns['name'] == 'datalake_insert'].empty == True:
+			elif columns[columns['name'] == self.Hive_ColumnName_Insert].empty == True:
 				if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-					query = "alter table `%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+					# query = "alter table `%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+					query = "alter table `%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for insert in Datalake\")" \
+						%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Insert)
 					self.common_operations.executeHiveQuery(query)
 
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\" )" \
-							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-					print(query)
+					query = "alter table `%s`.`%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for insert in Datalake\" )" \
+						%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Insert)
+					logging.info(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 					self.common_operations.reconnectHiveMetaStore()
 
-			if columns[columns['name'] == 'datalake_iud'].empty == True:
+#			if columns[columns['name'] == 'datalake_iud'].empty == True:
+			if columns[columns['name'] == self.Hive_ColumnName_IUD].empty == True:
 				if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-					query = "alter table `%s`.`%s` add columns ( datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
-							%(self.Hive_DB, self.Hive_Table)
+					query = "alter table `%s`.`%s` add columns ( %s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
+						%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_IUD)
 					self.common_operations.executeHiveQuery(query)
 
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_iud string COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
-							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-					print(query)
+					query = "alter table `%s`.`%s`.`%s` add columns ( %s string COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
+						%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_IUD)
+					logging.info(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 					self.common_operations.reconnectHiveMetaStore()
 
-			if columns[columns['name'] == 'datalake_update'].empty == True:
+			# if columns[columns['name'] == 'datalake_update'].empty == True:
+			if columns[columns['name'] == self.Hive_ColumnName_Update].empty == True:
 				if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-					query = "alter table `%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+					# query = "alter table `%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")"%(self.Hive_DB, self.Hive_Table)
+					query = "alter table `%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for last update in Datalake\")" \
+						%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Update)
 					self.common_operations.executeHiveQuery(query)
 
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")" \
-							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-					print(query)
+					# query = "alter table `%s`.`%s`.`%s` add columns ( datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\")" \
+					query = "alter table `%s`.`%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for last update in Datalake\")" \
+						%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Update)
+					# print(query)
+					logging.info(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
 					self.common_operations.reconnectHiveMetaStore()
 
-			if columns[columns['name'] == 'datalake_delete'].empty == True and self.import_config.soft_delete_during_merge == True:
+			# if columns[columns['name'] == 'datalake_delete'].empty == True and self.import_config.soft_delete_during_merge == True:
+			if columns[columns['name'] == self.Hive_ColumnName_Delete].empty == True and self.import_config.soft_delete_during_merge == True:
 				if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-					query = "alter table `%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
-							%(self.Hive_DB, self.Hive_Table)
+					# query = "alter table `%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
+					query = "alter table `%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
+						%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Delete)
 					self.common_operations.executeHiveQuery(query)
 
 				elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					query = "alter table `%s`.`%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
-							%(self.common_operations.sparkCatalogName, hiveDB, hiveTable)
-					print(query)
+					# query = "alter table `%s`.`%s`.`%s` add columns ( datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
+					query = "alter table `%s`.`%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for soft delete in Datalake\")" \
+						%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Delete)
+					logging.info(query)
 					self.spark.sql(query)
 
 				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
@@ -2209,6 +2270,7 @@ class operation(object, metaclass=Singleton):
 				query = "".join(queryList)
 
 				self.startSpark()
+				logging.info(query)
 				self.spark.sql(query)
 				self.common_operations.reconnectHiveMetaStore()
 
@@ -2235,8 +2297,10 @@ class operation(object, metaclass=Singleton):
 				if self.import_config.datalake_source != None:
 					query += ", datalake_source varchar(256)"
 
-				query += ", datalake_iud char(1) COMMENT \"SQL operation of this record was I=Insert, U=Update or D=Delete\""
-				query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
+				# query += ", datalake_iud char(1) COMMENT \"SQL operation of this record was I=Insert, U=Update or D=Delete\""
+				# query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
+				query += ", %s char(1) COMMENT \"SQL operation of this record was I=Insert, U=Update or D=Delete\""%(self.Hive_ColumnName_IUD)
+				query += ", %s timestamp COMMENT \"Timestamp for SQL operation in Datalake\""%(self.Hive_ColumnName_HistoryTimestamp)
 				query += queryList[1]
 
 				self.common_operations.executeHiveQuery(query)
@@ -2265,11 +2329,14 @@ class operation(object, metaclass=Singleton):
 				if self.import_config.datalake_source != None:
 					query += ", datalake_source varchar(256)"
 
-				query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
-				query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
+				# query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
+				# query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
+				query += ", %s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""%(self.Hive_ColumnName_IUD)
+				query += ", %s timestamp COMMENT \"Timestamp for SQL operation in Datalake\""%(self.Hive_ColumnName_HistoryTimestamp)
 				query += queryList[1]
 
 				self.startSpark()
+				logging.info(query)
 				self.spark.sql(query)
 				self.common_operations.reconnectHiveMetaStore()
 
@@ -2304,14 +2371,19 @@ class operation(object, metaclass=Singleton):
 
 				if self.import_config.import_with_merge == False:
 					if self.import_config.create_datalake_import_column == True:
-						query += ", datalake_import timestamp COMMENT \"Import time from source database\""
+						# query += ", datalake_import timestamp COMMENT \"Import time from source database\""
+						query += ", %s timestamp COMMENT \"Import time from source database\""%(self.Hive_ColumnName_Import)
 				else:
-					query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
-					query += ", datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\""
-					query += ", datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\""
+					# query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
+					# query += ", datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\""
+					# query += ", datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\""
+					query += ", %s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""%(self.Hive_ColumnName_IUD)
+					query += ", %s timestamp COMMENT \"Timestamp for insert in Datalake\""%(self.Hive_ColumnName_Insert)
+					query += ", %s timestamp COMMENT \"Timestamp for last update in Datalake\""%(self.Hive_ColumnName_Update)
 
 					if self.import_config.soft_delete_during_merge == True:
-						query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
+						# query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
+						query += ", %s timestamp COMMENT \"Timestamp for soft delete in Datalake\""%(self.Hive_ColumnName_Delete)
 
 				query += queryList[1]
 
@@ -2349,18 +2421,24 @@ class operation(object, metaclass=Singleton):
 
 				if self.import_config.import_with_merge == False:
 					if self.import_config.create_datalake_import_column == True:
-						query += ", datalake_import timestamp COMMENT \"Import time from source database\""
+						# query += ", datalake_import timestamp COMMENT \"Import time from source database\""
+						query += ", %s timestamp COMMENT \"Import time from source database\""%(self.Hive_ColumnName_Import)
 				else:
-					query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
-					query += ", datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\""
-					query += ", datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\""
+					# query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
+					# query += ", datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\""
+					# query += ", datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\""
+					query += ", %s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""%(self.Hive_ColumnName_IUD)
+					query += ", %s timestamp COMMENT \"Timestamp for insert in Datalake\""%(self.Hive_ColumnName_Insert)
+					query += ", %s timestamp COMMENT \"Timestamp for last update in Datalake\""%(self.Hive_ColumnName_Update)
 
 					if self.import_config.soft_delete_during_merge == True:
-						query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
+						# query += ", datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\""
+						query += ", %s timestamp COMMENT \"Timestamp for soft delete in Datalake\""%(self.Hive_ColumnName_Delete)
 
 				query += queryList[1]
 
 				self.startSpark()
+				logging.info(query)
 				self.spark.sql(query)
 				self.common_operations.reconnectHiveMetaStore()
 						
@@ -2508,6 +2586,7 @@ class operation(object, metaclass=Singleton):
 					self.createExternalImportTable()
 					self.common_operations.reconnectHiveMetaStore()
 
+		# pd.set_option('display.max_rows', None)
 		logging.debug("columnsConfigOnlyName")
 		logging.debug(columnsConfigOnlyName)
 		logging.debug("================================================================")
@@ -2549,6 +2628,7 @@ class operation(object, metaclass=Singleton):
 					elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 						query = "alter table `%s`.`%s`.`%s` rename column `%s` to %s" \
 								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'])
+						logging.info(query)
 						self.spark.sql(query)
 
 					self.import_config.logHiveColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
@@ -2574,6 +2654,7 @@ class operation(object, metaclass=Singleton):
 						elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 							query = "alter table `%s`.`%s`.`%s` rename column `%s` to %s" \
 									%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, rowInHive['name'], rowInConfig['name'])
+							logging.info(query)
 							self.spark.sql(query)
 
 						self.import_config.logHiveColumnRename(rowInConfig['name'], rowInHive["name"], hiveDB=hiveDB, hiveTable=hiveTable)
@@ -2605,6 +2686,7 @@ class operation(object, metaclass=Singleton):
 					query += " comment \"%s\""%(fullRow['comment'])
 				query += ")"
 
+				logging.info(query)
 				self.spark.sql(query)
 
 			self.import_config.logHiveColumnAdd(fullRow['name'], columnType=fullRow['type'], hiveDB=hiveDB, hiveTable=hiveTable) 
@@ -2619,6 +2701,7 @@ class operation(object, metaclass=Singleton):
 		columnsHiveOnlyNameType = columnsHive.filter(['name', 'type']).sort_values(by=['name'], ascending=True)
 		columnsMergeOnlyNameType = pd.merge(columnsConfigOnlyNameType, columnsHiveOnlyNameType, on=None, how='outer', indicator='Exist')
 
+		# pd.set_option('display.max_rows', None)
 		logging.debug("columnsConfigOnlyNameType")
 		logging.debug(columnsConfigOnlyNameType)
 		logging.debug("================================================================")
@@ -2628,6 +2711,24 @@ class operation(object, metaclass=Singleton):
 		logging.debug("columnsMergeOnlyNameType")
 		logging.debug(columnsMergeOnlyNameType)
 		logging.debug("")
+
+		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'right_only'].iterrows():
+			# This will iterate over columns that only exists in Target table and not on the import table
+			if self.import_config.import_is_incremental == False and self.import_config.import_with_merge == False:
+				# As the aim is to drop the column, we must make sure to only do that when we are sure to not loose data
+				columnName = row['name']
+
+				# Drop column is not supported in Hive. Thats why the Hive code is not here
+				if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+					logging.info("Dropping column '%s'"%(columnName))
+					try:
+						query = "alter table `%s`.`%s`.`%s` drop column `%s` " \
+								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName)
+						logging.info(query)
+						self.spark.sql(query)
+
+					except pyspark.sql.utils.AnalysisException as e:
+						raise SQLerror(str(e))
 
 		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'left_only'].iterrows():
 			# This will iterate over columns that had the type changed from the source
@@ -2646,6 +2747,7 @@ class operation(object, metaclass=Singleton):
 				query = "alter table `%s`.`%s`.`%s` alter column `%s` type %s" \
 						%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName, columnType)
 				try:
+					logging.info(query)
 					self.spark.sql(query)
 				except pyspark.sql.utils.AnalysisException as e:
 					if "Cannot update" in str(e) and "cannot be cast to" in str(e):
@@ -2655,10 +2757,12 @@ class operation(object, metaclass=Singleton):
 							try:
 								query = "alter table `%s`.`%s`.`%s` drop column `%s` " \
 										%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName)
+								logging.info(query)
 								self.spark.sql(query)
 
 								query = "alter table `%s`.`%s`.`%s` add columns (`%s` %s) " \
 										%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName, columnType)
+								logging.info(query)
 								self.spark.sql(query)
 
 							except pyspark.sql.utils.AnalysisException as e:
@@ -2711,6 +2815,7 @@ class operation(object, metaclass=Singleton):
 			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 				query = "alter table `%s`.`%s`.`%s` alter column `%s` comment \"%s\"" \
 						%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName, columnComment)
+				logging.info(query)
 				self.spark.sql(query)
 
 		logging.debug("Executing import_operations.updateHiveTable() - Finished")
@@ -2920,7 +3025,10 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			logging.info("Truncating Target table in Spark")
 			self.startSpark()
-			self.spark.sql("truncate table %s.`%s`.`%s`"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table))
+
+			query = "truncate table %s.`%s`.`%s`"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+			logging.info(query)
+			self.spark.sql(query)
 
 	
 	def updateStatisticsOnTargetTable(self,):
@@ -2980,7 +3088,8 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.datalake_source != None:
 			query += ", datalake_source"
 		if self.import_config.create_datalake_import_column == True:
-			query += ", datalake_import"
+			# query += ", datalake_import"
+			query += ", %s"%(self.Hive_ColumnName_Import)
 
 		query += ") select "
 		query += columnDefinitionSource
@@ -3018,6 +3127,7 @@ class operation(object, metaclass=Singleton):
 
 		query = self.generateCopyTableStatement(sourceDB, sourceTable, targetDB, targetTable, icebergTable=True)
 		self.startSpark()
+		logging.info(query)
 		self.spark.sql(query)
 
 		logging.debug("Executing import_operations.copyHiveTable() - Finished")

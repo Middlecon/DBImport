@@ -120,6 +120,27 @@ class operation(object, metaclass=Singleton):
 		self.Hive_DB = Hive_DB.lower()	 
 		self.Hive_Table = Hive_Table.lower()	 
 
+	def setTableAndColumnNames(self, Hive_Import_DB, Hive_Import_Table, Hive_Import_View, Hive_History_DB, Hive_History_Table, Hive_HistoryTemp_DB, Hive_HistoryTemp_Table, Hive_Import_PKonly_DB, Hive_Import_PKonly_Table, Hive_Delete_DB, Hive_Delete_Table, Hive_ColumnName_Import, Hive_ColumnName_Insert, Hive_ColumnName_Update, Hive_ColumnName_Delete, Hive_ColumnName_IUD, Hive_ColumnName_HistoryTimestamp):
+		""" Sets the name of the databases, tables and columns """
+
+		self.Hive_Import_DB = Hive_Import_DB
+		self.Hive_Import_Table = Hive_Import_Table
+		self.Hive_Import_View = Hive_Import_View
+		self.Hive_History_DB = Hive_History_DB
+		self.Hive_History_Table = Hive_History_Table
+		self.Hive_HistoryTemp_DB = Hive_HistoryTemp_DB
+		self.Hive_HistoryTemp_Table = Hive_HistoryTemp_Table
+		self.Hive_Import_PKonly_DB = Hive_Import_PKonly_DB
+		self.Hive_Import_PKonly_Table = Hive_Import_PKonly_Table
+		self.Hive_Delete_DB = Hive_Delete_DB
+		self.Hive_Delete_Table = Hive_Delete_Table
+		self.Hive_ColumnName_Import = Hive_ColumnName_Import
+		self.Hive_ColumnName_Insert = Hive_ColumnName_Insert
+		self.Hive_ColumnName_Update = Hive_ColumnName_Update
+		self.Hive_ColumnName_Delete = Hive_ColumnName_Delete
+		self.Hive_ColumnName_IUD = Hive_ColumnName_IUD
+		self.Hive_ColumnName_HistoryTimestamp = Hive_ColumnName_HistoryTimestamp
+
 	def checkHiveMetaStore(self):
 		logging.debug("Executing common_operations.checkHiveMetaStore()")
 
@@ -200,7 +221,28 @@ class operation(object, metaclass=Singleton):
 		return result
 
 	def getColumns(self, hiveDB, hiveTable, includeType=False, includeComment=False, includeIdx=False, forceColumnUppercase=False, excludeDataLakeColumns=False):
-		result = self.metastore.getColumns(hiveDB=hiveDB, hiveTable=hiveTable, includeType=includeType, includeComment=includeComment, includeIdx=includeIdx, forceColumnUppercase=forceColumnUppercase, excludeDataLakeColumns=excludeDataLakeColumns)
+		# result = self.metastore.getColumns(hiveDB=hiveDB, hiveTable=hiveTable, includeType=includeType, includeComment=includeComment, includeIdx=includeIdx, forceColumnUppercase=forceColumnUppercase, excludeDataLakeColumns=excludeDataLakeColumns)
+		result = self.metastore.getColumns(
+			hiveDB=hiveDB, 
+			hiveTable=hiveTable, 
+			includeType=includeType, 
+			includeComment=includeComment, 
+			includeIdx=includeIdx, 
+			forceColumnUppercase=forceColumnUppercase)
+
+		if excludeDataLakeColumns == True:
+			result = result[~result['name'].isin([
+				self.Hive_ColumnName_Import, 
+				self.Hive_ColumnName_Insert, 
+				self.Hive_ColumnName_Update, 
+				self.Hive_ColumnName_Delete, 
+				self.Hive_ColumnName_IUD 
+				])]
+
+			# Index needs to be reset if anything was droped in the DF.
+			# The merge will otherwise indicate that there is a difference and table will be recreated
+			result.reset_index(drop=True, inplace=True)
+
 		return result
 
 	def disconnectFromHive(self):
@@ -562,7 +604,8 @@ class operation(object, metaclass=Singleton):
 			columnType = row['type']
 			columnComment = row['comment']
 
-			if columnName in ["datalake_import"] and createMergeColumns == True:
+			# if columnName in ["datalake_import"] and createMergeColumns == True:
+			if columnName in [self.Hive_ColumnName_Import] and createMergeColumns == True:
 				datalakeImportExists = True
 				continue
 
@@ -573,16 +616,24 @@ class operation(object, metaclass=Singleton):
 			hiveColumnsInsert.append(columnName)
 
 		if createMergeColumns == True:
-			hiveColumnsCreateAdding.append("datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\"")
-			hiveColumnsCreateAdding.append("datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\"")
-			hiveColumnsCreateAdding.append("datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\"")
-			hiveColumnsInsertAdding.append("datalake_iud")
-			hiveColumnsInsertAdding.append("datalake_insert")
-			hiveColumnsInsertAdding.append("datalake_update")
+			# hiveColumnsCreateAdding.append("datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\"")
+			# hiveColumnsCreateAdding.append("datalake_insert timestamp COMMENT \"Timestamp for insert in Datalake\"")
+			# hiveColumnsCreateAdding.append("datalake_update timestamp COMMENT \"Timestamp for last update in Datalake\"")
+			# hiveColumnsInsertAdding.append("datalake_iud")
+			# hiveColumnsInsertAdding.append("datalake_insert")
+			# hiveColumnsInsertAdding.append("datalake_update")
+			hiveColumnsCreateAdding.append("%s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""%(self.Hive_ColumnName_IUD))
+			hiveColumnsCreateAdding.append("%s timestamp COMMENT \"Timestamp for insert in Datalake\""%(self.Hive_ColumnName_Insert))
+			hiveColumnsCreateAdding.append("%s timestamp COMMENT \"Timestamp for last update in Datalake\""%(self.Hive_ColumnName_Update))
+			hiveColumnsInsertAdding.append(self.Hive_ColumnName_IUD)
+			hiveColumnsInsertAdding.append(self.Hive_ColumnName_Insert)
+			hiveColumnsInsertAdding.append(self.Hive_ColumnName_Update)
 
 			if createDeleteColumn == True:
-				hiveColumnsCreateAdding.append("datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\"")
-				hiveColumnsInsertAdding.append("datalake_delete")
+				# hiveColumnsCreateAdding.append("datalake_delete timestamp COMMENT \"Timestamp for soft delete in Datalake\"")
+				# hiveColumnsInsertAdding.append("datalake_delete")
+				hiveColumnsCreateAdding.append("%s timestamp COMMENT \"Timestamp for soft delete in Datalake\""%(self.Hive_ColumnName_Delete))
+				hiveColumnsInsertAdding.append(self.Hive_ColumnName_Delete)
 
 		# Create the Bucketed table
 		query  = "create table `%s`.`%s` "%(hiveDB, hiveTableBucketed)
@@ -602,7 +653,8 @@ class operation(object, metaclass=Singleton):
 		query += "%s"%(", ".join(hiveColumnsInsert))
 		if createMergeColumns == True:
 			if datalakeImportExists == True:
-				query += ", 'I', datalake_import, datalake_import"
+				# query += ", 'I', datalake_import, datalake_import"
+				query += ", 'I', %s, %s"%(self.Hive_ColumnName_Import, self.Hive_ColumnName_Import)
 			else:
 				query += ", 'I', timestamp(\"1900-01-01 00:00:00.000\"), timestamp(\"1900-01-01 00:00:00.000\")"
 

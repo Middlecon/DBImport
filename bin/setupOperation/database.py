@@ -471,7 +471,47 @@ class initialize(object):
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_staging_database', 
 				valueStr='etl_import_staging', 
-				description='Name of staging database to use during Imports')
+				description='Name of staging database to use during Imports. {DATABASE} is supported within the name and will be replaced during import with the name of the import database.')
+			session.execute(query)
+			session.commit()
+
+		if 'import_staging_table' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_staging_table', 
+				valueStr='{DATABASE}__{TABLE}__staging', 
+				description='Name of staging table to use during Imports. Both {DATABASE} and {TABLE} is supported within the name and will be replaced during import with the name of the import database and table.  Both {DATABASE} and {TABLE} must be used once, but {DATABASE} could be specified in the "import_staging_database" setting instead')
+			session.execute(query)
+			session.commit()
+
+		if 'import_work_database' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_work_database', 
+				valueStr='etl_import_staging', 
+				description='Name of work database to use during Imports. This is used for internal tables and should not be accessed by end-users. {DATABASE} is supported within the name and will be replaced during import with the name of the import database.')
+			session.execute(query)
+			session.commit()
+
+		if 'import_work_table' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_work_table', 
+				valueStr='{DATABASE}__{TABLE}__staging', 
+				description='Prefix-name of work tables to use during Imports. These tables is used for internal DBImport tables and should not be access by end-users. Both {DATABASE} and {TABLE} is supported within the name and will be replaced during import with the name of the import database and table.  Both {DATABASE} and {TABLE} must be used once, but {DATABASE} could be specified in the "import_work_database" setting instead')
+			session.execute(query)
+			session.commit()
+
+		if 'import_history_database' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_history_database', 
+				valueStr='{DATABASE}', 
+				description='Name of history database to use during Imports. {DATABASE} is supported within the name and will be replaced during import with the name of the import database.')
+			session.execute(query)
+			session.commit()
+
+		if 'import_history_table' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_history_table', 
+				valueStr='{TABLE}_history', 
+				description='Name of history table to use during Imports. Both {DATABASE} and {TABLE} is supported within the name and will be replaced during import with the name of the import database and table.  Both {DATABASE} and {TABLE} must be used once, but {DATABASE} could be specified in the "import_history_database" setting instead')
 			session.execute(query)
 			session.commit()
 
@@ -827,8 +867,61 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
-#		query = sa.update(configSchema.configuration).where(configKey='airflow_dag_directory').values(
-#				description='Airflow path to DAG directory. When using AWS MWAA, this is the name of the S3 bucket.')
-#		session.execute(query)
-#		session.commit()
+		if 'import_columnname_import' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_import', 
+				valueStr='datalake_import',
+				description='Column name for timestamp column added to table during none-merge operations')
+			session.execute(query)
+			session.commit()
+
+		if 'import_columnname_insert' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_insert', 
+				valueStr='datalake_insert',
+				description='Column name for timestamp column with insert time that is added to table during merge operations')
+			session.execute(query)
+			session.commit()
+
+		if 'import_columnname_update' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_update', 
+				valueStr='datalake_update',
+				description='Column name for timestamp column with update time that is added to table during merge operations')
+			session.execute(query)
+			session.commit()
+
+		if 'import_columnname_delete' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_delete', 
+				valueStr='datalake_delete',
+				description='Column name for timestamp column with delete date that is added to table during merge operations. Only exists if soft-delete is enabled for the import')
+			session.execute(query)
+			session.commit()
+
+		if 'import_columnname_iud' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_iud', 
+				valueStr='datalake_iud',
+				description='Column name for char(1) column added to table during merge operations with information if the last operation is an insert, update or delete')
+			session.execute(query)
+			session.commit()
+
+		if 'import_columnname_histtime' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_histtime', 
+				valueStr='datalake_timestamp',
+				description='Column name for timestamp column added to history table to contain information about when the insert, update or delete operation was done')
+			session.execute(query)
+			session.commit()
+
+		query = sa.update(configSchema.configuration).where(configSchema.configuration.configKey == 'airflow_dag_directory').values(
+				description='Airflow path to DAG directory. When using AWS MWAA, this is the name of the S3 bucket.')
+		session.execute(query)
+		session.commit()
+
+		query = sa.update(configSchema.configuration).where(configSchema.configuration.configKey == 'import_staging_database').values(
+				description='Name of staging database to use during Imports. {DATABASE} is supported within the name and will be replaced during import with the name of the import database.')
+		session.execute(query)
+		session.commit()
 

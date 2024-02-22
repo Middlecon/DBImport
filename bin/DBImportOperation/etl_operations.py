@@ -94,6 +94,7 @@ class operation(object, metaclass=Singleton):
 			self.common_operations.executeHiveQuery(query)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+			logging.info(query)
 			self.import_operations.spark.sql(query)
 
 	def mergeHiveTables(self, sourceDB, sourceTable, targetDB, targetTable, historyDB = None, historyTable=None, targetDeleteDB = None, targetDeleteTable=None, createHistoryAudit=False, sourceIsIncremental=False, sourceIsImportTable=False, softDelete=False, mergeTime=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), datalakeSource=None, PKColumns=None, hiveMergeJavaHeap=None, oracleFlashbackSource=False, mssqlChangeTrackingSource=False, oracleFlashbackImportTable=None, mssqlChangeTrackingImportTable=None, ChangeDataTrackingInitialLoad=False):
@@ -128,18 +129,20 @@ class operation(object, metaclass=Singleton):
 		datalakeSourceExists = False
 
 		for index, row in targetColumns.iterrows():
-			if row['name'] == "datalake_iud":    datalakeIUDExists = True 
-			if row['name'] == "datalake_insert": datalakeInsertExists = True 
-			if row['name'] == "datalake_update": datalakeUpdateExists = True 
-			if row['name'] == "datalake_delete": datalakeDeleteExists = True 
+			# if row['name'] == "datalake_iud":    datalakeIUDExists = True 
+			# if row['name'] == "datalake_insert": datalakeInsertExists = True 
+			# if row['name'] == "datalake_update": datalakeUpdateExists = True 
+			# if row['name'] == "datalake_delete": datalakeDeleteExists = True 
+			if row['name'] == self.common_operations.Hive_ColumnName_IUD:    datalakeIUDExists = True 
+			if row['name'] == self.common_operations.Hive_ColumnName_Insert: datalakeInsertExists = True 
+			if row['name'] == self.common_operations.Hive_ColumnName_Update: datalakeUpdateExists = True 
+			if row['name'] == self.common_operations.Hive_ColumnName_Delete: datalakeDeleteExists = True 
 			if row['name'] == "datalake_source": datalakeSourceExists = True 
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			if hiveMergeJavaHeap != None:
 				query = "set hive.tez.container.size=%s"%(hiveMergeJavaHeap)
 				self.common_operations.executeHiveQuery(query)
-
-		printSQLQuery = False
 
 		query  = "merge into %s as T \n"%(targetDBandTable)
 		query += "using %s as S \n"%(sourceDBandTable)
@@ -188,7 +191,8 @@ class operation(object, metaclass=Singleton):
 
 			if softDelete == True and datalakeIUDExists == True:
 				# If a row is deleted and then inserted again with the same values in all fields, this will still trigger an update
-				query += "   or T.datalake_iud = 'D' \n"
+				# query += "   or T.datalake_iud = 'D' \n"
+				query += "   or T.%s = 'D' \n"%(self.common_operations.Hive_ColumnName_IUD)
 
 			query += ") \n"
 
@@ -222,10 +226,12 @@ class operation(object, metaclass=Singleton):
 			sys.exit(1)
 
 		if datalakeIUDExists == True:    
-			query += ", \n   `datalake_iud` = 'U'"
+			# query += ", \n   `datalake_iud` = 'U'"
+			query += ", \n   `%s` = 'U'"%(self.common_operations.Hive_ColumnName_IUD)
 
 		if datalakeUpdateExists == True:
-			query += ", \n   `datalake_update` = TIMESTAMP('%s')"%(mergeTime)
+			# query += ", \n   `datalake_update` = TIMESTAMP('%s')"%(mergeTime)
+			query += ", \n   `%s` = TIMESTAMP('%s')"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
 
 		if datalakeSourceExists == True and datalakeSource != None: 
 			query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
@@ -270,11 +276,14 @@ class operation(object, metaclass=Singleton):
 				query += ", \n"
 			if sourceColumnName != "":
 				query += "   S.`%s`"%(sourceColumnName)
-			elif ColumnName == "datalake_iud": 
+			#elif ColumnName == "datalake_iud": 
+			elif ColumnName == self.common_operations.Hive_ColumnName_IUD: 
 				query += "   'I'"
-			elif ColumnName == "datalake_insert": 
+			#elif ColumnName == "datalake_insert": 
+			elif ColumnName == self.common_operations.Hive_ColumnName_Insert: 
 				query += "   TIMESTAMP('%s')"%(mergeTime)
-			elif ColumnName == "datalake_update": 
+			#elif ColumnName == "datalake_update": 
+			elif ColumnName == self.common_operations.Hive_ColumnName_Update: 
 				query += "   TIMESTAMP('%s')"%(mergeTime)
 			elif ColumnName == "datalake_source": 
 				query += "   '%s'"%(datalakeSource)
@@ -283,26 +292,23 @@ class operation(object, metaclass=Singleton):
 
 		query += " \n) \n"
 
-		if printSQLQuery == True:
-			print("==============================================================")
-			print(query)
-
 		self.executeSQLQuery(query)
 
 		# If a row was previously deleted and now inserted again and we are using Soft Delete, 
 		# then the information in the datalake_iud, datalake_insert and datalake_delete is wrong. 
 		if softDelete == True:
 			query  = "update %s set "%(targetDBandTable)
-			query += "   datalake_iud = 'I', "
-			query += "   datalake_insert = datalake_update, "
-			query += "   datalake_delete = null "
+			# query += "   datalake_iud = 'I', "
+			# query += "   datalake_insert = datalake_update, "
+			# query += "   datalake_delete = null "
+			query += "   %s = 'I', "%(self.common_operations.Hive_ColumnName_IUD)
+			query += "   %s = %s, "%(self.common_operations.Hive_ColumnName_Insert, self.common_operations.Hive_ColumnName_Update)
+			query += "   %s = null "%(self.common_operations.Hive_ColumnName_Delete)
 			query += "where " 
-			query += "   datalake_iud = 'U' and "
-			query += "   datalake_delete is not null \n"
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
+			# query += "   datalake_iud = 'U' and "
+			# query += "   datalake_delete is not null \n"
+			query += "   %s = 'U' and "%(self.common_operations.Hive_ColumnName_IUD)
+			query += "   %s is not null \n"%(self.common_operations.Hive_ColumnName_Delete)
 
 			self.executeSQLQuery(query)
 
@@ -321,8 +327,10 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   `datalake_source`"
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_timestamp`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_timestamp`"
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\n) \n"
 
 			query += "select "
@@ -336,14 +344,14 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   '%s'"%(datalakeSource)
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_update`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_update`"
+			# query += "\nfrom %s \n"%(targetDBandTable)
+			# query += "where datalake_update = TIMESTAMP('%s') \n"%(mergeTime)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Update)
 			query += "\nfrom %s \n"%(targetDBandTable)
-			query += "where datalake_update = TIMESTAMP('%s') \n"%(mergeTime)
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
+			query += "where %s = TIMESTAMP('%s') \n"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
 
 			self.executeSQLQuery(query)
 
@@ -378,10 +386,6 @@ class operation(object, metaclass=Singleton):
 					query += "and\n   S.`%s` is null "%(sourceColumn)
 			query += "\n"
 
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
-
 			self.executeSQLQuery(query)
 
 		if oracleFlashbackSource == True and createHistoryAudit == True:
@@ -398,8 +402,10 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   `datalake_source`"
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_timestamp`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_timestamp`"
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\n) \n"
 
 			query += "select "
@@ -413,13 +419,11 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   '%s'"%(datalakeSource)
-			query += ",\n   `datalake_flashback_operation` as `datalake_iud`"
-			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			# query += ",\n   `datalake_flashback_operation` as `datalake_iud`"
+			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += ",\n   `datalake_flashback_operation` as `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   timestamp('%s') as `%s`"%(mergeTime, self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\nfrom %s \n"%(oracleFlashbackImportDBandTable)
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
 
 			self.executeSQLQuery(query)
 
@@ -438,8 +442,10 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   `datalake_source`"
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_timestamp`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_timestamp`"
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\n) \n"
 
 			query += "select "
@@ -453,14 +459,12 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   '%s'"%(datalakeSource)
-			query += ",\n   `datalake_mssql_changetrack_operation` as `datalake_iud`"
-			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			# query += ",\n   `datalake_mssql_changetrack_operation` as `datalake_iud`"
+			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += ",\n   `datalake_mssql_changetrack_operation` as `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   timestamp('%s') as `%s`"%(mergeTime, self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\nfrom %s "%(mssqlChangeTrackingImportDBandTable)
 			query += "\nwhere datalake_mssql_changetrack_operation != 'D' \n"
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
 
 			self.executeSQLQuery(query)
 
@@ -479,8 +483,10 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   `datalake_source`"
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_timestamp`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_timestamp`"
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\n) \n"
 
 			query += "select "
@@ -494,8 +500,10 @@ class operation(object, metaclass=Singleton):
 				query += "   T.`%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
-			query += ",\n   'D' as `datalake_iud`"
-			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			# query += ",\n   'D' as `datalake_iud`"
+			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += ",\n   'D' as `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   timestamp('%s') as `%s`"%(mergeTime, self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\nfrom %s as D \n"%(mssqlChangeTrackingImportDBandTable)
 			query += "inner join %s as T \n"%(targetDBandTable)
 			query += "on \n"
@@ -505,10 +513,6 @@ class operation(object, metaclass=Singleton):
 				else:
 					query += "and\n   T.`%s` = D.`%s` "%(column, column)
 			query += "\nwhere D.datalake_mssql_changetrack_operation == 'D' \n"
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
 
 			self.executeSQLQuery(query)
 
@@ -525,10 +529,6 @@ class operation(object, metaclass=Singleton):
 			query += "\n"
 			query += "and D.datalake_mssql_changetrack_operation == 'D' \n"
 			query += "when matched then delete \n"
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
 
 			self.executeSQLQuery(query)
 
@@ -547,8 +547,10 @@ class operation(object, metaclass=Singleton):
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   `datalake_source`"
-			query += ",\n   `datalake_iud`"
-			query += ",\n   `datalake_timestamp`"
+			# query += ",\n   `datalake_iud`"
+			# query += ",\n   `datalake_timestamp`"
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\n) \n"
 
 			query += "select "
@@ -562,8 +564,10 @@ class operation(object, metaclass=Singleton):
 				query += "   T.`%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
 				query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
-			query += ",\n   'D' as `datalake_iud`"
-			query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			# query += ",\n   'D' as `datalake_iud`"
+			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
+			query += ",\n   'D' as `%s`"%(self.common_operations.Hive_ColumnName_IUD)
+			query += ",\n   timestamp('%s') as `%s`"%(mergeTime, self.common_operations.Hive_ColumnName_HistoryTimestamp)
 			query += "\nfrom %s as D \n"%(targetDeleteDBandTable)
 			query += "left join %s as T \n"%(targetDBandTable)
 			query += "on \n"
@@ -572,10 +576,6 @@ class operation(object, metaclass=Singleton):
 					query += "   T.`%s` = D.`%s` "%(column, column)
 				else:
 					query += "and\n   T.`%s` = D.`%s` "%(column, column)
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
 
 			self.executeSQLQuery(query)
 
@@ -591,20 +591,20 @@ class operation(object, metaclass=Singleton):
 				else:
 					query += "and\n   T.`%s` = D.`%s` "%(column, column)
 			if softDelete == True:
-				query += "and\n   T.`datalake_delete` != 'D' "
+				# query += "and\n   T.`datalake_delete` != 'D' "
+				query += "and\n   T.`%s` != 'D' "%(self.common_operations.Hive_ColumnName_Delete)
 			query += "\n"
 
 			if softDelete == False:
 				query += "when matched then delete \n"
 			else:
 				query += "when matched then update set \n" 
-				query += "datalake_iud  = 'D', \n" 
-				query += "datalake_update = timestamp('%s'), \n"%(mergeTime)
-				query += "datalake_delete = timestamp('%s') "%(mergeTime)
-
-			if printSQLQuery == True:
-				print("==============================================================")
-				print(query)
+				# query += "datalake_iud  = 'D', \n" 
+				# query += "datalake_update = timestamp('%s'), \n"%(mergeTime)
+				# query += "datalake_delete = timestamp('%s') "%(mergeTime)
+				query += "%s  = 'D', \n"%(self.common_operations.Hive_ColumnName_IUD) 
+				query += "%s = timestamp('%s'), \n"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
+				query += "%s = timestamp('%s') "%(self.common_operations.Hive_ColumnName_Delete, mergeTime)
 
 			self.executeSQLQuery(query)
 

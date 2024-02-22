@@ -758,6 +758,7 @@ def main(argv):
 				if stage == 3053: newStage = 3050 
 				if stage == 3055: newStage = 3054
 				if stage == 3056: newStage = 3054
+				if stage == 3057: newStage = 3054
 				if stage == 3060: newStage = 3054
 				print(" ________________________________________________________ ")
 				print("|                                                        |")

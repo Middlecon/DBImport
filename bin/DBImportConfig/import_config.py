@@ -867,23 +867,63 @@ class config(object, metaclass=Singleton):
 			self.create_foreign_keys = 1
 
 		# Set the name of the history tables, temporary tables and such
-		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database")
+		# importWorkDB = "etl_import_staging" \
+		importWorkDB = self.common_config.getConfigValue(key = "import_work_database") \
+			.replace("{DATABASE}", self.Hive_DB)
+		#importWorkTable = "{DATABASE}__{TABLE}__staging" \
+		importWorkTable = self.common_config.getConfigValue(key = "import_work_table") \
+			.replace("{DATABASE}", self.Hive_DB) \
+			.replace("{TABLE}", self.Hive_Table)
+
+		#importStagingDB = "{DATABASE}_import" \
+		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database") \
+			.replace("{DATABASE}", self.Hive_DB)
+		# importStagingTable = "{TABLE}" \
+		importStagingTable = self.common_config.getConfigValue(key = "import_staging_table") \
+			.replace("{DATABASE}", self.Hive_DB) \
+			.replace("{TABLE}", self.Hive_Table)
+
+		# importHistoryDB = "{DATABASE}_history" \
+		importHistoryDB = self.common_config.getConfigValue(key = "import_history_database") \
+			.replace("{DATABASE}", self.Hive_DB)
+		# importHistoryTable = "{TABLE}" \
+		importHistoryTable = self.common_config.getConfigValue(key = "import_history_table") \
+			.replace("{DATABASE}", self.Hive_DB) \
+			.replace("{TABLE}", self.Hive_Table)
 
 		self.Hive_Import_DB = importStagingDB
-		self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
-		self.Hive_Import_View = self.Hive_DB + "__" + self.Hive_Table + "__staging_view"
-		self.Hive_History_DB = self.Hive_DB
-		self.Hive_History_Table = self.Hive_Table + "_history"
-		self.Hive_HistoryTemp_DB = importStagingDB
-		self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
-		self.Hive_Import_PKonly_DB = importStagingDB
-		self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
-		self.Hive_Delete_DB = importStagingDB
-		self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
+		# self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
+		# self.Hive_Import_View = self.Hive_DB + "__" + self.Hive_Table + "__staging_view"
+		self.Hive_Import_Table = importStagingTable
+		self.Hive_Import_View = importStagingTable + "_view"
+		# self.Hive_History_DB = self.Hive_DB
+		# self.Hive_History_Table = self.Hive_Table + "_history"
+		self.Hive_History_DB = importHistoryDB
+		self.Hive_History_Table = importHistoryTable
+		# self.Hive_HistoryTemp_DB = importStagingDB
+		# self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
+		self.Hive_HistoryTemp_DB = importWorkDB
+		self.Hive_HistoryTemp_Table = importWorkTable + "__temporary"
+		# self.Hive_Import_PKonly_DB = importStagingDB
+		# self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
+		self.Hive_Import_PKonly_DB = importWorkDB
+		self.Hive_Import_PKonly_Table = importWorkTable + "__pkonly__staging"
+		# self.Hive_Delete_DB = importStagingDB
+		# self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
+		self.Hive_Delete_DB = importWorkDB
+		self.Hive_Delete_Table = importWorkTable + "__pkonly__deleted"
 
 		if self.etlPhase == constant.ETL_PHASE_EXTERNAL:
 			self.Hive_Import_DB = self.Hive_DB
 			self.Hive_Import_Table = self.Hive_Table 
+
+		self.Hive_ColumnName_Import = self.common_config.getConfigValue(key = "import_columnname_import")
+		self.Hive_ColumnName_Insert = self.common_config.getConfigValue(key = "import_columnname_insert")
+		self.Hive_ColumnName_Update = self.common_config.getConfigValue(key = "import_columnname_update")
+		self.Hive_ColumnName_Delete = self.common_config.getConfigValue(key = "import_columnname_delete")
+		self.Hive_ColumnName_IUD = self.common_config.getConfigValue(key = "import_columnname_iud")
+		self.Hive_ColumnName_HistoryTimestamp = self.common_config.getConfigValue(key = "import_columnname_histtime")
+
 
 		logging.debug("Settings from import_config.getImportConfig()")
 		logging.debug("    connection_alias = %s"%(self.connection_alias))
@@ -925,6 +965,9 @@ class config(object, metaclass=Singleton):
 		logging.debug("    create_datalake_import_column = %s"%(self.create_datalake_import_column)) 
 		logging.debug("    nomerge_ingestion_sql_addition = %s"%(self.nomerge_ingestion_sql_addition))
 		logging.debug("    sqoop_sql_where_addition = %s"%(self.sqoop_sql_where_addition))
+		logging.debug("    Hive_Import_DB = %s"%(self.Hive_Import_DB))
+		logging.debug("    Hive_Import_Table = %s"%(self.Hive_Import_Table))
+		logging.debug("    Hive_Import_View = %s"%(self.Hive_Import_View))
 		logging.debug("    Hive_History_DB = %s"%(self.Hive_History_DB))
 		logging.debug("    Hive_History_Table = %s"%(self.Hive_History_Table))
 		logging.debug("    Hive_HistoryTemp_DB = %s"%(self.Hive_HistoryTemp_DB))
@@ -933,7 +976,14 @@ class config(object, metaclass=Singleton):
 		logging.debug("    Hive_Import_PKonly_Table = %s"%(self.Hive_Import_PKonly_Table))
 		logging.debug("    Hive_Delete_DB = %s"%(self.Hive_Delete_DB))
 		logging.debug("    Hive_Delete_Table = %s"%(self.Hive_Delete_Table))
+		logging.debug("    Hive_ColumnName_Import = %s"%(self.Hive_ColumnName_Import))
+		logging.debug("    Hive_ColumnName_Insert = %s"%(self.Hive_ColumnName_Insert))
+		logging.debug("    Hive_ColumnName_Update = %s"%(self.Hive_ColumnName_Update))
+		logging.debug("    Hive_ColumnName_Delete = %s"%(self.Hive_ColumnName_Delete))
+		logging.debug("    Hive_ColumnName_IUD = %s"%(self.Hive_ColumnName_IUD))
+		logging.debug("    Hive_ColumnName_HistoryTimestamp = %s"%(self.Hive_ColumnName_HistoryTimestamp))
 		logging.debug("Executing import_config.getImportConfig() - Finished")
+
 
 	def updateLastUpdateFromSource(self):
 		# This function will update the import_tables.last_update_from_source to the startDate from the common class. This will later

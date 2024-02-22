@@ -417,6 +417,8 @@ class hiveMetastoreDirect(object, metaclass=Singleton):
 
 		if includeType == False:
 			result_df.drop('type', axis=1, inplace=True)
+		else:
+			result_df.loc[result_df['type'] == 'timestamp with local time zone', 'type'] = 'timestamp'
 			
 		if includeComment == False:
 			result_df.drop('comment', axis=1, inplace=True)
@@ -426,9 +428,10 @@ class hiveMetastoreDirect(object, metaclass=Singleton):
 			
 		if forceColumnUppercase == True:
 			result_df['name'] = result_df['name'].str.upper()
+
 			
-		if excludeDataLakeColumns == True:
-			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
+#		if excludeDataLakeColumns == True:
+#			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
 
 		# Index needs to be reset if anything was droped in the DF. 
 		# The merge will otherwise indicate that there is a difference and table will be recreated

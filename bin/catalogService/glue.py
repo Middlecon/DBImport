@@ -376,8 +376,8 @@ class glueCatalog(object, metaclass=Singleton):
 		if forceColumnUppercase == True:
 			result_df['name'] = result_df['name'].str.upper()
 #			
-		if excludeDataLakeColumns == True:
-			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
+#		if excludeDataLakeColumns == True:
+#			result_df = result_df[~result_df['name'].astype(str).str.startswith('datalake_')]
 #
 #		# Index needs to be reset if anything was droped in the DF. 
 #		# The merge will otherwise indicate that there is a difference and table will be recreated
