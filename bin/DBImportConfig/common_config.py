@@ -590,7 +590,29 @@ class config(object, metaclass=Singleton):
 
 		os.environ["KRB5CCNAME"] = "FILE:/tmp/krb5cc_%s_%s"%(os.getuid(), os.getpid())
 
-		if self.kerberosPrincipal == "" or self.kerberosKeytab == "":
+		if self.kerberosPrincipal == "" and self.kerberosKeytab != "":
+			# There is information about a keytab, but not the principal. So lets grab the first from the file
+			kinitCommandList = ['klist', '-k', self.kerberosKeytab]
+			kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			stdOut, stdErr = kinitProc.communicate()
+			stdOut = stdOut.decode('utf-8').rstrip()
+			stdErr = stdErr.decode('utf-8').rstrip()
+
+			for line in stdOut.splitlines():
+				try:
+					if "@" in line.strip().split(" ")[1]:
+						# Get the first line with a @ in it. That should be the first principal in the keytab file
+						self.kerberosPrincipal = line.strip().split(" ")[1]
+						break
+				except IndexError:
+					pass
+
+			if self.kerberosPrincipal == "":
+				logging.error("No kerberos principal can be found in the keytab file.")
+				self.remove_temporary_files()
+				sys.exit(1)
+
+		elif self.kerberosPrincipal == "" or self.kerberosKeytab == "":
 			logging.error("The kerberos information is not correct in configuration file.")
 			self.remove_temporary_files()
 			sys.exit(1)
