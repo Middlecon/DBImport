@@ -1528,20 +1528,20 @@ class operation(object, metaclass=Singleton):
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_oracle == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema.upper(), self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
+			# sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_postgresql == True: 
 			sqoopSourceSchema = ["--", "--schema", self.import_config.source_schema]
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_progress == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
-			sqoopDirectOption = "--direct"
+			# sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_mysql == True: 
 			sqoopSourceTable = self.import_config.source_table
 		if self.import_config.common_config.db_db2udb == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
 		if self.import_config.common_config.db_db2as400 == True: 
 			sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table.upper())
-			sqoopDirectOption = "--direct"
+			# sqoopDirectOption = "--direct"
 		if self.import_config.common_config.db_informix == True: 
 			sqoopSourceTable = self.import_config.source_table
 			# sqoopSourceTable = "%s.%s"%(self.import_config.source_schema, self.import_config.source_table)
@@ -1940,8 +1940,8 @@ class operation(object, metaclass=Singleton):
 
 			if self.import_config.importTool == "sqoop":
 				columnsDF = self.updateColumnsForImportTable(columnsDF)
-			elif self.import_config.importTool == "spark":
-				columnsDF = self.updateColumnsForImportTable(columnsDF, replaceNameOnly=True)
+#			elif self.import_config.importTool == "spark":
+#				columnsDF = self.updateColumnsForImportTable(columnsDF, replaceNameOnly=True)
 
 			firstLoop = True
 
@@ -3109,8 +3109,8 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.nomerge_ingestion_sql_addition != None:
 			query += self.import_config.nomerge_ingestion_sql_addition
 
-		return query
 		logging.debug("Executing import_operations.generateCopyTableStatement() - Finished")
+		return query
 
 	def copyHiveTable(self, sourceDB, sourceTable, targetDB, targetTable):
 		""" Copy one Hive table into another for the columns that have the same name """

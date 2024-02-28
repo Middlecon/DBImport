@@ -688,18 +688,19 @@ class operation(object, metaclass=Singleton):
 			sourceColumns['sourceName'] = sourceColumns['name']
 			targetColumns['targetName'] = targetColumns['name']
 
-			# If you change any of the name replace operations, you also need to change the same data in function self.updateColumnsForImportTable() and import_definitions.saveColumnData()
-			targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'/', '', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o', regex=True)
-			targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash', regex=True)
 			if importTool != "spark":
+				# If you change any of the name replace operations, you also need to change the same data in functions
+				# import_operations.updateColumnsForImportTable() and import_definitions.saveColumnData()
+				targetColumns['name'] = targetColumns['name'].str.replace(r' ', '_', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'\%', 'pct', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'\(', '_', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'\)', '_', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'/', '', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'ü', 'u', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'å', 'a', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'ä', 'a', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'ö', 'o', regex=True)
+				targetColumns['name'] = targetColumns['name'].str.replace(r'#', 'hash', regex=True)
 				targetColumns['name'] = targetColumns['name'].str.replace(r'^_', 'underscore_', regex=True)
 
 		columnMerge = pd.merge(sourceColumns, targetColumns, on=None, how='outer', indicator='Exist')
