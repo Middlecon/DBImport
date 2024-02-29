@@ -2790,7 +2790,7 @@ class operation(object, metaclass=Singleton):
 		columnsHive = self.common_operations.getColumns(hiveDB, hiveTable, includeType=True, includeComment=True, excludeDataLakeColumns=True) 
 
 		try:
-			columnsHive['comment'].replace(['^$'], [None], regex=True, inplace = True)		# Replace blank column comments with None as it would otherwise trigger an alter table on every run
+			columnsHive['comment'] = columnsHive['comment'].replace(['^$'], [None], regex=True)	# Replace blank column comments with None as it would otherwise trigger an alter table on every run
 		except ValueError:
 			# This exception will happen if all columns are None.
 			pass
