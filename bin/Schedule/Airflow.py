@@ -68,6 +68,8 @@ class initialize(object):
 		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
 		self.airflowMajorVersion = self.common_config.getConfigValue("airflow_major_version")
 		self.defaultTimeZone = self.common_config.getConfigValue("timezone")
+		self.airflowAWSinstanceIds = self.common_config.getConfigValue("airflow_aws_instanceids")
+		self.airflowAWSpoolToInstanceId = self.common_config.getConfigValue("airflow_aws_pool_to_instanceid")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -308,13 +310,17 @@ class initialize(object):
 
 	def getAirflowHostPoolName(self):
 		# self.common_config.jdbc_hostname = None
-		try:
-			hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
-			poolName = "DBImport_server_%s"%(hostname)
-		except (TypeError, AttributeError):
-			logging.warning("Cant find hostname in jdbc_connections table. Setting pool to 'default'")
-			poolName = "default"	
-		
+		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+			poolName = self.airflowAWSinstanceIds 
+		else:
+			try:
+				hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
+				poolName = "DBImport_server_%s"%(hostname)
+			except (TypeError, AttributeError):
+				logging.warning("Cant find hostname in jdbc_connections table. Setting pool to 'default'")
+				poolName = "default"	
+			
 		return poolName[0:50]
 
 	def generateExportDAG(self, DAG):
@@ -322,7 +328,11 @@ class initialize(object):
 
 		usedPools = []
 		tableFilters = []
-		defaultPool = DAG['dag_name']
+		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+			defaultPool = self.airflowAWSinstanceIds
+		else:
+			defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
@@ -440,7 +450,11 @@ class initialize(object):
 
 		usedPools = []
 		tableFilters = []
-		defaultPool = DAG['dag_name']
+		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+			defaultPool = self.airflowAWSinstanceIds
+		else:
+			defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 #		metaDataImport = DAG['metadata_import']
 		usedPools.append(defaultPool)
@@ -496,23 +510,24 @@ class initialize(object):
 			except:
 				continue
 		
-			importPhasePool = self.getAirflowHostPoolName()
-			etlPhasePool = DAG['dag_name'][0:50]
-
 			if row['copy_slave'] == 1:
 				importPhaseAsSensor = True
 			else:
 				importPhaseAsSensor = False
 
-#			if row['hive_db'] == "user_boszkk" and row['hive_table'] == "tbl_full_mysql":
-#				importPhaseAsSensor = True
-
-
-			if DAG['pool_stage1'] != '':
-				importPhasePool = DAG['pool_stage1']
-
-			if DAG['pool_stage2'] != '':
-				etlPhasePool = DAG['pool_stage2']
+			if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+				# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+				importPhasePool = self.airflowAWSinstanceIds
+				etlPhasePool = self.airflowAWSinstanceIds
+			else:
+				importPhasePool = self.getAirflowHostPoolName()
+				etlPhasePool = DAG['dag_name'][0:50]
+	
+				if DAG['pool_stage1'] != '':
+					importPhasePool = DAG['pool_stage1']
+	
+				if DAG['pool_stage2'] != '':
+					etlPhasePool = DAG['pool_stage2']
 		
 			# usedPools is later used to check if the pools that we just are available in Airflow
 			if importPhasePool not in usedPools:
@@ -749,7 +764,11 @@ class initialize(object):
 			return
 
 		usedPools = []
-		defaultPool = DAG['dag_name']
+		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+			defaultPool = self.airflowAWSinstanceIds
+		else:
+			defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
@@ -874,9 +893,9 @@ class initialize(object):
 			self.DAGfile.write("    ssm_client = boto3.client('ssm',region_name='eu-west-1')\n")
 			self.DAGfile.write("    logs_client = boto3.client('logs',region_name='eu-west-1')\n")
 			self.DAGfile.write("\n")
-			self.DAGfile.write("    instanceID = \"i-xxxxxxxxxxxxxxxxx\"\n")
+			self.DAGfile.write("    instanceID = \"%s\"\n"%(self.airflowAWSinstanceIds))
 			self.DAGfile.write("    commandPath = \"%s\"\n"%(self.getDBImportCommandPath()))
-			self.DAGfile.write("    command = \"%sbin/%s; sleep 5\"%(commandPath, command)\n")
+			self.DAGfile.write("    command = \"%sbin/%s || echo ERROR; sleep 1\"%(commandPath, command)\n")
 			self.DAGfile.write("    cloudWatchLogGroupName = \"dbimport\"\n")
 			self.DAGfile.write("\n")
 			self.DAGfile.write("\n")
@@ -1005,6 +1024,8 @@ class initialize(object):
 			self.DAGfile.write("            for event in response['events']:\n")
 			self.DAGfile.write("                try:\n")
 			self.DAGfile.write("                    print(str(event['message']), end=\"\")\n")
+			self.DAGfile.write("                    if event['message'].find(\"\\nERROR\") != -1:\n")
+			self.DAGfile.write("                        errorFound = True\n")
 			self.DAGfile.write("                except:\n")
 			self.DAGfile.write("                    print(event)\n")
 			self.DAGfile.write("\n")
@@ -1019,7 +1040,8 @@ class initialize(object):
 			self.DAGfile.write("\n")
 			self.DAGfile.write("        time.sleep(1)\n")
 			self.DAGfile.write("\n")
-			self.DAGfile.write("    print('Sequence - 008')\n")
+			# self.DAGfile.write("    print(response)\n")
+			# self.DAGfile.write("    print('Sequence - 008')\n")
 			#self.DAGfile.write("    print(errorFound)\n")
 			#self.DAGfile.write("    print(commandInvocation_response)\n")
 			#self.DAGfile.write("    if commandStatus != 'Success':\n")

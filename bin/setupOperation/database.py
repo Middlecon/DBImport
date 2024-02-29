@@ -587,6 +587,22 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'airflow_aws_pool_to_instanceid' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_aws_pool_to_instanceid', 
+				valueInt='1', 
+				description='When using AWS, should the Airflow pool be set to the same name as the instance id?')
+			session.execute(query)
+			session.commit()
+
+		if 'airflow_aws_instanceids' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_aws_instanceids', 
+				valueStr='i-xxxxxxxxxxxxxxxxx', 
+				description='AWS Instance IDs to start the DBImport commands on')
+			session.execute(query)
+			session.commit()
+
 		if 'airflow_dag_directory' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_dag_directory', 
