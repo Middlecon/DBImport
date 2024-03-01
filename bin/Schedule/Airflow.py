@@ -835,6 +835,12 @@ class initialize(object):
 
 		if self.DAGFolder == None: 
 			self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, dagName)
+			if not os.path.exists(self.DAGstagingDirectory):
+				try:
+					logging.info("Creating DAG staging directory (%s)"%(self.DAGstagingDirectory))
+					os.makedirs(self.DAGstagingDirectory)
+				except:
+					pass
 		else:
 			self.DAGfilename = "%s/%s.py"%(self.DAGFolder, dagName)
 
