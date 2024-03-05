@@ -1078,6 +1078,7 @@ class operation(object, metaclass=Singleton):
 			conf.set('spark.jars.packages', self.import_config.common_config.sparkPackages)
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
+		conf.set('spark.port.maxRetries', '128')
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		conf.set('spark.driver.log.persistToDfs.enabled', 'false')
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
@@ -1378,7 +1379,7 @@ class operation(object, metaclass=Singleton):
 						raise
 
 				# Create the table
-				logging.info("Creating Iceberg Import table")
+				logging.info("Creating Iceberg Import table and writing data from source database into it. This is the main loading step of data from source database")
 				sys.stdout.flush()
 				df.writeTo(icebergStagingTable).create()
 

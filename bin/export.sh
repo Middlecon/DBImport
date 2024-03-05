@@ -1,6 +1,8 @@
 #!/bin/bash
 
-. ~/.bash_profile
+source ~/python38.dbimport/bin/activate
+export DBIMPORT_HOME=/usr/local/dbimport
 
-export HADOOP_CLIENT_OPTS="-Xmx4g"
 $DBIMPORT_HOME/bin/export $@
+if [ $? -ne 0 ]; then
+	echo "ERROR: export command was not successful"

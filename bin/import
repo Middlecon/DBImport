@@ -2348,6 +2348,7 @@ def main(argv):
 		import_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except validationError as errMsg:
+		logging.error(errMsg)
 		import_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except invalidConfiguration as errMsg:
@@ -2363,6 +2364,7 @@ def main(argv):
 		import_operation.import_config.remove_temporary_files()
 		sys.exit(1)
 	except:
+		logging.error("Unknown error")
 		import_operation.import_config.remove_temporary_files()
 		raise
 		sys.exit(1)
