@@ -789,19 +789,50 @@ class config(object, metaclass=Singleton):
 		row = self.mysql_cursor.fetchone()
 
 		self.jdbc_url = row[0]
+		jdbcCredentials = row[1]
 		privateKeyFile = row[2]
 		publicKeyFile = row[3]
 		self.jdbc_environment = row[4]
 
 		if decryptCredentials == True and copySlave == False:
-			if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
-				self.crypto.setPrivateKeyFile(privateKeyFile)
-				self.crypto.setPublicKeyFile(publicKeyFile)
-			else:
-				self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
-				self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+			if jdbcCredentials.startswith("arn:aws:secretsmanager:"):
+				# This jdbc connection have its key stored in AWS Secrets Manager
+				import boto3
+				from botocore.exceptions import ClientError
 
-			credentials = self.crypto.decrypt(row[1])
+				# Create a Secrets Manager client
+				session = boto3.session.Session()
+				client = session.client(
+						service_name='secretsmanager',
+						region_name=self.awsRegion
+						)
+	
+				try:
+					get_secret_value_response = client.get_secret_value(
+						SecretId=jdbcCredentials
+					)
+				except ClientError as e:
+					# For a list of exceptions thrown, see
+					# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+					raise e
+
+				jdbcSecrets = json.loads(get_secret_value_response['SecretString'])
+				credentials = "%s %s"%(jdbcSecrets["username"], jdbcSecrets["password"])
+				# print(json.loads(get_secret_value_response['SecretString']))
+				# mysql_username = rds_credentials["username"]
+				# mysql_password = rds_credentials["password"]
+				# self.remove_temporary_files()
+				# sys.exit(1)
+
+			else:
+				if privateKeyFile != None and publicKeyFile != None and privateKeyFile.strip() != '' and publicKeyFile.strip() != '':
+					self.crypto.setPrivateKeyFile(privateKeyFile)
+					self.crypto.setPublicKeyFile(publicKeyFile)
+				else:
+					self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
+					self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+	
+				credentials = self.crypto.decrypt(jdbcCredentials)
 			
 			if credentials == None and exceptionIfFailureToDecrypt == True:
 				raise invalidConfiguration("Cant decrypt username and password. Check private/public key in config file")

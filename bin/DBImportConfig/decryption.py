@@ -78,15 +78,18 @@ class crypto(object):
 		strDecrypted = cipher.decrypt(base64.b64decode(strToDecrypt), sentinel)
 		# strDecrypted = self.privateKey.decrypt(base64.b64decode(strToDecrypt))
 
-		if len(strDecrypted) > 0 and bytes(strDecrypted[:1]) == b"\x02":
-			pos = strDecrypted.index(b"\x00")
-			strDecrypted = strDecrypted[pos+1:].decode().strip()
-			return strDecrypted
-		elif len(strDecrypted) > 0 and type(strDecrypted) is bytes:
-			strDecrypted = strDecrypted.decode().strip()
-			return strDecrypted
-		else:
-			return None
+		try:
+			if len(strDecrypted) > 0 and bytes(strDecrypted[:1]) == b"\x02":
+				pos = strDecrypted.index(b"\x00")
+				strDecrypted = strDecrypted[pos+1:].decode().strip()
+				return strDecrypted
+			elif len(strDecrypted) > 0 and type(strDecrypted) is bytes:
+				strDecrypted = strDecrypted.decode().strip()
+				return strDecrypted
+			else:
+				return None
+		except UnicodeDecodeError:
+			raise invalidConfiguration("Unable to decrypt using private/public keys. Are the keys setup correct?")
 
 	def encrypt(self, strToEncrypt):
 
