@@ -133,6 +133,11 @@ class config(object, metaclass=Singleton):
 		self.validationCustomQueryHiveValue = None
 		self.validationCustomQueryValidateImportTable = True
 
+		self.importDatabaseOverride = None
+		self.importTableOverride = None
+		self.historyDatabaseOverride = None
+		self.historyTableOverride = None
+
 		self.importPhase = None
 		self.importPhaseDescription = None
 		self.copyPhase = None
@@ -359,7 +364,11 @@ class config(object, metaclass=Singleton):
 				"    etl_engine, "
 				"    spark_executors, "
 				"    last_update_from_source, "
-				"    invalidate_impala "
+				"    invalidate_impala, "
+				"    import_database, "
+				"    import_table, "
+				"    history_database, "
+				"    history_table "
 				"from import_tables "
 				"where "
 				"    hive_db = %s" 
@@ -461,7 +470,12 @@ class config(object, metaclass=Singleton):
 		self.common_config.operationTimestamp = row[48]
 
 		invalidateImpalaMetadataValue = row[49]
-#		invalidateImpalaMetadataValue = -1
+
+		self.importDatabaseOverride = row[50]
+		self.importTableOverride = row[51]
+		self.historyDatabaseOverride = row[52]
+		self.historyTableOverride = row[53]
+
 
 		if self.validationMethod != constant.VALIDATION_METHOD_CUSTOMQUERY and self.validationMethod !=  constant.VALIDATION_METHOD_ROWCOUNT: 
 			raise invalidConfiguration("Only the values '%s' or '%s' is valid for column validationMethod in import_tables." % ( constant.VALIDATION_METHOD_ROWCOUNT, constant.VALIDATION_METHOD_CUSTOMQUERY))
@@ -867,55 +881,53 @@ class config(object, metaclass=Singleton):
 			self.create_foreign_keys = 1
 
 		# Set the name of the history tables, temporary tables and such
-		# importWorkDB = "etl_import_staging" \
 		importWorkDB = self.common_config.getConfigValue(key = "import_work_database") \
 			.replace("{DATABASE}", self.Hive_DB)
-		#importWorkTable = "{DATABASE}__{TABLE}__staging" \
 		importWorkTable = self.common_config.getConfigValue(key = "import_work_table") \
 			.replace("{DATABASE}", self.Hive_DB) \
 			.replace("{TABLE}", self.Hive_Table)
 
-		#importStagingDB = "{DATABASE}_import" \
 		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database") \
 			.replace("{DATABASE}", self.Hive_DB)
-		# importStagingTable = "{TABLE}" \
 		importStagingTable = self.common_config.getConfigValue(key = "import_staging_table") \
 			.replace("{DATABASE}", self.Hive_DB) \
 			.replace("{TABLE}", self.Hive_Table)
 
-		# importHistoryDB = "{DATABASE}_history" \
 		importHistoryDB = self.common_config.getConfigValue(key = "import_history_database") \
 			.replace("{DATABASE}", self.Hive_DB)
-		# importHistoryTable = "{TABLE}" \
 		importHistoryTable = self.common_config.getConfigValue(key = "import_history_table") \
 			.replace("{DATABASE}", self.Hive_DB) \
 			.replace("{TABLE}", self.Hive_Table)
 
 		self.Hive_Import_DB = importStagingDB
-		# self.Hive_Import_Table = self.Hive_DB + "__" + self.Hive_Table + "__staging"
-		# self.Hive_Import_View = self.Hive_DB + "__" + self.Hive_Table + "__staging_view"
 		self.Hive_Import_Table = importStagingTable
 		self.Hive_Import_View = importStagingTable + "_view"
-		# self.Hive_History_DB = self.Hive_DB
-		# self.Hive_History_Table = self.Hive_Table + "_history"
 		self.Hive_History_DB = importHistoryDB
 		self.Hive_History_Table = importHistoryTable
-		# self.Hive_HistoryTemp_DB = importStagingDB
-		# self.Hive_HistoryTemp_Table = self.Hive_DB + "__" + self.Hive_Table + "__temporary"
 		self.Hive_HistoryTemp_DB = importWorkDB
 		self.Hive_HistoryTemp_Table = importWorkTable + "__temporary"
-		# self.Hive_Import_PKonly_DB = importStagingDB
-		# self.Hive_Import_PKonly_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__staging"
 		self.Hive_Import_PKonly_DB = importWorkDB
 		self.Hive_Import_PKonly_Table = importWorkTable + "__pkonly__staging"
-		# self.Hive_Delete_DB = importStagingDB
-		# self.Hive_Delete_Table = self.Hive_DB + "__" + self.Hive_Table + "__pkonly__deleted"
 		self.Hive_Delete_DB = importWorkDB
 		self.Hive_Delete_Table = importWorkTable + "__pkonly__deleted"
 
 		if self.etlPhase == constant.ETL_PHASE_EXTERNAL:
 			self.Hive_Import_DB = self.Hive_DB
 			self.Hive_Import_Table = self.Hive_Table 
+
+		# If the database or table for import or history have been overridden by setting the options in the import_table
+		if self.importDatabaseOverride != None:
+			self.Hive_Import_DB = self.importDatabaseOverride
+
+		if self.importTableOverride != None:
+			self.Hive_Import_Table = self.importTableOverride
+			self.Hive_Import_View = self.importTableOverride + "_view"
+
+		if self.historyDatabaseOverride != None:
+			self.Hive_History_DB = self.historyDatabaseOverride
+
+		if self.historyTableOverride != None:
+			self.Hive_History_Table = self.historyTableOverride
 
 		self.Hive_ColumnName_Import = self.common_config.getConfigValue(key = "import_columnname_import")
 		self.Hive_ColumnName_Insert = self.common_config.getConfigValue(key = "import_columnname_insert")

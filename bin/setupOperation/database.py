@@ -587,6 +587,22 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'airflow_default_pool_size' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_default_pool_size', 
+				valueInt='24', 
+				description='If DBImport creates the Airflow pool, this is the initial size of it')
+			session.execute(query)
+			session.commit()
+
+		if 'airflow_create_pool_with_task' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_create_pool_with_task', 
+				valueInt='1', 
+				description='If 1, then the Airflow pool will be created with standard tasks. If 0, then a direct database connection is required to add the pool through sql commands directly the airflow database. Connection details are available in dbimport.cfg for this.')
+			session.execute(query)
+			session.commit()
+
 		if 'airflow_aws_pool_to_instanceid' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_aws_pool_to_instanceid', 

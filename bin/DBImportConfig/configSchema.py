@@ -758,6 +758,11 @@ class importTables(Base):
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
     custom_max_query = Column(String(256), comment='You can use a custom SQL query that will get the Max value from the source database. This Max value will be used in an inremental import to know how much to read in each execution')
     mergeCompactionMethod = Column(Enum('default', 'none', 'minor', 'minor_and_wait', 'major', 'major_and_wait'), nullable=False, comment='Compaction method to use after import using merge is completed. Default means a major compaction if it is configured to do so in the configuration table', server_default=text("'default'"))
+    import_database = Column(String(256), comment='Override the database name used for the import table')
+    import_table = Column(String(256), comment='Override the table name used for the import table')
+    history_database = Column(String(256), comment='Override the database name used for the history table if that exists')
+    history_table = Column(String(256), comment='Override the table name used for the history table if that exists')
+
 
 
 class jdbcConnectionsEnvironments(Base):
