@@ -1,5 +1,11 @@
 *.pyc
 *.swp
+<<<<<<< HEAD
 *.log
 *.pid
 .attach*
+=======
+.attach*
+dbimport_server.log
+dbimport_server.pid
+>>>>>>> 29f82fc212f2ca9e3d26d7074f465e13f841ee18
