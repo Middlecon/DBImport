@@ -1093,7 +1093,7 @@ class operation(object, metaclass=Singleton):
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
 				conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 				conf.set('spark.sql.catalog.glue', 'org.apache.iceberg.spark.SparkCatalog')
-				# conf.set('spark.sql.catalog.glue.warehouse', 'tjoho')
+				conf.set('spark.sql.catalog.glue.warehouse', self.import_config.hdfsBaseDir)
 				conf.set('spark.sql.catalog.glue.catalog-impl', 'org.apache.iceberg.aws.glue.GlueCatalog')
 				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
 			else:

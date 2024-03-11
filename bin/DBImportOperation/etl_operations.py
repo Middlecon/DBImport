@@ -114,12 +114,12 @@ class operation(object, metaclass=Singleton):
 		mssqlChangeTrackingImportDBandTable = "`%s`.`%s`"%(sourceDB, mssqlChangeTrackingImportTable)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			sourceDBandTable = "hive.%s"%(sourceDBandTable)
-			targetDBandTable = "hive.%s"%(targetDBandTable)
-			historyDBandTable = "hive.%s"%(historyDBandTable)
-			targetDeleteDBandTable = "hive.%s"%(targetDeleteDBandTable)
-			oracleFlashbackImportDBandTable = "hive.%s"%(oracleFlashbackImportDBandTable)
-			mssqlChangeTrackingImportDBandTable = "hive.%s"%(mssqlChangeTrackingImportDBandTable)
+			sourceDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, sourceDBandTable)
+			targetDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, targetDBandTable)
+			historyDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, historyDBandTable)
+			targetDeleteDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, targetDeleteDBandTable)
+			oracleFlashbackImportDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, oracleFlashbackImportDBandTable)
+			mssqlChangeTrackingImportDBandTable = "%s.%s"%(self.common_operations.sparkCatalogName, mssqlChangeTrackingImportDBandTable)
 			self.import_operations.startSpark()
 
 		datalakeIUDExists = False

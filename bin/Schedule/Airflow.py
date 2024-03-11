@@ -748,7 +748,7 @@ class initialize(object):
 
 		elif self.createPoolsWithTasks == True:
 			for pool in pools:
-				taskName = "createPool_%s"%(pool.replace('.', '_'))
+				taskName = "createPool_%s"%(pool.replace('.', '_').replace('-', '_'))
 				self.DAGfile.write("\n")
 				self.DAGfile.write("%s = CreatePoolOperator(\n"%(taskName))
 				self.DAGfile.write("    name='%s',\n"%(pool))
