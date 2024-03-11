@@ -1123,6 +1123,7 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.createHistoryTable()
 					import_operation.updateHistoryTable()
+					import_operation.addHiveDBImportColumnsToHistoryTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "createDeleteTable":
 				if import_operation.runStage(3207) == True: 
@@ -1516,6 +1517,7 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.createHistoryTable()
 					import_operation.updateHistoryTable()
+					import_operation.addHiveDBImportColumnsToHistoryTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 				if import_operation.runStage(3357) == True: 
@@ -1951,6 +1953,7 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.createHistoryTable()
 					import_operation.updateHistoryTable()
+					import_operation.addHiveDBImportColumnsToHistoryTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "mergeTable":
 				if import_operation.runStage(3557) == True: 
@@ -2233,6 +2236,7 @@ def main(argv):
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.createHistoryTable()
 					import_operation.updateHistoryTable()
+					import_operation.addHiveDBImportColumnsToHistoryTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "createDeleteTable":
 				if import_operation.runStage(3657) == True: 

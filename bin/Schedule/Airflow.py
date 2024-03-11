@@ -70,6 +70,8 @@ class initialize(object):
 		self.defaultTimeZone = self.common_config.getConfigValue("timezone")
 		self.airflowAWSinstanceIds = self.common_config.getConfigValue("airflow_aws_instanceids")
 		self.airflowAWSpoolToInstanceId = self.common_config.getConfigValue("airflow_aws_pool_to_instanceid")
+		self.airflowDefaultPoolSize = self.common_config.getConfigValue("airflow_default_pool_size")
+		self.createPoolsWithTasks = self.common_config.getConfigValue("airflow_create_pool_with_task")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -85,7 +87,7 @@ class initialize(object):
 		self.mainStopTask = None
 		self.postStartTask = None
 		self.postStopTask = None
-
+		
 		self.airflowMode = "default"
 
 		try:
@@ -456,7 +458,6 @@ class initialize(object):
 		else:
 			defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
-#		metaDataImport = DAG['metadata_import']
 		usedPools.append(defaultPool)
 
 		if DAG['metadata_import'] == 1:
@@ -720,7 +721,8 @@ class initialize(object):
 
 	def createAirflowPools(self, pools): 
 		""" Creates the pools in Airflow database """
-		if self.airflowMode == "default":
+
+		if self.airflowMode == "default" and self.createPoolsWithTasks == False:
 			session = self.airflowDBSession()
 			slotPool = aliased(airflowSchema.slotPool)
 		
@@ -734,8 +736,8 @@ class initialize(object):
 			for pool in pools:
 				if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
 					try:
-						logging.info("Creating the Airflow pool '%s' with 24 slots"%(pool))
-						newPool = airflowSchema.slotPool(pool=pool, slots=24, include_deferred=0)
+						logging.info("Creating the Airflow pool '%s' with %s slots"%(pool, self.airflowDefaultPoolSize))
+						newPool = airflowSchema.slotPool(pool=pool, slots=self.airflowDefaultPoolSize, include_deferred=0)
 						session.add(newPool)
 						session.commit()
 					except sa.exc.IntegrityError:
@@ -743,6 +745,24 @@ class initialize(object):
 						session.rollback()
 
 			session.close()
+
+		elif self.createPoolsWithTasks == True:
+			for pool in pools:
+				taskName = "createPool_%s"%(pool.replace('.', '_'))
+				self.DAGfile.write("\n")
+				self.DAGfile.write("%s = CreatePoolOperator(\n"%(taskName))
+				self.DAGfile.write("    name='%s',\n"%(pool))
+				self.DAGfile.write("    slots=%s,\n"%(self.airflowDefaultPoolSize))
+				self.DAGfile.write("    task_id='%s',\n"%(taskName))
+				self.DAGfile.write("    retries=5,\n")
+				self.DAGfile.write("    priority_weight=1,\n")
+				self.DAGfile.write("    weight_rule='absolute',\n")
+				self.DAGfile.write("    pool=None,\n")
+				self.DAGfile.write("    dag=dag)\n")
+				self.DAGfile.write("\n")
+				self.DAGfile.write("start.set_downstream(%s)\n"%(taskName))
+				self.DAGfile.write("%s.set_downstream(%s)\n"%(taskName, self.preStopTask))
+				self.DAGfile.write("\n")
 
 
 	def generateCustomDAG(self, DAG):
@@ -869,6 +889,9 @@ class initialize(object):
 		self.DAGfile.write("from airflow.operators.python_operator import BranchPythonOperator\n")
 		self.DAGfile.write("from airflow.operators.dagrun_operator import TriggerDagRunOperator\n")
 		self.DAGfile.write("from airflow.operators.dummy_operator import DummyOperator\n")
+		self.DAGfile.write("from airflow.api.common.experimental.pool import get_pool, create_pool\n")
+		self.DAGfile.write("from airflow.exceptions import PoolNotFound\n")
+		self.DAGfile.write("from airflow.models import BaseOperator\n")
 
 		if self.airflowMode == "aws_mwaa":
 			self.DAGfile.write("from airflow.operators.dummy_operator import DummyOperator\n")
@@ -885,6 +908,34 @@ class initialize(object):
 		self.DAGfile.write("except KeyError:\n")
 		self.DAGfile.write("    Email_receiver = \"not-set@domain.com\"\n")
 		self.DAGfile.write("\n")
+		self.DAGfile.write("\n")
+
+		self.DAGfile.write("class CreatePoolOperator(BaseOperator):\n")
+		self.DAGfile.write("    ui_color = '#b8e9ee'\n")
+		self.DAGfile.write("\n")
+		self.DAGfile.write("    def __init__(\n")
+		self.DAGfile.write("            self,\n")
+		self.DAGfile.write("            name,\n")
+		self.DAGfile.write("            slots,\n")
+		self.DAGfile.write("            description='',\n")
+		self.DAGfile.write("            *args, **kwargs):\n")
+		self.DAGfile.write("        super(CreatePoolOperator, self).__init__(*args, **kwargs)\n")
+		self.DAGfile.write("        self.description = description\n")
+		self.DAGfile.write("        self.slots = slots\n")
+		self.DAGfile.write("        self.name = name\n")
+		self.DAGfile.write("\n")
+		self.DAGfile.write("    def execute(self, context):\n")
+		self.DAGfile.write("        try:\n")
+		self.DAGfile.write("            pool = get_pool(name=self.name)\n")
+		# self.DAGfile.write("            if pool:\n")
+		self.DAGfile.write("            print('Pool exists: %s'%(pool))\n")
+		self.DAGfile.write("        except PoolNotFound:\n")
+		self.DAGfile.write("            # create the pool\n")
+		self.DAGfile.write("            pool = create_pool(name=self.name, slots=self.slots, description=self.description)\n")
+		self.DAGfile.write("            print('Pool exists: %s'%(pool))\n")
+		self.DAGfile.write("\n")
+		self.DAGfile.write("\n")
+
 
 		if dagTimeZone == None or dagTimeZone == "":
 			self.DAGfile.write("local_tz = pendulum.timezone(\"%s\")\n"%(self.defaultTimeZone))
@@ -1293,6 +1344,7 @@ class initialize(object):
 			self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
+			self.DAGfile.write("    pool=None,\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -1316,6 +1368,7 @@ class initialize(object):
 			#self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
+			self.DAGfile.write("    pool=None,\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -1362,16 +1415,18 @@ class initialize(object):
 					airflowTasks.placement)
 				.select_from(airflowTasks)
 				.filter(airflowTasks.dag_name == dagName)
+				.filter(airflowTasks.include_in_airflow == 1)
 				.all())
 
 		if len(tasks) == 0:
 			tasks = pd.DataFrame(columns=['dag_name', 'placement'])
 
-		if len(tasks.loc[tasks['placement'] == 'before main']) > 0:
+		if len(tasks.loc[tasks['placement'] == 'before main']) > 0 or self.createPoolsWithTasks == True:
 			tasksBeforeMainExists = True
 
 		if len(tasks.loc[tasks['placement'] == 'after main']) > 0:
 			tasksAfterMainExists = True
+
 
 		if tasksBeforeMainExists == True:
 			self.DAGfile.write("%s = DummyOperator(\n"%(self.preStopTask))

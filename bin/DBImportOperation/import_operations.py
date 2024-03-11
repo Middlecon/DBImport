@@ -1093,7 +1093,7 @@ class operation(object, metaclass=Singleton):
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
 				conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 				conf.set('spark.sql.catalog.glue', 'org.apache.iceberg.spark.SparkCatalog')
-				conf.set('spark.sql.catalog.glue.warehouse', 'tjoho')
+				# conf.set('spark.sql.catalog.glue.warehouse', 'tjoho')
 				conf.set('spark.sql.catalog.glue.catalog-impl', 'org.apache.iceberg.aws.glue.GlueCatalog')
 				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
 			else:
@@ -1989,6 +1989,33 @@ class operation(object, metaclass=Singleton):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			if self.common_operations.isTableTransactional(self.Hive_DB, self.Hive_Table) == False:
 				self.common_operations.convertHiveTableToACID(self.Hive_DB, self.Hive_Table, createDeleteColumn=self.import_config.soft_delete_during_merge, createMergeColumns=True)
+
+	def addHiveDBImportColumnsToHistoryTable(self):
+		""" Will add the required DBImport columns in the Hive table """
+		logging.debug("Executing import_operations.createHiveMergeColumns()")
+
+		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+			self.startSpark()
+			import pyspark
+
+		Hive_History_DB = self.import_config.Hive_History_DB
+		Hive_History_Table = self.import_config.Hive_History_Table
+
+		columns = self.common_operations.getColumns(hiveDB=Hive_History_DB, hiveTable=Hive_History_Table, includeType=False, includeComment=False)
+
+		if columns[columns['name'] == 'datalake_source'].empty == True and self.import_config.datalake_source != None:
+			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+				query = "alter table `%s`.`%s` add columns ( datalake_source varchar(256) )"%(Hive_History_DB, Hive_History_Table)
+				self.common_operations.executeHiveQuery(query)
+
+			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+				query = "alter table `%s`.`%s`.`%s` add columns ( datalake_source string )"%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table)
+				logging.info(query)
+				self.spark.sql(query)
+
+			if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+				self.common_operations.reconnectHiveMetaStore()
+
 
 	def addHiveDBImportColumns(self, mergeOperation):
 		""" Will add the required DBImport columns in the Hive table """

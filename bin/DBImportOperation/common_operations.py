@@ -221,7 +221,6 @@ class operation(object, metaclass=Singleton):
 		return result
 
 	def getColumns(self, hiveDB, hiveTable, includeType=False, includeComment=False, includeIdx=False, forceColumnUppercase=False, excludeDataLakeColumns=False):
-		# result = self.metastore.getColumns(hiveDB=hiveDB, hiveTable=hiveTable, includeType=includeType, includeComment=includeComment, includeIdx=includeIdx, forceColumnUppercase=forceColumnUppercase, excludeDataLakeColumns=excludeDataLakeColumns)
 		result = self.metastore.getColumns(
 			hiveDB=hiveDB, 
 			hiveTable=hiveTable, 
@@ -236,7 +235,9 @@ class operation(object, metaclass=Singleton):
 				self.Hive_ColumnName_Insert, 
 				self.Hive_ColumnName_Update, 
 				self.Hive_ColumnName_Delete, 
-				self.Hive_ColumnName_IUD 
+				self.Hive_ColumnName_IUD,
+				"datalake_timestamp",
+				"datalake_source"
 				])]
 
 			# Index needs to be reset if anything was droped in the DF.
