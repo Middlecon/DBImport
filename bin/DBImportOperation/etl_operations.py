@@ -133,11 +133,12 @@ class operation(object, metaclass=Singleton):
 			# if row['name'] == "datalake_insert": datalakeInsertExists = True 
 			# if row['name'] == "datalake_update": datalakeUpdateExists = True 
 			# if row['name'] == "datalake_delete": datalakeDeleteExists = True 
+			# if row['name'] == "datalake_source": datalakeSourceExists = True 
 			if row['name'] == self.common_operations.Hive_ColumnName_IUD:    datalakeIUDExists = True 
 			if row['name'] == self.common_operations.Hive_ColumnName_Insert: datalakeInsertExists = True 
 			if row['name'] == self.common_operations.Hive_ColumnName_Update: datalakeUpdateExists = True 
 			if row['name'] == self.common_operations.Hive_ColumnName_Delete: datalakeDeleteExists = True 
-			if row['name'] == "datalake_source": datalakeSourceExists = True 
+			if row['name'] == self.common_operations.Hive_ColumnName_Source: datalakeSourceExists = True 
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			if hiveMergeJavaHeap != None:
@@ -234,7 +235,8 @@ class operation(object, metaclass=Singleton):
 			query += ", \n   `%s` = TIMESTAMP('%s')"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
 
 		if datalakeSourceExists == True and datalakeSource != None: 
-			query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
+			# query += ", \n   `datalake_source` = '%s'"%(datalakeSource)
+			query += ", \n   `%s` = '%s'"%(self.common_operations.Hive_ColumnName_Source, datalakeSource)
 
 		query += " \n"
 
@@ -285,7 +287,8 @@ class operation(object, metaclass=Singleton):
 			#elif ColumnName == "datalake_update": 
 			elif ColumnName == self.common_operations.Hive_ColumnName_Update: 
 				query += "   TIMESTAMP('%s')"%(mergeTime)
-			elif ColumnName == "datalake_source": 
+			# elif ColumnName == "datalake_source": 
+			elif ColumnName == self.common_operations.Hive_ColumnName_Source: 
 				query += "   '%s'"%(datalakeSource)
 			else:
 				query += "   NULL"
@@ -326,7 +329,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   `datalake_source`"
+				# query += ",\n   `datalake_source`"
+				query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   `datalake_iud`"
 			# query += ",\n   `datalake_timestamp`"
 			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -401,7 +405,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   `datalake_source`"
+				# query += ",\n   `datalake_source`"
+				query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   `datalake_iud`"
 			# query += ",\n   `datalake_timestamp`"
 			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -441,7 +446,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   `datalake_source`"
+				# query += ",\n   `datalake_source`"
+				query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   `datalake_iud`"
 			# query += ",\n   `datalake_timestamp`"
 			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -482,7 +488,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   `datalake_source`"
+				# query += ",\n   `datalake_source`"
+				query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   `datalake_iud`"
 			# query += ",\n   `datalake_timestamp`"
 			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -499,7 +506,7 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   T.`%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
+				query += ",\n   '%s' as `%s`"%(datalakeSource, self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   'D' as `datalake_iud`"
 			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
 			query += ",\n   'D' as `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -546,7 +553,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   `%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   `datalake_source`"
+				# query += ",\n   `datalake_source`"
+				query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   `datalake_iud`"
 			# query += ",\n   `datalake_timestamp`"
 			query += ",\n   `%s`"%(self.common_operations.Hive_ColumnName_IUD)
@@ -563,7 +571,8 @@ class operation(object, metaclass=Singleton):
 					query += ", \n"
 				query += "   T.`%s`"%(row['targetName'])
 			if datalakeSourceExists == True:
-				query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
+				# query += ",\n   '%s' as `datalake_source`"%(datalakeSource)
+				query += ",\n   '%s' as `%s`"%(datalakeSource, self.common_operations.Hive_ColumnName_Source)
 			# query += ",\n   'D' as `datalake_iud`"
 			# query += ",\n   timestamp('%s') as `datalake_timestamp`"%(mergeTime)
 			query += ",\n   'D' as `%s`"%(self.common_operations.Hive_ColumnName_IUD)

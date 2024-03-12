@@ -947,6 +947,14 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'import_columnname_source' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='import_columnname_source', 
+				valueStr='dbimport_source',
+				description='Column name for source information if that is configured in jdbc_connections table')
+			session.execute(query)
+			session.commit()
+
 		query = sa.update(configSchema.configuration).where(configSchema.configuration.configKey == 'airflow_dag_directory').values(
 				description='Airflow path to DAG directory. When using AWS MWAA, this is the name of the S3 bucket.')
 		session.execute(query)

@@ -114,6 +114,7 @@ class operation(object, metaclass=Singleton):
 		self.Hive_ColumnName_Delete = self.import_config.Hive_ColumnName_Delete
 		self.Hive_ColumnName_IUD = self.import_config.Hive_ColumnName_IUD
 		self.Hive_ColumnName_HistoryTimestamp = self.import_config.Hive_ColumnName_HistoryTimestamp
+		self.Hive_ColumnName_Source = self.import_config.Hive_ColumnName_Source
 
 		self.common_operations.setTableAndColumnNames(
 			Hive_Import_DB = self.Hive_Import_DB, 
@@ -132,7 +133,8 @@ class operation(object, metaclass=Singleton):
 			Hive_ColumnName_Update = self.Hive_ColumnName_Update,
 			Hive_ColumnName_Delete = self.Hive_ColumnName_Delete, 
 			Hive_ColumnName_IUD = self.Hive_ColumnName_IUD,
-			Hive_ColumnName_HistoryTimestamp = self.Hive_ColumnName_HistoryTimestamp)
+			Hive_ColumnName_HistoryTimestamp = self.Hive_ColumnName_HistoryTimestamp,
+			Hive_ColumnName_Source = self.Hive_ColumnName_Source)
 
 		self.import_config.lookupConnectionAlias()
 
@@ -2003,13 +2005,13 @@ class operation(object, metaclass=Singleton):
 
 		columns = self.common_operations.getColumns(hiveDB=Hive_History_DB, hiveTable=Hive_History_Table, includeType=False, includeComment=False)
 
-		if columns[columns['name'] == 'datalake_source'].empty == True and self.import_config.datalake_source != None:
+		if columns[columns['name'] == self.Hive_ColumnName_Source].empty == True and self.import_config.datalake_source != None:
 			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-				query = "alter table `%s`.`%s` add columns ( datalake_source varchar(256) )"%(Hive_History_DB, Hive_History_Table)
+				query = "alter table `%s`.`%s` add columns ( %s varchar(256) )"%(Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_Source)
 				self.common_operations.executeHiveQuery(query)
 
 			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-				query = "alter table `%s`.`%s`.`%s` add columns ( datalake_source string )"%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table)
+				query = "alter table `%s`.`%s`.`%s` add columns ( %s string )"%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_Source)
 				logging.info(query)
 				self.spark.sql(query)
 
@@ -2027,13 +2029,13 @@ class operation(object, metaclass=Singleton):
 
 		columns = self.common_operations.getColumns(hiveDB=self.Hive_DB, hiveTable=self.Hive_Table, includeType=False, includeComment=False)
 
-		if columns[columns['name'] == 'datalake_source'].empty == True and self.import_config.datalake_source != None:
+		if columns[columns['name'] == self.Hive_ColumnName_Source].empty == True and self.import_config.datalake_source != None:
 			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-				query = "alter table `%s`.`%s` add columns ( datalake_source varchar(256) )"%(self.Hive_DB, self.Hive_Table)
+				query = "alter table `%s`.`%s` add columns ( %s varchar(256) )"%(self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Source)
 				self.common_operations.executeHiveQuery(query)
 
 			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-				query = "alter table `%s`.`%s`.`%s` add columns ( datalake_source string )"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+				query = "alter table `%s`.`%s`.`%s` add columns ( %s string )"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table, self.Hive_ColumnName_Source)
 				logging.info(query)
 				self.spark.sql(query)
 
@@ -2323,7 +2325,8 @@ class operation(object, metaclass=Singleton):
 				query = queryList[0]
 
 				if self.import_config.datalake_source != None:
-					query += ", datalake_source varchar(256)"
+					# query += ", datalake_source varchar(256)"
+					query += ", %s varchar(256)"%(self.Hive_ColumnName_Source)
 
 				# query += ", datalake_iud char(1) COMMENT \"SQL operation of this record was I=Insert, U=Update or D=Delete\""
 				# query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
@@ -2355,7 +2358,8 @@ class operation(object, metaclass=Singleton):
 				query = queryList[0]
 
 				if self.import_config.datalake_source != None:
-					query += ", datalake_source varchar(256)"
+					# query += ", datalake_source varchar(256)"
+					query += ", %s varchar(256)"%(self.Hive_ColumnName_Source)
 
 				# query += ", datalake_iud char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\""
 				# query += ", datalake_timestamp timestamp COMMENT \"Timestamp for SQL operation in Datalake\""
@@ -2395,7 +2399,8 @@ class operation(object, metaclass=Singleton):
 				query = queryList[0]
 
 				if self.import_config.datalake_source != None:
-					query += ", datalake_source varchar(256)"
+					# query += ", datalake_source varchar(256)"
+					query += ", %s varchar(256)"%(self.Hive_ColumnName_Source)
 
 				if self.import_config.import_with_merge == False:
 					if self.import_config.create_datalake_import_column == True:
@@ -2445,7 +2450,8 @@ class operation(object, metaclass=Singleton):
 				query = queryList[0]
 
 				if self.import_config.datalake_source != None:
-					query += ", datalake_source varchar(256)"
+					# query += ", datalake_source varchar(256)"
+					query += ", %s varchar(256)"%(self.Hive_ColumnName_Source)
 
 				if self.import_config.import_with_merge == False:
 					if self.import_config.create_datalake_import_column == True:
@@ -3114,7 +3120,8 @@ class operation(object, metaclass=Singleton):
 
 		query += columnDefinitionTarget
 		if self.import_config.datalake_source != None:
-			query += ", datalake_source"
+			# query += ", datalake_source"
+			query += ", %s"%(self.Hive_ColumnName_Source)
 		if self.import_config.create_datalake_import_column == True:
 			# query += ", datalake_import"
 			query += ", %s"%(self.Hive_ColumnName_Import)

@@ -120,7 +120,7 @@ class operation(object, metaclass=Singleton):
 		self.Hive_DB = Hive_DB.lower()	 
 		self.Hive_Table = Hive_Table.lower()	 
 
-	def setTableAndColumnNames(self, Hive_Import_DB, Hive_Import_Table, Hive_Import_View, Hive_History_DB, Hive_History_Table, Hive_HistoryTemp_DB, Hive_HistoryTemp_Table, Hive_Import_PKonly_DB, Hive_Import_PKonly_Table, Hive_Delete_DB, Hive_Delete_Table, Hive_ColumnName_Import, Hive_ColumnName_Insert, Hive_ColumnName_Update, Hive_ColumnName_Delete, Hive_ColumnName_IUD, Hive_ColumnName_HistoryTimestamp):
+	def setTableAndColumnNames(self, Hive_Import_DB, Hive_Import_Table, Hive_Import_View, Hive_History_DB, Hive_History_Table, Hive_HistoryTemp_DB, Hive_HistoryTemp_Table, Hive_Import_PKonly_DB, Hive_Import_PKonly_Table, Hive_Delete_DB, Hive_Delete_Table, Hive_ColumnName_Import, Hive_ColumnName_Insert, Hive_ColumnName_Update, Hive_ColumnName_Delete, Hive_ColumnName_IUD, Hive_ColumnName_HistoryTimestamp, Hive_ColumnName_Source):
 		""" Sets the name of the databases, tables and columns """
 
 		self.Hive_Import_DB = Hive_Import_DB
@@ -140,6 +140,7 @@ class operation(object, metaclass=Singleton):
 		self.Hive_ColumnName_Delete = Hive_ColumnName_Delete
 		self.Hive_ColumnName_IUD = Hive_ColumnName_IUD
 		self.Hive_ColumnName_HistoryTimestamp = Hive_ColumnName_HistoryTimestamp
+		self.Hive_ColumnName_Source = Hive_ColumnName_Source
 
 	def checkHiveMetaStore(self):
 		logging.debug("Executing common_operations.checkHiveMetaStore()")
@@ -236,8 +237,8 @@ class operation(object, metaclass=Singleton):
 				self.Hive_ColumnName_Update, 
 				self.Hive_ColumnName_Delete, 
 				self.Hive_ColumnName_IUD,
-				"datalake_timestamp",
-				"datalake_source"
+				self.Hive_ColumnName_HistoryTimestamp,
+				self.Hive_ColumnName_Source
 				])]
 
 			# Index needs to be reset if anything was droped in the DF.

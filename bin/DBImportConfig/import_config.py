@@ -934,6 +934,7 @@ class config(object, metaclass=Singleton):
 		self.Hive_ColumnName_Delete = self.common_config.getConfigValue(key = "import_columnname_delete")
 		self.Hive_ColumnName_IUD = self.common_config.getConfigValue(key = "import_columnname_iud")
 		self.Hive_ColumnName_HistoryTimestamp = self.common_config.getConfigValue(key = "import_columnname_histtime")
+		self.Hive_ColumnName_Source = self.common_config.getConfigValue(key = "import_columnname_source")
 
 
 		logging.debug("Settings from import_config.getImportConfig()")
@@ -993,6 +994,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    Hive_ColumnName_Delete = %s"%(self.Hive_ColumnName_Delete))
 		logging.debug("    Hive_ColumnName_IUD = %s"%(self.Hive_ColumnName_IUD))
 		logging.debug("    Hive_ColumnName_HistoryTimestamp = %s"%(self.Hive_ColumnName_HistoryTimestamp))
+		logging.debug("    Hive_ColumnName_Source = %s"%(self.Hive_ColumnName_Source))
 		logging.debug("Executing import_config.getImportConfig() - Finished")
 
 
