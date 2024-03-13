@@ -92,7 +92,7 @@ def main(argv):
 	elif loggingLevel != logging.DEBUG and action != "noDaemon":	logFormat = '%(asctime)s %(levelname)s - %(message)s'
 
 	if action == "noDaemon":
-		logging.basicConfig(format=logFormat, level=loggingLevel)
+		logging.basicConfig(stream=sys.stdout, format=logFormat, level=loggingLevel)
 		logPropagate = True
 	else:
 		# If we run in daemon mode, we log everything from the root logger to /dev/null.
