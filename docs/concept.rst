@@ -1,6 +1,21 @@
 Concept
 =======
 
+General description
+-------------------
+
+DBImport is at the most basic level a ELT tool that automatically loads data from JDBC sources through SQL and store the data in a data lakehouse, like Cloudera Data Platform, AWS Lake Formation among others. The loads are done through micro-batches where each table is a separate micro-batch. Scheduling, dependencies and such are handled with Airflow and DBImport have an integration with Airflow allowing it to auto-generate all the required DAGs in order to start the micro-batches.
+
+.. image:: img/dbimport_concept_loads.jpg
+
+The general flow of an import is the following
+  1. Connect to the source system to get the schema for the table. Column name, type, descriptions, indexes, primary keys and foreign keys are fetched. 
+  2. Load the data from the source system and store it in the Import table
+  3. Validate the data to make sure that we loaded the same amount of data that exists in the source system
+  4. If validation passes, the data is loaded into the Target table. This is the table that end-users should access.
+  5. We do another validation to make sure the Target table is loaded correctly
+  6. If a history table should be created, this is done based of the changed rows in the Target table
+
 Full import
 -----------
 

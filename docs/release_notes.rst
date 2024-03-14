@@ -1,6 +1,18 @@
 Release Notes
 =============
 
+v0.81 (not released)
+------------------------------
+
+**New Features**
+
+  - Add tracking of yarn application name with DBImport job. Data available in new table called yarn_statistics
+  - Support for DBImport on AWS using Glue catalog, EMR and MWAA
+
+**Fixed issues**
+  - Issue #101: Invalid column in Index
+
+
 v0.80 
 ------------------------------
 
