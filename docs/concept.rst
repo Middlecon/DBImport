@@ -95,11 +95,11 @@ DBImport have full support of running on an AWS environment. The low-level desig
 
 .. image:: img/dbimport_aws_lld.jpg
 
-- | DBImport is using an EMR cluster to execute the imports and running the Spark query. 
+- | DBImport is installed on and using a EMR cluster to execute the imports and running the Spark query. 
 - | AWS Glue Catalog is used as the catalog for databases and tables
-- | Spark is the only supported ETL engine. THis means that Iceberg will be the fileformat used for all tables
+- | Spark is the only supported ETL engine. This means that Iceberg will be the fileformat used for all tables
 - | AWS RDS MariaDB or MySQL is supported as the configuration database for DBImport
 - | AWS Secrets Manager can be used for username and password for both the configuration database and the jdbc connection credentials
-- | Managed Airflow service, AWS MWAA, can be used for scheduling the imports. This means that the manage command writes the Airflow DAG directly to the S3 bucket for Airflow DAGs. The DAGs created bu DBImport is using SSM send-command to start the tasks on the primary node on the EMR cluster. 
+- | Managed Airflow service, AWS MWAA, can be used for scheduling the imports. This means that the manage command writes the Airflow DAG directly to the S3 bucket for Airflow DAGs. The DAGs created by DBImport is using SSM send-command to start the tasks on the primary node on the EMR cluster. 
 
 
