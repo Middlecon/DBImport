@@ -225,35 +225,6 @@ class config(object, metaclass=Singleton):
 			self.remove_temporary_files()
 			sys.exit(1)
 
-#		# Fetch configuration about HDFS
-
-#		# Fetch configuration about MySQL database and how to connect to it
-#		mysql_hostname = configuration.get("Database", "mysql_hostname")
-#		mysql_port =     configuration.get("Database", "mysql_port")
-#		mysql_database = configuration.get("Database", "mysql_database")
-#		mysql_username = configuration.get("Database", "mysql_username")
-#		mysql_password = configuration.get("Database", "mysql_password")
-#
-#		# Esablish a connection to the DBImport database in MySQL
-#		try:
-#			self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
-#												 port=mysql_port, 
-#												 database=mysql_database, 
-#												 user=mysql_username, 
-#												 password=mysql_password)
-#		except mysql.connector.Error as err:
-#			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-#				logging.error("Something is wrong with your user name or password")
-#			elif err.errno == errorcode.ER_BAD_DB_ERROR:
-#				logging.error("Database does not exist")
-#			else:
-#				logging.error("%s"%err)
-#			logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		else:
-#			self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
-
 		self.reconnectConfigDatabase(printReconnectMessage=False)
 
 		logging.debug("Executing common_config.__init__() - Finished")
@@ -385,6 +356,19 @@ class config(object, metaclass=Singleton):
 
 		logging.debug("Executing common_config.getAtlasJdbcConnectionData() - Finished")
 		return returnDict
+
+
+	def disconnectSQLAlchemy(self, logger=""):
+		""" Disconnects from the database and removes all sessions and engine """
+		log = logging.getLogger(logger)
+
+		if self.configDB != None:
+			log.info("Disconnecting from DBImport database")
+			self.configDB.dispose()
+			self.configDB = None
+
+		self.configDBSession = None
+
 
 	def connectSQLAlchemy(self, exitIfFailure=True, logger=""):
 		log = logging.getLogger(logger)

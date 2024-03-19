@@ -10,8 +10,10 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from typing import NewType
 from typing_extensions import Annotated
 from Server import restServerCalls
+from Server import dataModels
 from common import constants as constant
 
 # openssl rand -hex 32
@@ -59,7 +61,6 @@ class StandaloneApplication(WSGIApplication):
 class Token(BaseModel):
 	access_token: str
 	token_type: str
-
 
 class TokenData(BaseModel):
 	username: Union[str, None] = None
@@ -170,6 +171,14 @@ async def return_import_hive_db(current_user: Annotated[User, Depends(get_curren
 async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
 	return current_user
 
+@app.get("/config/getConfig")
+async def return_configuration(current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.getConfiguration()
+
+@app.post("/config/saveConfig")
+async def save_configuration(configuration: dataModels.configuration, current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.saveConfiguration(configuration)
+
 @app.get("/import/hiveDBs")
 async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTableDBs()
@@ -182,10 +191,4 @@ async def return_import_hive_tables(db: str, details: bool, current_user: Annota
 async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTableDetails(db, table)
 
-@app.get("/execute/import", response_class=RedirectResponse)
-# async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)], response_class=PlainTextResponse):
-async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
-	# return "Hello world"
-	return "https://fastapi.tiangolo.com"
-	# return current_user
 

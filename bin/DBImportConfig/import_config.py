@@ -879,24 +879,61 @@ class config(object, metaclass=Singleton):
 		else:
 			self.create_foreign_keys = 1
 
+		importWorkDBconfig = self.common_config.getConfigValue(key = "import_work_database")
+		importWorkTableConfig = self.common_config.getConfigValue(key = "import_work_table")
+		importStagingDBconfig = self.common_config.getConfigValue(key = "import_staging_database")
+		importStagingTableConfig = self.common_config.getConfigValue(key = "import_staging_table")
+		importHistoryDBconfig = self.common_config.getConfigValue(key = "import_history_database")
+		importHistoryTableConfig = self.common_config.getConfigValue(key = "import_history_table")
+
 		# Set the name of the history tables, temporary tables and such
-		importWorkDB = self.common_config.getConfigValue(key = "import_work_database") \
-			.replace("{DATABASE}", self.Hive_DB)
-		importWorkTable = self.common_config.getConfigValue(key = "import_work_table") \
-			.replace("{DATABASE}", self.Hive_DB) \
-			.replace("{TABLE}", self.Hive_Table)
+		if importWorkDBconfig.startswith('r/'):
+			importWorkDB = re.sub(importWorkDBconfig.split('/')[1], importWorkDBconfig.split('/')[2], self.Hive_DB) 
+		else:
+			importWorkDB = importWorkDBconfig.replace("{DATABASE}", self.Hive_DB)
 
-		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database") \
-			.replace("{DATABASE}", self.Hive_DB)
-		importStagingTable = self.common_config.getConfigValue(key = "import_staging_table") \
-			.replace("{DATABASE}", self.Hive_DB) \
-			.replace("{TABLE}", self.Hive_Table)
+		if importWorkTableConfig.startswith('r/'):
+			importWorkTable = re.sub(importWorkTableConfig.split('/')[1], importWorkTableConfig.split('/')[2], self.Hive_DB) 
+		else:
+			importWorkTable = importWorkTableConfig.replace("{DATABASE}", self.Hive_DB).replace("{TABLE}", self.Hive_Table)
 
-		importHistoryDB = self.common_config.getConfigValue(key = "import_history_database") \
-			.replace("{DATABASE}", self.Hive_DB)
-		importHistoryTable = self.common_config.getConfigValue(key = "import_history_table") \
-			.replace("{DATABASE}", self.Hive_DB) \
-			.replace("{TABLE}", self.Hive_Table)
+		if importStagingDBconfig.startswith('r/'):
+			importStagingDB = re.sub(importStagingDBconfig.split('/')[1], importStagingDBconfig.split('/')[2], self.Hive_DB) 
+		else:
+			importStagingDB = importStagingDBconfig.replace("{DATABASE}", self.Hive_DB)
+
+		if importStagingTableConfig.startswith('r/'):
+			importStagingTable = re.sub(importStagingTableConfig.split('/')[1], importStagingTableConfig.split('/')[2], self.Hive_DB) 
+		else:
+			importStagingTable = importStagingTableConfig.replace("{DATABASE}", self.Hive_DB).replace("{TABLE}", self.Hive_Table)
+
+		if importHistoryDBconfig.startswith('r/'):
+			importHistoryDB = re.sub(importHistoryDBconfig.split('/')[1], importHistoryDBconfig.split('/')[2], self.Hive_DB) 
+		else:
+			importHistoryDB = importHistoryDBconfig.replace("{DATABASE}", self.Hive_DB)
+
+		if importHistoryTableConfig.startswith('r/'):
+			importHistoryTable = re.sub(importHistoryTableConfig.split('/')[1], importHistoryTableConfig.split('/')[2], self.Hive_DB) 
+		else:
+			importHistoryTable = importHistoryTableConfig.replace("{DATABASE}", self.Hive_DB).replace("{TABLE}", self.Hive_Table)
+
+#		importWorkDB = self.common_config.getConfigValue(key = "import_work_database") \
+#			.replace("{DATABASE}", self.Hive_DB)
+#		importWorkTable = self.common_config.getConfigValue(key = "import_work_table") \
+#			.replace("{DATABASE}", self.Hive_DB) \
+#			.replace("{TABLE}", self.Hive_Table)
+#
+#		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database") \
+#			.replace("{DATABASE}", self.Hive_DB)
+#		importStagingTable = self.common_config.getConfigValue(key = "import_staging_table") \
+#			.replace("{DATABASE}", self.Hive_DB) \
+#			.replace("{TABLE}", self.Hive_Table)
+#
+#		importHistoryDB = self.common_config.getConfigValue(key = "import_history_database") \
+#			.replace("{DATABASE}", self.Hive_DB)
+#		importHistoryTable = self.common_config.getConfigValue(key = "import_history_table") \
+#			.replace("{DATABASE}", self.Hive_DB) \
+#			.replace("{TABLE}", self.Hive_Table)
 
 		self.Hive_Import_DB = importStagingDB
 		self.Hive_Import_Table = importStagingTable

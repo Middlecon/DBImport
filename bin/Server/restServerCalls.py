@@ -37,13 +37,13 @@ from datetime import date, datetime, timedelta
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import configSchema
-# from DBImportConfig import common_config
+from DBImportConfig import common_config
 import sqlalchemy as sa
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
-from sqlalchemy.sql import text, alias, select, func
+from sqlalchemy.sql import text, alias, select, func, update
 from sqlalchemy.orm import aliased, sessionmaker, Query
 
 class dbCalls:
@@ -53,110 +53,46 @@ class dbCalls:
 		logging.basicConfig(format=logFormat, level=logging.INFO)
 		logPropagate = True
 
-		log = logging.getLogger()
+		self.logger = "server"
+		log = logging.getLogger(self.logger)
 		log.debug("Executing Server.restServerCalls.__init__()")
 
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.debugLogLevel = False
+		self.configDBSession = None
 
 		if logging.root.level == 10:        # DEBUG
 			self.debugLogLevel = True
 
-#		self.common_config = common_config.config()
+		self.common_config = common_config.config()
 
 		self.logdir = configuration.get("Server", "logdir")
 
-#		self.crypto = self.common_config.crypto
-#		self.crypto.setPrivateKeyFile(configuration.get("Credentials", "private_key"))
-#		self.crypto.setPublicKeyFile(configuration.get("Credentials", "public_key"))
+		self.allConfigKeys = [ "hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "spark_max_executors", "import_default_sessions", "import_max_sessions", "export_default_sessions", "export_max_sessions", "atlas_discovery_interval", "airflow_major_version", "rest_timeout", "airflow_default_pool_size", "import_staging_table", "import_staging_database", "import_work_table", "import_work_database", "import_history_table", "import_history_database", "export_staging_database", "hive_validate_table", "airflow_aws_instanceids", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile", "import_columnname_delete", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_update", "import_columnname_histtime", "import_columnname_source" ]
 
-#		self.remoteDBImportEngines = {}
-#		self.remoteDBImportSessions = {}
-#		self.remoteInstanceConfigDB = None
-
-		self.configDBSession = None
-		self.configDBEngine = None
-
-#		self.distCPreqQueue = Queue()
-#		self.distCPresQueue = Queue()
-#		self.threadStopEvent = threading.Event()
-
-		# Start the Atlas Discovery Thread
-#		self.atlasDiscoveryThread = atlasDiscovery.atlasDiscovery(self.threadStopEvent)
-#		self.atlasDiscoveryThread.daemon = True
-#		self.atlasDiscoveryThread.start()
-
-		# Fetch configuration about MySQL database and how to connect to it
-		self.configHostname = configuration.get("Database", "mysql_hostname")
-		self.configPort =     configuration.get("Database", "mysql_port")
-		self.configDatabase = configuration.get("Database", "mysql_database")
-		self.configUsername = configuration.get("Database", "mysql_username")
-		self.configPassword = configuration.get("Database", "mysql_password")
-
-		session = self.getDBImportSession()
 		return
 
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
-		log = logging.getLogger("server")
-
-		if self.configDBEngine != None:
-			log.info("Disconnecting from DBImport database")
-			self.configDBEngine.dispose()
-			self.configDBEngine = None
-
+		log = logging.getLogger(self.logger)
+		self.common_config.disconnectSQLAlchemy(logger=self.logger)
 		self.configDBSession = None
 
+
 	def getDBImportSession(self):
-		log = logging.getLogger("server")
+		log = logging.getLogger(self.logger)
 		if self.configDBSession == None:
-			if self.connectDBImportDB() == False:
+			if self.common_config.connectSQLAlchemy(exitIfFailure=False, logger=self.logger) == False:
 				raise SQLerror("Can't connect to DBImport database")
 
-		return self.configDBSession()	
-
-
-	def connectDBImportDB(self):
-		# Esablish a SQLAlchemy connection to the DBImport database
-		log = logging.getLogger("server")
-		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
-			self.configUsername,
-			self.configPassword,
-			self.configHostname,
-			self.configPort,
-			self.configDatabase)
-
-		try:
-			self.configDBEngine = sa.create_engine(self.connectStr, echo = self.debugLogLevel, pool_pre_ping=True, pool_recycle=3600)
-			self.configDBEngine.connect()
-			self.configDBSession = sessionmaker(bind=self.configDBEngine)
-
-		except sa.exc.OperationalError as err:
-			log.error("%s"%err)
-			self.configDBSession = None
-			self.configDBEngine = None
-			return False
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
-
-		except:
-			print("Unexpected error: ")
-			print(sys.exc_info())
-			self.configDBSession = None
-			self.configDBEngine = None
-			return False
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
-
-		log.info("Connected successful against DBImport database")
-		return True
+		return self.common_config.configDBSession()
 
 
 	def disconnectRemoteSession(self, instance):
 		""" Disconnects from the remote database and removes all sessions and engine """
-		log = logging.getLogger("server")
+		log = logging.getLogger(self.logger)
 
 		try:
 			engine = self.remoteDBImportEngines.get(instance)
@@ -168,10 +104,53 @@ class dbCalls:
 		except KeyError:
 			log.debug("Cant remove DBImport session or engine. Key does not exist")
 
+	def getConfiguration(self):
+		""" Returns all configuration items from the configuration table """
+		log = logging.getLogger(self.logger)
+
+
+		self.common_config.reconnectConfigDatabase()
+
+		resultDict = {}
+		for key in self.allConfigKeys:
+			resultDict[key] = self.common_config.getConfigValue(key)
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		return jsonResult
+
+	def saveConfiguration(self, configuration):
+		""" Returns all configuration items from the configuration table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		configurationTable = aliased(configSchema.configuration)
+
+		for key in self.allConfigKeys:
+			if type(getattr(configuration, key)) in (str, bool, int):
+				# At this point, only configuration items that exists in the class is iterrated
+				log.info("{} = {}({})".format(key, getattr(configuration, key), type(getattr(configuration, key))))
+				session.execute(update(configurationTable),
+					[
+						{"configKey": "airflow_aws_pool_to_instanceid", "valueStr": "testStr" }
+					],
+					)
+				session.commit()
+					
+		resultDict = {}
+		resultDict["status"] = "ok"
+		session.close()
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		return jsonResult
 
 	def getDBImportImportTableDBs(self):
 		""" Returns all databases that have imports configured in them """
-		log = logging.getLogger()
+		log = logging.getLogger(self.logger)
 
 		try:
 			session = self.getDBImportSession()
@@ -193,7 +172,7 @@ class dbCalls:
 		for u in importTableDBs:
 			listOfDBs.append(u[0])
 
-		jsonResult = json.dumps(listOfDBs)
+		jsonResult = json.loads(json.dumps(listOfDBs))
 		session.close()
 
 		return jsonResult
@@ -201,7 +180,7 @@ class dbCalls:
 
 	def getDBImportImportTables(self, db, details):
 		""" Returns all import tables in a specific database """
-		log = logging.getLogger()
+		log = logging.getLogger(self.logger)
 
 		try:
 			session = self.getDBImportSession()
@@ -254,7 +233,7 @@ class dbCalls:
 				listOfTables.append(tempDict)
 
 
-		jsonResult = json.dumps(listOfTables)
+		jsonResult = json.loads(json.dumps(listOfTables))
 		session.close()
 
 		return jsonResult
@@ -263,7 +242,7 @@ class dbCalls:
 		
 	def getDBImportImportTableDetails(self, db, table):
 		""" Returns all import table details """
-		log = logging.getLogger()
+		log = logging.getLogger(self.logger)
 
 		try:
 			session = self.getDBImportSession()
@@ -274,17 +253,6 @@ class dbCalls:
 		importTables = aliased(configSchema.importTables)
 		listOfTables = []
 
-##		# Return a list of hive tables without the details
-#		importTablesData = (session.query(*)
-#				.select_from(importTables)
-#				.filter((importTables.hive_db == db) & (importTables.hive_table == table))
-#				.all()).fillna('')
-#			)
-#
-#			for row in importTablesData:
-#				listOfTables.append(row[0])
-
-#		else:
 		# Return a list of Hive tables with details
 		row = (session.query(
     				importTables.table_id,
@@ -351,80 +319,14 @@ class dbCalls:
 					importTables.copy_slave,
 					importTables.create_foreign_keys,
 					importTables.custom_max_query,
-					importTables.mergeCompactionMethod
+					importTables.mergeCompactionMethod,
+					importTables.import_database,
+					importTables.import_table,
+					importTables.history_database,
+					importTables.history_table
 				)
-
-
-#    source_schema = Column(String(256), nullable=False, comment='Name of the schema in the remote database')
-#    source_table = Column(String(256), nullable=False, comment='Name of the table in the remote database')
-#    import_type = Column(String(32), nullable=True, comment='What import method to use')
-#    import_phase_type = Column(Enum('full', 'incr', 'oracle_flashback', 'mssql_change_tracking'), nullable=True, comment="What method to use for Import phase", server_default=text("'full'"))
-#    etl_phase_type = Column(Enum('truncate_insert', 'insert', 'merge', 'merge_history_audit', 'none', 'external'), nullable=True, comment="What method to use for ETL phase", server_default=text("'truncate_insert'"))
-#    import_tool = Column(Enum('spark', 'sqoop'), server_default=text("'sqoop'"), nullable=False, comment='What tool should be used for importing data')
-#    etl_engine = Column(Enum('hive', 'spark'), server_default=text("'hive'"), nullable=False, comment='What engine will be used to process etl stage')
-#    last_update_from_source = Column(DateTime, comment='Timestamp of last schema update from source')
-#    sqoop_sql_where_addition = Column(String(1024), comment='Will be added AFTER the SQL WHERE. If it\'s an incr import, this will be after the incr limit statements. Example "orderId > 1000"')
-#    nomerge_ingestion_sql_addition = Column(String(2048), comment='This will be added to the data ingestion of None-Merge imports (full, full_direct and incr). Usefull to filter out data from import tables to target tables')
-#    include_in_airflow = Column(TINYINT(4), nullable=False, comment='Will the table be included in Airflow DAG when it matches the DAG selection', server_default=text("'1'"))
-#    airflow_priority = Column(TINYINT(4), comment='This will set priority_weight in Airflow')
-#    validate_import = Column(TINYINT(4), nullable=False, comment='Should the import be validated', server_default=text("'1'"))
-#    validationMethod = Column(Enum('customQuery', 'rowCount'), nullable=False, comment='Validation method to use', server_default=text("'rowCount'"))
-#    validate_source = Column(Enum('query', 'sqoop'), comment="query = Run a 'select count(*) from ...' to get the number of rows in the source table. sqoop = Use the number of rows imported by sqoop as the number of rows in the source table", server_default=text("'query'"))
-#    validate_diff_allowed = Column(BIGINT(20), nullable=False, comment='-1 = auto calculated diff allowed. If a positiv number, this is the amount of rows that the diff is allowed to have', server_default=text("'-1'"))
-#    validationCustomQuerySourceSQL = Column(Text, comment='Custom SQL query for source table')
-#    validationCustomQueryHiveSQL = Column(Text, comment='Custom SQL query for Hive table')
-#    validationCustomQueryValidateImportTable = Column(TINYINT(4), nullable=False, comment='1 = Validate Import table, 0 = Dont validate Import table', server_default=text("'1'"))
-#    truncate_hive = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'1'"))
-#    mappers = Column(TINYINT(4), nullable=False, comment="-1 = auto or positiv number for a fixed number of mappers. If Auto, then it's calculated based of last sqoop import size", server_default=text("'-1'"))
-#    soft_delete_during_merge = Column(TINYINT(4), nullable=False, comment='If 1, then the row will be marked as deleted instead of actually being removed from the table. Only used for Merge imports', server_default=text("'0'"))
-#    source_rowcount = Column(BIGINT(20), comment='Used for validation. Dont change manually')
-#    source_rowcount_incr = Column(BIGINT(20))
-#    hive_rowcount = Column(BIGINT(20), comment='Used for validation. Dont change manually')
-#    validationCustomQuerySourceValue = Column(Text, comment='Used for validation. Dont change manually')
-#    validationCustomQueryHiveValue = Column(Text, comment='Used for validation. Dont change manually')
-#    incr_mode = Column(Enum('append', 'lastmodified'), comment='Incremental import mode')
-#    incr_column = Column(String(256), comment='What column to use to identify new rows')
-#    incr_validation_method = Column(Enum('full', 'incr'), comment='full or incr. Full means that the validation will check to total number of rows up until maxvalue and compare source with target. Incr will only compare the rows between min and max value (the data that sqoop just wrote)', server_default=text("'full'"))
-#    incr_minvalue = Column(String(32), comment='Used for incremental imports. Dont change manually')
-#    incr_maxvalue = Column(String(32), comment='Used for incremental imports. Dont change manually')
-#    incr_minvalue_pending = Column(String(32), comment='Used for incremental imports. Dont change manually')
-#    incr_maxvalue_pending = Column(String(32), comment='Used for incremental imports. Dont change manually')
-#    pk_column_override = Column(String(1024), comment='Force the import and Hive table to define another PrimaryKey constraint. Comma separeted list of columns')
-#    pk_column_override_mergeonly = Column(String(1024), comment='Force the import to use another PrimaryKey constraint during Merge operations. Comma separeted list of columns')
-#    hive_merge_heap = Column(Integer, comment='Should be a multiple of Yarn container size. If NULL then it will use the default specified in Yarn and TEZ')
-#    hive_split_count = Column(Integer, comment='Sets tez.grouping.split-count in the Hive session')
-#    spark_executor_memory = Column(String(8), comment='Memory used by spark when importing data. Overrides default value in global configuration')
-#    spark_executors = Column(Integer, comment='Number of Spark executors to use. Overrides default value in global configuration')
-#    concatenate_hive_table = Column(TINYINT(4), nullable=False, comment='<NOT USED>', server_default=text("'-1'"))
-#    split_by_column = Column(String(64), comment='Column to split by when doing import with multiple sessions')
-#    sqoop_query = Column(Text, comment='Use a custom query in sqoop to read data from source table')
-#    sqoop_options = Column(Text, comment='Options to send to sqoop.')
-#    sqoop_last_size = Column(BIGINT(20), comment='Used to track sqoop operation. Dont change manually')
-#    sqoop_last_rows = Column(BIGINT(20), comment='Used to track sqoop operation. Dont change manually')
-#    sqoop_last_mappers = Column(TINYINT(4), comment='Used to track sqoop operation. Dont change manually')
-#    sqoop_last_execution = Column(BIGINT(20), comment='Used to track sqoop operation. Dont change manually')
-#    sqoop_use_generated_sql = Column(TINYINT(4), nullable=False, comment='1 = Use the generated SQL that is saved in the generated_sqoop_query column', server_default=text("'-1'"))
-#    sqoop_allow_text_splitter = Column(TINYINT(4), nullable=False, comment='Allow splits on text columns. Use with caution', server_default=text("'0'"))
-#    force_string = Column(TINYINT(4), nullable=False, comment='If set to 1, all character based fields (char, varchar) will become string in Hive. Overrides the same setting in jdbc_connections table', server_default=text("'-1'"))
-#    comment = Column(Text, comment='Table comment from source system. Dont change manually')
-#    generated_hive_column_definition = Column(Text, comment='Generated column definition for Hive create table. Dont change manually')
-#    generated_sqoop_query = Column(Text, comment='Generated query for sqoop. Dont change manually')
-#    generated_sqoop_options = Column(Text, comment='Generated options for sqoop. Dont change manually')
-#    generated_pk_columns = Column(Text, comment='Generated Primary Keys. Dont change manually')
-#    generated_foreign_keys = Column(Text, comment='<NOT USED>')
-#    datalake_source = Column(String(256), comment='This value will come in the dbimport_source column if present. Overrides the same setting in jdbc_connections table')
-#    operator_notes = Column(Text, comment='Free text field to write a note about the import. ')
-#    copy_finished = Column(DateTime, comment='Time when last copy from Master DBImport instance was completed. Dont change manually')
-#    copy_slave = Column(TINYINT(4), nullable=False, comment='Defines if this table is a Master table or a Slave table. Dont change manually', server_default=text("'0'"))
-#    create_foreign_keys = Column(TINYINT(4), nullable=False, comment='-1 (default) = Get information from jdbc_connections table', server_default=text("'-1'"))
-#    custom_max_query = Column(String(256), comment='You can use a custom SQL query that will get the Max value from the source database. This Max value will be used in an inremental import to know how much to read in each execution')
-#    mergeCompactionMethod = Column(Enum('default', 'none', 'minor', 'minor_and_wait', 'major', 'major_and_wait'), nullable=False, comment='Compaction method to use after import using merge is completed. Default means a major compaction if it is configured to do so in the configuration table', server_default=text("'default'"))
-
-
-
 				.select_from(importTables)
 				.filter((importTables.hive_db == db) & (importTables.hive_table == table))
-#				.all().fillna('')
 				.one()
 			)
 
@@ -502,11 +404,12 @@ class dbCalls:
 		resultDict['createForeignKeys'] = row[62]
 		resultDict['customMaxQuery'] = row[63]
 		resultDict['mergeCompactionMethod'] = row[64]
+		resultDict['import_database'] = row[65]
+		resultDict['import_table'] = row[66]
+		resultDict['history_database'] = row[67]
+		resultDict['history_table'] = row[68]
 
-		print(resultDict)
-
-		jsonResult = json.dumps(resultDict)
-		print(jsonResult)
+		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
 		return jsonResult

@@ -142,8 +142,8 @@ def main(argv):
 		"threaded": "True",
 		# "logger_class": logging.getLogger("restServerAccess"),
 		# "logger_class": "restServerAccess",
-		"keyfile": "/localhome/boszkk/l5891p.sss.se.scania.com.key",
-		"certfile": "/localhome/boszkk/l5891p.sss.se.scania.com.cert",
+		"keyfile": restServer_keyfile,
+		"certfile": restServer_certfile,
 	}
 	StandaloneApplication("Server.restServer:app", options).run()
 
