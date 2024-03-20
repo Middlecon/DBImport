@@ -2000,6 +2000,9 @@ class operation(object, metaclass=Singleton):
 			self.startSpark()
 			import pyspark
 
+		# self.Hive_ColumnName_IUD = self.import_config.Hive_ColumnName_IUD
+		# self.Hive_ColumnName_HistoryTimestamp = self.import_config.Hive_ColumnName_HistoryTimestamp
+
 		Hive_History_DB = self.import_config.Hive_History_DB
 		Hive_History_Table = self.import_config.Hive_History_Table
 
@@ -2012,6 +2015,36 @@ class operation(object, metaclass=Singleton):
 
 			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 				query = "alter table `%s`.`%s`.`%s` add columns ( %s string )"%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_Source)
+				logging.info(query)
+				self.spark.sql(query)
+
+			if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+				self.common_operations.reconnectHiveMetaStore()
+
+		if columns[columns['name'] == self.Hive_ColumnName_HistoryTimestamp].empty == True:
+			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+				query = "alter table `%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for insert in Datalake\")" \
+					%(Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_HistoryTimestamp)
+				self.common_operations.executeHiveQuery(query)
+
+			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+				query = "alter table `%s`.`%s`.`%s` add columns ( %s timestamp COMMENT \"Timestamp for insert in Datalake\" )" \
+					%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_HistoryTimestamp)
+				logging.info(query)
+				self.spark.sql(query)
+
+			if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+				self.common_operations.reconnectHiveMetaStore()
+
+		if columns[columns['name'] == self.Hive_ColumnName_IUD].empty == True:
+			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+				query = "alter table `%s`.`%s` add columns ( %s char(1) COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
+					%(Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_IUD)
+				self.common_operations.executeHiveQuery(query)
+
+			elif self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+				query = "alter table `%s`.`%s`.`%s` add columns ( %s string COMMENT \"Last operation of this record was I=Insert, U=Update or D=Delete\")" \
+					%(self.common_operations.sparkCatalogName, Hive_History_DB, Hive_History_Table, self.Hive_ColumnName_IUD)
 				logging.info(query)
 				self.spark.sql(query)
 
@@ -2493,9 +2526,9 @@ class operation(object, metaclass=Singleton):
 			self.updateHiveTable(self.import_config.Hive_History_DB, self.import_config.Hive_History_Table)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			# logging.error("updateHistoryTable() is not handled yet for Spark!")
 			logging.info("Updating History table columns based on source system schema")
-			self.updateHiveTable(self.Hive_DB, self.Hive_Table)
+			self.updateHiveTable(self.import_config.Hive_History_DB, self.import_config.Hive_History_Table)
+			# self.updateHiveTable(self.Hive_DB, self.Hive_Table)
 
 	def updateDeleteTable(self):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
@@ -2503,7 +2536,6 @@ class operation(object, metaclass=Singleton):
 			self.updateHiveTable(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table, restrictColumns = self.import_config.getPKcolumns(PKforMerge=True))
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-			# logging.error("updateDeleteTable() is not handled yet for Spark!")
 			logging.info("Updating Delete table columns based on source system schema")
 			self.updateHiveTable(self.import_config.Hive_Delete_DB, self.import_config.Hive_Delete_Table, restrictColumns = self.import_config.getPKcolumns(PKforMerge=True))
 

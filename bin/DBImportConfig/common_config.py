@@ -1824,12 +1824,12 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable
 
-	def getConfigValue(self, key):
-		""" Returns a value from the configuration table based on the supplied key. Value returned can be Int, Str or DateTime""" 
-		logging.debug("Executing common_config.getConfigValue()")
-		returnValue = None
+	def getConfigValueColumn(self, key):
+		""" Return the type of the column that have the value for the specified key """
+
+		valueColumn = ""
 		boolValue = False
-	
+
 		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task"):
 			valueColumn = "valueInt"
 			boolValue = True
@@ -1841,6 +1841,17 @@ class config(object, metaclass=Singleton):
 			logging.error("There is no configuration with the name '%s'"%(key))
 			self.remove_temporary_files()
 			sys.exit(1)
+
+		return (valueColumn, boolValue)
+
+
+	def getConfigValue(self, key):
+		""" Returns a value from the configuration table based on the supplied key. Value returned can be Int, Str or DateTime""" 
+		logging.debug("Executing common_config.getConfigValue()")
+		returnValue = None
+		boolValue = False
+	
+		valueColumn, boolValue = self.getConfigValueColumn(key)
 
 		query = "select %s from configuration where configkey = '%s'"%(valueColumn, key)
 

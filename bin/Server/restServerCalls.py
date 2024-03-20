@@ -45,6 +45,7 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func, update
 from sqlalchemy.orm import aliased, sessionmaker, Query
+import sqlalchemy.orm.exc
 
 class dbCalls:
 	def __init__(self):
@@ -69,9 +70,7 @@ class dbCalls:
 
 		self.logdir = configuration.get("Server", "logdir")
 
-		self.allConfigKeys = [ "hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "spark_max_executors", "import_default_sessions", "import_max_sessions", "export_default_sessions", "export_max_sessions", "atlas_discovery_interval", "airflow_major_version", "rest_timeout", "airflow_default_pool_size", "import_staging_table", "import_staging_database", "import_work_table", "import_work_database", "import_history_table", "import_history_database", "export_staging_database", "hive_validate_table", "airflow_aws_instanceids", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile", "import_columnname_delete", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_update", "import_columnname_histtime", "import_columnname_source" ]
-
-		return
+		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
 
 
 	def disconnectDBImportDB(self):
@@ -104,6 +103,93 @@ class dbCalls:
 		except KeyError:
 			log.debug("Cant remove DBImport session or engine. Key does not exist")
 
+	def getJDBCdrivers(self):
+		""" Returns all JDBC Driver configuration """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		tableJDBCconnectionsDrivers = aliased(configSchema.jdbcConnectionsDrivers)
+		jdbcConnectionsDrivers = (session.query(
+					tableJDBCconnectionsDrivers.database_type,
+					tableJDBCconnectionsDrivers.version,
+					tableJDBCconnectionsDrivers.driver,
+					tableJDBCconnectionsDrivers.classpath
+				)
+				.select_from(tableJDBCconnectionsDrivers)
+				.order_by(tableJDBCconnectionsDrivers.database_type)
+				.all()
+			)
+
+
+		listOfJDBCdrivers = []
+		for row in jdbcConnectionsDrivers:
+			jdbcDriver = {}
+			jdbcDriver["databaseType"] = row[0]
+			jdbcDriver["version"] = row[1]
+			jdbcDriver["driver"] = row[2]
+			jdbcDriver["classpath"] = row[3]
+			listOfJDBCdrivers.append(jdbcDriver)
+
+		jsonResult = json.loads(json.dumps(listOfJDBCdrivers))
+		session.close()
+
+		return jsonResult
+
+
+	def setJDBCdriver(self, jdbcDriver, currentUser):
+		""" Returns all configuration items from the configuration table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		print(jdbcDriver)
+
+#		log.info("User '%s' updated global configuration. %s = %s"%(currentUser, key, getattr(configuration, key)))
+
+		log.debug("databaseType: %s"%getattr(jdbcDriver, "databaseType"))
+		log.debug("version: %s"%getattr(jdbcDriver, "version"))
+		log.debug("driver: %s"%getattr(jdbcDriver, "driver"))
+		log.debug("classpath: %s"%getattr(jdbcDriver, "classpath"))
+
+#		valueColumn, boolValue = self.common_config.getConfigValueColumn(key)	
+#
+		tableJDBCconnectionsDrivers = aliased(configSchema.jdbcConnectionsDrivers)
+		result = "ok"
+		returnCode = 200
+
+		try:
+			session.execute(update(tableJDBCconnectionsDrivers),
+				[
+					{
+					"database_type": getattr(jdbcDriver, "databaseType"), 
+					"version": getattr(jdbcDriver, "version"), 
+					"driver": getattr(jdbcDriver, "driver"), 
+					"classpath": getattr(jdbcDriver, "classpath") 
+					}
+				],
+				)
+			session.commit()
+		# except SQLAlchemyError.StaleDataError:
+		except sqlalchemy.orm.exc.StaleDataError:
+			result = "JDBC Driver databaseType with version is not a supported combination"
+			returnCode = 400
+					
+		resultDict = {}
+		resultDict["status"] = result
+		session.close()
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		return (jsonResult, returnCode)
+
 	def getConfiguration(self):
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
@@ -118,7 +204,7 @@ class dbCalls:
 		jsonResult = json.loads(json.dumps(resultDict))
 		return jsonResult
 
-	def saveConfiguration(self, configuration):
+	def setConfiguration(self, configuration, currentUser):
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
 
@@ -133,10 +219,13 @@ class dbCalls:
 		for key in self.allConfigKeys:
 			if type(getattr(configuration, key)) in (str, bool, int):
 				# At this point, only configuration items that exists in the class is iterrated
-				log.info("{} = {}({})".format(key, getattr(configuration, key), type(getattr(configuration, key))))
+				log.info("User '%s' updated global configuration. %s = %s"%(currentUser, key, getattr(configuration, key)))
+
+				valueColumn, boolValue = self.common_config.getConfigValueColumn(key)	
+
 				session.execute(update(configurationTable),
 					[
-						{"configKey": "airflow_aws_pool_to_instanceid", "valueStr": "testStr" }
+						{"configKey": key, valueColumn: getattr(configuration, key) }
 					],
 					)
 				session.commit()

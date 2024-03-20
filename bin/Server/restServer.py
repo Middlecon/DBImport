@@ -4,7 +4,7 @@ import uvicorn
 from gunicorn.app.wsgiapp import WSGIApplication
 from datetime import datetime, timedelta
 from typing import Union
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from jose import JWTError, jwt
@@ -171,13 +171,24 @@ async def return_import_hive_db(current_user: Annotated[User, Depends(get_curren
 async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
 	return current_user
 
-@app.get("/config/getConfig")
-async def return_configuration(current_user: Annotated[User, Depends(get_current_user)]):
-	return dbCalls.getConfiguration()
+@app.get("/config/getJDBCdrivers")
+async def getJDBCdrivers(current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.getJDBCdrivers()
 
-@app.post("/config/saveConfig")
-async def save_configuration(configuration: dataModels.configuration, current_user: Annotated[User, Depends(get_current_user)]):
-	return dbCalls.saveConfiguration(configuration)
+@app.post("/config/setJDBCdriver")
+async def setJDBCdrivers(jdbcDriver: dataModels.jdbcDriver, current_user: Annotated[User, Depends(get_current_user)], response: Response):
+	# response.status_code = status.HTTP_201_CREATED
+	returnMsg, response.status_code =  dbCalls.setJDBCdriver(jdbcDriver, current_user.username)
+	return returnMsg
+	#return dbCalls.setJDBCdriver(jdbcDriver, current_user.username)
+
+@app.get("/config/getConfig")
+async def getConfiguration(current_user: Annotated[User, Depends(get_current_user)]):
+    return dbCalls.getConfiguration()
+
+@app.post("/config/setConfig")
+async def setConfiguration(configuration: dataModels.configuration, current_user: Annotated[User, Depends(get_current_user)]):
+	return dbCalls.setConfiguration(configuration, current_user.username)
 
 @app.get("/import/hiveDBs")
 async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):

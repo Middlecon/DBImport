@@ -11,6 +11,11 @@ class Item(BaseModel):
 	price: float
 	tax: Union[str, None] = None
 
+class jdbcDriver(BaseModel):
+	databaseType: str
+	version: str
+	driver: str
+	classpath: str
 
 class configuration(BaseModel):
 	airflow_aws_instanceids: Union[str, None] = None
