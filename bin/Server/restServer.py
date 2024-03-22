@@ -1,6 +1,7 @@
 import pam
 import json
 import uvicorn
+import bcrypt
 from gunicorn.app.wsgiapp import WSGIApplication
 from datetime import datetime, timedelta
 from typing import Union
@@ -15,33 +16,15 @@ from typing_extensions import Annotated
 from Server import restServerCalls
 from Server import dataModels
 from common import constants as constant
+from DBImportConfig import common_config
 
-# openssl rand -hex 32
-# SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-SECRET_KEY = "99bc5362abbe5e5b0c72c91cc9c4e8f5c363cc57ebc4ff444e1248ca906b154b"
+common_config = common_config.config()
+ADMIN_USER = common_config.getConfigValue("restserver_admin_user")
+AUTHENTICATION_METHOD = common_config.getConfigValue("restserver_authentication_method")
+SECRET_KEY = common_config.getConfigValue("restserver_secret_key")
+ACCESS_TOKEN_EXPIRE_MINUTES = common_config.getConfigValue("restserver_token_ttl")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
-fake_users_db = {
-	"boszkk": {
-		"username": "boszkk",
-		"full_name": "Berry Österlund",
-		"email": "berry.osterlund@test.com",
-		"disabled": False,
-	},
-	"testUser": {
-		"username": "testUser",
-		"full_name": "Test User for DBImport REST Server",
-		"email": "berry.osterlund@middlecon.se",
-		"disabled": False,
-	},
-	"servicedl": {
-		"username": "servicedl",
-		"full_name": "Service User",
-		"email": "berry.osterlund@test.com",
-		"disabled": False,
-	},
-}
 
 class StandaloneApplication(WSGIApplication):
 	def __init__(self, app_uri, options=None):
@@ -58,69 +41,64 @@ class StandaloneApplication(WSGIApplication):
 		for key, value in config.items():
 			self.cfg.set(key.lower(), value)
 
-class Token(BaseModel):
-	access_token: str
-	token_type: str
-
-class TokenData(BaseModel):
-	username: Union[str, None] = None
-
-class User(BaseModel):
-	username: str
-	email: Union[str, None] = None
-	full_name: Union[str, None] = None
-	disabled: Union[bool, None] = None
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
-
-app = FastAPI()
-
-dbCalls = restServerCalls.dbCalls()
-
-def verify_password(plain_password, hashed_password):
-	return pwd_context.verify(plain_password, hashed_password)
-
 
 def get_password_hash(password):
-	return pwd_context.hash(password)
+	if password.startswith("arn:aws:secretsmanager:"):
+		# We dont hash "passwords" that links to external repository
+		return password
+	password_encoded = password.encode('utf-8')
+	salt = bcrypt.gensalt()
+	hashed_password = bcrypt.hashpw(password=password_encoded, salt=salt)
+	return hashed_password.decode('utf-8')
 
 
-def get_user(username: str):
-	if username in fake_users_db:
-		user_dict = fake_users_db[username]
-		return User(**user_dict)
+def verify_password(password, hashed_password):
+	try:
+		password_encoded = password.encode('utf-8')
+		hashed_password_encoded = hashed_password.encode('utf-8')
+		return bcrypt.checkpw(password=password_encoded, hashed_password=hashed_password_encoded)
+	except ValueError:
+		return False
 
 
-# def authenticate_user(fake_db, username: str, password: str):
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
+app = FastAPI()
+dbCalls = restServerCalls.dbCalls()
+
+
+def get_user(username: str, format_password: bool = True):
+	userDict =  dbCalls.getUser(username)	
+	if userDict == None:
+		return
+	if format_password == True:
+#		if not userObject.password.startswith("arn:aws:secretsmanager:"):
+#			userObject.password="<encrypted>"
+		if not userDict["password"].startswith("arn:aws:secretsmanager:"):
+			userDict["password"] = "<encrypted>"
+#	return userObject
+	return userDict
+
+
 def authenticate_user(username: str, password: str):
-	# First verify that the user is a DBImport user
-	user = get_user(username)
+	user = get_user(username, format_password=False)
 	if not user:
 		return False
 
-	# Verify password against PAM
-	if username == "testUser":
-		return True
+	if AUTHENTICATION_METHOD == "local":
+#		if not verify_password(password, user.password):
+		if not verify_password(password, user["password"]):
+			return False
 
-	if not pam.authenticate(username, password, service='login'):
+	elif AUTHENTICATION_METHOD == "pam":
+		if not pam.authenticate(username, password, service='login'):
+			return False
+
+	else:
 		return False
 
 	return True
 
 
-def create_access_token(data, expires_delta):
-	to_encode = data.copy()
-	expire = datetime.utcnow() + expires_delta
-	to_encode.update({"exp": expire})
-	encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-	return encoded_jwt
-
-#def runandget():
-#	myprocess = subprocess.run(["ls"], stdout=subprocess.PIPE)
-#	thoutput = myprocess.stdout.decode('utf-8')
-#	return thoutput
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 	credentials_exception = HTTPException(
@@ -130,27 +108,35 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 	)
 
 	try:
-		payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+		payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])		# This also verified that the token isnt expired
 		username: str = payload.get("sub")
 		if username is None:
 			raise credentials_exception
-		token_data = TokenData(username=username)
+		token_username = username
 	except JWTError:
 		raise credentials_exception
 
-	user = get_user(token_data.username)
-	if user is None:
+	current_user = get_user(token_username)
+	if current_user is None:
 		raise credentials_exception
 
-	if user.disabled:
+#	if current_user.disabled:
+	if current_user["disabled"]:
 		raise HTTPException(status_code=400, detail="User access is disabled")
 
-	return user
-
-async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
 	return current_user
 
-@app.post("/oauth2/access_token", response_model=Token)
+
+def create_access_token(data):
+	expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+	data.update({"exp": expire})
+
+	encoded_jwt = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
+	return encoded_jwt
+
+
+@app.post("/oauth2/access_token", response_model=dataModels.Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 	validCredentials = authenticate_user(form_data.username, form_data.password)
 	if validCredentials == False:
@@ -159,47 +145,156 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 			detail="Incorrect username or password",
 			headers={"WWW-Authenticate": "Bearer"},
 		)
-	access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-	access_token = create_access_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
+
+	access_token = create_access_token(data={"sub": form_data.username})
 	return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/status")
-async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):
-	return json.dumps({ 'status': 'ok', 'version': constant.VERSION})
+@app.get("/status", response_model=dataModels.status)
+# async def get_restServer_status(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+async def get_server_status():
+	return json.loads(json.dumps({ 'status': 'ok', 'version': constant.VERSION}))
 
-@app.get("/users/me", response_model=User)
-async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
-	return current_user
+@app.post("/users/createUser")
+async def create_a_user(user_data: dataModels.User, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	user = get_user(user_data.username)
 
+	if user != None:
+		raise HTTPException(
+			status_code=status.HTTP_409_CONFLICT,
+			detail="User already exists")
+
+	if current_user["username"] != ADMIN_USER:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="You are not allowed to create users")
+
+	# set the new password in the user object and save it
+	user_data.password = get_password_hash(user_data.password)
+	dbCalls.createUser(user_data)
+
+	return "User created successfully" 
+
+
+@app.get("/users/{user}", response_model=dataModels.User)
+async def get_user_details(user: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	user = get_user(user)
+	if user == None:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="User does not exist")
+
+	return user
+
+@app.post("/users/{user}/changePassword")
+async def change_the_user_password(user: str, password_data: dataModels.changePassword, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	user = get_user(user, format_password=False)
+
+	if AUTHENTICATION_METHOD != "local":
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="Changing password is only supported when authentication method is 'local'")
+
+	if user == None:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="User does not exist")
+
+	if current_user["username"] != ADMIN_USER:
+		if user["username"] != current_user["username"]:
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail="You are only allowed to change your own password")
+
+		if verify_password(password_data.old_password, user["password"]) == False:
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail="Current password does not match")
+
+	# set the new password in the user object and save it
+	user["password"] = get_password_hash(password_data.new_password)
+	dbCalls.updateUser(user)
+
+	return "Password changed successfully" 
+
+@app.post("/users/{user}/delete")
+async def update_user_details(user: str, user_data: dataModels.changeUser, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	username = user
+	user = get_user(username, format_password=False)
+	if user == None:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="User does not exist")
+
+	if username == ADMIN_USER:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="Deleting the defined admin user is not allowed")
+
+	if current_user["username"] != ADMIN_USER:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="You are not allowed to delete users")
+
+	dbCalls.deleteUser(username)
+
+	return "User deleted"
+
+@app.post("/users/{user}/update", response_model=dataModels.User)
+async def update_user_details(user: str, user_data: dataModels.changeUser, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	username = user
+	user = get_user(username, format_password=False)
+	if user == None:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="User does not exist")
+
+	if current_user["username"] != ADMIN_USER:
+		if user["username"] != current_user["username"]:
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail="You are only allowed to change your own user")
+
+	if user_data.disabled != None: user["disabled"] = user_data.disabled
+	if user_data.fullname != None: user["fullname"] = user_data.fullname
+	if user_data.department != None: user["department"] = user_data.department
+	if user_data.email != None: user["email"] = user_data.email
+
+	dbCalls.updateUser(user)
+
+	user = get_user(username)	# Need to call it again to make sure the password is encrypted in the returned data
+	return user
+
+# @app.get("/config/getJDBCdrivers", response_model=dataModels.jdbcDriver)
 @app.get("/config/getJDBCdrivers")
-async def getJDBCdrivers(current_user: Annotated[User, Depends(get_current_user)]):
+async def get_all_configured_jdbc_drivers(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getJDBCdrivers()
 
-@app.post("/config/setJDBCdriver")
-async def setJDBCdrivers(jdbcDriver: dataModels.jdbcDriver, current_user: Annotated[User, Depends(get_current_user)], response: Response):
+@app.post("/config/updateJDBCdriver")
+async def change_configuration_for_jdbc_drivers(jdbcDriver: dataModels.jdbcDriver, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	# response.status_code = status.HTTP_201_CREATED
-	returnMsg, response.status_code =  dbCalls.setJDBCdriver(jdbcDriver, current_user.username)
+	returnMsg, response.status_code =  dbCalls.updateJDBCdriver(jdbcDriver, current_user["username"])
 	return returnMsg
-	#return dbCalls.setJDBCdriver(jdbcDriver, current_user.username)
 
-@app.get("/config/getConfig")
-async def getConfiguration(current_user: Annotated[User, Depends(get_current_user)]):
+@app.get("/config/getConfig", response_model=dataModels.configuration)
+async def get_global_configuration(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
     return dbCalls.getConfiguration()
 
-@app.post("/config/setConfig")
-async def setConfiguration(configuration: dataModels.configuration, current_user: Annotated[User, Depends(get_current_user)]):
-	return dbCalls.setConfiguration(configuration, current_user.username)
+@app.post("/config/updateConfig")
+async def update_global_configuration(configuration: dataModels.configuration, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateConfiguration(configuration, current_user["username"])
+	return returnMsg
 
+# API calls bellow this point is tech-preview and is missing a lot of functionallity
 @app.get("/import/hiveDBs")
-async def return_import_hive_db(current_user: Annotated[User, Depends(get_current_user)]):
+async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTableDBs()
 
 @app.get("/import/hiveTables")
-async def return_import_hive_tables(db: str, details: bool, current_user: Annotated[User, Depends(get_current_user)]):
+async def get_all_import_tables(db: str, details: bool, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTables(db, details)
 
 @app.get("/import/hiveTableDetails")
-async def return_import_hive_tables(db: str, table: str, current_user: Annotated[User, Depends(get_current_user)]):
+async def get_import_table_details(db: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getDBImportImportTableDetails(db, table)
 
 

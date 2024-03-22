@@ -30,10 +30,12 @@ import pandas as pd
 import Crypto
 import binascii
 import json
+import bcrypt
 from fastapi.encoders import jsonable_encoder
-
+from fastapi import HTTPException, status
 from ConfigReader import configuration
 from datetime import date, datetime, timedelta
+from Server import dataModels
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import configSchema
@@ -43,7 +45,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
-from sqlalchemy.sql import text, alias, select, func, update
+from sqlalchemy.sql import text, alias, select, func, update, delete
 from sqlalchemy.orm import aliased, sessionmaker, Query
 import sqlalchemy.orm.exc
 
@@ -70,7 +72,9 @@ class dbCalls:
 
 		self.logdir = configuration.get("Server", "logdir")
 
-		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
+		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "restserver_admin_user", "restserver_authentication_method", "restserver_secret_key", "restserver_token_ttl", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
+
+		self.createDefaultAdminUser()
 
 
 	def disconnectDBImportDB(self):
@@ -102,6 +106,153 @@ class dbCalls:
 			self.remoteDBImportSessions.pop(instance)
 		except KeyError:
 			log.debug("Cant remove DBImport session or engine. Key does not exist")
+
+	def createDefaultAdminUser(self):
+		""" Creates the default admin user in the auth_users table if it doesnt exist """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+		
+		defaultAdminUser = self.common_config.getConfigValue("restserver_admin_user")
+		userObject = self.getUser(defaultAdminUser)
+		if userObject == None:
+			# User does not exists, so lets create it
+			log.info("Default admin user does not exists in the 'auth_users' table. Creating it with password 'admin'")
+
+			password_encoded = "admin".encode('utf-8')
+			salt = bcrypt.gensalt()
+			hashed_password = bcrypt.hashpw(password=password_encoded, salt=salt).decode('utf-8')
+
+			query = sa.insert(configSchema.authUsers).values(
+				username=defaultAdminUser,
+				password=hashed_password)
+			session.execute(query)
+			session.commit()
+
+		session.close()
+
+
+	def createUser(self, user):
+		""" Creates a user in the auth_users table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+		
+		log.info("User '%s' created"%(user.username))
+
+		query = sa.insert(configSchema.authUsers).values(
+			username=user.username,
+			password=user.password,
+			disabled=user.disabled,
+			fullname=user.fullname,
+			department=user.department,
+			email=user.email)
+		session.execute(query)
+		session.commit()
+
+		session.close()
+
+
+	def getUser(self, username):
+		""" Returns a dict with user information from the database """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		tableAuthUsers = aliased(configSchema.authUsers)
+		authUser = (session.query(
+					tableAuthUsers.username,
+					tableAuthUsers.password,
+					tableAuthUsers.disabled,
+					tableAuthUsers.fullname,
+					tableAuthUsers.department,
+					tableAuthUsers.email
+				)
+				.select_from(tableAuthUsers)
+				.filter(tableAuthUsers.username == username)
+				.first()
+			)
+
+		session.close()
+		user = None
+
+		if authUser != None:
+#			user = dataModels.User
+#			user.username = authUser[0]
+#			user.password = authUser[1]
+#			user.disabled = authUser[2]
+#			user.fullname = authUser[3]
+#			user.department = authUser[4]
+#			user.email = authUser[5]
+			user = {}
+			user["username"] = authUser[0]
+			user["password"] = authUser[1]
+			user["disabled"] = authUser[2]
+			user["fullname"] = authUser[3]
+			user["department"] = authUser[4]
+			user["email"] = authUser[5]
+
+		return user
+
+	def updateUser(self, user):
+		""" Update a user object """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+		
+		tableAuthUsers = aliased(configSchema.authUsers)
+		session.execute(update(tableAuthUsers),
+			[
+				{
+				"username": user["username"], 
+				"password": user["password"], 
+				"disabled": user["disabled"], 
+				"fullname": user["fullname"], 
+				"department": user["department"], 
+				"email": user["email"] 
+				}
+			],
+			)
+		session.commit()
+
+		session.close()
+
+	def deleteUser(self, username):
+		""" Delete a user """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+		
+		tableAuthUsers = aliased(configSchema.authUsers)
+#		session.execute(delete(tableAuthUsers)
+#	 		.where(tableAuthUsers.username == username))
+		(session.query(tableAuthUsers)
+			.filter(tableAuthUsers.username == username)
+			.delete())
+		session.commit()
+
+		session.close()
+
 
 	def getJDBCdrivers(self):
 		""" Returns all JDBC Driver configuration """
@@ -141,7 +292,7 @@ class dbCalls:
 		return jsonResult
 
 
-	def setJDBCdriver(self, jdbcDriver, currentUser):
+	def updateJDBCdriver(self, jdbcDriver, currentUser):
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
 
@@ -188,7 +339,8 @@ class dbCalls:
 		session.close()
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		return (jsonResult, returnCode)
+		# return (jsonResult, returnCode)
+		return (result, returnCode)
 
 	def getConfiguration(self):
 		""" Returns all configuration items from the configuration table """
@@ -204,7 +356,7 @@ class dbCalls:
 		jsonResult = json.loads(json.dumps(resultDict))
 		return jsonResult
 
-	def setConfiguration(self, configuration, currentUser):
+	def updateConfiguration(self, configuration, currentUser):
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
 
@@ -215,6 +367,26 @@ class dbCalls:
 			return None
 
 		configurationTable = aliased(configSchema.configuration)
+
+		# First check to make sure we have valid options in the changed options
+		try:
+			for key in self.allConfigKeys:
+				if type(getattr(configuration, key)) in (str, bool, int):
+					# At this point, only configuration items that exists in the class is iterrated
+					if key == "airflow_major_version" and getattr(configuration, key) not in(1, 2):
+						raise HTTPException(
+							status_code=status.HTTP_400_BAD_REQUEST,
+							detail="only valid options for 'airflow_major_version' is '1' and '2'")
+	
+					if key == "restserver_authentication_method" and getattr(configuration, key) not in("local", "pam"):
+						raise HTTPException(
+							status_code=status.HTTP_400_BAD_REQUEST,
+							detail="only valid options for 'restserver_authentication_method' is 'local' and 'pam'")
+		except AttributeError:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail="invalid configuration optiond")
+
 
 		for key in self.allConfigKeys:
 			if type(getattr(configuration, key)) in (str, bool, int):
@@ -230,12 +402,15 @@ class dbCalls:
 					)
 				session.commit()
 					
+		result = "ok"
+		returnCode = 200
 		resultDict = {}
 		resultDict["status"] = "ok"
 		session.close()
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		return jsonResult
+		# return jsonResult
+		return (result, returnCode)
 
 	def getDBImportImportTableDBs(self):
 		""" Returns all databases that have imports configured in them """

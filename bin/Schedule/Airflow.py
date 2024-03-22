@@ -1355,6 +1355,7 @@ class initialize(object):
 			self.DAGfile.write("    bash_command='%sbin/manage --sendAirflowStopMessage --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
+			self.DAGfile.write("    pool=None,\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -1381,6 +1382,7 @@ class initialize(object):
 			#self.DAGfile.write("    bash_command='%sbin/manage --sendAirflowStopMessage --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
+			self.DAGfile.write("    pool=None,\n")
 			self.DAGfile.write("    dag=dag)\n")
 			self.DAGfile.write("\n")
 
@@ -1824,15 +1826,39 @@ class initialize(object):
 				self.DAGfile.write("    dag=dag)\n")
 				self.DAGfile.write("\n")
 
-#			if row['placement'] == "before main":
-#				taskDependencies += "%s.set_downstream(%s)\n"%(self.preStartTask, row['task_name'])
-#				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.preStopTask)
-#				taskDependencies += "\n"
-				
-#			if row['placement'] == "after main":
-#				taskDependencies += "%s.set_downstream(%s)\n"%(self.postStartTask, row['task_name'])
-#				taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], self.postStopTask)
-#				taskDependencies += "\n"
+			if row['task_type'] == "DBImport command":
+				dbimportCommand = row['task_config'].replace(r"'", "\\'")
+				if self.airflowMode == "default":
+					self.DAGfile.write("%s = BashOperator(\n"%(row['task_name']))
+					self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+					self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
+					self.DAGfile.write("    bash_command='%sbin/%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dbimportCommand))
+					if row['airflow_pool'] != '':
+						self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
+					if row['airflow_priority'] != '':
+						self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					else:
+						self.DAGfile.write("    priority_weight=1,\n")
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
+				elif self.airflowMode == "aws_mwaa":
+					self.DAGfile.write("%s = PythonOperator(\n"%(row['task_name']))
+					self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+					self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
+					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
+					self.DAGfile.write("    op_kwargs={\"command\": \"%s\"},\n"%(dbimportCommand))
+					if row['airflow_pool'] != '':
+						self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
+					if row['airflow_priority'] != '':
+						self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					else:
+						self.DAGfile.write("    priority_weight=1,\n")
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 
 			if row['placement'] == "before main":
 				tempStartTask = self.preStartTask

@@ -23,6 +23,8 @@ import subprocess
 import shutil
 import jaydebeapi
 import base64
+import string
+import random
 from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
@@ -891,14 +893,6 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
-		if 'rest_trustcafile' not in listOfConfKeys:
-			query = sa.insert(configSchema.configuration).values(
-				configKey='rest_trustcafile', 
-				valueStr='/etc/pki/tls/certs/ca-bundle.crt', 
-				description='REST CA Trust file for SSL')
-			session.execute(query)
-			session.commit()
-
 		if 'import_columnname_import' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='import_columnname_import', 
@@ -952,6 +946,38 @@ class initialize(object):
 				configKey='import_columnname_source', 
 				valueStr='dbimport_source',
 				description='Column name for source information if that is configured in jdbc_connections table')
+			session.execute(query)
+			session.commit()
+
+		if 'restserver_secret_key' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='restserver_secret_key', 
+				valueStr=''.join(random.choices(string.ascii_letters, k=64)),
+				description='Secret key used for oauth2 tokens')
+			session.execute(query)
+			session.commit()
+
+		if 'restserver_token_ttl' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='restserver_token_ttl', 
+				valueInt='120',
+				description='Time-to-live, in minutes, that the oauth2 tokens are valid')
+			session.execute(query)
+			session.commit()
+
+		if 'restserver_admin_user' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='restserver_admin_user', 
+				valueStr='admin',
+				description='Username of administrator on the REST server with all permission')
+			session.execute(query)
+			session.commit()
+
+		if 'restserver_authentication_method' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='restserver_authentication_method', 
+				valueStr='local',
+				description='REST server authentication method. The following options are supported: local, pam')
 			session.execute(query)
 			session.commit()
 

@@ -50,7 +50,6 @@ class glueCatalog(object, metaclass=Singleton):
 
 		self.common_config = common_config.config()
 
-#		self.AWSregion = configuration.get("Metastore", "aws_region")
 		self.glueClient = boto3.client('glue', region_name = self.common_config.awsRegion)
 
 		# self.checkDB("amwsktst_history_uat")
@@ -59,7 +58,7 @@ class glueCatalog(object, metaclass=Singleton):
 		# self.isTableExternalIcebergFormat("amwsktst_history_uat", "braks01")
 		# self.isTableExternal("amwsktst_history_uat", "braks01")
 		# self.getColumns("amwsktst_history_uat", "braks01")
-		self.getColumns("etl_import_staging", "dbimport__import_tables_full_truncate_insert__staging")
+		# self.getColumns("etl_import_staging", "dbimport__import_tables_full_truncate_insert__staging")
 		# self.getTables()
 
 		logging.debug("Executing glueCatalog.__init__() - Finished")

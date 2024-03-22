@@ -1,15 +1,38 @@
 import json
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from typing import Union
-from typing import NewType
+from typing import Union, NewType, Literal
 from typing_extensions import Annotated
+from enum import Enum
 
-class Item(BaseModel):
-	name: str
-	description: Union[str, None] = None
-	price: float
-	tax: Union[str, None] = None
+class Token(BaseModel):
+	access_token: str
+	token_type: str
+
+class TokenData(BaseModel):
+	username: Union[str, None] = None
+
+class User(BaseModel):
+	username: str
+	password: str
+	disabled: bool
+	fullname: Union[str, None] = None
+	department: Union[str, None] = None
+	email: Union[str, None] = None
+
+class changeUser(BaseModel):
+	disabled: Union[bool, None] = None
+	fullname: Union[str, None] = None
+	department: Union[str, None] = None
+	email: Union[str, None] = None
+
+class changePassword(BaseModel):
+	old_password: Union[str, None] = None
+	new_password: str
+
+class status(BaseModel):
+	status: str
+	version: str
 
 class jdbcDriver(BaseModel):
 	databaseType: str
@@ -77,6 +100,10 @@ class configuration(BaseModel):
 	post_data_to_kafka: Union[bool, None] = None
 	post_data_to_rest_extended: Union[bool, None] = None
 	post_data_to_rest: Union[bool, None] = None
+	restserver_admin_user: Union[str, None] = None
+	restserver_authentication_method: Union[str, None] = None
+#	restserver_secret_key: Union[str, None] = None
+	restserver_token_ttl: Union[int, None] = None
 	rest_timeout: Union[int, None] = None
 	rest_trustcafile: Union[str, None] = None
 	rest_url: Union[str, None] = None

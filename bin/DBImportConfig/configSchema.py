@@ -868,7 +868,7 @@ class airflowTasks(Base):
 
     dag_name = Column(String(64), primary_key=True, nullable=False, comment='Name of DAG to add Tasks to')
     task_name = Column(String(64), primary_key=True, nullable=False, comment='Name of the Task in Airflow')
-    task_type = Column(Enum('shell script', 'Hive SQL', 'Hive SQL Script', 'JDBC SQL', 'Trigger DAG', 'DAG Sensor', 'SQL Sensor'), nullable=False, index=True, server_default=text("'Hive SQL Script'"), comment='The type of the Task')
+    task_type = Column(Enum('shell script', 'Hive SQL', 'Hive SQL Script', 'JDBC SQL', 'Trigger DAG', 'DAG Sensor', 'SQL Sensor', 'DBImport command'), nullable=False, index=True, server_default=text("'Hive SQL Script'"), comment='The type of the Task')
     placement = Column(Enum('before main', 'after main', 'in main'), nullable=False, server_default=text("'after main'"), comment='Placement for the Task')
     jdbc_dbalias = Column(ForeignKey('jdbc_connections.dbalias'), index=True, comment="For  'JDBC SQL' Task Type, this specifies what database the SQL should run against")
     hive_db = Column(String(256), comment='<NOT USED>')
@@ -1001,5 +1001,21 @@ class atlasKeyCache(Base):
     reference_table_name = Column(String(256), nullable=True, comment='Name of the table that is referenced')
     reference_column_name = Column(String(256), nullable=True, comment='Name of the column that is referenced')
     col_key_position = Column(Integer, nullable=True, comment='Position of the key')
+
+
+class authUsers(Base):
+    __tablename__ = 'auth_users'
+    __table_args__ = (
+        {'comment': 'User database for rest interface and ui'}
+    )
+
+    username = Column(String(256), primary_key=True, nullable=False, comment='Username')
+    password = Column(String(256), nullable=False, comment='Password. Only used if authentication_method is local')
+    disabled = Column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='1 = User is disabled and cant login.')
+    fullname = Column(String(256), nullable=True, comment='Full name of the user')
+    department = Column(String(256), nullable=True, comment='Users department')
+    email = Column(String(256), nullable=True, comment='Users email address')
+
+
 
 
