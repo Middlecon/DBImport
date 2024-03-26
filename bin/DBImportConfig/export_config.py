@@ -1618,6 +1618,9 @@ class config(object, metaclass=Singleton):
 		elif whereForTarget == True and columnType == "timestamp" and self.common_config.jdbc_servertype == constant.SNOWFLAKE:
 			minValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF6')"%(minValue)
 			maxValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF6')"%(maxValue)
+		elif whereForTarget == True and columnType == "timestamp" and self.common_config.jdbc_servertype == constant.POSTGRESQL:
+			minValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS')"%(minValue)
+			maxValue = "TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS')"%(maxValue)
 		elif columnType not in ("int", "integer", "bigint", "tinyint", "smallint", "decimal", "double", "float", "boolean"):
 			minValue = "\"%s\""%(minValue)
 			maxValue = "\"%s\""%(maxValue)
@@ -1635,6 +1638,8 @@ class config(object, metaclass=Singleton):
 			whereStatement += "%s%s%s > %s "%(columnQuotation, columnName, columnQuotation, minValue)
 			whereStatement += "and "
 		whereStatement += "%s%s%s <= %s "%(columnQuotation, columnName, columnQuotation, maxValue)
+
+		print(whereStatement)
 
 		logging.debug("Executing export_config.getIncrWhereStatement() - Finished")
 		return whereStatement

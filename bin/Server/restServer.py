@@ -19,6 +19,7 @@ from common import constants as constant
 from DBImportConfig import common_config
 
 common_config = common_config.config()
+
 ADMIN_USER = common_config.getConfigValue("restserver_admin_user")
 AUTHENTICATION_METHOD = common_config.getConfigValue("restserver_authentication_method")
 SECRET_KEY = common_config.getConfigValue("restserver_secret_key")
@@ -85,15 +86,17 @@ def authenticate_user(username: str, password: str):
 		return False
 
 	if AUTHENTICATION_METHOD == "local":
-#		if not verify_password(password, user.password):
+		print("Authenticate with LOCAL")
 		if not verify_password(password, user["password"]):
 			return False
 
 	elif AUTHENTICATION_METHOD == "pam":
+		print("Authenticate with PAM")
 		if not pam.authenticate(username, password, service='login'):
 			return False
 
 	else:
+		print("AUTHENTICATION_METHOD har fel värde")
 		return False
 
 	return True

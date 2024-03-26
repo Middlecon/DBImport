@@ -779,7 +779,7 @@ class config(object, metaclass=Singleton):
 		self.jdbc_environment = row[4]
 
 		if decryptCredentials == True and copySlave == False:
-			if jdbcCredentials.startswith("arn:aws:secretsmanager:"):
+			if jdbcCredentials is not None and jdbcCredentials.startswith("arn:aws:secretsmanager:"):
 				# This jdbc connection have its key stored in AWS Secrets Manager
 				import boto3
 				from botocore.exceptions import ClientError

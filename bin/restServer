@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #!/usr/bin/env python3
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -138,7 +137,7 @@ def main(argv):
 		"loglevel": gunicornDebugLevel,
 		"accesslog": gunicornAccessLog,
 		"errorlog": gunicornErrorLog,
-		"daemon": "false",
+		"daemon": daemonMode,
 		"threaded": "True",
 		# "logger_class": logging.getLogger("restServerAccess"),
 		# "logger_class": "restServerAccess",
