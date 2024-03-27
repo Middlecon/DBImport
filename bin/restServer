@@ -25,6 +25,7 @@ import psutil
 import signal
 from datetime import date, datetime, time, timedelta
 from common import constants as constant
+from common import Exceptions
 from ConfigReader import configuration
 from Server import restServer
 import uvicorn
@@ -103,13 +104,48 @@ def main(argv):
 	restServer_keyfile = configuration.get("Server", "restServer_keyfile")
 	restServer_certfile = configuration.get("Server", "restServer_certfile")
 
+	if os.path.isfile(restServer_keyfile) == False:
+		print("The restServer keyfile cant be opened.\n" +
+			"Please check the path in the configuration file for settings Server/restServer_keyfile")
+		sys.exit(1)
+
+	if os.path.isfile(restServer_certfile) == False:
+		print("The restServer certfile cant be opened.\n" +
+			"Please check the path in the configuration file for settings Server/restServer_certfile")
+		sys.exit(1)
+
 	if loggingLevel == logging.DEBUG:
 		logFormat = '%(asctime)s %(levelname)s %(name)s %(funcName)s - %(message)s'
 	else:
 		logFormat = '%(asctime)s %(levelname)s - %(message)s'
 
-	logging.basicConfig(stream=sys.stdout, format=logFormat, level=loggingLevel)
-	logPropagate = True
+#	# Initiate the logging functions with the correct level
+#	if   loggingLevel == logging.DEBUG and daemonMode == False:	logFormat = '%(asctime)s %(levelname)s %(name)s %(funcName)s - %(message)s'
+#	elif loggingLevel == logging.DEBUG and daemonMode == True:	logFormat = '%(asctime)s %(levelname)s %(funcName)s - %(message)s'
+#	elif loggingLevel != logging.DEBUG and daemonMode == False:	logFormat = '%(asctime)s %(levelname)s %(name)s - %(message)s'
+#	elif loggingLevel != logging.DEBUG and daemonMode == True:	logFormat = '%(asctime)s %(levelname)s - %(message)s'
+
+	if daemonMode == False:
+		logging.basicConfig(stream=sys.stdout, format=logFormat, level=loggingLevel)
+		logPropagate = True
+	else:
+		# If we run in daemon mode, we log everything from the root logger to /dev/null.
+		logging.basicConfig(filename="/dev/null", format=logFormat, level=loggingLevel)
+		logPropagate = False
+
+	# Setup the loggers
+	setupLogger(name="server", logfile="%s/restserver.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
+
+
+
+
+
+#	logging.basicConfig(stream=sys.stdout, format=logFormat, level=loggingLevel)
+#	logPropagate = True
+
+#	setupLogger(name="server", logfile=sys.stdout, logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
+	# setupLogger(name="server", logfile="%s/dbimport_server.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
+	# setupLogger(name="server", logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
 
 	logging.info("Starting restServer")
 	glogging.Logger.datefmt = ""

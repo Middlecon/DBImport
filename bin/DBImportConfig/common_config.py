@@ -1858,6 +1858,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("SQL Statement executed: %s" % (query) )
 		self.mysql_cursor.execute(query)
 		row = self.mysql_cursor.fetchone()
+		self.mysql_conn.commit()
 
 		try:
 			if valueColumn == "valueInt":

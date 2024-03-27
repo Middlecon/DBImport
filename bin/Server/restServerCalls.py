@@ -52,11 +52,11 @@ import sqlalchemy.orm.exc
 class dbCalls:
 	def __init__(self):
 
-		logFormat = '%(asctime)s %(levelname)s - %(message)s'
-		logging.basicConfig(format=logFormat, level=logging.INFO)
-		logPropagate = True
+#		logFormat = '%(asctime)s %(levelname)s - %(message)s'
+#		logging.basicConfig(format=logFormat, level=logging.INFO)
+#		logPropagate = True
 
-		self.logger = "server"
+		self.logger = "gunicorn.error"
 		log = logging.getLogger(self.logger)
 		log.debug("Executing Server.restServerCalls.__init__()")
 
@@ -69,6 +69,8 @@ class dbCalls:
 			self.debugLogLevel = True
 
 		self.common_config = common_config.config()
+		# self.common_config.disconnectConfigDatabase() # This is needed as we must connect with buffered=False and that is only available during reconnect
+		# self.common_config.reconnectConfigDatabase(printReconnectMessage=True, buffered=False)
 
 		self.logdir = configuration.get("Server", "logdir")
 
@@ -200,7 +202,7 @@ class dbCalls:
 
 		return user
 
-	def updateUser(self, user):
+	def updateUser(self, user, passwordChanged, currentUser):
 		""" Update a user object """
 		log = logging.getLogger(self.logger)
 
@@ -209,6 +211,11 @@ class dbCalls:
 		except SQLerror:
 			self.disconnectDBImportDB()
 			return None
+
+		if passwordChanged == False:
+			log.info("User '%s' updated details for user '%s'"%(currentUser, user["username"]))
+		else:
+			log.info("User '%s' changed the password for user '%s'"%(currentUser, user["username"]))
 		
 		tableAuthUsers = aliased(configSchema.authUsers)
 		session.execute(update(tableAuthUsers),
@@ -298,7 +305,7 @@ class dbCalls:
 
 		print(jdbcDriver)
 
-#		log.info("User '%s' updated global configuration. %s = %s"%(currentUser, key, getattr(configuration, key)))
+		log.info("User '%s' updated JDBC driver configuration for '%s'"%(currentUser, getattr(configuration, "databaseType")))
 
 		log.debug("databaseType: %s"%getattr(jdbcDriver, "databaseType"))
 		log.debug("version: %s"%getattr(jdbcDriver, "version"))
@@ -341,7 +348,8 @@ class dbCalls:
 		log = logging.getLogger(self.logger)
 
 
-		self.common_config.reconnectConfigDatabase()
+		# self.common_config.reconnectConfigDatabase(buffered=False)
+		self.common_config.reconnectConfigDatabase(printReconnectMessage=False)
 
 		resultDict = {}
 		for key in self.allConfigKeys:
@@ -367,6 +375,12 @@ class dbCalls:
 			for key in self.allConfigKeys:
 				if type(getattr(configuration, key)) in (str, bool, int):
 					# At this point, only configuration items that exists in the class is iterrated
+					if type(getattr(configuration, key)) == str:
+						if getattr(configuration, key) is None or getattr(configuration, key).strip() == "":
+							raise HTTPException(
+								status_code=status.HTTP_400_BAD_REQUEST,
+								detail="'%s' requres a string value"%(key))
+
 					if key == "airflow_major_version" and getattr(configuration, key) not in(1, 2):
 						raise HTTPException(
 							status_code=status.HTTP_400_BAD_REQUEST,
@@ -388,7 +402,7 @@ class dbCalls:
 				# At this point, only configuration items that exists in the class is iterrated
 				log.info("User '%s' updated global configuration. %s = %s"%(currentUser, key, getattr(configuration, key)))
 
-				valueColumn, boolValue = self.common_config.getConfigValueColumn(key)	
+				valueColumn, boolValue = self.common_config.getConfigValueColumn(key)
 
 				session.execute(update(configurationTable),
 					[

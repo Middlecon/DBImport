@@ -1,7 +1,9 @@
+import sys
 import pam
 import json
 import uvicorn
 import bcrypt
+import logging
 from gunicorn.app.wsgiapp import WSGIApplication
 from datetime import datetime, timedelta
 from typing import Union
@@ -16,7 +18,9 @@ from typing_extensions import Annotated
 from Server import restServerCalls
 from Server import dataModels
 from common import constants as constant
+from common.Exceptions import *
 from DBImportConfig import common_config
+from ConfigReader import configuration
 
 common_config = common_config.config()
 
@@ -25,6 +29,10 @@ AUTHENTICATION_METHOD = common_config.getConfigValue("restserver_authentication_
 SECRET_KEY = common_config.getConfigValue("restserver_secret_key")
 ACCESS_TOKEN_EXPIRE_MINUTES = common_config.getConfigValue("restserver_token_ttl")
 ALGORITHM = "HS256"
+try:
+	AWS_REGION = configuration.get("AWS", "region", exitOnError=False)
+except invalidConfiguration:
+	AWS_REGION=""
 
 
 class StandaloneApplication(WSGIApplication):
@@ -62,6 +70,9 @@ def verify_password(password, hashed_password):
 		return False
 
 
+logger = "gunicorn.error"
+log = logging.getLogger(logger)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
 app = FastAPI()
 dbCalls = restServerCalls.dbCalls()
@@ -71,12 +82,11 @@ def get_user(username: str, format_password: bool = True):
 	userDict =  dbCalls.getUser(username)	
 	if userDict == None:
 		return
+
 	if format_password == True:
-#		if not userObject.password.startswith("arn:aws:secretsmanager:"):
-#			userObject.password="<encrypted>"
 		if not userDict["password"].startswith("arn:aws:secretsmanager:"):
 			userDict["password"] = "<encrypted>"
-#	return userObject
+
 	return userDict
 
 
@@ -86,9 +96,48 @@ def authenticate_user(username: str, password: str):
 		return False
 
 	if AUTHENTICATION_METHOD == "local":
-		print("Authenticate with LOCAL")
-		if not verify_password(password, user["password"]):
+		if not user["password"].startswith("arn:aws:secretsmanager:"):
+			print("Authenticate with LOCAL")
+			if not verify_password(password, user["password"]):
+				return False
+		else:
+			print("Authenticate with LOCAL using AWS credentials")
+			# This user have its password stored in AWS Secrets Manager
+
+			if AWS_REGION == "":
+				log.error("AWS Region is not configured in the configuraton file. This is required in order to user Secrets Manager for user credentials")
+				return False
+
+			if "boto3" not in sys.modules:
+				# Only load modules if not already loaded. If not deployed in AWS environment, these does not need to be loaded at all
+				print("Loading modules")
+			import boto3
+			from botocore.exceptions import ClientError
+
+			# Create a Secrets Manager client
+			session = boto3.session.Session()
+			client = session.client(
+				service_name='secretsmanager',
+				region_name=AWS_REGION
+				)
+
+		try:
+			get_secret_value_response = client.get_secret_value(
+				SecretId=user["password"]
+			)
+		except ClientError as e:
+			# For a list of exceptions thrown, see
+			# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+			raise e
 			return False
+
+		secretsManagerPassword = json.loads(get_secret_value_response['SecretString'])["password"]
+
+		if password == secretsManagerPassword:
+			return True
+		else:
+			return False
+
 
 	elif AUTHENTICATION_METHOD == "pam":
 		print("Authenticate with PAM")
@@ -215,7 +264,7 @@ async def change_the_user_password(user: str, password_data: dataModels.changePa
 
 	# set the new password in the user object and save it
 	user["password"] = get_password_hash(password_data.new_password)
-	dbCalls.updateUser(user)
+	dbCalls.updateUser(user, passwordChanged=True, currentUser=current_user["username"])
 
 	return "Password changed successfully" 
 
@@ -262,7 +311,7 @@ async def update_user_details(user: str, user_data: dataModels.changeUser, curre
 	if user_data.department != None: user["department"] = user_data.department
 	if user_data.email != None: user["email"] = user_data.email
 
-	dbCalls.updateUser(user)
+	dbCalls.updateUser(user, passwordChanged=False, currentUser=current_user["username"])
 
 	user = get_user(username)	# Need to call it again to make sure the password is encrypted in the returned data
 	return user
