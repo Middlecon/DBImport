@@ -108,9 +108,9 @@ def authenticate_user(username: str, password: str):
 				log.error("AWS Region is not configured in the configuraton file. This is required in order to user Secrets Manager for user credentials")
 				return False
 
-			if "boto3" not in sys.modules:
-				# Only load modules if not already loaded. If not deployed in AWS environment, these does not need to be loaded at all
-				print("Loading modules")
+#			if "boto3" not in sys.modules:
+#				# Only load modules if not already loaded. If not deployed in AWS environment, these does not need to be loaded at all
+#				print("Loading modules")
 			import boto3
 			from botocore.exceptions import ClientError
 
@@ -121,22 +121,22 @@ def authenticate_user(username: str, password: str):
 				region_name=AWS_REGION
 				)
 
-		try:
-			get_secret_value_response = client.get_secret_value(
-				SecretId=user["password"]
-			)
-		except ClientError as e:
-			# For a list of exceptions thrown, see
-			# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-			raise e
-			return False
+			try:
+				get_secret_value_response = client.get_secret_value(
+					SecretId=user["password"]
+				)
+			except ClientError as e:
+				# For a list of exceptions thrown, see
+				# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+				raise e
+				return False
 
-		secretsManagerPassword = json.loads(get_secret_value_response['SecretString'])["password"]
+			secretsManagerPassword = json.loads(get_secret_value_response['SecretString'])["password"]
 
-		if password == secretsManagerPassword:
-			return True
-		else:
-			return False
+			if password == secretsManagerPassword:
+				return True
+			else:
+				return False
 
 
 	elif AUTHENTICATION_METHOD == "pam":
