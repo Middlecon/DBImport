@@ -1090,6 +1090,7 @@ class operation(object, metaclass=Singleton):
 		else:
 			conf.set('spark.kerberos.keytab', self.import_config.common_config.kerberosKeytab)
 			conf.set('spark.kerberos.principal', self.import_config.common_config.kerberosPrincipal)
+			# conf.set('spark.sql.ansi.enabled', 'false')
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
@@ -2511,6 +2512,27 @@ class operation(object, metaclass=Singleton):
 						
 		logging.debug("Executing import_operations.createTargetTable() - Finished")
 		
+	def dropTargetTable(self):
+		logging.debug("Executing import_operations.dropTargetTable()")
+		if self.common_operations.checkTable(self.Hive_DB, self.Hive_Table) == True:
+			logging.info("Dropping Target table %s.%s"%(self.Hive_DB, self.Hive_Table))
+
+			if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+				query = "drop table if exists `%s`.`%s`"%(self.Hive_DB, self.Hive_Table)
+
+				self.common_operations.executeHiveQuery(query)
+				self.common_operations.reconnectHiveMetaStore()
+	
+			if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+				self.startSpark()
+				import pyspark
+
+				query = "drop table if exists %s.`%s`.`%s`"%(self.common_operations.sparkCatalogName, self.Hive_DB, self.Hive_Table)
+				logging.info(query)
+				self.spark.sql(query)
+
+		logging.debug("Executing import_operations.dropTargetTable() - Finished")
+
 	def updateTargetTable(self):
 		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			logging.info("Updating Target table columns based on source system schema")
@@ -2778,23 +2800,23 @@ class operation(object, metaclass=Singleton):
 		logging.debug(columnsMergeOnlyNameType)
 		logging.debug("")
 
-		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'right_only'].iterrows():
-			# This will iterate over columns that only exists in Target table and not on the import table
-			if self.import_config.import_is_incremental == False and self.import_config.import_with_merge == False:
-				# As the aim is to drop the column, we must make sure to only do that when we are sure to not loose data
-				columnName = row['name']
-
-				# Drop column is not supported in Hive. Thats why the Hive code is not here
-				if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
-					logging.info("Dropping column '%s'"%(columnName))
-					try:
-						query = "alter table `%s`.`%s`.`%s` drop column `%s` " \
-								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName)
-						logging.info(query)
-						self.spark.sql(query)
-
-					except pyspark.sql.utils.AnalysisException as e:
-						raise SQLerror(str(e))
+#		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'right_only'].iterrows():
+#			# This will iterate over columns that only exists in Target table and not on the import table
+#			if self.import_config.import_is_incremental == False and self.import_config.import_with_merge == False:
+#				# As the aim is to drop the column, we must make sure to only do that when we are sure to not loose data
+#				columnName = row['name']
+#
+#				# Drop column is not supported in Hive. Thats why the Hive code is not here
+#				if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
+#					logging.info("Dropping column '%s'"%(columnName))
+#					try:
+#						query = "alter table `%s`.`%s`.`%s` drop column `%s` " \
+#								%(self.common_operations.sparkCatalogName, hiveDB, hiveTable, columnName)
+#						logging.info(query)
+#						self.spark.sql(query)
+#
+#					except pyspark.sql.utils.AnalysisException as e:
+#						raise SQLerror(str(e))
 
 		for index, row in columnsMergeOnlyNameType.loc[columnsMergeOnlyNameType['Exist'] == 'left_only'].iterrows():
 			# This will iterate over columns that had the type changed from the source

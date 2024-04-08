@@ -34,6 +34,7 @@ def printHelp():
 	print ("  --skipImportData   Dont run the import data command. Useful when the files are correct and you need to recreate Hive tables")
 	print ("  --ignoreTime       Ignores the start and stop time for the table. Will run outside that window regardless")
 	print ("  --resetStage       Starts from the beginning regardless of previous problems")
+	print ("  --dropTargetTable  This will cause the target table to be dropped and recreated during import. Required in special cases like when changes on column types are not allowed")
 	print ("  -d [Hive Database], -h [Hive Database], --Hive_DB=[Hive Database]")
 	print ("                     Hive database")
 	print ("  -t [Hive Table], --Hive_Table=[Hive Table]")
@@ -93,7 +94,7 @@ def printBox(messageList):
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "mvVICE12f:d:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax=", "logWithTimestamp"])
+		opts, args = getopt.getopt(argv, "mvVICE12f:d:h:t:", ["version", "help", "function=", "Hive_DB=", "Hive_Table=", "debug", "skipImportData", "skipSqoop", "ignoreTime", "resetStage", "skipHiveTest", "metaDataOnly", "ignoreDisabled", "incrementalMax=", "logWithTimestamp", "dropTargetTable"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -115,6 +116,7 @@ def main(argv):
 	ignoreDisabled = False
 	incrementalMax = None
 	logWithTimestamp = False
+	dropTargetTable = False
 
 	if  len(opts) == 0:
 		printHelp()
@@ -161,6 +163,8 @@ def main(argv):
 			incrementalMax = arg
 		elif opt == "--logWithTimestamp":
 			logWithTimestamp = True
+		elif opt == "--dropTargetTable":
+			dropTargetTable = True
 
 	if displayVersion == True:
 		print("DBImport version: %s"%(constant.VERSION))
@@ -781,7 +785,6 @@ def main(argv):
 				sys.exit(0)
 
 			if runOnlyFunction == None or runOnlyFunction == "createImportTable":
-#			if (runOnlyFunction == None or runOnlyFunction == "createImportTable") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3050) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 
@@ -791,7 +794,6 @@ def main(argv):
 					import_operation.updateExternalImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount":
-#			if (runOnlyFunction == None or runOnlyFunction == "getImportTableRowCount") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3052) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.getImportTableValidationData()
@@ -800,7 +802,6 @@ def main(argv):
 					import_operation.validateImportTable()
 
 			if runOnlyFunction == None or runOnlyFunction == "removeHiveLocks":
-#			if (runOnlyFunction == None or runOnlyFunction == "removeHiveLocks") and import_operation.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 				if import_operation.runStage(3054) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
 					import_operation.removeHiveLocks()
@@ -808,6 +809,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3055) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.updateTargetTable()
 					import_operation.addHiveDBImportColumns(mergeOperation=False)
@@ -907,6 +910,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3105) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.updateTargetTable()
 					import_operation.addHiveDBImportColumns(mergeOperation=False)
@@ -1009,6 +1014,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3155) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.updateTargetTable()
 					import_operation.addHiveDBImportColumns(mergeOperation=False)
@@ -1111,6 +1118,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3205) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -1245,6 +1254,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3255) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -1378,6 +1389,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3305) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.addHiveDBImportColumns(mergeOperation=True)
@@ -1505,6 +1518,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3355) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -1642,6 +1657,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3405) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -1835,6 +1852,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3505) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.updateTargetTable()
 					import_operation.addHiveDBImportColumns(mergeOperation=False)
@@ -1941,6 +1960,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3555) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -2085,6 +2106,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3605) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
@@ -2224,6 +2247,8 @@ def main(argv):
 			if runOnlyFunction == None or runOnlyFunction == "createTargetTable":
 				if import_operation.runStage(3655) == True: 
 					import_operation.connectToHive(forceSkipTest=skipHiveTest)
+					if dropTargetTable == True:
+						import_operation.dropTargetTable()
 					import_operation.createTargetTable()
 					import_operation.convertHiveTableToACID()
 					import_operation.updateTargetTable()
