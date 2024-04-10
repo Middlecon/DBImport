@@ -29,6 +29,7 @@ import json
 import ssl
 import requests
 import pendulum
+from urllib.parse import quote
 from itertools import zip_longest
 from requests_kerberos import HTTPKerberosAuth
 from requests.auth import HTTPBasicAuth
@@ -382,7 +383,7 @@ class config(object, metaclass=Singleton):
 
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			mysqlCredentials["mysql_username"], 
-			mysqlCredentials["mysql_password"],
+			quote(mysqlCredentials["mysql_password"], safe=" +"),
 			mysqlCredentials["mysql_hostname"], 
 			mysqlCredentials["mysql_port"], 
 			mysqlCredentials["mysql_database"]) 
