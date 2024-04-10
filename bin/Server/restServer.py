@@ -6,14 +6,13 @@ import bcrypt
 import logging
 from gunicorn.app.wsgiapp import WSGIApplication
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Union, NewType, List, Union, Any
 from fastapi import Depends, FastAPI, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from typing import NewType
 from typing_extensions import Annotated
 from Server import restServerCalls
 from Server import dataModels
@@ -336,17 +335,31 @@ async def update_global_configuration(configuration: dataModels.configuration, c
 	returnMsg, response.status_code = dbCalls.updateConfiguration(configuration, current_user["username"])
 	return returnMsg
 
-# API calls bellow this point is tech-preview and is missing a lot of functionallity
-@app.get("/import/hiveDBs")
+#@app.get("/connections", response_model=dataModels.connectionsRead)
+#async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+#	return dbCalls.getAllImportDatabases()
+
+@app.get("/import/dbs", response_model=List[dataModels.dbs])
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getDBImportImportTableDBs()
+	return dbCalls.getAllImportDatabases()
 
-@app.get("/import/hiveTables")
-async def get_all_import_tables(db: str, details: bool, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getDBImportImportTables(db, details)
+@app.get("/import/table/{database}/{table}", response_model=dataModels.tableRead)
+# @app.get("/import/table/{database}/{table}")
+async def get_import_table_details(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getImportTableDetails(database = database, table = table)
 
-@app.get("/import/hiveTableDetails")
-async def get_import_table_details(db: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getDBImportImportTableDetails(db, table)
-
+# API calls bellow this point is tech-preview and is missing a lot of functionallity
+#@app.get("/import/hiveDBs")
+#async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+#	return dbCalls.getAllImportDatabases()
+#	# return dbCalls.getDBImportImportTableDBs()
+#
+#@app.get("/import/hiveTables")
+#async def get_all_import_tables(db: str, details: bool, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+#	return dbCalls.getDBImportImportTables(db, details)
+#
+#@app.get("/import/hiveTableDetails")
+#async def get_import_table_details(db: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+#	return dbCalls.getDBImportImportTableDetails(db, table)
+#
 

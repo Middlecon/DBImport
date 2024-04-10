@@ -41,6 +41,7 @@ from common.Exceptions import *
 from DBImportConfig import configSchema
 from DBImportConfig import common_config
 import sqlalchemy as sa
+from sqlalchemy import func
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
@@ -84,12 +85,12 @@ class dbCalls:
 		""" Disconnects from the database and removes all sessions and engine """
 		log = logging.getLogger(self.logger)
 		self.common_config.disconnectSQLAlchemy(logger=self.logger)
-		self.configDBSession = None
+		self.common_config.configDBSession = None
 
 
 	def getDBImportSession(self):
 		log = logging.getLogger(self.logger)
-		if self.configDBSession == None:
+		if self.common_config.configDBSession == None:
 			if self.common_config.connectSQLAlchemy(exitIfFailure=False, logger=self.logger) == False:
 				raise SQLerror("Can't connect to DBImport database")
 
@@ -303,8 +304,6 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
-		print(jdbcDriver)
-
 		log.info("User '%s' updated JDBC driver configuration for '%s'"%(currentUser, getattr(configuration, "databaseType")))
 
 		log.debug("databaseType: %s"%getattr(jdbcDriver, "databaseType"))
@@ -312,8 +311,6 @@ class dbCalls:
 		log.debug("driver: %s"%getattr(jdbcDriver, "driver"))
 		log.debug("classpath: %s"%getattr(jdbcDriver, "classpath"))
 
-#		valueColumn, boolValue = self.common_config.getConfigValueColumn(key)	
-#
 		tableJDBCconnectionsDrivers = aliased(configSchema.jdbcConnectionsDrivers)
 		result = "ok"
 		returnCode = 200
@@ -421,7 +418,8 @@ class dbCalls:
 		# return jsonResult
 		return (result, returnCode)
 
-	def getDBImportImportTableDBs(self):
+#	def getDBImportImportTableDBs(self):
+	def getAllImportDatabases(self):
 		""" Returns all databases that have imports configured in them """
 		log = logging.getLogger(self.logger)
 
@@ -434,7 +432,11 @@ class dbCalls:
 		importTables = aliased(configSchema.importTables)
 
 		importTableDBs = (session.query(
-					importTables.hive_db
+					importTables.hive_db,
+					func.count(importTables.hive_db),
+					func.max(importTables.last_update_from_source),
+					func.sum(importTables.sqoop_last_size),
+					func.sum(importTables.sqoop_last_rows)
 				)
 				.select_from(importTables)
 				.group_by(importTables.hive_db)
@@ -442,8 +444,25 @@ class dbCalls:
 			)
 
 		listOfDBs = []
-		for u in importTableDBs:
-			listOfDBs.append(u[0])
+		for row in importTableDBs:
+			dbs = {}
+			dbs["name"] = row[0]
+			dbs["tables"] = row[1]
+			if row[2] == None:
+				dbs["lastImport"] = ""
+			else:
+				dbs["lastImport"] = row[2].strftime('%Y-%m-%d %H:%M:%S')
+
+			if row[3] == None:
+				dbs["lastSize"] = 0
+			else:
+				dbs["lastSize"] = int(row[3])
+
+			if row[4] == None:
+				dbs["lastRows"] = 0
+			else:
+				dbs["lastRows"] = int(row[4])
+			listOfDBs.append(dbs)
 
 		jsonResult = json.loads(json.dumps(listOfDBs))
 		session.close()
@@ -513,7 +532,8 @@ class dbCalls:
 	
 
 		
-	def getDBImportImportTableDetails(self, db, table):
+#	def getAllImportTables(self, db, table):
+	def getImportTableDetails(self, database, table):
 		""" Returns all import table details """
 		log = logging.getLogger(self.logger)
 
@@ -524,11 +544,11 @@ class dbCalls:
 			return None
 
 		importTables = aliased(configSchema.importTables)
-		listOfTables = []
 
 		# Return a list of Hive tables with details
 		row = (session.query(
-    				importTables.table_id,
+					importTables.hive_db,
+					importTables.hive_table,
 					importTables.dbalias,
 					importTables.source_schema,
 					importTables.source_table,
@@ -569,7 +589,6 @@ class dbCalls:
 					importTables.hive_split_count,
 					importTables.spark_executor_memory,
 					importTables.spark_executors,
-					importTables.concatenate_hive_table,
 					importTables.split_by_column,
 					importTables.sqoop_query,
 					importTables.sqoop_options,
@@ -591,81 +610,235 @@ class dbCalls:
 					importTables.copy_finished,
 					importTables.copy_slave,
 					importTables.create_foreign_keys,
+					importTables.invalidate_impala,
 					importTables.custom_max_query,
 					importTables.mergeCompactionMethod,
+					importTables.sourceTableType,
 					importTables.import_database,
 					importTables.import_table,
 					importTables.history_database,
 					importTables.history_table
+
+
+
+#    				importTables.table_id,
+#					importTables.dbalias,
+#					importTables.source_schema,
+#					importTables.source_table,
+#					importTables.import_phase_type,
+#					importTables.etl_phase_type,
+#					importTables.import_tool,
+#					importTables.etl_engine,
+#					importTables.last_update_from_source,
+#					importTables.sqoop_sql_where_addition,
+#					importTables.nomerge_ingestion_sql_addition,
+#					importTables.include_in_airflow,
+#					importTables.airflow_priority,
+#					importTables.validate_import,
+#					importTables.validationMethod,
+#					importTables.validate_source,
+#					importTables.validate_diff_allowed,
+#					importTables.validationCustomQuerySourceSQL,
+#					importTables.validationCustomQueryHiveSQL,
+#					importTables.validationCustomQueryValidateImportTable,
+#					importTables.truncate_hive,
+#					importTables.mappers,
+#					importTables.soft_delete_during_merge,
+#					importTables.source_rowcount,
+#					importTables.source_rowcount_incr,
+#					importTables.hive_rowcount,
+#					importTables.validationCustomQuerySourceValue,
+#					importTables.validationCustomQueryHiveValue,
+#					importTables.incr_mode,
+#					importTables.incr_column,
+#					importTables.incr_validation_method,
+#					importTables.incr_minvalue,
+#					importTables.incr_maxvalue,
+#					importTables.incr_minvalue_pending,
+#					importTables.incr_maxvalue_pending,
+#					importTables.pk_column_override,
+#					importTables.pk_column_override_mergeonly,
+#					importTables.hive_merge_heap,
+#					importTables.hive_split_count,
+#					importTables.spark_executor_memory,
+#					importTables.spark_executors,
+#					importTables.concatenate_hive_table,
+#					importTables.split_by_column,
+#					importTables.sqoop_query,
+#					importTables.sqoop_options,
+#					importTables.sqoop_last_size,
+#					importTables.sqoop_last_rows,
+#					importTables.sqoop_last_mappers,
+#					importTables.sqoop_last_execution,
+#					importTables.sqoop_use_generated_sql,
+#					importTables.sqoop_allow_text_splitter,
+#					importTables.force_string,
+#					importTables.comment,
+#					importTables.generated_hive_column_definition,
+#					importTables.generated_sqoop_query,
+#					importTables.generated_sqoop_options,
+#					importTables.generated_pk_columns,
+#					importTables.generated_foreign_keys,
+#					importTables.datalake_source,
+#					importTables.operator_notes,
+#					importTables.copy_finished,
+#					importTables.copy_slave,
+#					importTables.create_foreign_keys,
+#					importTables.custom_max_query,
+#					importTables.mergeCompactionMethod,
+#					importTables.import_database,
+#					importTables.import_table,
+#					importTables.history_database,
+#					importTables.history_table
 				)
 				.select_from(importTables)
-				.filter((importTables.hive_db == db) & (importTables.hive_table == table))
+				.filter((importTables.hive_db == database) & (importTables.hive_table == table))
 				.one()
 			)
 
 		resultDict = {}
-		resultDict['table_id'] = row[0]
-		resultDict['hiveDB'] = db
-		resultDict['hiveTable'] = table
-		resultDict['dbAlias'] = row[1]
-		resultDict['sourceSchema'] = row[2]
-		resultDict['sourceTable'] = row[3]
-		resultDict['importPhaseType'] = row[4]
-		resultDict['etlPhaseType'] = row[5]
-		resultDict['importTool'] = row[6]
-		resultDict['etlEngine'] = row[7]
+#		resultDict['table_id'] = row[0]
+#		resultDict['hiveDB'] = db
+#		resultDict['hiveTable'] = table
+#		resultDict['dbAlias'] = row[1]
+#		resultDict['sourceSchema'] = row[2]
+#		resultDict['sourceTable'] = row[3]
+#		resultDict['importPhaseType'] = row[4]
+#		resultDict['etlPhaseType'] = row[5]
+#		resultDict['importTool'] = row[6]
+#		resultDict['etlEngine'] = row[7]
+#		try:
+#			resultDict['lastUpdateFromSource'] = row[8].strftime("%Y-%m-%d %H:%M:%S")
+#		except AttributeError:
+#			resultDict['lastUpdateFromSource'] = None
+#		resultDict['sqoopSQLwhereAddition'] = row[9]
+#		resultDict['nomergeIngestionSQLaddition'] = row[10]
+#		resultDict['includeInAirflow'] = row[11]
+#		resultDict['airflowPriority'] = row[12]
+#		resultDict['validateImport'] = row[13]
+#		resultDict['validationMethod'] = row[14]
+#		resultDict['validateSource'] = row[15]
+#		resultDict['validateDiffAllowed'] = row[16]
+#		resultDict['validationCustomQuerySourceSQL'] = row[17]
+#		resultDict['validationCustomQueryHiveSQL'] = row[18]
+#		resultDict['validationCustomQueryValidateImportTable'] = row[19]
+#		resultDict['truncateHive'] = row[20]
+#		resultDict['mappers'] = row[21]
+#		resultDict['softDeleteDuringMerge'] = row[22]
+#		resultDict['sourceRowcount'] = row[23]
+#		resultDict['sourceRowcountIncr'] = row[24]
+#		resultDict['hiveRowcount'] = row[25]
+#		resultDict['validationCustomQuerySourceValue'] = row[26]
+#		resultDict['validationCustomQueryHiveValue'] = row[27]
+#		resultDict['incrMode'] = row[28]
+#		resultDict['incrColumn'] = row[29]
+#		resultDict['incrValidationMethod'] = row[30]
+#		resultDict['incrMinvalue'] = row[31]
+#		resultDict['incrMaxvalue'] = row[32]
+#		resultDict['incrMinvaluePending'] = row[33]
+#		resultDict['incrMaxvaluePending'] = row[34]
+#		resultDict['pkColumnOverride'] = row[35]
+#		resultDict['pkColumnOverrideMergeonly'] = row[36]
+#		resultDict['hiveMergeHeap'] = row[37]
+#		resultDict['hiveSplitCount'] = row[38]
+#		resultDict['sparkExecutorMemory'] = row[39]
+#		resultDict['sparkExecutors'] = row[40]
+#		resultDict['concatenateHiveTable'] = row[41]
+#		resultDict['splitByColumn'] = row[42]
+#		resultDict['sqoopQuery'] = row[43]
+#		resultDict['sqoopOptions'] = row[44]
+#		resultDict['sqoopLastSize'] = row[45]
+#		resultDict['sqoopLastRows'] = row[46]
+#		resultDict['sqoopLastMappers'] = row[47]
+#		resultDict['sqoopLastExecution'] = row[48]
+#		resultDict['sqoopUseGeneratedSQL'] = row[49]
+#		resultDict['sqoopAllowTextSplitter'] = row[50]
+#		resultDict['forceString'] = row[51]
+#		resultDict['comment'] = row[52]
+#		resultDict['generatedHiveColumnDefinition'] = row[53]
+#		resultDict['generatedSqoopQuery'] = row[54]
+#		resultDict['generatedQqoopOptions'] = row[55]
+#		resultDict['generatedPKcolumns'] = row[56]
+#		resultDict['generatedForeignKeys'] = row[57]
+#		resultDict['datalakeSource'] = row[58]
+#		resultDict['operatorNotes'] = row[59]
+#		try:
+#			resultDict['copyFinished'] = row[60].strftime("%Y-%m-%d %H:%M:%S")
+#		except AttributeError:
+#			resultDict['copyFinished'] = None
+#		resultDict['copySlave'] = row[61]
+#		resultDict['createForeignKeys'] = row[62]
+#		resultDict['customMaxQuery'] = row[63]
+#		resultDict['mergeCompactionMethod'] = row[64]
+#		resultDict['import_database'] = row[65]
+#		resultDict['import_table'] = row[66]
+#		resultDict['history_database'] = row[67]
+#		resultDict['history_table'] = row[68]
+
+	
+
+
+		
+		resultDict['database'] = row[0]
+		resultDict['table'] = row[1]
+		resultDict['connection'] = row[2]
+		resultDict['sourceSchema'] = row[3]
+		resultDict['sourceTable'] = row[4]
+		resultDict['importPhaseType'] = row[5]
+		resultDict['etlPhaseType'] = row[6]
+		resultDict['importTool'] = row[7]
+		resultDict['etlEngine'] = row[8]
 		try:
-			resultDict['lastUpdateFromSource'] = row[8].strftime("%Y-%m-%d %H:%M:%S")
+			resultDict['lastUpdateFromSource'] = row[9].strftime("%Y-%m-%d %H:%M:%S")
 		except AttributeError:
 			resultDict['lastUpdateFromSource'] = None
-		resultDict['sqoopSQLwhereAddition'] = row[9]
-		resultDict['nomergeIngestionSQLaddition'] = row[10]
-		resultDict['includeInAirflow'] = row[11]
-		resultDict['airflowPriority'] = row[12]
-		resultDict['validateImport'] = row[13]
-		resultDict['validationMethod'] = row[14]
-		resultDict['validateSource'] = row[15]
-		resultDict['validateDiffAllowed'] = row[16]
-		resultDict['validationCustomQuerySourceSQL'] = row[17]
-		resultDict['validationCustomQueryHiveSQL'] = row[18]
-		resultDict['validationCustomQueryValidateImportTable'] = row[19]
-		resultDict['truncateHive'] = row[20]
-		resultDict['mappers'] = row[21]
-		resultDict['softDeleteDuringMerge'] = row[22]
-		resultDict['sourceRowcount'] = row[23]
-		resultDict['sourceRowcountIncr'] = row[24]
-		resultDict['hiveRowcount'] = row[25]
-		resultDict['validationCustomQuerySourceValue'] = row[26]
-		resultDict['validationCustomQueryHiveValue'] = row[27]
-		resultDict['incrMode'] = row[28]
-		resultDict['incrColumn'] = row[29]
-		resultDict['incrValidationMethod'] = row[30]
-		resultDict['incrMinvalue'] = row[31]
-		resultDict['incrMaxvalue'] = row[32]
-		resultDict['incrMinvaluePending'] = row[33]
-		resultDict['incrMaxvaluePending'] = row[34]
-		resultDict['pkColumnOverride'] = row[35]
-		resultDict['pkColumnOverrideMergeonly'] = row[36]
-		resultDict['hiveMergeHeap'] = row[37]
-		resultDict['hiveSplitCount'] = row[38]
-		resultDict['sparkExecutorMemory'] = row[39]
-		resultDict['sparkExecutors'] = row[40]
-		resultDict['concatenateHiveTable'] = row[41]
+		resultDict['sqlWhereAddition'] = row[10]
+		resultDict['nomergeIngestionSqlAddition'] = row[11]
+		resultDict['includeInAirflow'] = row[12]
+		resultDict['airflowPriority'] = row[13]
+		resultDict['validateImport'] = row[14]
+		resultDict['validationMethod'] = row[15]
+		resultDict['validateSource'] = row[16]
+		resultDict['validateDiffAllowed'] = row[17]
+		resultDict['validationCustomQuerySourceSQL'] = row[18]
+		resultDict['validationCustomQueryHiveSQL'] = row[19]
+		resultDict['validationCustomQueryValidateImportTable'] = row[20]
+		resultDict['truncateTable'] = row[21]
+		resultDict['mappers'] = row[22]
+		resultDict['softDeleteDuringMerge'] = row[23]
+		resultDict['sourceRowcount'] = row[24]
+		resultDict['sourceRowcountIncr'] = row[25]
+		resultDict['targetRowcount'] = row[26]
+		resultDict['validationCustomQuerySourceValue'] = row[27]
+		resultDict['validationCustomQueryHiveValue'] = row[28]
+		resultDict['incrMode'] = row[29]
+		resultDict['incrColumn'] = row[30]
+		resultDict['incrValidationMethod'] = row[31]
+		resultDict['incrMinvalue'] = row[32]
+		resultDict['incrMaxvalue'] = row[33]
+		resultDict['incrMinvaluePending'] = row[34]
+		resultDict['incrMaxvaluePending'] = row[35]
+		resultDict['pkColumnOverride'] = row[36]
+		resultDict['pkColumnOverrideMergeonly'] = row[37]
+		resultDict['mergeHeap'] = row[38]
+		resultDict['splitCount'] = row[39]
+		resultDict['sparkExecutorMemory'] = row[40]
+		resultDict['sparkExecutors'] = row[41]
 		resultDict['splitByColumn'] = row[42]
-		resultDict['sqoopQuery'] = row[43]
+		resultDict['customQuery'] = row[43]
 		resultDict['sqoopOptions'] = row[44]
-		resultDict['sqoopLastSize'] = row[45]
-		resultDict['sqoopLastRows'] = row[46]
-		resultDict['sqoopLastMappers'] = row[47]
-		resultDict['sqoopLastExecution'] = row[48]
-		resultDict['sqoopUseGeneratedSQL'] = row[49]
-		resultDict['sqoopAllowTextSplitter'] = row[50]
+		resultDict['lastSize'] = row[45]
+		resultDict['lastRows'] = row[46]
+		resultDict['lastMappers'] = row[47]
+		resultDict['lastExecution'] = row[48]
+		resultDict['useGeneratedSql'] = row[49]
+		resultDict['allowTextSplitter'] = row[50]
 		resultDict['forceString'] = row[51]
 		resultDict['comment'] = row[52]
 		resultDict['generatedHiveColumnDefinition'] = row[53]
 		resultDict['generatedSqoopQuery'] = row[54]
-		resultDict['generatedQqoopOptions'] = row[55]
-		resultDict['generatedPKcolumns'] = row[56]
+		resultDict['generatedSqoopOptions'] = row[55]
+		resultDict['generatedPkColumns'] = row[56]
 		resultDict['generatedForeignKeys'] = row[57]
 		resultDict['datalakeSource'] = row[58]
 		resultDict['operatorNotes'] = row[59]
@@ -675,17 +848,16 @@ class dbCalls:
 			resultDict['copyFinished'] = None
 		resultDict['copySlave'] = row[61]
 		resultDict['createForeignKeys'] = row[62]
-		resultDict['customMaxQuery'] = row[63]
-		resultDict['mergeCompactionMethod'] = row[64]
-		resultDict['import_database'] = row[65]
-		resultDict['import_table'] = row[66]
-		resultDict['history_database'] = row[67]
-		resultDict['history_table'] = row[68]
+		resultDict['invalidateImpala'] = row[63]
+		resultDict['customMaxQuery'] = row[64]
+		resultDict['mergeCompactionMethod'] = row[65]
+		resultDict['sourceTableType'] = row[66]
+		resultDict['importDatabase'] = row[67]
+		resultDict['importTable'] = row[68]
+		resultDict['historyDatabase'] = row[69]
+		resultDict['historyTable'] = row[70]
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
 		return jsonResult
-	
-
-		

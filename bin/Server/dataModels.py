@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from pydantic import BaseModel
 from typing import Union, NewType, Literal
 from typing_extensions import Annotated
@@ -33,6 +33,35 @@ class changePassword(BaseModel):
 class status(BaseModel):
 	status: str
 	version: str
+
+class dbs(BaseModel):
+	name: str
+	tables: int
+	lastImport: Union[str, None] = None
+	lastSize: Union[int, None] = None
+	lastRows: Union[int, None] = None
+
+class connectionsRead(BaseModel):
+	name: str
+	connectionString: str
+	source: Union[str, None] = None
+	forceString: Union[bool, None] = None
+	maxSessions: Union[int, None] = None
+	createDatalakeImport: Union[bool, None] = None
+	timeWindowStart: Union[time, None] = None
+	timeWindowStop: Union[time, None] = None
+	timeWindowTimezone: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	contactInformation: Union[str, None] = None
+	description: Union[str, None] = None
+	owner: Union[str, None] = None
+	environment: Union[str, None] = None
+	seedFile: Union[str, None] = None
+	createForeignKey: Union[bool, None] = None
+	atlasDiscovery: Union[bool, None] = None
+	atlasIncludeFilter: Union[str, None] = None
+	atlasExcludeFilter: Union[str, None] = None
+	atlasLastDiscovery: Union[datetime, None] = None
 
 class jdbcDriver(BaseModel):
 	databaseType: str
@@ -111,6 +140,76 @@ class configuration(BaseModel):
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
 
-
-
+class tableRead(BaseModel):
+	database: str
+	table: str
+	connection: str
+	sourceSchema: str
+	sourceTable: str
+	importPhaseType: str
+	etlPhaseType: str
+	importTool: str
+	etlEngine: str
+	lastUpdateFromSource: Union[str, None] = None
+	sqlWhereAddition: Union[str, None] = None
+	nomergeIngestionSqlAddition: Union[str, None] = None
+	includeInAirflow: bool
+	airflowPriority: Union[str, None] = None
+	validateImport: bool
+	validationMethod: str
+	validateSource: str
+	validateDiffAllowed: int
+	validationCustomQuerySourceSQL: Union[str, None] = None
+	validationCustomQueryHiveSQL: Union[str, None] = None
+	validationCustomQueryValidateImportTable: bool
+	truncateTable: bool
+	mappers: int
+	softDeleteDuringMerge: bool
+	sourceRowcount: Union[int, None] = None
+	sourceRowcountIncr: Union[int, None] = None
+	targetRowcount: Union[int, None] = None
+	validationCustomQuerySourceValue: Union[str, None] = None
+	validationCustomQueryHiveValue: Union[str, None] = None
+	incrMode: Union[str, None] = None
+	incrColumn: Union[str, None] = None
+	incrValidationMethod: str
+	incrMinvalue: Union[str, None] = None
+	incrMaxvalue: Union[str, None] = None
+	incrMinvaluePending: Union[str, None] = None
+	incrMaxvaluePending: Union[str, None] = None
+	pkColumnOverride: Union[str, None] = None
+	pkColumnOverrideMergeonly: Union[str, None] = None
+	mergeHeap: Union[int, None] = None
+	splitCount: Union[int, None] = None
+	sparkExecutorMemory: Union[str, None] = None
+	sparkExecutors: Union[int, None] = None
+	splitByColumn: Union[str, None] = None
+	customQuery: Union[str, None] = None
+	sqoopOptions: Union[str, None] = None
+	lastSize: Union[int, None] = None
+	lastRows: Union[int, None] = None
+	lastMappers: Union[int, None] = None
+	lastExecution: Union[int, None] = None
+	useGeneratedSql: bool
+	allowTextSplitter: bool
+	forceString: int
+	comment: Union[str, None] = None
+	generatedHiveColumnDefinition: Union[str, None] = None
+	generatedSqoopQuery: Union[str, None] = None
+	generatedSqoopOptions: Union[str, None] = None
+	generatedPkColumns: Union[str, None] = None
+	generatedForeignKeys: Union[str, None] = None
+	datalakeSource: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	copyFinished: Union[str, None] = None
+	copySlave: bool
+	createForeignKeys: int
+	invalidateImpala: int
+	customMaxQuery: Union[str, None] = None
+	mergeCompactionMethod: str
+	sourceTableType: str
+	importDatabase: Union[str, None] = None
+	importTable: Union[str, None] = None
+	historyDatabase: Union[str, None] = None
+	historyTable: Union[str, None] = None
 

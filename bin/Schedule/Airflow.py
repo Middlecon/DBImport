@@ -100,36 +100,36 @@ class initialize(object):
 		except invalidConfiguration:
 			pass
 
-		# Fetch configuration about MySQL database and how to connect to it
-		self.databaseCredentials = self.common_config.getMysqlCredentials()
-		self.configHostname = self.databaseCredentials["mysql_hostname"]
-		self.configPort =     self.databaseCredentials["mysql_port"]
-		self.configDatabase = self.databaseCredentials["mysql_database"]
-		self.configUsername = self.databaseCredentials["mysql_username"]
-		self.configPassword = self.databaseCredentials["mysql_password"]
-
-		# Esablish a SQLAlchemy connection to the DBImport database 
-		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
-			self.configUsername, 
-			self.configPassword, 
-			self.configHostname, 
-			self.configPort, 
-			self.configDatabase)
-
-		try:
-			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
-			self.configDB.connect()
-			self.configDBSession = sessionmaker(bind=self.configDB)
-
-		except sa.exc.OperationalError as err:
-			logging.error("%s"%err)
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
-		except:
-			print("Unexpected error: ")
-			print(sys.exc_info())
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+#		# Fetch configuration about MySQL database and how to connect to it
+#		self.databaseCredentials = self.common_config.getMysqlCredentials()
+#		self.configHostname = self.databaseCredentials["mysql_hostname"]
+#		self.configPort =     self.databaseCredentials["mysql_port"]
+#		self.configDatabase = self.databaseCredentials["mysql_database"]
+#		self.configUsername = self.databaseCredentials["mysql_username"]
+#		self.configPassword = self.databaseCredentials["mysql_password"]
+#
+#		# Esablish a SQLAlchemy connection to the DBImport database 
+#		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+#			self.configUsername, 
+#			self.configPassword, 
+#			self.configHostname, 
+#			self.configPort, 
+#			self.configDatabase)
+#
+#		try:
+#			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
+#			self.configDB.connect()
+#			self.configDBSession = sessionmaker(bind=self.configDB)
+#
+#		except sa.exc.OperationalError as err:
+#			logging.error("%s"%err)
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
+#		except:
+#			print("Unexpected error: ")
+#			print(sys.exc_info())
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
 
 		if self.airflowMode == "default":
 			# Establish a SQLAlchemy connection to the Airflow database
@@ -151,6 +151,20 @@ class initialize(object):
 
 
 		logging.debug("Executing Airflow.__init__() - Finished")
+
+	def disconnectDBImportDB(self):
+		""" Disconnects from the database and removes all sessions and engine """
+		self.common_config.disconnectSQLAlchemy()
+		self.common_config.configDBSession = None
+
+
+	def getDBImportSession(self):
+		if self.common_config.configDBSession == None:
+			if self.common_config.connectSQLAlchemy(exitIfFailure=False) == False:
+				raise SQLerror("Can't connect to DBImport database")
+
+		return self.common_config.configDBSession()
+
 
 	def checkExecution(self):
 		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
@@ -177,7 +191,8 @@ class initialize(object):
 		self.writeDAG = writeDAG
 		self.DAGFolder = DAGFolder
 
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 		airflowCustomDags = aliased(configSchema.airflowCustomDags)
 		airflowExportDags = aliased(configSchema.airflowExportDags)
 		airflowImportDags = aliased(configSchema.airflowImportDags)
@@ -341,7 +356,8 @@ class initialize(object):
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'], concurrency = DAG['concurrency'])
 
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 		exportTables = aliased(configSchema.exportTables)
 
 		exportTablesQuery = Query([exportTables.target_schema, exportTables.target_table, exportTables.dbalias, exportTables.airflow_priority, exportTables.export_type, exportTables.sqoop_last_mappers])
@@ -468,7 +484,8 @@ class initialize(object):
 		cronSchedule = self.convertTimeToCron(DAG["schedule_interval"])
 		self.createDAGfileWithHeader(dagName = DAG['dag_name'], cronSchedule = cronSchedule, importPhaseFinishFirst = importPhaseFinishFirst, defaultPool = defaultPool, sudoUser = sudoUser, dagTimeZone = DAG['timezone'], email = DAG['email'], email_on_failure = DAG['email_on_failure'], email_on_retries = DAG['email_on_retries'], tags = DAG['tags'], slaWarningTime = DAG['sla_warning_time'], retryExponentialBackoff = DAG['retry_exponential_backoff'], concurrency = DAG['concurrency'])
 
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 		importTables = aliased(configSchema.importTables)
 
 		importTablesQuery = Query([importTables.hive_db, importTables.hive_table, importTables.dbalias, importTables.airflow_priority, importTables.import_type, importTables.import_phase_type, importTables.etl_phase_type, importTables.sqoop_last_mappers, importTables.copy_slave])
@@ -768,7 +785,8 @@ class initialize(object):
 	def generateCustomDAG(self, DAG):
 		""" Generates a Custom DAG """
 
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 		airflowTasks = aliased(configSchema.airflowTasks)
 
 		tasks = (session.query(airflowTasks.task_name)
@@ -828,7 +846,8 @@ class initialize(object):
 
 
 	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None, retryExponentialBackoff=None, concurrency=None):
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 
 		self.sensorStartTask = "start"
 		self.sensorStopTask = "dag_sensors_finished"
@@ -1537,7 +1556,8 @@ class initialize(object):
 
 	def addTasksToDAGfile(self, dagName, mainDagSchedule, defaultRetries=0, defaultSudoUser=""):
 
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 
 		if defaultSudoUser == None: defaultSudoUser = ""
 
@@ -2001,7 +2021,8 @@ class initialize(object):
 		session.close()
 			
 	def addSensorsToDAGfile(self, dagName, mainDagSchedule):
-		session = self.configDBSession()
+		# session = self.configDBSession()
+		session = self.getDBImportSession()
 
 		airflowDAGsensors = aliased(configSchema.airflowDagSensors, name="ads")
 		airflowCustomDags = aliased(configSchema.airflowCustomDags, name="acd")
