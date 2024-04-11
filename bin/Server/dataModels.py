@@ -34,22 +34,28 @@ class status(BaseModel):
 	status: str
 	version: str
 
-class dbs(BaseModel):
+class importDBs(BaseModel):
 	name: str
 	tables: int
 	lastImport: Union[str, None] = None
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
 
-class connectionsRead(BaseModel):
+class connection(BaseModel):
+	name: str
+
+class connectionDetailsRead(BaseModel):
 	name: str
 	connectionString: str
+	privateKeyPath: Union[str, None] = None
+	publicKeyPath: Union[str, None] = None
+	credentials: Union[str, None] = None
 	source: Union[str, None] = None
 	forceString: Union[bool, None] = None
 	maxSessions: Union[int, None] = None
 	createDatalakeImport: Union[bool, None] = None
-	timeWindowStart: Union[time, None] = None
-	timeWindowStop: Union[time, None] = None
+	timeWindowStart: Union[str, None] = None
+	timeWindowStop: Union[str, None] = None
 	timeWindowTimezone: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	contactInformation: Union[str, None] = None
@@ -61,7 +67,7 @@ class connectionsRead(BaseModel):
 	atlasDiscovery: Union[bool, None] = None
 	atlasIncludeFilter: Union[str, None] = None
 	atlasExcludeFilter: Union[str, None] = None
-	atlasLastDiscovery: Union[datetime, None] = None
+	atlasLastDiscovery: Union[str, None] = None
 
 class jdbcDriver(BaseModel):
 	databaseType: str
@@ -140,7 +146,19 @@ class configuration(BaseModel):
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
 
-class tableRead(BaseModel):
+class importTable(BaseModel):
+	database: str
+	table: str
+	connection: str
+	sourceSchema: str
+	sourceTable: str
+	importPhaseType: str
+	etlPhaseType: str
+	importTool: str
+	etlEngine: str
+	lastUpdateFromSource: Union[str, None] = None
+
+class importTableDetailsRead(BaseModel):
 	database: str
 	table: str
 	connection: str
@@ -207,9 +225,110 @@ class tableRead(BaseModel):
 	invalidateImpala: int
 	customMaxQuery: Union[str, None] = None
 	mergeCompactionMethod: str
-	sourceTableType: str
+	sourceTableType: Union[str, None] = None
 	importDatabase: Union[str, None] = None
 	importTable: Union[str, None] = None
 	historyDatabase: Union[str, None] = None
 	historyTable: Union[str, None] = None
+
+class importTableColumnsRead(BaseModel):
+	database: str
+	table: str
+	columnName: str
+	columnOrder: int
+	sourceColumnName: str
+	columnType: str
+	sourceColumnType: str
+	sourceDatabaseType: Union[str, None] = None
+	columnNameOverride: Union[str, None] = None
+	columnTypeOverride: Union[str, None] = None
+	sqoopColumnType: Union[str, None] = None
+	sqoopColumnTypeOverride: Union[str, None] = None
+	forceString: int
+	includeInImport: int
+	sourcePrimaryKey: Union[int, None] = None
+	lastUpdateFromSource: str
+	comment: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	anonymizationFunction: str
+
+class exportConnections(BaseModel):
+	name: str
+	tables: int
+	lastExport: Union[str, None] = None
+	lastRows: Union[int, None] = None
+
+class exportTable(BaseModel):
+	connection: str
+	targetSchema: str
+	targetTable: str
+	database: str
+	table: str
+	exportType: str
+	exportTool: str
+	lastUpdateFromHive: Union[str, None] = None
+
+class exportTableDetailsRead(BaseModel):
+	connection: str
+	targetSchema: str
+	targetTable: str
+	exportType:str
+	exportTool:str
+	database:str
+	table:str
+	lastUpdateFromHive: Union[str, None] = None
+	sqlWhereAddition: Union[str, None] = None
+	includeInAirflow: Union[int, None] = None
+	airflowPriority: Union[int, None] = None
+	forceCreateTempTable: Union[bool, None] = None
+	validateExport: Union[bool, None] = None
+	validationMethod: Union[str, None] = None
+	validationCustomQueryHiveSQL: Union[str, None] = None
+	validationCustomQueryTargetSQL: Union[str, None] = None
+	uppercaseColumns: Union[int, None] = None
+	truncateTarget: Union[bool, None] = None
+	mappers: Union[int, None] = None
+	tableRowcount: Union[int, None] = None
+	targetRowcount: Union[int, None] = None
+	validationCustomQueryHiveValue: Union[str, None] = None
+	validationCustomQueryTargetValue: Union[str, None] = None
+	incrColumn: Union[str, None] = None
+	incrValidationMethod: Union[str, None] = None
+	incrMinvalue: Union[str, None] = None
+	incrMaxvalue: Union[str, None] = None
+	incrMinvaluePending: Union[str, None] = None
+	incrMaxvaluePending: Union[str, None] = None
+	sqoopOptions: Union[str, None] = None
+	lastSize: Union[int, None] = None
+	lastRows: Union[int, None] = None
+	lastMappers: Union[int, None] = None
+	lastExecution: Union[int, None] = None
+	javaHeap: Union[int, None] = None
+	createTargetTableSql: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+
+
+class exportTableColumnsRead(BaseModel):
+	connection: str
+	targetSchema: str
+	targetTable: str
+	columnName: str
+	columnType: str
+	columnOrder: Union[int, None] = None
+	targetColumnName: Union[str, None] = None
+	targetColumnType: Union[str, None] = None
+	lastUpdateFromHive: Union[str, None] = None
+	includeInExport: Union[int, None] = None
+	comment: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+
+
+class airflowAllDags(BaseModel):
+	name: str
+	type: str
+	scheduleInterval: Union[str, None] = None
+	autoRegenerateDag: bool
+	operatorNotes: Union[str, None] = None
+	applicationNotes: Union[str, None] = None
+
 

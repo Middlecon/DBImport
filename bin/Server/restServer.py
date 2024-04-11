@@ -335,18 +335,53 @@ async def update_global_configuration(configuration: dataModels.configuration, c
 	returnMsg, response.status_code = dbCalls.updateConfiguration(configuration, current_user["username"])
 	return returnMsg
 
-#@app.get("/connections", response_model=dataModels.connectionsRead)
-#async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-#	return dbCalls.getAllImportDatabases()
+@app.get("/connection", response_model=List[dataModels.connection])
+async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAllConnections()
 
-@app.get("/import/dbs", response_model=List[dataModels.dbs])
+@app.get("/connection/{connection}", response_model=dataModels.connectionDetailsRead)
+async def get_connection_details(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getConnection(connection)
+
+@app.get("/import/db", response_model=List[dataModels.importDBs])
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()
 
-@app.get("/import/table/{database}/{table}", response_model=dataModels.tableRead)
-# @app.get("/import/table/{database}/{table}")
+@app.get("/import/table/{database}", response_model=List[dataModels.importTable])
+async def get_import_tables_in_database(database: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getImportTablesInDatabase(database = database)
+
+@app.get("/import/table/{database}/{table}", response_model=dataModels.importTableDetailsRead)
 async def get_import_table_details(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getImportTableDetails(database = database, table = table)
+
+@app.get("/import/table/{database}/{table}/columns", response_model=List[dataModels.importTableColumnsRead])
+async def get_import_table_columns(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getImportTableColumns(database = database, table = table)
+
+@app.get("/export/connection", response_model=List[dataModels.exportConnections])
+async def get_all_connections_with_exports(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getExportConnections()
+
+@app.get("/export/table/{connection}", response_model=List[dataModels.exportTable])
+async def get_export_tables_on_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getExportTables(connection = connection)
+
+@app.get("/export/table/{connection}/{schema}", response_model=List[dataModels.exportTable])
+async def get_export_tables_on_connection_and_schema(connection: str, schema: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getExportTables(connection = connection, schema = schema)
+
+@app.get("/export/table/{connection}/{schema}/{table}", response_model=dataModels.exportTableDetailsRead)
+async def get_export_table_details(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getExportTableDetails(connection = connection, schema = schema, table = table)
+
+@app.get("/export/table/{connection}/{schema}/{table}/columns", response_model=List[dataModels.exportTableColumnsRead])
+async def get_export_table_details(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getExportTableColumns(connection = connection, schema = schema, table = table)
+
+@app.get("/airflow/dags", response_model=List[dataModels.airflowAllDags])
+async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAllAirflowDags()
 
 # API calls bellow this point is tech-preview and is missing a lot of functionallity
 #@app.get("/import/hiveDBs")

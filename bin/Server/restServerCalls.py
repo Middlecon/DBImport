@@ -418,7 +418,123 @@ class dbCalls:
 		# return jsonResult
 		return (result, returnCode)
 
-#	def getDBImportImportTableDBs(self):
+	def getAllConnections(self):
+		""" Returns all Connections """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		tableJDBCconnections = aliased(configSchema.jdbcConnections)
+		jdbcConnections = (session.query(
+					tableJDBCconnections.dbalias
+				)
+				.select_from(tableJDBCconnections)
+				.order_by(tableJDBCconnections.dbalias)
+				.all()
+			)
+
+		listOfConnections = []
+		for row in jdbcConnections:
+			resultDict = {}
+			resultDict["name"] = row[0]
+			listOfConnections.append(resultDict)
+
+		jsonResult = json.loads(json.dumps(listOfConnections))
+		session.close()
+
+		return jsonResult
+
+	def getConnection(self, connection):
+		""" Returns all Connections """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		tableJDBCconnections = aliased(configSchema.jdbcConnections)
+		row = (session.query(
+					tableJDBCconnections.dbalias,
+					tableJDBCconnections.jdbc_url,
+					tableJDBCconnections.private_key_path,
+					tableJDBCconnections.public_key_path,
+					tableJDBCconnections.credentials,
+					tableJDBCconnections.datalake_source,
+					tableJDBCconnections.force_string,
+					tableJDBCconnections.max_import_sessions,
+					tableJDBCconnections.create_datalake_import,
+					tableJDBCconnections.timewindow_start,
+					tableJDBCconnections.timewindow_stop,
+					tableJDBCconnections.timewindow_timezone,
+					tableJDBCconnections.operator_notes,
+					tableJDBCconnections.contact_info,
+					tableJDBCconnections.description,
+					tableJDBCconnections.owner,
+					tableJDBCconnections.environment,
+					tableJDBCconnections.seed_file,
+					tableJDBCconnections.create_foreign_keys,
+					tableJDBCconnections.atlas_discovery,
+					tableJDBCconnections.atlas_include_filter,
+					tableJDBCconnections.atlas_exclude_filter,
+					tableJDBCconnections.atlas_last_discovery
+				)
+				.select_from(tableJDBCconnections)
+				.filter(tableJDBCconnections.dbalias == connection)
+				.one_or_none()
+			)
+
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="connection does not exist")
+
+		resultDict = {}
+		resultDict["name"] = row[0]
+		resultDict["connectionString"] = row[1]
+		resultDict["private_key_path"] = row[2]
+		resultDict["public_key_path"] = row[3]
+		resultDict["credentials"] = row[4]
+		resultDict["source"] = row[5]
+		resultDict["forceString"] = row[6]
+		if resultDict["forceString"] != 0 and resultDict["forceString"] != 1:
+			resultDict["forceString"] = 0
+		resultDict["maxSessions"] = row[7]
+		resultDict["createDatalakeImport"] = row[8]
+		try:
+			resultDict["timeWindowStart"] = row[9].strftime('%H:%M:%S')
+		except AttributeError:
+			resultDict["timeWindowStart"] = None
+		try:
+			resultDict["timeWindowStop"] = row[10].strftime('%H:%M:%S')
+		except AttributeError:
+			resultDict["timeWindowStop"] = None
+		resultDict["timeWindowTimezone"] = row[11]
+		resultDict["operatorNotes"] = row[12]
+		resultDict["contactInformation"] = row[13]
+		resultDict["description"] = row[14]
+		resultDict["owner"] = row[15]
+		resultDict["environment"] = row[16]
+		resultDict["seedFile"] = row[17]
+		resultDict["createForeignKey"] = row[18]
+		resultDict["atlasDiscovery"] = row[19]
+		resultDict["atlasIncludeFilter"] = row[20]
+		resultDict["atlasExcludeFilter"] = row[21]
+		try:
+			resultDict["atlasLastDiscovery"] = row[22].strftime('%Y-%m-%d %H:%M:%S')
+		except AttributeError:
+			resultDict["atlasLastDiscovery"] = None
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
 	def getAllImportDatabases(self):
 		""" Returns all databases that have imports configured in them """
 		log = logging.getLogger(self.logger)
@@ -445,24 +561,24 @@ class dbCalls:
 
 		listOfDBs = []
 		for row in importTableDBs:
-			dbs = {}
-			dbs["name"] = row[0]
-			dbs["tables"] = row[1]
+			resultDict = {}
+			resultDict["name"] = row[0]
+			resultDict["tables"] = row[1]
 			if row[2] == None:
-				dbs["lastImport"] = ""
+				resultDict["lastImport"] = ""
 			else:
-				dbs["lastImport"] = row[2].strftime('%Y-%m-%d %H:%M:%S')
+				resultDict["lastImport"] = row[2].strftime('%Y-%m-%d %H:%M:%S')
 
 			if row[3] == None:
-				dbs["lastSize"] = 0
+				resultDict["lastSize"] = 0
 			else:
-				dbs["lastSize"] = int(row[3])
+				resultDict["lastSize"] = int(row[3])
 
 			if row[4] == None:
-				dbs["lastRows"] = 0
+				resultDict["lastRows"] = 0
 			else:
-				dbs["lastRows"] = int(row[4])
-			listOfDBs.append(dbs)
+				resultDict["lastRows"] = int(row[4])
+			listOfDBs.append(resultDict)
 
 		jsonResult = json.loads(json.dumps(listOfDBs))
 		session.close()
@@ -470,7 +586,7 @@ class dbCalls:
 		return jsonResult
 	
 
-	def getDBImportImportTables(self, db, details):
+	def getImportTablesInDatabase(self, database):
 		""" Returns all import tables in a specific database """
 		log = logging.getLogger(self.logger)
 
@@ -483,46 +599,41 @@ class dbCalls:
 		importTables = aliased(configSchema.importTables)
 		listOfTables = []
 
-		if details == False:
-			# Return a list of hive tables without the details
-			importTablesData = (session.query(
-						importTables.hive_table
-					)
-					.select_from(importTables)
-					.filter(importTables.hive_db == db)
-					.all()
+		# Return a list of Hive tables with details
+		importTablesData = (session.query(
+					importTables.hive_db,
+					importTables.hive_table,
+					importTables.dbalias,
+					importTables.source_schema,
+					importTables.source_table,
+					importTables.import_phase_type,
+					importTables.etl_phase_type,
+					importTables.import_tool,
+					importTables.etl_engine,
+					importTables.last_update_from_source
 				)
+				.select_from(importTables)
+				.filter(importTables.hive_db == database)
+				.all()
+			)
 
-			for row in importTablesData:
-				listOfTables.append(row[0])
+		for row in importTablesData:
+			resultDict = {}
+			resultDict['database'] = row[0]
+			resultDict['table'] = row[1]
+			resultDict['connection'] = row[2]
+			resultDict['sourceSchema'] = row[3]
+			resultDict['sourceTable'] = row[4]
+			resultDict['importPhaseType'] = row[5]
+			resultDict['etlPhaseType'] = row[6]
+			resultDict['importTool'] = row[7]
+			resultDict['etlEngine'] = row[8]
+			try:
+				resultDict['lastUpdateFromSource'] = row[9].strftime("%Y-%m-%d %H:%M:%S")
+			except AttributeError:
+				resultDict['lastUpdateFromSource'] = None
 
-		else:
-			# Return a list of Hive tables with details
-			importTablesData = (session.query(
-						importTables.hive_table,
-						importTables.dbalias,
-						importTables.source_schema,
-						importTables.source_table,
-						importTables.import_phase_type,
-						importTables.etl_phase_type,
-						importTables.import_tool
-					)
-					.select_from(importTables)
-					.filter(importTables.hive_db == db)
-					.all()
-				)
-
-			for row in importTablesData:
-				tempDict = {}
-				tempDict['hiveTable'] = row[0]
-				tempDict['dbAlias'] = row[1]
-				tempDict['sourceSchema'] = row[2]
-				tempDict['sourceTable'] = row[3]
-				tempDict['importPhaseType'] = row[4]
-				tempDict['etlPhaseType'] = row[5]
-				tempDict['importTool'] = row[6]
-
-				listOfTables.append(tempDict)
+			listOfTables.append(resultDict)
 
 
 		jsonResult = json.loads(json.dumps(listOfTables))
@@ -531,8 +642,6 @@ class dbCalls:
 		return jsonResult
 	
 
-		
-#	def getAllImportTables(self, db, table):
 	def getImportTableDetails(self, database, table):
 		""" Returns all import table details """
 		log = logging.getLogger(self.logger)
@@ -618,167 +727,18 @@ class dbCalls:
 					importTables.import_table,
 					importTables.history_database,
 					importTables.history_table
-
-
-
-#    				importTables.table_id,
-#					importTables.dbalias,
-#					importTables.source_schema,
-#					importTables.source_table,
-#					importTables.import_phase_type,
-#					importTables.etl_phase_type,
-#					importTables.import_tool,
-#					importTables.etl_engine,
-#					importTables.last_update_from_source,
-#					importTables.sqoop_sql_where_addition,
-#					importTables.nomerge_ingestion_sql_addition,
-#					importTables.include_in_airflow,
-#					importTables.airflow_priority,
-#					importTables.validate_import,
-#					importTables.validationMethod,
-#					importTables.validate_source,
-#					importTables.validate_diff_allowed,
-#					importTables.validationCustomQuerySourceSQL,
-#					importTables.validationCustomQueryHiveSQL,
-#					importTables.validationCustomQueryValidateImportTable,
-#					importTables.truncate_hive,
-#					importTables.mappers,
-#					importTables.soft_delete_during_merge,
-#					importTables.source_rowcount,
-#					importTables.source_rowcount_incr,
-#					importTables.hive_rowcount,
-#					importTables.validationCustomQuerySourceValue,
-#					importTables.validationCustomQueryHiveValue,
-#					importTables.incr_mode,
-#					importTables.incr_column,
-#					importTables.incr_validation_method,
-#					importTables.incr_minvalue,
-#					importTables.incr_maxvalue,
-#					importTables.incr_minvalue_pending,
-#					importTables.incr_maxvalue_pending,
-#					importTables.pk_column_override,
-#					importTables.pk_column_override_mergeonly,
-#					importTables.hive_merge_heap,
-#					importTables.hive_split_count,
-#					importTables.spark_executor_memory,
-#					importTables.spark_executors,
-#					importTables.concatenate_hive_table,
-#					importTables.split_by_column,
-#					importTables.sqoop_query,
-#					importTables.sqoop_options,
-#					importTables.sqoop_last_size,
-#					importTables.sqoop_last_rows,
-#					importTables.sqoop_last_mappers,
-#					importTables.sqoop_last_execution,
-#					importTables.sqoop_use_generated_sql,
-#					importTables.sqoop_allow_text_splitter,
-#					importTables.force_string,
-#					importTables.comment,
-#					importTables.generated_hive_column_definition,
-#					importTables.generated_sqoop_query,
-#					importTables.generated_sqoop_options,
-#					importTables.generated_pk_columns,
-#					importTables.generated_foreign_keys,
-#					importTables.datalake_source,
-#					importTables.operator_notes,
-#					importTables.copy_finished,
-#					importTables.copy_slave,
-#					importTables.create_foreign_keys,
-#					importTables.custom_max_query,
-#					importTables.mergeCompactionMethod,
-#					importTables.import_database,
-#					importTables.import_table,
-#					importTables.history_database,
-#					importTables.history_table
 				)
 				.select_from(importTables)
 				.filter((importTables.hive_db == database) & (importTables.hive_table == table))
-				.one()
+				.one_or_none()
 			)
 
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="import table does not exist")
+
 		resultDict = {}
-#		resultDict['table_id'] = row[0]
-#		resultDict['hiveDB'] = db
-#		resultDict['hiveTable'] = table
-#		resultDict['dbAlias'] = row[1]
-#		resultDict['sourceSchema'] = row[2]
-#		resultDict['sourceTable'] = row[3]
-#		resultDict['importPhaseType'] = row[4]
-#		resultDict['etlPhaseType'] = row[5]
-#		resultDict['importTool'] = row[6]
-#		resultDict['etlEngine'] = row[7]
-#		try:
-#			resultDict['lastUpdateFromSource'] = row[8].strftime("%Y-%m-%d %H:%M:%S")
-#		except AttributeError:
-#			resultDict['lastUpdateFromSource'] = None
-#		resultDict['sqoopSQLwhereAddition'] = row[9]
-#		resultDict['nomergeIngestionSQLaddition'] = row[10]
-#		resultDict['includeInAirflow'] = row[11]
-#		resultDict['airflowPriority'] = row[12]
-#		resultDict['validateImport'] = row[13]
-#		resultDict['validationMethod'] = row[14]
-#		resultDict['validateSource'] = row[15]
-#		resultDict['validateDiffAllowed'] = row[16]
-#		resultDict['validationCustomQuerySourceSQL'] = row[17]
-#		resultDict['validationCustomQueryHiveSQL'] = row[18]
-#		resultDict['validationCustomQueryValidateImportTable'] = row[19]
-#		resultDict['truncateHive'] = row[20]
-#		resultDict['mappers'] = row[21]
-#		resultDict['softDeleteDuringMerge'] = row[22]
-#		resultDict['sourceRowcount'] = row[23]
-#		resultDict['sourceRowcountIncr'] = row[24]
-#		resultDict['hiveRowcount'] = row[25]
-#		resultDict['validationCustomQuerySourceValue'] = row[26]
-#		resultDict['validationCustomQueryHiveValue'] = row[27]
-#		resultDict['incrMode'] = row[28]
-#		resultDict['incrColumn'] = row[29]
-#		resultDict['incrValidationMethod'] = row[30]
-#		resultDict['incrMinvalue'] = row[31]
-#		resultDict['incrMaxvalue'] = row[32]
-#		resultDict['incrMinvaluePending'] = row[33]
-#		resultDict['incrMaxvaluePending'] = row[34]
-#		resultDict['pkColumnOverride'] = row[35]
-#		resultDict['pkColumnOverrideMergeonly'] = row[36]
-#		resultDict['hiveMergeHeap'] = row[37]
-#		resultDict['hiveSplitCount'] = row[38]
-#		resultDict['sparkExecutorMemory'] = row[39]
-#		resultDict['sparkExecutors'] = row[40]
-#		resultDict['concatenateHiveTable'] = row[41]
-#		resultDict['splitByColumn'] = row[42]
-#		resultDict['sqoopQuery'] = row[43]
-#		resultDict['sqoopOptions'] = row[44]
-#		resultDict['sqoopLastSize'] = row[45]
-#		resultDict['sqoopLastRows'] = row[46]
-#		resultDict['sqoopLastMappers'] = row[47]
-#		resultDict['sqoopLastExecution'] = row[48]
-#		resultDict['sqoopUseGeneratedSQL'] = row[49]
-#		resultDict['sqoopAllowTextSplitter'] = row[50]
-#		resultDict['forceString'] = row[51]
-#		resultDict['comment'] = row[52]
-#		resultDict['generatedHiveColumnDefinition'] = row[53]
-#		resultDict['generatedSqoopQuery'] = row[54]
-#		resultDict['generatedQqoopOptions'] = row[55]
-#		resultDict['generatedPKcolumns'] = row[56]
-#		resultDict['generatedForeignKeys'] = row[57]
-#		resultDict['datalakeSource'] = row[58]
-#		resultDict['operatorNotes'] = row[59]
-#		try:
-#			resultDict['copyFinished'] = row[60].strftime("%Y-%m-%d %H:%M:%S")
-#		except AttributeError:
-#			resultDict['copyFinished'] = None
-#		resultDict['copySlave'] = row[61]
-#		resultDict['createForeignKeys'] = row[62]
-#		resultDict['customMaxQuery'] = row[63]
-#		resultDict['mergeCompactionMethod'] = row[64]
-#		resultDict['import_database'] = row[65]
-#		resultDict['import_table'] = row[66]
-#		resultDict['history_database'] = row[67]
-#		resultDict['history_table'] = row[68]
-
-	
-
-
-		
 		resultDict['database'] = row[0]
 		resultDict['table'] = row[1]
 		resultDict['connection'] = row[2]
@@ -858,6 +818,442 @@ class dbCalls:
 		resultDict['historyTable'] = row[70]
 
 		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
+
+	def getImportTableColumns(self, database, table):
+		""" Returns all columns in an import table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		importColumns = aliased(configSchema.importColumns)
+		listOfColumns = []
+
+		# Return a list of Hive tables with details
+		importColumnsData = (session.query(
+					importColumns.hive_db,
+					importColumns.hive_table,
+    				importColumns.column_name,
+    				importColumns.column_order,
+    				importColumns.source_column_name,
+    				importColumns.column_type,
+    				importColumns.source_column_type,
+    				importColumns.source_database_type,
+    				importColumns.column_name_override,
+    				importColumns.column_type_override,
+    				importColumns.sqoop_column_type,
+    				importColumns.sqoop_column_type_override,
+    				importColumns.force_string,
+    				importColumns.include_in_import,
+    				importColumns.source_primary_key,
+    				importColumns.last_update_from_source,
+    				importColumns.comment,
+    				importColumns.operator_notes,
+    				importColumns.anonymization_function
+				)
+				.select_from(importColumns)
+				.filter((importColumns.hive_db == database) & (importColumns.hive_table == table))
+				.order_by(importColumns.column_order)
+				.all()
+			)
+
+		for row in importColumnsData:
+			resultDict = {}
+			resultDict['database'] = row[0]
+			resultDict['table'] = row[1]
+			resultDict['columnName'] = row[2]
+			resultDict['columnOrder'] = row[3]
+			resultDict['sourceColumnName'] = row[4]
+			resultDict['columnType'] = row[5]
+			resultDict['sourceColumnType'] = row[6]
+			resultDict['sourceDatabaseType'] = row[7]
+			resultDict['columnNameOverride'] = row[8]
+			resultDict['columnTypeOverride'] = row[9]
+			resultDict['sqoopColumnType'] = row[10]
+			resultDict['sqoopColumnTypeOverride'] = row[11]
+			resultDict['forceString'] = row[12]
+			resultDict['includeInImport'] = row[13]
+			resultDict['sourcePrimaryKey'] = row[14]
+			try:
+				resultDict['lastUpdateFromSource'] = row[15].strftime("%Y-%m-%d %H:%M:%S")
+			except AttributeError:
+				resultDict['lastUpdateFromSource'] = None
+			resultDict['comment'] = row[16]
+			resultDict['operatorNotes'] = row[17]
+			resultDict['anonymizationFunction'] = row[18]
+
+			listOfColumns.append(resultDict)
+	
+		jsonResult = json.loads(json.dumps(listOfColumns))
+		session.close()
+
+		return jsonResult
+
+
+
+	def getExportConnections(self):
+		""" Returns all connections that have exports configured in them """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+
+		exportTableDBs = (session.query(
+					exportTables.dbalias,
+					func.count(exportTables.dbalias),
+					func.max(exportTables.last_update_from_hive),
+					func.sum(exportTables.sqoop_last_rows)
+				)
+				.select_from(exportTables)
+				.group_by(exportTables.dbalias)
+				.all()
+			)
+
+		listOfConnections = []
+		for row in exportTableDBs:
+			connection = {}
+			connection["name"] = row[0]
+			connection["tables"] = row[1]
+			if row[2] == None:
+				connection["laportImport"] = ""
+			else:
+				connection["lastExport"] = row[2].strftime('%Y-%m-%d %H:%M:%S')
+
+			if row[3] == None:
+				connection["lastRows"] = 0
+			else:
+				connection["lastRows"] = int(row[3])
+			listOfConnections.append(connection)
+
+		jsonResult = json.loads(json.dumps(listOfConnections))
+		session.close()
+
+		return jsonResult
+	
+
+	def getExportTables(self, connection, schema = None):
+		""" Returns all connections that have exports configured in them """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+
+		if schema == None:
+			exportTableDBs = (session.query(
+						exportTables.dbalias,
+						exportTables.target_schema,
+						exportTables.target_table,
+						exportTables.hive_db,
+						exportTables.hive_table,
+						exportTables.export_type,
+						exportTables.export_tool,
+						exportTables.last_update_from_hive
+					)
+					.select_from(exportTables)
+					.filter(exportTables.dbalias == connection)
+					.all()
+				)
+		else:
+			exportTableDBs = (session.query(
+						exportTables.dbalias,
+						exportTables.target_schema,
+						exportTables.target_table,
+						exportTables.hive_db,
+						exportTables.hive_table,
+						exportTables.export_type,
+						exportTables.export_tool,
+						exportTables.last_update_from_hive
+					)
+					.select_from(exportTables)
+					.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema))
+					.all()
+				)
+
+		listOfExports = []
+		for row in exportTableDBs:
+			exportTable = {}
+			exportTable["connection"] = row[0]
+			exportTable["targetSchema"] = row[1]
+			exportTable["targetTable"] = row[2]
+			exportTable["database"] = row[3]
+			exportTable["table"] = row[4]
+			exportTable["exportType"] = row[5]
+			exportTable["exportTool"] = row[6]
+			try:
+				exportTable['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
+			except AttributeError:
+				exportTable['lastUpdateFromHive'] = None
+			listOfExports.append(exportTable)
+
+		jsonResult = json.loads(json.dumps(listOfExports))
+		session.close()
+
+		return jsonResult
+	
+
+	def getExportTableDetails(self, connection, schema, table):
+		""" Returns all connections that have exports configured in them """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+
+		row = (session.query(
+					exportTables.dbalias,
+					exportTables.target_schema,
+					exportTables.target_table,
+					exportTables.export_type,
+					exportTables.export_tool,
+					exportTables.hive_db,
+					exportTables.hive_table,
+					exportTables.last_update_from_hive,
+					exportTables.sql_where_addition,
+					exportTables.include_in_airflow,
+					exportTables.airflow_priority,
+					exportTables.forceCreateTempTable,
+					exportTables.validate_export,
+					exportTables.validationMethod,
+					exportTables.validationCustomQueryHiveSQL,
+					exportTables.validationCustomQueryTargetSQL,
+					exportTables.uppercase_columns,
+					exportTables.truncate_target,
+					exportTables.mappers,
+					exportTables.hive_rowcount,
+					exportTables.target_rowcount,
+					exportTables.validationCustomQueryHiveValue,
+					exportTables.validationCustomQueryTargetValue,
+					exportTables.incr_column,
+					exportTables.incr_validation_method,
+					exportTables.incr_minvalue,
+					exportTables.incr_maxvalue,
+					exportTables.incr_minvalue_pending,
+					exportTables.incr_maxvalue_pending,
+					exportTables.sqoop_options,
+					exportTables.sqoop_last_size,
+					exportTables.sqoop_last_rows,
+					exportTables.sqoop_last_mappers,
+					exportTables.sqoop_last_execution,
+					exportTables.hive_javaheap,
+					exportTables.create_target_table_sql,
+					exportTables.operator_notes
+				)
+				.select_from(exportTables)
+				.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema) & (exportTables.target_table == table))
+				.one_or_none()
+			)
+
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="export table does not exist")
+
+		resultDict = {}
+		resultDict['connection'] = row[0]
+		resultDict['targetSchema'] = row[1]
+		resultDict['targetTable'] = row[2]
+		resultDict['exportType'] = row[3]
+		resultDict['exportTool'] = row[4]
+		resultDict['database'] = row[5]
+		resultDict['table'] = row[6]
+		try:
+			resultDict['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
+		except AttributeError:
+			resultDict['lastUpdateFromHive'] = None
+		resultDict['sqlWhereAddition'] = row[8]
+		resultDict['includeInAirflow'] = row[9]
+		resultDict['airflowPriority'] = row[10]
+		resultDict['forceCreateTempTable'] = row[11]
+		resultDict['validateExport'] = row[12]
+		resultDict['validationMethod'] = row[13]
+		resultDict['validationCustomQueryHiveSQL'] = row[14]
+		resultDict['validationCustomQueryTargetSQL'] = row[15]
+		resultDict['uppercaseColumns'] = row[16]
+		resultDict['truncateTarget'] = row[17]
+		resultDict['mappers'] = row[18]
+		resultDict['tableRowcount'] = row[19]
+		resultDict['targetRowcount'] = row[20]
+		resultDict['validationCustomQueryHiveValue'] = row[21]
+		resultDict['validationCustomQueryTargetValue'] = row[22]
+		resultDict['incrColumn'] = row[23]
+		resultDict['incrValidationMethod'] = row[24]
+		resultDict['incrMinvalue'] = row[25]
+		resultDict['incrMaxvalue'] = row[26]
+		resultDict['incrMinvaluePending'] = row[27]
+		resultDict['incrMaxvaluePending'] = row[28]
+		resultDict['sqoopOptions'] = row[29]
+		resultDict['lastSize'] = row[30]
+		resultDict['lastRows'] = row[31]
+		resultDict['lastMappers'] = row[32]
+		resultDict['lastExecution'] = row[33]
+		resultDict['javaHeap'] = row[34]
+		resultDict['createTargetTableSql'] = row[35]
+		resultDict['operatorNotes'] = row[36]
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
+
+	def getExportTableColumns(self, connection, schema, table):
+		""" Returns all columns in an export table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportColumns = aliased(configSchema.exportColumns)
+		exportTables = aliased(configSchema.exportTables)
+		listOfColumns = []
+
+		# Return a list of Hive tables with details
+		exportColumnsData = (session.query(
+					exportTables.dbalias,
+					exportTables.target_schema,
+					exportTables.target_table,
+					exportColumns.column_name,
+					exportColumns.column_type,
+					exportColumns.column_order,
+					exportColumns.target_column_name,
+					exportColumns.target_column_type,
+					exportColumns.last_update_from_hive,
+					exportColumns.include_in_export,
+					exportColumns.comment,
+					exportColumns.operator_notes
+				)
+				.select_from(exportTables)
+				.join(exportColumns, exportTables.table_id == exportColumns.table_id, isouter=False)
+				.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema) & (exportTables.target_table == table))
+				.all()
+			)
+
+
+		for row in exportColumnsData:
+			resultDict = {}
+
+			resultDict['connection'] = row[0]
+			resultDict['targetSchema'] = row[1]
+			resultDict['targetTable'] = row[2]
+			resultDict['columnName'] = row[3]
+			resultDict['columnType'] = row[4]
+			resultDict['columnOrder'] = row[5]
+			resultDict['targetColumnName'] = row[6]
+			resultDict['targetColumnType'] = row[7]
+			try:
+				resultDict['lastUpdateFromHive'] = row[8].strftime("%Y-%m-%d %H:%M:%S")
+			except AttributeError:
+				resultDict['lastUpdateFromHive'] = None
+			resultDict['includeInExport'] = row[9]
+			resultDict['comment'] = row[10]
+			resultDict['operatorNotes'] = row[11]
+
+			listOfColumns.append(resultDict)
+	
+		jsonResult = json.loads(json.dumps(listOfColumns))
+		session.close()
+
+		return jsonResult
+
+
+	def getAllAirflowDags(self): 
+		""" Returns all Airflow DAGs """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		listOfDAGs = []
+		processedDAGs = []
+
+		airflowCustomDagsQuery = (session.query(
+					airflowCustomDags.dag_name,
+					sa.sql.expression.literal_column("'custom'").label("dag_type"),
+					airflowCustomDags.schedule_interval,
+					airflowCustomDags.auto_regenerate_dag,
+					airflowCustomDags.operator_notes,
+					airflowCustomDags.application_notes
+				)
+				.select_from(airflowCustomDags)
+			)
+
+		airflowImportDagsQuery = (session.query(
+					airflowImportDags.dag_name,
+					sa.sql.expression.literal_column("'import'").label("dag_type"),
+					airflowImportDags.schedule_interval,
+					airflowImportDags.auto_regenerate_dag,
+					airflowImportDags.operator_notes,
+					airflowImportDags.application_notes
+				)
+				.select_from(airflowImportDags)
+			)
+
+		airflowExportDagsQuery = (session.query(
+					airflowExportDags.dag_name,
+					sa.sql.expression.literal_column("'export'").label("dag_type"),
+					airflowExportDags.schedule_interval,
+					airflowExportDags.auto_regenerate_dag,
+					airflowExportDags.operator_notes,
+					airflowExportDags.application_notes
+				)
+				.select_from(airflowExportDags)
+			)
+
+		airflowDagsData = airflowCustomDagsQuery.union(airflowImportDagsQuery, airflowExportDagsQuery).all()
+
+
+		for row in airflowDagsData:
+			resultDict = {}
+
+			# Just to make sure that two DAGs dont exists with the same name in different tables
+			if row[0] in processedDAGs:
+				raise HTTPException(
+					status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+					detail="Airflow DAG '%s' exists in more than one DAG table"%(row[0]))
+			else:
+				processedDAGs.append(row[0])
+
+			resultDict['name'] = row[0]
+			resultDict['type'] = row[1]
+			resultDict['scheduleInterval'] = row[2]
+			resultDict['autoRegenerateDag'] = row[3]
+			resultDict['operatorNotes'] = row[4]
+			resultDict['applicationNotes'] = row[5]
+			listOfDAGs.append(resultDict)
+
+
+		jsonResult = json.loads(json.dumps(listOfDAGs))
 		session.close()
 
 		return jsonResult

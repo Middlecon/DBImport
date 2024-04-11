@@ -790,6 +790,7 @@ class jdbcConnections(Base):
     create_datalake_import = Column(TINYINT(4), nullable=False, comment='If set to 1, the datalake_import column will be created on all tables that is using this dbalias', server_default=text("'1'"))
     timewindow_start = Column(Time, comment='Start of the time window when we are allowed to run against this connection.')
     timewindow_stop = Column(Time, comment='End of the time window when we are allowed to run against this connection.')
+    timewindow_timezone = Column(String(64), comment='Timezone used for timewindow_start and timewindow_stop columns. Use full text timezone, example Europe/Stockholm.')
     operator_notes = Column(Text, comment='Free text field to write a note about the connection')
     create_foreign_keys = Column(TINYINT(4), nullable=False, comment='1 = Create foreign keys, 0 = Dont create foreign keys', server_default=text("'1'"))
     contact_info = Column(String(255), comment='Contact information. Used by Atlas integration')
