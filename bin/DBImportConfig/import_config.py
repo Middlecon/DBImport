@@ -225,8 +225,9 @@ class config(object, metaclass=Singleton):
 
 		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
 		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+		self.postDataToAWSSNS = self.common_config.getConfigValue(key = "post_data_to_awssns")
 
-		if self.postDataToREST == False and self.postDataToKafka == False:
+		if self.postDataToREST == False and self.postDataToKafka == False and self.postDataToAWSSNS == False:
 			return
 
 		import_stop = None
@@ -253,6 +254,11 @@ class config(object, metaclass=Singleton):
 			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
 			if response != 200:
 				logging.warn("REST call failed! No start message posted")
+
+		if self.postDataToAWSSNS == True:
+			result = self.sendStatistics.sendAWSSNSdata(json.dumps(jsonData))
+			if result == False:
+				logging.warning("AWS SNS publish failed! No start message posted")
 
 		logging.debug("Executing import_config.sendStartJSON() - Finished")
 

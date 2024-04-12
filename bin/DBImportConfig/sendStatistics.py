@@ -32,74 +32,6 @@ from DBImportConfig import common_config
 import kafka
 import ssl
 
-#class postSQLDataToREST(object):
-#	def __init__(self):
-#		logging.debug("Executing rest.__init__()")
-#
-#		self.mysql_conn = None
-#		self.mysql_cursor_01 = None
-#		self.mysql_cursor_02 = None
-#
-#		self.RESTendpoint = self.common_config.getConfigValue(key = "rest_url")
-#
-#		# Fetch configuration about MySQL database and how to connect to it
-#		mysql_hostname = configuration.get("Database", "mysql_hostname")
-#		mysql_port =     configuration.get("Database", "mysql_port")
-#		mysql_database = configuration.get("Database", "mysql_database")
-#		mysql_username = configuration.get("Database", "mysql_username")
-#		mysql_password = configuration.get("Database", "mysql_password")
-#
-#		# Esablish a connection to the DBImport database in MySQL
-#		try:
-#			self.mysql_conn = mysql.connector.connect(host=mysql_hostname, 
-#												 port=mysql_port, 
-#												 database=mysql_database, 
-#												 user=mysql_username, 
-#												 password=mysql_password)
-#		except mysql.connector.Error as err:
-#			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-#				logging.error("Something is wrong with your user name or password")
-#			elif err.errno == errorcode.ER_BAD_DB_ERROR:
-#				logging.error("Database does not exist")
-#			else:
-#				logging.error("%s"%err)
-#			logging.error("Error: There was a problem connecting to the MySQL database. Please check configuration and serverstatus and try again")
-#			self.remove_temporary_files()
-#			sys.exit(1)
-#		else:
-#			self.mysql_cursor_01 = self.mysql_conn.cursor(buffered=False)
-#			self.mysql_cursor_02 = self.mysql_conn.cursor(buffered=False)
-#
-#		rest = restInterface()
-#
-#		query = "select id, jsondata from json_to_rest"
-#		self.mysql_cursor_01.execute(query)
-#		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor_01.statement) )
-#
-#		successCounter = 0
-#		errorCounter = 0
-#
-#		for row in self.mysql_cursor_01.fetchall():
-#			jsonID = row[0]
-#			jsonData = row[1]
-#			response_code = -1
-#
-#			response_code = rest.sendData(jsonData)
-#
-#			if response_code == 200:
-#				query = "delete from json_to_rest where id = %s"
-#				self.mysql_cursor_02.execute(query, (jsonID, ))
-#				logging.debug("SQL Statement executed: %s" % (self.mysql_cursor_02.statement) )
-#				self.mysql_conn.commit()
-#				successCounter += 1
-#			else:
-#				errorCounter += 1
-#
-#		logging.info("Transmitted %s JSON documents to %s"%(successCounter, self.RESTendpoint))
-#		if errorCounter > 0:   logging.error("%s errors encountered"%(errorCounter))
-#
-#		self.mysql_conn.close()
-
 
 class sendStatistics(object):
 	def __init__(self):
@@ -118,6 +50,8 @@ class sendStatistics(object):
 		self.kafkaSecurityProtocol = self.common_config.getConfigValue(key = "kafka_securityprotocol")
 		self.kafkaSaslMechanism = self.common_config.getConfigValue(key = "kafka_saslmechanism")
 		self.kafkaTopic = self.common_config.getConfigValue(key = "kafka_topic")
+
+		self.awsSNStopic = self.common_config.getConfigValue(key = "post_data_to_awssns_topic")
 
 		if self.RESTendpoint == "":
 			logging.error("Cant find the REST endpoint. Please check configuration file")
@@ -229,3 +163,36 @@ class sendStatistics(object):
 
 		logging.debug("Executing sendStatistics.publishKafkaData - Finished")
 		return result
+
+	def sendAWSSNSdata(self, jsonData):
+		""" Publish data to AWS SNS topic """
+		logging.debug("Executing sendStatistics.sendAWSSNSdata")
+
+		logging.info("Sending statistics data to AWS SNS topic")
+		logging.debug("Sending the following JSON to AWS SNS: %s"% (jsonData))
+
+		result = True
+
+		import boto3
+		from botocore.exceptions import ClientError
+		# Create a Secrets Manager client            
+		session = boto3.session.Session()            
+		client = session.client(
+			service_name='sns',
+			region_name=self.common_config.awsRegion
+			)
+	
+		try:
+			publish_sns_response = client.publish(
+				TopicArn=self.awsSNStopic,
+				Message=jsonData
+			)
+		except ClientError as e:                # For a list of exceptions thrown, see
+			# https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+			logging.error(e)
+			result = False
+
+		logging.debug("Executing sendStatistics.sendAWSSNSdata - Finished")
+		return result
+
+

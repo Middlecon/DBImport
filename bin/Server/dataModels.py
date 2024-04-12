@@ -135,6 +135,9 @@ class configuration(BaseModel):
 	post_data_to_kafka: Union[bool, None] = None
 	post_data_to_rest_extended: Union[bool, None] = None
 	post_data_to_rest: Union[bool, None] = None
+	post_data_to_awssns_extended: Union[bool, None] = None
+	post_data_to_awssns: Union[bool, None] = None
+	post_data_to_awssns_topic: Union[str, None] = None
 	restserver_admin_user: Union[str, None] = None
 	restserver_authentication_method: Union[str, None] = None
 #	restserver_secret_key: Union[str, None] = None

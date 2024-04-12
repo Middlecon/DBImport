@@ -180,29 +180,34 @@ class stage(object):
 		self.postDataToRESTextended = self.common_config.getConfigValue(key = "post_data_to_rest_extended")
 		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
 		self.postDataToKafkaExtended = self.common_config.getConfigValue(key = "post_data_to_kafka_extended")
+		self.postDataToAWSSNS = self.common_config.getConfigValue(key = "post_data_to_awssns")
+		self.postDataToAWSSNSExtended = self.common_config.getConfigValue(key = "post_data_to_awssns_extended")
 
 #		self.postDataToREST = True
 
-		if self.postDataToREST == False and self.postDataToKafka == False:
+		if self.postDataToREST == False and self.postDataToKafka == False and self.postDataToAWSSNS == False:
 			return
 
 		export_stop = None
 		jsonDataKafka = {}
 		jsonDataKafka["type"] = "export"
 		jsonDataKafka["status"] = "finished"
-		jsonDataREST = {}
-		jsonDataREST["type"] = "export"
-		jsonDataREST["status"] = "finished"
+		jsonDataREST = jsonDataKafka.copy()
+		jsonDataAWSSNS = jsonDataKafka.copy()
 
 		for key, value in kwargs.items():
 			jsonDataKafka[key] = value
 			jsonDataREST[key] = value
+			jsonDataAWSSNS[key] = value
 
 		if self.postDataToKafkaExtended == False:
 			jsonDataKafka.pop("sessions")
 
 		if self.postDataToRESTextended == False:
 			jsonDataREST.pop("sessions")
+
+		if self.postDataToAWSSNSextended == False:
+			jsonDataAWSSNS.pop("sessions")
 
 		query = "select stage, start, stop, duration from export_stage_statistics where dbalias = %s and target_schema = %s and target_table = %s"
 		self.mysql_cursor.execute(query, (self.connectionAlias, self.targetSchema, self.targetTable))
@@ -231,6 +236,11 @@ class stage(object):
 				jsonDataKafka["%s_stop"%(stageShortName)] = str(stage_stop)
 				jsonDataKafka["%s_duration"%(stageShortName)] = stage_duration
 
+			if stageShortName != "skip" and self.postDataToAWSSNSExtended == True:
+				jsonDataAWSSNS["%s_start"%(stageShortName)] = str(stage_start)
+				jsonDataAWSSNS["%s_stop"%(stageShortName)] = str(stage_stop)
+				jsonDataAWSSNS["%s_duration"%(stageShortName)] = stage_duration
+
 			if stage == 0:
 				export_start = stage_start
 
@@ -246,6 +256,10 @@ class stage(object):
 		jsonDataREST["start"] = str(export_start)
 		jsonDataREST["stop"] = str(export_stop)
 		jsonDataREST["duration"] = export_duration
+
+		jsonDataAWSSNS["start"] = str(export_start)
+		jsonDataAWSSNS["stop"] = str(export_stop)
+		jsonDataAWSSNS["duration"] = export_duration
 
 #		print(jsonDataKafka)
 #		print("================================================")
@@ -265,26 +279,12 @@ class stage(object):
 				logging.info("Saving the JSON to the json_to_send table instead")
 				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
 
-
-#		import_duration = int((import_stop - import_start).total_seconds())
-#
-#		jsonData["start"] = str(import_start)
-#		jsonData["stop"] = str(import_stop)
-#		jsonData["duration"] = import_duration
-#
-#		logging.debug("Sending the following JSON to the REST interface: %s"% (json.dumps(jsonData, sort_keys=True, indent=4)))
-#		response = self.rest.sendData(json.dumps(jsonData))
-#		if response != 200:
-#			# There was something wrong with the REST call. So we save it to the database and handle it later
-#			logging.debug("REST call failed!")
-#			logging.debug("Saving the JSON to the json_to_rest table instead")
-#
-#			query = "insert into json_to_rest (type, status, jsondata) values ('import_statistics', 0, %s)"
-#			self.mysql_cursor.execute(query, (json.dumps(jsonData), ))
-#			self.mysql_conn.commit()
-#			logging.debug("SQL Statement executed: %s" % (self.mysql_cursor.statement) )
-#
-#		logging.debug("Executing stage.convertStageStatisticsToJSON() - Finished")
+		if self.postDataToAWSSNS == True:
+			result = self.sendStatistics.sendAWSSNSdata(json.dumps(jsonDataAWSSNS))
+			if result == False:
+				logging.info("AWS SNS publish failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
 
 	def saveStageStatistics(self, **kwargs):
 		""" Reads the export_stage_statistics and insert it to the export_statistics table """

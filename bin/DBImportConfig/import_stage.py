@@ -597,25 +597,27 @@ class stage(object):
 		self.postDataToRESTextended = self.common_config.getConfigValue(key = "post_data_to_rest_extended")
 		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
 		self.postDataToKafkaExtended = self.common_config.getConfigValue(key = "post_data_to_kafka_extended")
+		self.postDataToAWSSNS = self.common_config.getConfigValue(key = "post_data_to_awssns")
+		self.postDataToAWSSNSExtended = self.common_config.getConfigValue(key = "post_data_to_awssns_extended")
 
 #		self.postDataToREST = True
 #		self.postDataToKafka = True
 #		self.postDataToKafkaExtended = True
 
-		if self.postDataToREST == False and self.postDataToKafka == False:
+		if self.postDataToREST == False and self.postDataToKafka == False and self.postDataToAWSSNS == False:
 			return
 
 		import_stop = None
 		jsonDataKafka = {}
 		jsonDataKafka["type"] = "import"
 		jsonDataKafka["status"] = "finished"
-		jsonDataREST = {}
-		jsonDataREST["type"] = "import"
-		jsonDataREST["status"] = "finished"
+		jsonDataREST = jsonDataKafka.copy()
+		jsonDataAWSSNS = jsonDataKafka.copy()
 
 		for key, value in kwargs.items():
 			jsonDataKafka[key] = value
 			jsonDataREST[key] = value
+			jsonDataAWSSNS[key] = value
 
 		if self.postDataToKafkaExtended == False:
 			jsonDataKafka.pop("sessions")
@@ -624,6 +626,10 @@ class stage(object):
 		if self.postDataToRESTextended == False:
 			jsonDataREST.pop("sessions")
 			jsonDataREST.pop("copy_phase")
+
+		if self.postDataToAWSSNSExtended == False:
+			jsonDataAWSSNS.pop("sessions")
+			jsonDataAWSSNS.pop("copy_phase")
 
 		query = "select stage, start, stop, duration from import_stage_statistics where hive_db = %s and hive_table = %s"
 		self.mysql_cursor.execute(query, (self.Hive_DB, self.Hive_Table))
@@ -652,13 +658,23 @@ class stage(object):
 				jsonDataKafka["%s_stop"%(stageShortName)] = str(stage_stop) 
 				jsonDataKafka["%s_duration"%(stageShortName)] = stage_duration 
 
+			if stageShortName != "skip" and self.postDataToAWSSNSExtended == True:
+				jsonDataAWSSNS["%s_start"%(stageShortName)] = str(stage_start) 
+				jsonDataAWSSNS["%s_stop"%(stageShortName)] = str(stage_stop) 
+				jsonDataAWSSNS["%s_duration"%(stageShortName)] = stage_duration 
+
 			if stage == 0:
 				import_start = stage_start
 			
 			if import_stop == None or stage_stop > import_stop:
 				import_stop = stage_stop
 
-		import_duration = int((import_stop - import_start).total_seconds())
+		try:
+			import_duration = int((import_stop - import_start).total_seconds())
+		except UnboundLocalError:
+			import_start = -1 
+			import_stop = -1 
+			import_duration = -1 
 
 		jsonDataKafka["start"] = str(import_start)
 		jsonDataKafka["stop"] = str(import_stop)
@@ -667,6 +683,10 @@ class stage(object):
 		jsonDataREST["start"] = str(import_start)
 		jsonDataREST["stop"] = str(import_stop)
 		jsonDataREST["duration"] = import_duration
+
+		jsonDataAWSSNS["start"] = str(import_start)
+		jsonDataAWSSNS["stop"] = str(import_stop)
+		jsonDataAWSSNS["duration"] = import_duration
 
 		if self.postDataToKafka == True:
 			result = self.sendStatistics.publishKafkaData(json.dumps(jsonDataKafka))
@@ -679,6 +699,13 @@ class stage(object):
 			response = self.sendStatistics.sendRESTdata(json.dumps(jsonDataREST))
 			if response != 200:
 				logging.info("REST call failed!")
+				logging.info("Saving the JSON to the json_to_send table instead")
+				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
+
+		if self.postDataToAWSSNS == True:
+			result = self.sendStatistics.sendAWSSNSdata(json.dumps(jsonDataAWSSNS))
+			if result == False:
+				logging.info("AWS SNS publish failed!")
 				logging.info("Saving the JSON to the json_to_send table instead")
 				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
 
@@ -738,10 +765,16 @@ class stage(object):
 			import_duration = 0
 
 		columnsPart.append("start")
-		valuesPart.append(str(import_start))
+		if import_start == None:
+			valuesPart.append(import_start)
+		else:
+			valuesPart.append(str(import_start))
 
 		columnsPart.append("stop")
-		valuesPart.append(str(import_stop))
+		if import_stop == None:
+			valuesPart.append(import_stop)
+		else:
+			valuesPart.append(str(import_stop))
 
 		columnsPart.append("duration")
 		valuesPart.append(str(import_duration))

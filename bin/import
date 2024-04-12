@@ -325,9 +325,8 @@ def main(argv):
 		import_operation.setStage(0, force=True)
 		stage = 0
 
-	if stage == 0:
+	if stage == 0 and runOnlyFunction == None:
 		# This means it's the first attempt (or a reset) of this import. So we can send the start message to Kafka or REST in this case
-#		import_operation.convertStageStatisticsToJSON()
 		import_operation.sendStartJSON()
 
 	if copy_operation.isPreviousCopyCompleted() == False and stage < 2099 :

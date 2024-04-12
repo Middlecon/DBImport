@@ -797,6 +797,30 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'post_data_to_awssns' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_awssns', 
+				valueInt='0', 
+				description='Enable the AWS SNS endpoint to be able to receive information regarding completed imports and exports')
+			session.execute(query)
+			session.commit()
+
+		if 'post_data_to_awssns_extended' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_awssns_extended', 
+				valueInt='0', 
+				description='Enable extended statistics in AWS SNS data')
+			session.execute(query)
+			session.commit()
+
+		if 'post_data_to_awssns_topic' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='post_data_to_awssns_topic', 
+				valueStr='arn:aws:sns:region:account:topic', 
+				description='Full ARN to AWS SNS Topic where the json message will be sent')
+			session.execute(query)
+			session.commit()
+
 		if 'post_data_to_kafka' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='post_data_to_kafka', 
