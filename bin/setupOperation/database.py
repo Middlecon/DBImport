@@ -25,6 +25,7 @@ import jaydebeapi
 import base64
 import string
 import random
+from urllib.parse import quote
 from ConfigReader import configuration
 import mysql.connector
 from mysql.connector import errorcode
@@ -70,10 +71,12 @@ class initialize(object):
 		self.configDatabase = self.databaseCredentials["mysql_database"]
 		self.configUsername = self.databaseCredentials["mysql_username"]
 		self.configPassword = self.databaseCredentials["mysql_password"]
+		# self.configPassword = quote(self.databaseCredentials["mysql_password"], safe=" +")
 
 		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
 			self.configUsername, 
-			self.configPassword, 
+			# self.configPassword, 
+			quote(self.configPassword, safe=" +"),
 			self.configHostname, 
 			self.configPort, 
 			self.configDatabase)
@@ -96,6 +99,7 @@ class initialize(object):
 		self.alembicSchemaDir = DBImport_Home + '/bin/SchemaUpgrade'
 		self.alembicConfig = Config()
 		self.alembicConfig.set_main_option('script_location', self.alembicSchemaDir)
+		self.connectStr = self.connectStr.replace("%", "%%")
 		self.alembicConfig.set_main_option('sqlalchemy.url', self.connectStr)
 
 		# Esablish a connection to the DBImport database in MySQL
