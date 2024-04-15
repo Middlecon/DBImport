@@ -335,3 +335,74 @@ class airflowAllDags(BaseModel):
 	applicationNotes: Union[str, None] = None
 
 
+class airflowCustomDag(BaseModel):
+	name: str
+	scheduleInterval: Union[str, None] = None
+	retries: Union[int, None] = None
+	operatorNotes: Union[str, None] = None
+	applicationNotes: Union[str, None] = None
+	airflowNotes: Union[str, None] = None
+	autoRegenerateDag: Union[int, None] = None
+	sudoUser: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[int, None] = None
+	emailOnRetries: Union[int, None] = None
+	tags: Union[str, None] = None
+	slaWarningTime: Union[str, None] = None
+	retryExponentialBackoff: Union[int, None] = None
+	concurrency: Union[int, None] = None
+
+
+class airflowExportDag(BaseModel):
+	name: str
+	scheduleInterval: Union[str, None] = None
+	filterConnection: Union[str, None] = None
+	filterTargetSchema: Union[str, None] = None
+	filterTargetTable: Union[str, None] = None
+	retries: Union[int, None] = None
+	operatorNotes: Union[str, None] = None
+	applicationNotes: Union[str, None] = None
+	autoRegenerateDag: Union[int, None] = None
+	airflowNotes: Union[str, None] = None
+	sudoUser: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[int, None] = None
+	emailOnRetries: Union[int, None] = None
+	tags: Union[str, None] = None
+	slaWarningTime: Union[str, None] = None
+	retryExponentialBackoff: Union[int, None] = None
+	concurrency: Union[int, None] = None
+
+
+class airflowImportDag(BaseModel):
+	name: str
+	scheduleInterval: Union[str, None] = None
+	filterHive: Union[str, None] = None
+	finishAllStage1First: Union[int, None] = None
+	runImportAndEtlSeparate: Union[int, None] = None
+	retries: Union[int, None] = None
+	retriesStage1: Union[int, None] = None
+	retriesStage2: Union[int, None] = None
+	poolStage1: Union[str, None] = None
+	poolStage2: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	applicationNotes: Union[str, None] = None
+	autoRegenerateDag: Union[int, None] = None
+	airflowNotes: Union[str, None] = None
+	sudoUser: Union[str, None] = None
+	metadataImport: Union[int, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[int, None] = None
+	emailOnRetries: Union[int, None] = None
+	tags: Union[str, None] = None
+	slaWarningTime: Union[str, None] = None
+	retryExponentialBackoff: Union[int, None] = None
+	concurrency: Union[int, None] = None
+
+
+
+
+

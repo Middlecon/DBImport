@@ -383,6 +383,18 @@ async def get_export_table_details(connection: str, schema: str, table: str, cur
 async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllAirflowDags()
 
+@app.get("/airflow/dags/import/{dagname}", response_model=dataModels.airflowImportDag)
+async def get_import_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowImportDag(dagname)
+
+@app.get("/airflow/dags/export/{dagname}", response_model=dataModels.airflowExportDag)
+async def get_export_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowExportDag(dagname)
+
+@app.get("/airflow/dags/custom/{dagname}", response_model=dataModels.airflowCustomDag)
+async def get_custom_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowCustomDag(dagname)
+
 # API calls bellow this point is tech-preview and is missing a lot of functionallity
 #@app.get("/import/hiveDBs")
 #async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):

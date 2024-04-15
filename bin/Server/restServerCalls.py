@@ -1256,3 +1256,234 @@ class dbCalls:
 		session.close()
 
 		return jsonResult
+
+
+	def getAirflowCustomDag(self, dagname): 
+		""" Returns an Airflow Custom DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+
+		row = (session.query(
+					airflowCustomDags.dag_name,
+					airflowCustomDags.schedule_interval,
+					airflowCustomDags.retries,
+					airflowCustomDags.operator_notes,
+					airflowCustomDags.application_notes,
+					airflowCustomDags.airflow_notes,
+					airflowCustomDags.auto_regenerate_dag,
+					airflowCustomDags.sudo_user,
+					airflowCustomDags.timezone,
+					airflowCustomDags.email,
+					airflowCustomDags.email_on_failure,
+					airflowCustomDags.email_on_retries,
+					airflowCustomDags.tags,
+					airflowCustomDags.sla_warning_time,
+					airflowCustomDags.retry_exponential_backoff,
+					airflowCustomDags.concurrency
+				)
+				.select_from(airflowCustomDags)
+				.filter(airflowCustomDags.dag_name == dagname)
+				.one_or_none()
+			)
+
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="Airflow DAG does not exist")
+
+		resultDict = {}
+		resultDict["name"] = row[0]
+		resultDict["scheduleInterval"] = row[1]
+		resultDict["retries"] = row[2]
+		resultDict["operatorNotes"] = row[3]
+		resultDict["applicationNotes"] = row[4]
+		resultDict["airflowNotes"] = row[5]
+		resultDict["autoRegenerateDag"] = row[6]
+		resultDict["sudoUser"] = row[7]
+		resultDict["timezone"] = row[8]
+		resultDict["email"] = row[9]
+		resultDict["emailOnFailure"] = row[10]
+		resultDict["emailOnRetries"] = row[11]
+		resultDict["tags"] = row[12]
+		try:
+			resultDict["slaWarningTime"] = row[13].strftime('%H:%M:%S')
+		except AttributeError:
+			resultDict["slaWarningTime"] = None
+		resultDict["retryExponentialBackoff"] = row[14]
+		resultDict["concurrency"] = row[15]
+
+
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
+
+
+	def getAirflowExportDag(self, dagname): 
+		""" Returns an Airflow Export DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+
+		row = (session.query(
+					airflowExportDags.dag_name,
+					airflowExportDags.schedule_interval,
+					airflowExportDags.filter_dbalias,
+					airflowExportDags.filter_target_schema,
+					airflowExportDags.filter_target_table,
+					airflowExportDags.retries,
+					airflowExportDags.operator_notes,
+					airflowExportDags.application_notes,
+					airflowExportDags.auto_regenerate_dag,
+					airflowExportDags.airflow_notes,
+					airflowExportDags.sudo_user,
+					airflowExportDags.timezone,
+					airflowExportDags.email,
+					airflowExportDags.email_on_failure,
+					airflowExportDags.email_on_retries,
+					airflowExportDags.tags,
+					airflowExportDags.sla_warning_time,
+					airflowExportDags.retry_exponential_backoff,
+					airflowExportDags.concurrency
+				)
+				.select_from(airflowExportDags)
+				.filter(airflowExportDags.dag_name == dagname)
+				.one_or_none()
+			)
+
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="Airflow DAG does not exist")
+
+		resultDict = {}
+		resultDict["name"] = row[0]
+		resultDict["scheduleInterval"] = row[1]
+		resultDict["filterConnection"] = row[2]
+		resultDict["filterTargetSchema"] = row[3]
+		resultDict["filterTargetTable"] = row[4]
+		resultDict["retries"] = row[5]
+		resultDict["operatorNotes"] = row[6]
+		resultDict["applicationNotes"] = row[7]
+		resultDict["autoRegenerateDag"] = row[8]
+		resultDict["airflowNotes"] = row[9]
+		resultDict["sudoUser"] = row[10]
+		resultDict["timezone"] = row[11]
+		resultDict["email"] = row[12]
+		resultDict["emailOnFailure"] = row[13]
+		resultDict["emailOnRetries"] = row[14]
+		resultDict["tags"] = row[15]
+		try:
+			resultDict["slaWarningTime"] = row[16].strftime('%H:%M:%S')
+		except AttributeError:
+			resultDict["slaWarningTime"] = None
+		resultDict["retryExponentialBackoff"] = row[17]
+		resultDict["concurrency"] = row[18]
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
+
+	def getAirflowImportDag(self, dagname): 
+		""" Returns an Airflow Import DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+
+		row = (session.query(
+					airflowImportDags.dag_name,
+					airflowImportDags.schedule_interval,
+					airflowImportDags.filter_hive,
+					airflowImportDags.finish_all_stage1_first,
+					airflowImportDags.run_import_and_etl_separate,
+					airflowImportDags.retries,
+					airflowImportDags.retries_stage1,
+					airflowImportDags.retries_stage2,
+					airflowImportDags.pool_stage1,
+					airflowImportDags.pool_stage2,
+					airflowImportDags.operator_notes,
+					airflowImportDags.application_notes,
+					airflowImportDags.auto_regenerate_dag,
+					airflowImportDags.airflow_notes,
+					airflowImportDags.sudo_user,
+					airflowImportDags.metadata_import,
+					airflowImportDags.timezone,
+					airflowImportDags.email,
+					airflowImportDags.email_on_failure,
+					airflowImportDags.email_on_retries,
+					airflowImportDags.tags,
+					airflowImportDags.sla_warning_time,
+					airflowImportDags.retry_exponential_backoff,
+					airflowImportDags.concurrency
+				)
+				.select_from(airflowImportDags)
+				.filter(airflowImportDags.dag_name == dagname)
+				.one_or_none()
+			)
+
+		if row == None:
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail="Airflow DAG does not exist")
+
+		resultDict = {}
+		resultDict["name"] = row[0]
+		resultDict["scheduleInterval"] = row[1]
+		resultDict["filterHive"] = row[2]
+		resultDict["finishAllStage1First"] = row[3]
+		resultDict["runImportAndEtlSeparate"] = row[4]
+		resultDict["retries"] = row[5]
+		resultDict["retriesStage1"] = row[6]
+		resultDict["retriesStage2"] = row[7]
+		resultDict["poolStage1"] = row[8]
+		resultDict["poolStage2"] = row[9]
+		resultDict["operatorNotes"] = row[10]
+		resultDict["applicationNotes"] = row[11]
+		resultDict["autoRegenerateDag"] = row[12]
+		resultDict["airflowNotes"] = row[13]
+		resultDict["sudoUser"] = row[14]
+		resultDict["metadataImport"] = row[15]
+		resultDict["timezone"] = row[16]
+		resultDict["email"] = row[17]
+		resultDict["emailOnFailure"] = row[18]
+		resultDict["emailOnRetries"] = row[19]
+		resultDict["tags"] = row[20]
+		try:
+			resultDict["slaWarningTime"] = row[21].strftime('%H:%M:%S')
+		except AttributeError:
+			resultDict["slaWarningTime"] = None
+		resultDict["retryExponentialBackoff"] = row[22]
+		resultDict["concurrency"] = row[23]
+
+		jsonResult = json.loads(json.dumps(resultDict))
+		session.close()
+
+		return jsonResult
+
+
