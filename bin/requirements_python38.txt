@@ -27,7 +27,7 @@ Flask-RESTful==0.3.10
 future==0.18.3
 greenlet==3.0.3
 gssapi==1.8.3
-gunicorn==21.2.0
+gunicorn==22.0.0
 h11==0.14.0
 httptools==0.6.1
 idna==3.6
