@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta, time
 from pydantic import BaseModel
-from typing import Union, NewType, Literal
+from typing import Union, NewType, List, Union, Any, Literal
 from typing_extensions import Annotated
 from enum import Enum
 
@@ -335,6 +335,24 @@ class airflowAllDags(BaseModel):
 	applicationNotes: Union[str, None] = None
 
 
+class airflowTask(BaseModel):
+	name: str
+	type: str
+	placement: str
+	connection: Union[str, None] = None
+	airflowPool: Union[str, None] = None
+	airflowPriority: Union[int, None] = None
+	includeInAirflow: Union[int, None] = None
+	taskDependencyDownstream: Union[str, None] = None
+	taskDependencyUpstream: Union[str, None] = None
+	taskConfig: Union[str, None] = None
+	sensorPokeInterval: Union[int, None] = None
+	sensorTimeoutMinutes: Union[int, None] = None
+	sensorConnection: Union[str, None] = None
+	sensorSoftFail: Union[int, None] = None
+	sudoUser: Union[str, None] = None
+
+
 class airflowCustomDag(BaseModel):
 	name: str
 	scheduleInterval: Union[str, None] = None
@@ -346,12 +364,13 @@ class airflowCustomDag(BaseModel):
 	sudoUser: Union[str, None] = None
 	timezone: Union[str, None] = None
 	email: Union[str, None] = None
-	emailOnFailure: Union[int, None] = None
+	mailOnFailure: Union[int, None] = None
 	emailOnRetries: Union[int, None] = None
 	tags: Union[str, None] = None
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
 	concurrency: Union[int, None] = None
+	tasks: List[airflowTask] = []
 
 
 class airflowExportDag(BaseModel):
@@ -374,6 +393,7 @@ class airflowExportDag(BaseModel):
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
 	concurrency: Union[int, None] = None
+	tasks: List[airflowTask] = []
 
 
 class airflowImportDag(BaseModel):
@@ -401,6 +421,7 @@ class airflowImportDag(BaseModel):
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
 	concurrency: Union[int, None] = None
+	tasks: List[airflowTask] = []
 
 
 

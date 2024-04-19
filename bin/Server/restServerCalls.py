@@ -1257,6 +1257,64 @@ class dbCalls:
 
 		return jsonResult
 
+	def getAirflowTasks(self, dagname):
+		""" Returns a list with all airflow dags associated with a specified dag """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowTasks = aliased(configSchema.airflowTasks)
+		listOfTasks = []
+
+		# Return a list of Hive tables with details
+		airflowTasksData = (session.query(
+					airflowTasks.task_name,
+					airflowTasks.task_type,
+					airflowTasks.placement,
+					airflowTasks.jdbc_dbalias,
+					airflowTasks.airflow_pool,
+					airflowTasks.airflow_priority,
+					airflowTasks.include_in_airflow,
+					airflowTasks.task_dependency_downstream,
+					airflowTasks.task_dependency_upstream,
+					airflowTasks.task_config,
+					airflowTasks.sensor_poke_interval,
+					airflowTasks.sensor_timeout_minutes,
+					airflowTasks.sensor_connection,
+					airflowTasks.sensor_soft_fail,
+					airflowTasks.sudo_user
+
+				)
+				.select_from(airflowTasks)
+				.filter(airflowTasks.dag_name == dagname)
+				.all()
+			)
+
+		for row in airflowTasksData:
+			resultDict = {}
+			resultDict['name'] = row[0]
+			resultDict['type'] = row[1]
+			resultDict['placement'] = row[2]
+			resultDict['connection'] = row[3]
+			resultDict['airflowPool'] = row[4]
+			resultDict['airflowPriority'] = row[5]
+			resultDict['includeInAirflow'] = row[6]
+			resultDict['taskDependencyDownstream'] = row[7]
+			resultDict['taskDependencyUpstream'] = row[8]
+			resultDict['taskConfig'] = row[9]
+			resultDict['sensorPokeInterval'] = row[10]
+			resultDict['sensorTimeoutMinutes'] = row[11]
+			resultDict['sensorConnection'] = row[12]
+			resultDict['sensorSoftFail'] = row[13]
+			resultDict['sudoUser'] = row[14]
+			listOfTasks.append(resultDict)
+
+		return listOfTasks
+
 
 	def getAirflowCustomDag(self, dagname): 
 		""" Returns an Airflow Custom DAG """
@@ -1320,8 +1378,8 @@ class dbCalls:
 		resultDict["retryExponentialBackoff"] = row[14]
 		resultDict["concurrency"] = row[15]
 
-
-
+		resultDict["tasks"] = self.getAirflowTasks(dagname)
+		
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
@@ -1396,6 +1454,8 @@ class dbCalls:
 			resultDict["slaWarningTime"] = None
 		resultDict["retryExponentialBackoff"] = row[17]
 		resultDict["concurrency"] = row[18]
+
+		resultDict["tasks"] = self.getAirflowTasks(dagname)
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
@@ -1481,9 +1541,12 @@ class dbCalls:
 		resultDict["retryExponentialBackoff"] = row[22]
 		resultDict["concurrency"] = row[23]
 
+		resultDict["tasks"] = self.getAirflowTasks(dagname)
+
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
 		return jsonResult
+
 
 
