@@ -139,7 +139,7 @@ def main(argv):
 		logPropagate = False
 
 	# Setup the loggers
-	setupLogger(name="server", logfile="%s/restserver.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
+	setupLogger(name="server", logfile="%s/restServer.log"%(logdir), logFormat=logFormat, loggingLevel=loggingLevel, logPropagate=logPropagate)
 
 	glogging.Logger.datefmt = ""
 	glogging.Logger.error_fmt = logFormat
