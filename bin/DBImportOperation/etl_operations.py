@@ -590,30 +590,52 @@ class operation(object, metaclass=Singleton):
 
 		if sourceIsIncremental == False and targetDeleteDB != None and targetDeleteTable != None:
 			# Use the merge command to delete found rows between the Delete Table and the History Table
-			query  = "merge into %s as T \n"%(targetDBandTable)
-			query += "using %s as D \n"%(targetDeleteDBandTable)
-			query += "on \n"
-	
-			for i, column in enumerate(PKColumns.split(",")):
-				if i == 0: 
-					query += "   T.`%s` = D.`%s` "%(column, column)
-				else:
-					query += "and\n   T.`%s` = D.`%s` "%(column, column)
-			if softDelete == True:
-				# query += "and\n   T.`datalake_delete` != 'D' "
-				query += "and\n   T.`%s` != 'D' "%(self.common_operations.Hive_ColumnName_Delete)
-			query += "\n"
+			if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK and softDelete == False:
+				# Due to Iceberg bug #8126 (https://github.com/apache/iceberg/issues/8126), we need to do a workaround for deletes without soft delete
+				query  = "delete from %s as T \n"%(targetDBandTable)
+				query += "where exists ( \n"
+				query += "   select " 
+				for i, column in enumerate(PKColumns.split(",")):
+					if i == 0: 
+						query += "`%s` "%(column)
+					else:
+						query += ",`%s` "%(column)
+				query += "\n" 
+				query += "   from %s as D \n"%(targetDeleteDBandTable) 
+				query += "   where \n"
+				for i, column in enumerate(PKColumns.split(",")):
+					if i == 0: 
+						query += "      T.`%s` = D.`%s` "%(column, column)
+					else:
+						query += "and\n      T.`%s` = D.`%s` "%(column, column)
+				query += "\n"
+				query += "   ) \n" 
 
-			if softDelete == False:
-				query += "when matched then delete \n"
 			else:
-				query += "when matched then update set \n" 
-				# query += "datalake_iud  = 'D', \n" 
-				# query += "datalake_update = timestamp('%s'), \n"%(mergeTime)
-				# query += "datalake_delete = timestamp('%s') "%(mergeTime)
-				query += "%s  = 'D', \n"%(self.common_operations.Hive_ColumnName_IUD) 
-				query += "%s = timestamp('%s'), \n"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
-				query += "%s = timestamp('%s') "%(self.common_operations.Hive_ColumnName_Delete, mergeTime)
+				query  = "merge into %s as T \n"%(targetDBandTable)
+				query += "using %s as D \n"%(targetDeleteDBandTable)
+				query += "on \n"
+		
+				for i, column in enumerate(PKColumns.split(",")):
+					if i == 0: 
+						query += "   T.`%s` = D.`%s` "%(column, column)
+					else:
+						query += "and\n   T.`%s` = D.`%s` "%(column, column)
+				if softDelete == True:
+					# query += "and\n   T.`datalake_delete` != 'D' "
+					query += "and\n   T.`%s` != 'D' "%(self.common_operations.Hive_ColumnName_Delete)
+				query += "\n"
+	
+				if softDelete == False:
+					query += "when matched then delete \n"
+				else:
+					query += "when matched then update set \n" 
+					# query += "datalake_iud  = 'D', \n" 
+					# query += "datalake_update = timestamp('%s'), \n"%(mergeTime)
+					# query += "datalake_delete = timestamp('%s') "%(mergeTime)
+					query += "%s  = 'D', \n"%(self.common_operations.Hive_ColumnName_IUD) 
+					query += "%s = timestamp('%s'), \n"%(self.common_operations.Hive_ColumnName_Update, mergeTime)
+					query += "%s = timestamp('%s') "%(self.common_operations.Hive_ColumnName_Delete, mergeTime)
 
 			self.executeSQLQuery(query)
 
