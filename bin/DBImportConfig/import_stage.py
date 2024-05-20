@@ -707,7 +707,7 @@ class stage(object):
 			if result == False:
 				logging.info("AWS SNS publish failed!")
 				logging.info("Saving the JSON to the json_to_send table instead")
-				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataREST))
+				self.common_config.saveJsonToDatabase("import_statistics", "rest", json.dumps(jsonDataAWSSNS))
 
 		logging.debug("Executing stage.convertStageStatisticsToJSON() - Finished")
 

@@ -234,6 +234,8 @@ class config(object, metaclass=Singleton):
 		jsonData = {}
 		jsonData["type"] = "import"
 		jsonData["status"] = "started"
+		jsonData["database"] = self.Hive_DB 
+		jsonData["table"] = self.Hive_Table 
 		jsonData["hive_db"] = self.Hive_DB 
 		jsonData["hive_table"] = self.Hive_Table 
 		jsonData["import_phase"] = self.importPhase 
@@ -282,6 +284,8 @@ class config(object, metaclass=Singleton):
 
 	def convertStageStatisticsToJSON(self):
 		self.stage.convertStageStatisticsToJSON(
+			database=self.Hive_DB, 
+			table=self.Hive_Table, 
 			hive_db=self.Hive_DB, 
 			hive_table=self.Hive_Table, 
 			import_phase=self.importPhase, 
@@ -1425,6 +1429,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^datetime$', 'timestamp', column_type)
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
+				column_type = re.sub('^binary\([0-9]*\)$', 'binary', column_type)
 				if column_type == "time": 
 					column_type = "string"
 					sqoop_column_type = "String"
