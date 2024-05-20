@@ -47,6 +47,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func, update, delete
+from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.orm import aliased, sessionmaker, Query
 import sqlalchemy.orm.exc
 
@@ -245,8 +246,7 @@ class dbCalls:
 			return None
 		
 		tableAuthUsers = aliased(configSchema.authUsers)
-#		session.execute(delete(tableAuthUsers)
-#	 		.where(tableAuthUsers.username == username))
+
 		(session.query(tableAuthUsers)
 			.filter(tableAuthUsers.username == username)
 			.delete())
@@ -447,6 +447,86 @@ class dbCalls:
 
 		return jsonResult
 
+	def updateConnection(self, connection, currentUser):
+		""" Update or create a Connections """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		tableJDBCconnections = aliased(configSchema.jdbcConnections)
+		result = "ok"
+		returnCode = 200
+
+		log.debug(connection)
+		log.info("User '%s' updated/created connection '%s'"%(currentUser, getattr(connection, "name")))
+
+		try:
+			query = insert(configSchema.jdbcConnections).values(
+				dbalias = getattr(connection, "name"),
+				jdbc_url = getattr(connection, "connectionString"),
+				private_key_path = getattr(connection, "privateKeyPath"),
+				public_key_path = getattr(connection, "publicKeyPath"),
+				credentials = getattr(connection, "credentials"),
+				datalake_source = getattr(connection, "source"),
+				force_string = getattr(connection, "forceString"),
+				max_import_sessions = getattr(connection, "maxSessions"),
+				create_datalake_import = getattr(connection, "createDatalakeImport"),
+				timewindow_start = getattr(connection, "timeWindowStart"),
+				timewindow_stop = getattr(connection, "timeWindowStop"),
+				timewindow_timezone = getattr(connection, "timeWindowTimezone"),
+				operator_notes = getattr(connection, "operatorNotes"),
+				contact_info = getattr(connection, "contactInformation"),
+				description = getattr(connection, "description"),
+				owner = getattr(connection, "owner"),
+				environment = getattr(connection, "environment"),
+				seed_file = getattr(connection, "seedFile"),
+				create_foreign_keys = getattr(connection, "createForeignKey"),
+				atlas_discovery = getattr(connection, "atlasDiscovery"),
+				atlas_include_filter = getattr(connection, "atlasIncludeFilter"),
+				atlas_exclude_filter = getattr(connection, "atlasExcludeFilter"),
+				atlas_last_discovery = getattr(connection, "atlasLastDiscovery"))
+
+			query = query.on_duplicate_key_update(
+				dbalias = getattr(connection, "name"),
+				jdbc_url = getattr(connection, "connectionString"),
+				private_key_path = getattr(connection, "privateKeyPath"),
+				public_key_path = getattr(connection, "publicKeyPath"),
+				credentials = getattr(connection, "credentials"),
+				datalake_source = getattr(connection, "source"),
+				force_string = getattr(connection, "forceString"),
+				max_import_sessions = getattr(connection, "maxSessions"),
+				create_datalake_import = getattr(connection, "createDatalakeImport"),
+				timewindow_start = getattr(connection, "timeWindowStart"),
+				timewindow_stop = getattr(connection, "timeWindowStop"),
+				timewindow_timezone = getattr(connection, "timeWindowTimezone"),
+				operator_notes = getattr(connection, "operatorNotes"),
+				contact_info = getattr(connection, "contactInformation"),
+				description = getattr(connection, "description"),
+				owner = getattr(connection, "owner"),
+				environment = getattr(connection, "environment"),
+				seed_file = getattr(connection, "seedFile"),
+				create_foreign_keys = getattr(connection, "createForeignKey"),
+				atlas_discovery = getattr(connection, "atlasDiscovery"),
+				atlas_include_filter = getattr(connection, "atlasIncludeFilter"),
+				atlas_exclude_filter = getattr(connection, "atlasExcludeFilter"),
+				atlas_last_discovery = getattr(connection, "atlasLastDiscovery"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+		session.close()
+		return (result, returnCode)
+
 	def getConnection(self, connection):
 		""" Returns all Connections """
 		log = logging.getLogger(self.logger)
@@ -533,6 +613,42 @@ class dbCalls:
 		session.close()
 
 		return jsonResult
+
+	def deleteConnection(self, connection, currentUser):
+		""" Delete a connection """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted connection '%s'"%(currentUser, connection))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.jdbcConnections.dbalias)
+				.select_from(configSchema.jdbcConnections)
+				.filter(configSchema.jdbcConnections.dbalias == connection)
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Connection does not exist"
+			returnCode = 404
+		else:
+			(session.query(configSchema.jdbcConnections)
+				.filter(configSchema.jdbcConnections.dbalias == connection)
+				.delete())
+			session.commit()
+
+		session.close()
+		return (result, returnCode)
+
 
 	def getAllImportDatabases(self):
 		""" Returns all databases that have imports configured in them """
@@ -816,11 +932,284 @@ class dbCalls:
 		resultDict['historyDatabase'] = row[69]
 		resultDict['historyTable'] = row[70]
 
+		resultDict["columns"] = self.getImportTableColumns(database, table)
+
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
 		return jsonResult
 
+	def deleteImportTable(self, database, table, currentUser):
+		""" Update or create an import table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		importColumns = aliased(configSchema.importColumns)
+		importTables = aliased(configSchema.importTables)
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted import table '%s.%s'"%(currentUser, database, table))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.importTables.table_id)
+				.select_from(configSchema.importTables)
+				.filter((configSchema.importTables.hive_db == database) & (configSchema.importTables.hive_table == table))
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Table does not exist"
+			returnCode = 404
+		else:
+			tableID = row[0]
+
+			(session.query(configSchema.importTables)
+				.filter(configSchema.importTables.table_id == tableID)
+				.delete())
+			session.commit()
+
+		session.close()
+		return (result, returnCode)
+
+	def updateImportTable(self, table, currentUser):
+		""" Update or create an import table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		importColumns = aliased(configSchema.importColumns)
+		importTables = aliased(configSchema.importTables)
+		result = "ok"
+		returnCode = 200
+
+		log.debug(table)
+		log.info("User '%s' updated/created import table '%s.%s'"%(currentUser, getattr(table, "database"), getattr(table, "table")))
+
+		try:
+			query = insert(configSchema.importTables).values(
+				hive_db = getattr(table, "database"),
+				hive_table = getattr(table, "table"),
+				dbalias = getattr(table, "connection"),
+				source_schema = getattr(table, "sourceSchema"),
+				source_table = getattr(table, "sourceTable"),
+				import_phase_type = getattr(table, "importPhaseType"),
+				etl_phase_type = getattr(table, "etlPhaseType"),
+				import_tool = getattr(table, "importTool"),
+				etl_engine = getattr(table, "etlEngine"),
+				last_update_from_source = getattr(table, "lastUpdateFromSource"),
+				sqoop_sql_where_addition = getattr(table, "sqlWhereAddition"),
+				nomerge_ingestion_sql_addition = getattr(table, "nomergeIngestionSqlAddition"),
+				include_in_airflow = getattr(table, "includeInAirflow"),
+				airflow_priority = getattr(table, "airflowPriority"),
+				validate_import = getattr(table, "validateImport"),
+				validationMethod = getattr(table, "validationMethod"),
+				validate_source = getattr(table, "validateSource"),
+				validate_diff_allowed = getattr(table, "validateDiffAllowed"),
+				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
+				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
+				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
+				truncate_hive = getattr(table, "truncateTable"),
+				mappers = getattr(table, "mappers"),
+				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
+				incr_mode = getattr(table, "incrMode"),
+				incr_column = getattr(table, "incrColumn"),
+				incr_validation_method = getattr(table, "incrValidationMethod"),
+				pk_column_override = getattr(table, "pkColumnOverride"),
+				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
+				hive_merge_heap = getattr(table, "mergeHeap"),
+				hive_split_count = getattr(table, "splitCount"),
+				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
+				spark_executors = getattr(table, "sparkExecutors"),
+				split_by_column = getattr(table, "splitByColumn"),
+				sqoop_query = getattr(table, "customQuery"),
+				sqoop_options = getattr(table, "sqoopOptions"),
+				sqoop_use_generated_sql = getattr(table, "useGeneratedSql"),
+				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
+				force_string = getattr(table, "forceString"),
+				comment = getattr(table, "comment"),
+				datalake_source = getattr(table, "datalakeSource"),
+				operator_notes = getattr(table, "operatorNotes"),
+				create_foreign_keys = getattr(table, "createForeignKeys"),
+				invalidate_impala = getattr(table, "invalidateImpala"),
+				custom_max_query = getattr(table, "customMaxQuery"),
+				mergeCompactionMethod = getattr(table, "mergeCompactionMethod"),
+				sourceTableType = getattr(table, "sourceTableType"),
+				import_database = getattr(table, "importDatabase"),
+				import_table = getattr(table, "importTable"),
+				history_database = getattr(table, "historyDatabase"),
+				history_table = getattr(table, "historyTable"))
+
+			query = query.on_duplicate_key_update(
+				dbalias = getattr(table, "connection"),
+				source_schema = getattr(table, "sourceSchema"),
+				source_table = getattr(table, "sourceTable"),
+				import_phase_type = getattr(table, "importPhaseType"),
+				etl_phase_type = getattr(table, "etlPhaseType"),
+				import_tool = getattr(table, "importTool"),
+				etl_engine = getattr(table, "etlEngine"),
+				last_update_from_source = getattr(table, "lastUpdateFromSource"),
+				sqoop_sql_where_addition = getattr(table, "sqlWhereAddition"),
+				nomerge_ingestion_sql_addition = getattr(table, "nomergeIngestionSqlAddition"),
+				include_in_airflow = getattr(table, "includeInAirflow"),
+				airflow_priority = getattr(table, "airflowPriority"),
+				validate_import = getattr(table, "validateImport"),
+				validationMethod = getattr(table, "validationMethod"),
+				validate_source = getattr(table, "validateSource"),
+				validate_diff_allowed = getattr(table, "validateDiffAllowed"),
+				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
+				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
+				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
+				truncate_hive = getattr(table, "truncateTable"),
+				mappers = getattr(table, "mappers"),
+				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
+				incr_mode = getattr(table, "incrMode"),
+				incr_column = getattr(table, "incrColumn"),
+				incr_validation_method = getattr(table, "incrValidationMethod"),
+				pk_column_override = getattr(table, "pkColumnOverride"),
+				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
+				hive_merge_heap = getattr(table, "mergeHeap"),
+				hive_split_count = getattr(table, "splitCount"),
+				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
+				spark_executors = getattr(table, "sparkExecutors"),
+				split_by_column = getattr(table, "splitByColumn"),
+				sqoop_query = getattr(table, "customQuery"),
+				sqoop_options = getattr(table, "sqoopOptions"),
+				sqoop_use_generated_sql = getattr(table, "useGeneratedSql"),
+				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
+				force_string = getattr(table, "forceString"),
+				comment = getattr(table, "comment"),
+				datalake_source = getattr(table, "datalakeSource"),
+				operator_notes = getattr(table, "operatorNotes"),
+				create_foreign_keys = getattr(table, "createForeignKeys"),
+				invalidate_impala = getattr(table, "invalidateImpala"),
+				custom_max_query = getattr(table, "customMaxQuery"),
+				mergeCompactionMethod = getattr(table, "mergeCompactionMethod"),
+				sourceTableType = getattr(table, "sourceTableType"),
+				import_database = getattr(table, "importDatabase"),
+				import_table = getattr(table, "importTable"),
+				history_database = getattr(table, "historyDatabase"),
+				history_table = getattr(table, "historyTable"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+			session.close()
+			return (result, returnCode)
+
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(
+					importTables.table_id
+				)
+				.select_from(importTables)
+				.filter((importTables.hive_db == getattr(table, "database")) & (importTables.hive_table == getattr(table, "table")))
+				.one()
+			)
+
+		session.execute(query)
+		tableID = row[0]
+
+		columns = getattr(table, "columns")
+		for column in columns:
+			# PK in import_columns is not the most optimal. So we need to check first if it exists and then insert or update. Upsert is not available
+			row = (session.query(
+						importColumns.column_id
+					)
+					.select_from(importColumns)
+					.filter((importColumns.table_id == tableID) & (importColumns.column_name == getattr(column, "columnName")))
+					.one_or_none()
+				)
+				
+			try:
+				if row == None:
+					log.debug("Column does not exist")
+	
+					query = sa.insert(configSchema.importColumns).values(
+						table_id = tableID,
+						hive_db = getattr(table, "database"),
+						hive_table = getattr(table, "table"),
+						column_name = getattr(column, "columnName"),
+						column_order = getattr(column, "columnOrder"),
+						source_column_name = getattr(column, "sourceColumnName"),
+						column_type = getattr(column, "columnType"),
+						source_column_type = getattr(column, "sourceColumnType"),
+						source_database_type = getattr(column, "sourceDatabaseType"),
+						column_name_override = getattr(column, "columnNameOverride"),
+						column_type_override = getattr(column, "columnTypeOverride"),
+						sqoop_column_type = getattr(column, "sqoopColumnType"),
+						sqoop_column_type_override = getattr(column, "sqoopColumnTypeOverride"),
+						force_string = getattr(column, "forceString"),
+						include_in_import = getattr(column, "includeInImport"),
+						source_primary_key = getattr(column, "sourcePrimaryKey"),
+						last_update_from_source = getattr(column, "lastUpdateFromSource"),
+						comment = getattr(column, "comment"),
+						operator_notes = getattr(column, "operatorNotes"),
+						anonymization_function = getattr(column, "anonymizationFunction"))
+					session.execute(query)
+
+				else:
+					columnID = row[0]
+					log.debug("Import column with id '%s' was updated"%(columnID))
+					session.execute(update(importColumns),
+						[
+							{
+							"table_id": tableID,
+							"column_id": columnID,
+							"hive_db": getattr(table, "database"),
+							"hive_table": getattr(table, "table"),
+							"column_name": getattr(column, "columnName"),
+							"column_order": getattr(column, "columnOrder"),
+							"source_column_name": getattr(column, "sourceColumnName"),
+							"column_type": getattr(column, "columnType"),
+							"source_column_type": getattr(column, "sourceColumnType"),
+							"source_database_type": getattr(column, "sourceDatabaseType"),
+							"column_name_override": getattr(column, "columnNameOverride"),
+							"column_type_override": getattr(column, "columnTypeOverride"),
+							"sqoop_column_type": getattr(column, "sqoopColumnType"),
+							"sqoop_column_type_override": getattr(column, "sqoopColumnTypeOverride"),
+							"force_string": getattr(column, "forceString"),
+							"include_in_import": getattr(column, "includeInImport"),
+							"source_primary_key": getattr(column, "sourcePrimaryKey"),
+							"last_update_from_source": getattr(column, "lastUpdateFromSource"),
+							"comment": getattr(column, "comment"),
+							"operator_notes": getattr(column, "operatorNotes"),
+							"anonymization_function": getattr(column, "anonymizationFunction")
+							}
+						],
+						)
+	
+				session.commit()
+			except SQLerror as err:
+				log.error(str(err))
+				log.error(column)
+
+				result = str(err)
+				returnCode = 500
+
+				session.close()
+				return (result, returnCode)
+
+			log.debug(column)
+
+		session.close()
+		return (result, returnCode)
 
 	def getImportTableColumns(self, database, table):
 		""" Returns all columns in an import table """
@@ -865,8 +1254,8 @@ class dbCalls:
 
 		for row in importColumnsData:
 			resultDict = {}
-			resultDict['database'] = row[0]
-			resultDict['table'] = row[1]
+#			resultDict['database'] = row[0]
+#			resultDict['table'] = row[1]
 			resultDict['columnName'] = row[2]
 			resultDict['columnOrder'] = row[3]
 			resultDict['sourceColumnName'] = row[4]
@@ -890,10 +1279,11 @@ class dbCalls:
 
 			listOfColumns.append(resultDict)
 	
-		jsonResult = json.loads(json.dumps(listOfColumns))
+#		jsonResult = json.loads(json.dumps(listOfColumns))
 		session.close()
 
-		return jsonResult
+#		return jsonResult
+		return listOfColumns
 
 
 
@@ -1110,6 +1500,8 @@ class dbCalls:
 		resultDict['createTargetTableSql'] = row[35]
 		resultDict['operatorNotes'] = row[36]
 
+		resultDict["columns"] = self.getExportTableColumns(connection, schema, table)
+
 		jsonResult = json.loads(json.dumps(resultDict))
 		session.close()
 
@@ -1155,9 +1547,9 @@ class dbCalls:
 		for row in exportColumnsData:
 			resultDict = {}
 
-			resultDict['connection'] = row[0]
-			resultDict['targetSchema'] = row[1]
-			resultDict['targetTable'] = row[2]
+#			resultDict['connection'] = row[0]
+#			resultDict['targetSchema'] = row[1]
+#			resultDict['targetTable'] = row[2]
 			resultDict['columnName'] = row[3]
 			resultDict['columnType'] = row[4]
 			resultDict['columnOrder'] = row[5]
@@ -1173,10 +1565,232 @@ class dbCalls:
 
 			listOfColumns.append(resultDict)
 	
-		jsonResult = json.loads(json.dumps(listOfColumns))
+		# jsonResult = json.loads(json.dumps(listOfColumns))
 		session.close()
 
-		return jsonResult
+		# return jsonResult
+		return listOfColumns
+
+
+	def deleteExportTable(self, connection, schema, table, currentUser):
+		""" Update or create an export table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportColumns = aliased(configSchema.exportColumns)
+		exportTables = aliased(configSchema.exportTables)
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted export table '%s.%s' on connection '%s'"%(currentUser, schema, table, connection))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.exportTables.table_id)
+				.select_from(configSchema.exportTables)
+				.filter(
+					(configSchema.exportTables.dbalias == connection) & 
+					(configSchema.exportTables.target_schema == schema) & 
+					(configSchema.exportTables.target_table == table))
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Table does not exist"
+			returnCode = 404
+		else:
+			tableID = row[0]
+#			result = str(tableID)
+
+			(session.query(configSchema.exportTables)
+				.filter(configSchema.exportTables.table_id == tableID)
+				.delete())
+			session.commit()
+
+		session.close()
+		return (result, returnCode)
+
+
+	def updateExportTable(self, table, currentUser):
+		""" Update or create an import table """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportColumns = aliased(configSchema.exportColumns)
+		exportTables = aliased(configSchema.exportTables)
+		result = "ok"
+		returnCode = 200
+
+		log.debug(table)
+		log.info("User '%s' updated/created export table '%s.%s' on connection '%s'"%(
+			currentUser, 
+			getattr(table, "targetSchema"), 
+			getattr(table, "targetTable"), 
+			getattr(table, "connection")))
+
+		try:
+			query = insert(configSchema.exportTables).values(
+				dbalias = getattr(table, "connection"),
+				target_schema = getattr(table, "targetSchema"),
+				target_table = getattr(table, "targetTable"),
+				export_type = getattr(table, "exportType"),
+				export_tool = getattr(table, "exportTool"),
+				hive_db = getattr(table, "database"),
+				hive_table = getattr(table, "table"),
+				last_update_from_hive = getattr(table, "lastUpdateFromHive"),
+				sql_where_addition = getattr(table, "sqlWhereAddition"),
+				include_in_airflow = getattr(table, "includeInAirflow"),
+				airflow_priority = getattr(table, "airflowPriority"),
+				forceCreateTempTable = getattr(table, "forceCreateTempTable"),
+				validate_export = getattr(table, "validateExport"),
+				validationMethod = getattr(table, "validationMethod"),
+				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
+				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
+				uppercase_columns = getattr(table, "uppercaseColumns"),
+				truncate_target = getattr(table, "truncateTarget"),
+				mappers = getattr(table, "mappers"),
+				incr_column = getattr(table, "incrColumn"),
+				incr_validation_method = getattr(table, "incrValidationMethod"),
+				sqoop_options = getattr(table, "sqoopOptions"),
+				hive_javaheap = getattr(table, "javaHeap"),
+				create_target_table_sql = getattr(table, "createTargetTableSql"),
+				operator_notes = getattr(table, "operatorNotes"))
+
+			query = query.on_duplicate_key_update(
+				dbalias = getattr(table, "connection"),
+				target_schema = getattr(table, "targetSchema"),
+				target_table = getattr(table, "targetTable"),
+				export_type = getattr(table, "exportType"),
+				export_tool = getattr(table, "exportTool"),
+				hive_db = getattr(table, "database"),
+				hive_table = getattr(table, "table"),
+				last_update_from_hive = getattr(table, "lastUpdateFromHive"),
+				sql_where_addition = getattr(table, "sqlWhereAddition"),
+				include_in_airflow = getattr(table, "includeInAirflow"),
+				airflow_priority = getattr(table, "airflowPriority"),
+				forceCreateTempTable = getattr(table, "forceCreateTempTable"),
+				validate_export = getattr(table, "validateExport"),
+				validationMethod = getattr(table, "validationMethod"),
+				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
+				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
+				uppercase_columns = getattr(table, "uppercaseColumns"),
+				truncate_target = getattr(table, "truncateTarget"),
+				mappers = getattr(table, "mappers"),
+				incr_column = getattr(table, "incrColumn"),
+				incr_validation_method = getattr(table, "incrValidationMethod"),
+				sqoop_options = getattr(table, "sqoopOptions"),
+				hive_javaheap = getattr(table, "javaHeap"),
+				create_target_table_sql = getattr(table, "createTargetTableSql"),
+				operator_notes = getattr(table, "operatorNotes"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+			session.close()
+			return (result, returnCode)
+
+
+		# Fetch the tableID as that is required to update/create data in export_columns
+		row = (session.query(
+					exportTables.table_id
+				)
+				.select_from(exportTables)
+				.filter(
+					(exportTables.dbalias == getattr(table, "connection")) & 
+					(exportTables.target_schema == getattr(table, "targetSchema")) &
+					(exportTables.target_table == getattr(table, "targetTable")))
+				.one()
+			)
+
+		session.execute(query)
+		tableID = row[0]
+
+		columns = getattr(table, "columns")
+		for column in columns:
+			# PK in export_columns is not the most optimal. So we need to check first if it exists and then insert or update. 
+			# Upsert is not available
+			row = (session.query(
+						exportColumns.column_id
+					)
+					.select_from(exportColumns)
+					.filter((exportColumns.table_id == tableID) & (exportColumns.column_name == getattr(column, "columnName")))
+					.one_or_none()
+				)
+				
+			try:
+				if row == None:
+					log.debug("Column does not exist")
+	
+					query = sa.insert(configSchema.exportColumns).values(
+						table_id = tableID,
+						column_name = getattr(column, "columnName"),
+						column_type = getattr(column, "columnType"),
+						column_order = getattr(column, "columnOrder"),
+						hive_db = getattr(table, "database"),
+						hive_table = getattr(table, "table"),
+						target_column_name = getattr(column, "targetColumnName"),
+						target_column_type = getattr(column, "targetColumnType"),
+						last_update_from_hive = getattr(column, "lastUpdateFromHive"),
+						include_in_export = getattr(column, "includeInExport"),
+						comment = getattr(column, "comment"),
+						operator_notes = getattr(column, "operatorNotes"))
+
+					session.execute(query)
+
+				else:
+					columnID = row[0]
+					log.debug("Export column with id '%s' was updated"%(columnID))
+					session.execute(update(exportColumns),
+						[
+							{
+							"table_id": tableID,
+							"column_id": columnID,
+							"column_name": getattr(column, "columnName"),
+							"column_type": getattr(column, "columnType"),
+							"column_order": getattr(column, "columnOrder"),
+							"hive_db": getattr(table, "database"),
+							"hive_table": getattr(table, "table"),
+							"target_column_name": getattr(column, "targetColumnName"),
+							"target_column_type": getattr(column, "targetColumnType"),
+							"last_update_from_hive": getattr(column, "lastUpdateFromHive"),
+							"include_in_export": getattr(column, "includeInExport"),
+							"comment": getattr(column, "comment"),
+							"operator_notes": getattr(column, "operatorNotes")
+							}
+						],
+						)
+	
+				session.commit()
+			except SQLerror as err:
+				log.error(str(err))
+				log.error(column)
+
+				result = str(err)
+				returnCode = 500
+
+				session.close()
+				return (result, returnCode)
+
+			log.debug(column)
+
+		session.close()
+		return (result, returnCode)
 
 
 	def getAllAirflowDags(self): 
@@ -1385,6 +1999,118 @@ class dbCalls:
 
 		return jsonResult
 
+	def checkDagNameAvailability(self, name, excludeImport = False, excludeExport = False, excludeCustom = False):
+		""" Checks if the DAG name is available. Returns True or False """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		listOfDAGs = []
+		processedDAGs = []
+		dagNameIsFree = True
+
+		if excludeCustom == False:
+			row = (session.query(airflowCustomDags.dag_name)
+					.select_from(airflowCustomDags)
+					.filter(airflowCustomDags.dag_name == name)
+					.one_or_none()
+					)
+
+			if row != None:
+				dagNameIsFree = False
+
+
+		if excludeImport == False:
+			row = (session.query(airflowImportDags.dag_name)
+					.select_from(airflowImportDags)
+					.filter(airflowImportDags.dag_name == name)
+					.one_or_none()
+					)
+
+			if row != None:
+				dagNameIsFree = False
+
+
+		if excludeExport == False:
+			row = (session.query(airflowExportDags.dag_name)
+					.select_from(airflowExportDags)
+					.filter(airflowExportDags.dag_name == name)
+					.one_or_none()
+					)
+
+			if row != None:
+				dagNameIsFree = False
+
+
+		return dagNameIsFree
+	
+	def updateAirflowTasks(self, dagname, task, currentUser):
+		""" Create or update Airflow tasks """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowTasks = aliased(configSchema.airflowTasks)
+
+		try:
+			query = insert(configSchema.airflowTasks).values(
+				dag_name = dagname,
+				task_name = getattr(task, "name"),
+				task_type = getattr(task, "type"),
+				placement = getattr(task, "placement"),
+				jdbc_dbalias = getattr(task, "connection"),
+				airflow_pool = getattr(task, "airflowPool"),
+				airflow_priority = getattr(task, "airflowPriority"),
+				include_in_airflow = getattr(task, "includeInAirflow"),
+				task_dependency_downstream = getattr(task, "taskDependencyDownstream"),
+				task_dependency_upstream = getattr(task, "taskDependencyUpstream"),
+				task_config = getattr(task, "taskConfig"),
+				sensor_poke_interval = getattr(task, "sensorPokeInterval"),
+				sensor_timeout_minutes = getattr(task, "sensorTimeoutMinutes"),
+				sensor_connection = getattr(task, "sensorConnection"),
+				sensor_soft_fail = getattr(task, "sensorSoftFail"),
+				sudo_user = getattr(task, "sudoUser"))
+
+			query = query.on_duplicate_key_update(
+				dag_name = dagname,
+				task_name = getattr(task, "name"),
+				task_type = getattr(task, "type"),
+				placement = getattr(task, "placement"),
+				jdbc_dbalias = getattr(task, "connection"),
+				airflow_pool = getattr(task, "airflowPool"),
+				airflow_priority = getattr(task, "airflowPriority"),
+				include_in_airflow = getattr(task, "includeInAirflow"),
+				task_dependency_downstream = getattr(task, "taskDependencyDownstream"),
+				task_dependency_upstream = getattr(task, "taskDependencyUpstream"),
+				task_config = getattr(task, "taskConfig"),
+				sensor_poke_interval = getattr(task, "sensorPokeInterval"),
+				sensor_timeout_minutes = getattr(task, "sensorTimeoutMinutes"),
+				sensor_connection = getattr(task, "sensorConnection"),
+				sensor_soft_fail = getattr(task, "sensorSoftFail"),
+				sudo_user = getattr(task, "sudoUser"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			session.close()
+			return False
+
+		return True
+
 
 
 	def getAirflowExportDag(self, dagname): 
@@ -1549,4 +2275,408 @@ class dbCalls:
 		return jsonResult
 
 
+	def deleteAirflowTasks(self, dagname):
+		""" Delete all Airflow tasks for the specified DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		(session.query(configSchema.airflowTasks)
+			.filter(configSchema.airflowTasks.dag_name == dagname)
+			.delete())
+		session.commit()
+		session.close()
+
+
+	def deleteImportAirflowDag(self, dagname, currentUser):
+		""" Delete an Airflow import DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted Airflow import DAG '%s'"%(currentUser, dagname))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.airflowImportDags.dag_name)
+				.select_from(configSchema.airflowImportDags)
+				.filter(configSchema.airflowImportDags.dag_name == dagname)
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Airflow DAG does not exist"
+			returnCode = 404
+		else:
+			(session.query(configSchema.airflowImportDags)
+				.filter(configSchema.airflowImportDags.dag_name == dagname)
+				.delete())
+			session.commit()
+
+			self.deleteAirflowTasks(dagname)
+
+		session.close()
+		return (result, returnCode)
+
+
+	def updateImportAirflowDag(self, airflowDag, currentUser):
+		""" Update or create an Airflow import DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		result = "ok"
+		returnCode = 200
+
+		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeImport = True) == False:
+			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
+			result = "Ariflow DAG with the specified name already exists as Custom or Export"
+			returnCode = 400
+			return (result, returnCode)
+
+		log.debug(airflowDag)
+		log.info("User '%s' updated/created Airflow import DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		try:
+			query = insert(configSchema.airflowImportDags).values(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				filter_hive = getattr(airflowDag, "filterHive"),
+				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
+				run_import_and_etl_separate = getattr(airflowDag, "runImportAndEtlSeparate"),
+				retries = getattr(airflowDag, "retries"),
+				retries_stage1 = getattr(airflowDag, "retriesStage1"),
+				retries_stage2 = getattr(airflowDag, "retriesStage2"),
+				pool_stage1 = getattr(airflowDag, "poolStage1"),
+				pool_stage2 = getattr(airflowDag, "poolStage2"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				metadata_import = getattr(airflowDag, "metadataImport"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			query = query.on_duplicate_key_update(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				filter_hive = getattr(airflowDag, "filterHive"),
+				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
+				run_import_and_etl_separate = getattr(airflowDag, "runImportAndEtlSeparate"),
+				retries = getattr(airflowDag, "retries"),
+				retries_stage1 = getattr(airflowDag, "retriesStage1"),
+				retries_stage2 = getattr(airflowDag, "retriesStage2"),
+				pool_stage1 = getattr(airflowDag, "poolStage1"),
+				pool_stage2 = getattr(airflowDag, "poolStage2"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				metadata_import = getattr(airflowDag, "metadataImport"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+			session.close()
+			return (result, returnCode)
+
+		session.close()
+
+		tasks = getattr(airflowDag, "tasks")
+		for task in tasks:
+			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+				result = "Error while updating/creating Airflow tasks. Please check logs on server"
+				returnCode = 400
+				return (result, returnCode)
+	
+		return (result, returnCode)
+
+
+	def deleteExportAirflowDag(self, dagname, currentUser):
+		""" Delete an Airflow export DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted Airflow export DAG '%s'"%(currentUser, dagname))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.airflowExportDags.dag_name)
+				.select_from(configSchema.airflowExportDags)
+				.filter(configSchema.airflowExportDags.dag_name == dagname)
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Airflow DAG does not exist"
+			returnCode = 404
+		else:
+			(session.query(configSchema.airflowExportDags)
+				.filter(configSchema.airflowExportDags.dag_name == dagname)
+				.delete())
+			session.commit()
+
+			self.deleteAirflowTasks(dagname)
+
+		session.close()
+		return (result, returnCode)
+
+
+	def updateExportAirflowDag(self, airflowDag, currentUser):
+		""" Update or create an Airflow export DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		result = "ok"
+		returnCode = 200
+
+		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeExport = True) == False:
+			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
+			result = "Ariflow DAG with the specified name already exists as Custom or Export"
+			returnCode = 400
+			return (result, returnCode)
+
+		log.debug(airflowDag)
+		log.info("User '%s' updated/created Airflow export DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		try:
+			query = insert(configSchema.airflowExportDags).values(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				filter_dbalias = getattr(airflowDag, "filterConnection"),
+				filter_target_schema = getattr(airflowDag, "filterTargetSchema"),
+				filter_target_table = getattr(airflowDag, "filterTargetTable"),
+				retries = getattr(airflowDag, "retries"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			query = query.on_duplicate_key_update(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				filter_dbalias = getattr(airflowDag, "filterConnection"),
+				filter_target_schema = getattr(airflowDag, "filterTargetSchema"),
+				filter_target_table = getattr(airflowDag, "filterTargetTable"),
+				retries = getattr(airflowDag, "retries"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+			session.close()
+			return (result, returnCode)
+
+		session.close()
+
+		tasks = getattr(airflowDag, "tasks")
+		for task in tasks:
+			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+				result = "Error while updating/creating Airflow tasks. Please check logs on server"
+				returnCode = 400
+				return (result, returnCode)
+	
+		return (result, returnCode)
+
+
+	def deleteCustomAirflowDag(self, dagname, currentUser):
+		""" Delete an Airflow import DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		result = "ok"
+		returnCode = 200
+
+		log.info("User '%s' deleted Airflow import DAG '%s'"%(currentUser, dagname))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.airflowCustomDags.dag_name)
+				.select_from(configSchema.airflowCustomDags)
+				.filter(configSchema.airflowCustomDags.dag_name == dagname)
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			result = "Airflow DAG does not exist"
+			returnCode = 404
+		else:
+			(session.query(configSchema.airflowCustomDags)
+				.filter(configSchema.airflowCustomDags.dag_name == dagname)
+				.delete())
+			session.commit()
+
+			self.deleteAirflowTasks(dagname)
+
+		session.close()
+		return (result, returnCode)
+
+
+	def updateCustomAirflowDag(self, airflowDag, currentUser):
+		""" Update or create an Airflow custom DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+		result = "ok"
+		returnCode = 200
+
+		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeCustom = True) == False:
+			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
+			result = "Ariflow DAG with the specified name already exists as Custom or Export"
+			returnCode = 400
+			return (result, returnCode)
+
+		log.debug(airflowDag)
+		log.info("User '%s' updated/created Airflow custom DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		try:
+			query = insert(configSchema.airflowCustomDags).values(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				retries = getattr(airflowDag, "retries"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			query = query.on_duplicate_key_update(
+				dag_name = getattr(airflowDag, "name"),
+				schedule_interval = getattr(airflowDag, "scheduleInterval"),
+				retries = getattr(airflowDag, "retries"),
+				operator_notes = getattr(airflowDag, "operatorNotes"),
+				application_notes = getattr(airflowDag, "applicationNotes"),
+				auto_regenerate_dag = getattr(airflowDag, "autoRegenerateDag"),
+				airflow_notes = getattr(airflowDag, "airflowNotes"),
+				sudo_user = getattr(airflowDag, "sudoUser"),
+				timezone = getattr(airflowDag, "timezone"),
+				email = getattr(airflowDag, "email"),
+				email_on_failure = getattr(airflowDag, "emailOnFailure"),
+				email_on_retries = getattr(airflowDag, "emailOnRetries"),
+				tags = getattr(airflowDag, "tags"),
+				sla_warning_time = getattr(airflowDag, "slaWarningTime"),
+				retry_exponential_backoff = getattr(airflowDag, "retryExponentialBackoff"),
+				concurrency = getattr(airflowDag, "concurrency"))
+
+			session.execute(query)
+			session.commit()
+		except SQLerror as err:
+			log.error(str(err))
+			log.error(column)
+
+			result = str(err)
+			returnCode = 500
+
+			session.close()
+			return (result, returnCode)
+
+		session.close()
+
+		tasks = getattr(airflowDag, "tasks")
+		for task in tasks:
+			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+				result = "Error while updating/creating Airflow tasks. Please check logs on server"
+				returnCode = 400
+				return (result, returnCode)
+	
+		return (result, returnCode)
 

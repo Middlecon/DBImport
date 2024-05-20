@@ -206,7 +206,7 @@ class stage(object):
 		if self.postDataToRESTextended == False:
 			jsonDataREST.pop("sessions")
 
-		if self.postDataToAWSSNSextended == False:
+		if self.postDataToAWSSNSExtended == False:
 			jsonDataAWSSNS.pop("sessions")
 
 		query = "select stage, start, stop, duration from export_stage_statistics where dbalias = %s and target_schema = %s and target_table = %s"

@@ -20,6 +20,7 @@ import re
 import logging
 import json
 import math
+import time
 from ConfigReader import configuration
 import mysql.connector
 from common import constants as constant
@@ -893,71 +894,87 @@ class source(object):
 
 		if serverType == constant.MSSQL:
 			query  = "SELECT "
-			query += "	CAST(oParentColDtl.TABLE_SCHEMA AS VARCHAR(4000)) as SCHEMA_NAME, " 
-			query += "	CAST(PKnUTable.name AS VARCHAR(4000)) as TABLE_NAME, " 
-			query += "	CAST(PKnUKEY.name AS VARCHAR(4000)) as CONSTRAINT_NAME, " 
-#			query += "	CAST(PKnUKEY.type_desc AS VARCHAR(4000)) as CONSTRAINT_TYPE, " 
+#			query += "	CAST(oParentColDtl.TABLE_SCHEMA AS VARCHAR(4000)) as SCHEMA_NAME, " 
+			query += "	SCHEMA_NAME(PK_Table.schema_id) as SCHEMA_NAME, " 
+			query += "	CAST(PK_Table.name AS VARCHAR(4000)) as TABLE_NAME, " 
+			query += "	CAST(PK_KEY.name AS VARCHAR(4000)) as CONSTRAINT_NAME, " 
 			query += "  '%s' AS CONSTRAINT_TYPE, "%(constant.PRIMARY_KEY)
-			query += "	CAST(PKnUKEYCol.name AS VARCHAR(4000)) as COL_NAME, " 
-			query += "	oParentColDtl.DATA_TYPE as COL_DATA_TYPE, " 
-			query += "	oParentColDtl.CHARACTER_MAXIMUM_LENGTH as COL_LENGTH, "
+			query += "	CAST(PK_KEYCol.name AS VARCHAR(4000)) as COL_NAME, " 
+			query += "	'' as COL_NAME_DATA_TYPE, "
+			query += "	'' as COL_LENGTH, "
+#			query += "	oParentColDtl.DATA_TYPE as COL_DATA_TYPE, " 
+#			query += "	oParentColDtl.CHARACTER_MAXIMUM_LENGTH as COL_LENGTH, "
 			query += "	'' as REFERENCE_SCHEMA_NAME, " 
 			query += "	'' as REFERENCE_TABLE_NAME, " 
 			query += "	'' as REFERENCE_COL_NAME, " 
-			query += "	PKnUColIdx.key_ordinal as ORDINAL_POSITION " 
-			query += "FROM sys.key_constraints as PKnUKEY " 
-			query += "INNER JOIN sys.tables as PKnUTable " 
-			query += "	ON PKnUTable.object_id = PKnUKEY.parent_object_id " 
-			query += "INNER JOIN sys.index_columns as PKnUColIdx " 
-			query += "	ON PKnUColIdx.object_id = PKnUTable.object_id " 
-			query += "	AND PKnUColIdx.index_id = PKnUKEY.unique_index_id " 
-			query += "INNER JOIN sys.columns as PKnUKEYCol " 
-			query += "	ON PKnUKEYCol.object_id = PKnUTable.object_id " 
-			query += "	AND PKnUKEYCol.column_id = PKnUColIdx.column_id " 
-			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS oParentColDtl " 
-			query += "	ON oParentColDtl.TABLE_NAME=PKnUTable.name " 
-			query += "	AND oParentColDtl.COLUMN_NAME=PKnUKEYCol.name " 
-			query += "WHERE oParentColDtl.TABLE_SCHEMA = '%s' "%(schema)
+			query += "	PK_ColIdx.key_ordinal as ORDINAL_POSITION " 
+
+			query += "FROM sys.key_constraints as PK_KEY " 
+
+			query += "INNER JOIN sys.tables as PK_Table " 
+			query += "	ON PK_Table.object_id = PK_KEY.parent_object_id " 
+
+			query += "INNER JOIN sys.index_columns as PK_ColIdx " 
+			query += "	ON PK_ColIdx.object_id = PK_Table.object_id " 
+			query += "	AND PK_ColIdx.index_id = PK_KEY.unique_index_id " 
+
+			query += "INNER JOIN sys.columns as PK_KEYCol " 
+			query += "	ON PK_KEYCol.object_id = PK_Table.object_id " 
+			query += "	AND PK_KEYCol.column_id = PK_ColIdx.column_id " 
+
+#			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS oParentColDtl " 
+#			query += "	ON oParentColDtl.TABLE_NAME=PK_Table.name " 
+#			query += "	AND oParentColDtl.COLUMN_NAME=PK_KEYCol.name " 
+
+			query += "WHERE SCHEMA_NAME(PK_Table.schema_id) = '%s' "%(schema)
+#			query += "WHERE oParentColDtl.TABLE_SCHEMA = '%s' "%(schema)
 			if table != None:
-				query += "	and PKnUTable.name = '%s' "%(table)
-			query += "	and PKnUKEY.type_desc = 'PRIMARY_KEY_CONSTRAINT' "
+				query += "	and PK_Table.name = '%s' "%(table)
+
+			query += "	and PK_KEY.type_desc = 'PRIMARY_KEY_CONSTRAINT' "
 
 			query += "UNION ALL " 
 
 			query += "SELECT "
-			query += "	CAST(oParentColDtl.TABLE_SCHEMA AS VARCHAR(4000)) as SCHEMA_NAME, " 
+			query += "	SCHEMA_NAME(oParent.schema_id) as SCHEMA_NAME, " 
 			query += "	CAST(oParent.name AS VARCHAR(4000)) as TABLE_NAME, " 
 			query += "	CAST(oConstraint.name AS VARCHAR(4000)) as CONSTRAINT_NAME, " 
-#			query += "	CONSTRAINT_TYPE = 'FK', " 
 			query += "  '%s' AS CONSTRAINT_TYPE, "%(constant.FOREIGN_KEY)
 			query += "	CAST(oParentCol.name AS VARCHAR(4000)) as COL_NAME, " 
-			query += "	oParentColDtl.DATA_TYPE as COL_NAME_DATA_TYPE, " 
-			query += "	oParentColDtl.CHARACTER_MAXIMUM_LENGTH as COL_LENGTH, " 
-			query += "	CAST(OBJECT_SCHEMA_NAME(T.[object_id],DB_ID()) AS VARCHAR(4000)) as REFERENCE_SCHEMA_NAME, " 
+			query += "	'' as COL_NAME_DATA_TYPE, "
+			query += "	'' as COL_LENGTH, "
+			query += "	SCHEMA_NAME(oReference.schema_id) as REFERENCE_SCHEMA_NAME, " 
 			query += "	CAST(oReference.name AS VARCHAR(4000)) as REFERENCE_TABLE_NAME, " 
 			query += "	CAST(oReferenceCol.name AS VARCHAR(4000)) as REFERENCE_COL_NAME, " 
 			query += "	'' as ORDINAL_POSITION "
+
 			query += "FROM sys.foreign_key_columns FKC " 
-			query += "INNER JOIN sys.sysobjects oConstraint " 
-			query += "	ON FKC.constraint_object_id=oConstraint.id " 
-			query += "INNER JOIN sys.sysobjects oParent " 
-			query += "	ON FKC.parent_object_id=oParent.id " 
-			query += "INNER JOIN sys.all_columns oParentCol " 
+
+			query += "INNER JOIN sys.objects oParent " 
+			query += "	ON FKC.parent_object_id=oParent.object_id " 
+
+			query += "INNER JOIN sys.objects oReference " 
+			query += "	ON FKC.referenced_object_id=oReference.object_id " 
+
+			query += "INNER JOIN sys.columns oParentCol " 
 			query += "	ON FKC.parent_object_id=oParentCol.object_id " 
 			query += "	AND FKC.parent_column_id=oParentCol.column_id " 
-			query += "INNER JOIN sys.sysobjects oReference " 
-			query += "	ON FKC.referenced_object_id=oReference.id " 
-			query += "INNER JOIN INFORMATION_SCHEMA.COLUMNS oParentColDtl " 
-			query += "	ON oParentColDtl.TABLE_NAME=oParent.name " 
-			query += "	AND oParentColDtl.COLUMN_NAME=oParentCol.name " 
-			query += "INNER JOIN sys.all_columns oReferenceCol " 
+
+			query += "INNER JOIN sys.columns oReferenceCol " 
 			query += "	ON FKC.referenced_object_id=oReferenceCol.object_id " 
 			query += "	AND FKC.referenced_column_id=oReferenceCol.column_id " 
-			query += "INNER JOIN  sys.[tables] AS T  ON T.[object_id] = oReferenceCol.[object_id] "
-			query += "WHERE oParentColDtl.TABLE_SCHEMA = '%s' "%(schema)
+
+			query += "INNER JOIN sys.objects oConstraint " 
+			query += "	ON FKC.constraint_object_id=oConstraint.object_id " 
+
+			query += "WHERE SCHEMA_NAME(oParent.schema_id) = '%s' "%(schema)
 			if table != None:
-				query += "	and oParent.name = '%s' "%(table)
+				query += "  and oParent.name = '%s' "%(table)
+
 			query += "ORDER BY SCHEMA_NAME, TABLE_NAME, CONSTRAINT_TYPE, ORDINAL_POSITION"
+
+#			print(query)
+#			stageDurationStart = time.monotonic()
 
 			logging.debug("SQL Statement executed: %s" % (query) )
 			try:
@@ -965,6 +982,9 @@ class source(object):
 			except jaydebeapi.DatabaseError as errMsg:
 				logging.error("Failure when communicating with JDBC database. %s"%(errMsg))
 				return result_df
+
+#			stageDurationStop = time.monotonic()
+#			print(stageDurationStop - stageDurationStart)
 
 			rows_list = []
 			for row in JDBCCursor.fetchall():
@@ -976,7 +996,6 @@ class source(object):
 				line_dict["CONSTRAINT_NAME"] = row[2]
 				line_dict["CONSTRAINT_TYPE"] = row[3]
 				line_dict["COL_NAME"] = row[4]
-#				line_dict["COL_DATA_TYPE"] = line.split('|')[5]
 				line_dict["REFERENCE_SCHEMA_NAME"] = row[7]
 				line_dict["REFERENCE_TABLE_NAME"] = row[8]
 				line_dict["REFERENCE_COL_NAME"] = row[9]
@@ -984,6 +1003,8 @@ class source(object):
 				rows_list.append(line_dict)
 			result_df = pd.DataFrame(rows_list)
 
+#			print(result_df)
+#			sys.exit(2)
 	
 		if serverType == constant.ORACLE:
 			query  = "SELECT "
