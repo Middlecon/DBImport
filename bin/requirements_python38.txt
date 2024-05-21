@@ -64,7 +64,7 @@ pydantic_core==2.16.2
 PyHive==0.7.0
 pykerberos==1.2.4
 pymongo==4.6.1
-PyMySQL==1.1.0
+PyMySQL==1.1.1
 pyspnego==0.10.2
 python-dateutil==2.8.2
 python-dotenv==1.0.1
