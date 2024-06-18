@@ -236,12 +236,17 @@ class config(object, metaclass=Singleton):
 		jsonData["status"] = "started"
 		jsonData["database"] = self.Hive_DB 
 		jsonData["table"] = self.Hive_Table 
-		jsonData["hive_db"] = self.Hive_DB 
-		jsonData["hive_table"] = self.Hive_Table 
+		if self.import_with_history_table == True:
+			jsonData["history_database"] = self.Hive_History_DB
+			jsonData["history_table"] = self.Hive_History_Table
+		else:
+			jsonData["history_database"] = None
+			jsonData["history_table"] = None
 		jsonData["import_phase"] = self.importPhase 
 		jsonData["copy_phase"] = self.copyPhase 
 		jsonData["etl_phase"] = self.etlPhase 
 		jsonData["incremental"] = self.import_is_incremental
+		jsonData["history"] = self.import_with_history_table
 		jsonData["dbalias"] = self.connection_alias
 		jsonData["source_database"] = self.common_config.jdbc_database
 		jsonData["source_schema"] = self.source_schema
@@ -283,15 +288,24 @@ class config(object, metaclass=Singleton):
 		)
 
 	def convertStageStatisticsToJSON(self):
+
+		if self.import_with_history_table == True:
+			HistoryDBforJSON = self.Hive_History_DB
+			HistoryTableforJSON = self.Hive_History_Table
+		else:
+			HistoryDBforJSON = None
+			HistoryTableforJSON = None
+
 		self.stage.convertStageStatisticsToJSON(
 			database=self.Hive_DB, 
 			table=self.Hive_Table, 
-			hive_db=self.Hive_DB, 
-			hive_table=self.Hive_Table, 
+			history_database=HistoryDBforJSON,
+			history_table=HistoryTableforJSON,
 			import_phase=self.importPhase, 
 			copy_phase=self.copyPhase, 
 			etl_phase=self.etlPhase, 
 			incremental=self.import_is_incremental,
+			history=self.import_with_history_table,
 			source_database=self.common_config.jdbc_database,
 			source_schema=self.source_schema,
 			source_table=self.source_table,
@@ -299,6 +313,9 @@ class config(object, metaclass=Singleton):
 			rows=self.sqoop_last_rows,
 			sessions=self.sqoop_last_mappers
 		)
+
+#			hive_db=self.Hive_DB, 
+#			hive_table=self.Hive_Table, 
 
 	def lookupConnectionAlias(self, connection_alias=None):
 
@@ -926,24 +943,6 @@ class config(object, metaclass=Singleton):
 			importHistoryTable = re.sub(importHistoryTableConfig.split('/')[1], importHistoryTableConfig.split('/')[2], self.Hive_DB) 
 		else:
 			importHistoryTable = importHistoryTableConfig.replace("{DATABASE}", self.Hive_DB).replace("{TABLE}", self.Hive_Table)
-
-#		importWorkDB = self.common_config.getConfigValue(key = "import_work_database") \
-#			.replace("{DATABASE}", self.Hive_DB)
-#		importWorkTable = self.common_config.getConfigValue(key = "import_work_table") \
-#			.replace("{DATABASE}", self.Hive_DB) \
-#			.replace("{TABLE}", self.Hive_Table)
-#
-#		importStagingDB = self.common_config.getConfigValue(key = "import_staging_database") \
-#			.replace("{DATABASE}", self.Hive_DB)
-#		importStagingTable = self.common_config.getConfigValue(key = "import_staging_table") \
-#			.replace("{DATABASE}", self.Hive_DB) \
-#			.replace("{TABLE}", self.Hive_Table)
-#
-#		importHistoryDB = self.common_config.getConfigValue(key = "import_history_database") \
-#			.replace("{DATABASE}", self.Hive_DB)
-#		importHistoryTable = self.common_config.getConfigValue(key = "import_history_table") \
-#			.replace("{DATABASE}", self.Hive_DB) \
-#			.replace("{TABLE}", self.Hive_Table)
 
 		self.Hive_Import_DB = importStagingDB
 		self.Hive_Import_Table = importStagingTable
