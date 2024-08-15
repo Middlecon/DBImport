@@ -1853,7 +1853,7 @@ class operation(object, metaclass=Singleton):
 				query = "set hive.tez.container.size=3072"
 				self.common_operations.executeHiveQuery(query)
 
-			if self.import_config.hiveSplitCount != None:
+			if self.import_config.hiveSplitCount != None and self.import_config.hiveSplitCount > 0:
 				query = "set tez.grouping.split-count=%s"%(self.import_config.hiveSplitCount)
 				self.common_operations.executeHiveQuery(query)
 

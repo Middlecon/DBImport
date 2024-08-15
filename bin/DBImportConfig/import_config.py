@@ -3278,6 +3278,8 @@ class config(object, metaclass=Singleton):
 
 		self.common_config.connectToImpala()
 
+		# TODO: Add invalidation of history table as well
+		# self.import_with_history_table = True
 		logging.info("Invalidating Impala table")
 		query = "invalidate metadata `%s`.`%s`"%(self.Hive_DB, self.Hive_Table)
 		self.common_config.executeImpalaQuery(query)
