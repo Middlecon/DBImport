@@ -26,6 +26,7 @@ import re
 import json
 import boto3
 import botocore
+import random
 from ConfigReader import configuration
 import pendulum
 from datetime import date, datetime, time, timedelta
@@ -89,6 +90,9 @@ class initialize(object):
 		self.postStopTask = None
 		
 		self.airflowMode = "default"
+
+		self.createdPools = []
+		self.AWSinstanceIdAssignedPools = {}
 
 		try:
 			self.airflowMode = configuration.get("Airflow", "airflow_mode", exitOnError=False)
@@ -340,16 +344,36 @@ class initialize(object):
 			
 		return poolName[0:50]
 
+	def AWSappendInstanceIDasPools(self):
+		# This will split the instanceID configration setting based on , and append them all as pool names
+
+		usedPools = []
+
+		for AWSpool in self.airflowAWSinstanceIds.split(','):
+			usedPools.append(AWSpool.strip())
+		
+		self.createAirflowPools(pools=usedPools)
+		
+
+	def getAWSInstanceID(self, configObject):
+		# Return one instanceID from a comma seperated list. 
+
+		if configObject in self.AWSinstanceIdAssignedPools:
+			return self.AWSinstanceIdAssignedPools[configObject]
+		else:
+			randomInstanceID = random.choice(self.airflowAWSinstanceIds.strip().split(','))
+			self.AWSinstanceIdAssignedPools[configObject] = randomInstanceID
+			return randomInstanceID
+
+		# return random.choice(self.airflowAWSinstanceIds.strip().split(','))
+		
+
 	def generateExportDAG(self, DAG):
 		""" Generates a Import DAG """
 
 		usedPools = []
 		tableFilters = []
-		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
-			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
-			defaultPool = self.airflowAWSinstanceIds
-		else:
-			defaultPool = DAG['dag_name']
+		defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
@@ -422,7 +446,6 @@ class initialize(object):
 				self.DAGfile.write("%s_clearStage = BashOperator(\n"%(taskID))
 				self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 				self.DAGfile.write("    bash_command='%s -a %s -S %s -T %s ',\n"%(dbexportClearStageCMD, row['dbalias'], row['target_schema'], row['target_table']))
-#				self.DAGfile.write("    pool='%s',\n"%(exportPool))
 				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 				self.DAGfile.write("    weight_rule='absolute',\n")
 				self.DAGfile.write("    retries=%s,\n"%(retries))
@@ -468,11 +491,7 @@ class initialize(object):
 
 		usedPools = []
 		tableFilters = []
-		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
-			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
-			defaultPool = self.airflowAWSinstanceIds
-		else:
-			defaultPool = DAG['dag_name']
+		defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
@@ -535,8 +554,9 @@ class initialize(object):
 
 			if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
 				# We can choice to override the poolname and set it to the instance ID if we are running on AWS
-				importPhasePool = self.airflowAWSinstanceIds
-				etlPhasePool = self.airflowAWSinstanceIds
+				instanceID = self.getAWSInstanceID(row['hive_table'])
+				importPhasePool = instanceID
+				etlPhasePool = instanceID
 			else:
 				importPhasePool = self.getAirflowHostPoolName()
 				etlPhasePool = DAG['dag_name'][0:50]
@@ -584,11 +604,14 @@ class initialize(object):
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
 				elif self.airflowMode == "aws_mwaa":
+					instanceID = self.getAWSInstanceID(row['hive_table'])
 					self.DAGfile.write("%s_clearStage = PythonOperator(\n"%(taskID))
 					self.DAGfile.write("    task_id='%s_clearStage',\n"%(taskID))
 					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
-					self.DAGfile.write("    op_kwargs={\"command\": \"manage --clearImportStage -h %s -t %s\"},\n"%(row['hive_db'], row['hive_table']))
+					# self.DAGfile.write("    op_kwargs={\"command\": \"manage --clearImportStage -h %s -t %s\"},\n"%(row['hive_db'], row['hive_table']))
+					self.DAGfile.write("    op_kwargs={\"command\": \"manage --clearImportStage -h %s -t %s\", \"instanceID\": \"%s\"},\n"%(row['hive_db'], row['hive_table'], instanceID))
 					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					# self.DAGfile.write("    pool='%s',\n"%(instanceID))
 					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 					self.DAGfile.write("    weight_rule='absolute',\n")
 					self.DAGfile.write("    retries=%s,\n"%(retries))
@@ -612,25 +635,50 @@ class initialize(object):
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
 
-				self.DAGfile.write("%s_import = BashOperator(\n"%(taskID))
-				self.DAGfile.write("    task_id='%s_import',\n"%(taskID))
-				self.DAGfile.write("    bash_command='%s -h %s -t %s -I -C ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
-				self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
-				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
-				self.DAGfile.write("    weight_rule='absolute',\n")
-				self.DAGfile.write("    retries=%s,\n"%(retriesImportPhase))
-				self.DAGfile.write("    dag=dag)\n")
-				self.DAGfile.write("\n")
+				if self.airflowMode == "default":
+					self.DAGfile.write("%s_import = BashOperator(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_import',\n"%(taskID))
+					self.DAGfile.write("    bash_command='%s -h %s -t %s -I -C ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
+					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    retries=%s,\n"%(retriesImportPhase))
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 			
-				self.DAGfile.write("%s_etl = BashOperator(\n"%(taskID))
-				self.DAGfile.write("    task_id='%s_etl',\n"%(taskID))
-				self.DAGfile.write("    bash_command='%s -h %s -t %s -E ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
-				self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
-				self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
-				self.DAGfile.write("    weight_rule='absolute',\n")
-				self.DAGfile.write("    retries=%s,\n"%(retriesEtlPhase))
-				self.DAGfile.write("    dag=dag)\n")
-				self.DAGfile.write("\n")
+					self.DAGfile.write("%s_etl = BashOperator(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_etl',\n"%(taskID))
+					self.DAGfile.write("    bash_command='%s -h %s -t %s -E ',\n"%(dbimportCMD, row['hive_db'], row['hive_table']))
+					self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    retries=%s,\n"%(retriesEtlPhase))
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
+
+				elif self.airflowMode == "aws_mwaa":
+					instanceID = self.getAWSInstanceID(row['hive_table'])
+					self.DAGfile.write("%s_import = PythonOperator(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_import',\n"%(taskID))
+					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
+					self.DAGfile.write("    op_kwargs={\"command\": \"import -d %s -t %s -I -C\", \"instanceID\": \"%s\"},\n"%(row['hive_db'], row['hive_table'], instanceID))
+					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    retries=%s,\n"%(retriesImportPhase))
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
+
+					self.DAGfile.write("%s_etl = PythonOperator(\n"%(taskID))
+					self.DAGfile.write("    task_id='%s_etl',\n"%(taskID))
+					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
+					self.DAGfile.write("    op_kwargs={\"command\": \"import -d %s -t %s -E\", \"instanceID\": \"%s\"},\n"%(row['hive_db'], row['hive_table'], instanceID))
+					self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
+					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
+					self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    retries=%s,\n"%(retriesEtlPhase))
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 
 				if clearStageRequired == True and DAG['finish_all_stage1_first'] == 1:
 					self.DAGfile.write("%s.set_downstream(%s_clearStage)\n"%(self.mainStartTask, taskID))
@@ -698,11 +746,12 @@ class initialize(object):
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
 				elif self.airflowMode == "aws_mwaa":
+					instanceID = self.getAWSInstanceID(row['hive_table'])
 					self.DAGfile.write("%s = PythonOperator(\n"%(taskID))
 					self.DAGfile.write("    task_id='%s',\n"%(taskID))
 					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
-					self.DAGfile.write("    op_kwargs={\"command\": \"import -d %s -t %s %s\"},\n"%(row['hive_db'], row['hive_table'], metaDataImportOption))
-					self.DAGfile.write("    pool='%s',\n"%(importPhasePool))
+					self.DAGfile.write("    op_kwargs={\"command\": \"import -d %s -t %s %s\", \"instanceID\": \"%s\"},\n"%(row['hive_db'], row['hive_table'], metaDataImportOption, instanceID))
+					self.DAGfile.write("    pool='%s',\n"%(etlPhasePool))
 					self.DAGfile.write("    priority_weight=%s,\n"%(airflowPriority))
 					self.DAGfile.write("    weight_rule='absolute',\n")
 					self.DAGfile.write("    retries=%s,\n"%(retries))
@@ -733,6 +782,8 @@ class initialize(object):
 		self.addTasksToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"], defaultRetries=retries, defaultSudoUser=sudoUser)
 		self.addSensorsToDAGfile(dagName = DAG['dag_name'], mainDagSchedule=DAG["schedule_interval"])
 		self.createAirflowPools(pools=usedPools)
+		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+			self.AWSappendInstanceIDasPools()
 		self.closeDAGfile()
 		session.close()
 
@@ -751,6 +802,12 @@ class initialize(object):
 					.all())
 	
 			for pool in pools:
+				# Just to make sure we dont create the same pool twice. That will generate an error in Airflow
+				if pool in self.createdPools:
+					continue
+				else:
+					self.createdPools.append(pool)
+
 				if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
 					try:
 						logging.info("Creating the Airflow pool '%s' with %s slots"%(pool, self.airflowDefaultPoolSize))
@@ -765,6 +822,12 @@ class initialize(object):
 
 		elif self.createPoolsWithTasks == True:
 			for pool in pools:
+				# Just to make sure we dont create the same pool twice. That will generate an error in Airflow
+				if pool in self.createdPools:
+					continue
+				else:
+					self.createdPools.append(pool)
+
 				taskName = "createPool_%s"%(pool.replace('.', '_').replace('-', '_'))
 				self.DAGfile.write("\n")
 				self.DAGfile.write("%s = CreatePoolOperator(\n"%(taskName))
@@ -802,11 +865,12 @@ class initialize(object):
 			return
 
 		usedPools = []
-		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
-			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
-			defaultPool = self.airflowAWSinstanceIds
-		else:
-			defaultPool = DAG['dag_name']
+#		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
+#			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
+#			defaultPool = self.airflowAWSinstanceIds
+#		else:
+#			defaultPool = DAG['dag_name']
+		defaultPool = DAG['dag_name']
 		sudoUser = DAG['sudo_user']
 		usedPools.append(defaultPool)
 
@@ -977,24 +1041,24 @@ class initialize(object):
 			self.DAGfile.write("        if event['message'].find(findPattern) != -1:\n")
 			# self.DAGfile.write("        if event['message'].find(\"ERROR\") != -1:\n")
 			self.DAGfile.write("            errorFound = True\n")
-			self.DAGfile.write("            print(\"Error Found (A) !!!!!\")\n")
+			# self.DAGfile.write("            print(\"Error Found (A) !!!!!\")\n")
 			self.DAGfile.write("            print(event)\n")
 			self.DAGfile.write("    except:\n")
 			self.DAGfile.write("        print(event)\n")
 			self.DAGfile.write("        if str(event).find(findPattern) != -1:\n")
 			# self.DAGfile.write("        if str(event).find(\"ERROR\") != -1:\n")
 			self.DAGfile.write("            errorFound = True\n")
-			self.DAGfile.write("            print(\"Error Found (B) !!!!!\")\n")
+			# self.DAGfile.write("            print(\"Error Found (B) !!!!!\")\n")
 			self.DAGfile.write("\n")
 			self.DAGfile.write("    return errorFound\n")
 			self.DAGfile.write("\n")
 			self.DAGfile.write("\n")
-			self.DAGfile.write("def startDBImportExecution(command):\n")
+			self.DAGfile.write("def startDBImportExecution(command, instanceID):\n")
 			self.DAGfile.write("\n")
 			self.DAGfile.write("    ssm_client = boto3.client('ssm',region_name='eu-west-1')\n")
 			self.DAGfile.write("    logs_client = boto3.client('logs',region_name='eu-west-1')\n")
 			self.DAGfile.write("\n")
-			self.DAGfile.write("    instanceID = \"%s\"\n"%(self.airflowAWSinstanceIds))
+			# self.DAGfile.write("    instanceID = \"%s\"\n"%(self.airflowAWSinstanceIds))
 			self.DAGfile.write("    commandPath = \"%s\"\n"%(self.getDBImportCommandPath()))
 			self.DAGfile.write("    command = \"%sbin/%s || echo ERROR; sleep 1\"%(commandPath, command)\n")
 			self.DAGfile.write("    cloudWatchLogGroupName = \"dbimport\"\n")
@@ -1384,8 +1448,7 @@ class initialize(object):
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    python_callable=startDBImportExecution,\n")
-			self.DAGfile.write("    op_kwargs={\"command\": \"manage --checkAirflowExecution --airflowDAG=%s\"},\n"%(dagName))
-			#self.DAGfile.write("    bash_command='%sbin/manage --checkAirflowExecution --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
+			self.DAGfile.write("    op_kwargs={\"command\": \"manage --checkAirflowExecution --airflowDAG=%s\", \"instanceID\": \"%s\"},\n"%(dagName, self.getAWSInstanceID('start')))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    pool=None,\n")
@@ -1397,8 +1460,7 @@ class initialize(object):
 			if self.TaskQueueForDummy != None:
 				self.DAGfile.write("    queue='%s',\n"%(self.TaskQueueForDummy.strip()))
 			self.DAGfile.write("    python_callable=startDBImportExecution,\n")
-			self.DAGfile.write("    op_kwargs={\"command\": \"manage --sendAirflowStopMessage --airflowDAG=%s\"},\n"%(dagName))
-			#self.DAGfile.write("    bash_command='%sbin/manage --sendAirflowStopMessage --airflowDAG=%s',\n"%(self.getDBImportCommandPath(sudoUser=sudoUser), dagName))
+			self.DAGfile.write("    op_kwargs={\"command\": \"manage --checkAirflowExecution --airflowDAG=%s\", \"instanceID\": \"%s\"},\n"%(dagName, self.getAWSInstanceID('stop')))
 			self.DAGfile.write("    priority_weight=100,\n")
 			self.DAGfile.write("    weight_rule='absolute',\n")
 			self.DAGfile.write("    pool=None,\n")
@@ -1864,13 +1926,19 @@ class initialize(object):
 					self.DAGfile.write("    dag=dag)\n")
 					self.DAGfile.write("\n")
 				elif self.airflowMode == "aws_mwaa":
+					instanceID = self.getAWSInstanceID(row['task_name'])
 					self.DAGfile.write("%s = PythonOperator(\n"%(row['task_name']))
 					self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
 					self.DAGfile.write("    retries=%s,\n"%(defaultRetries))
 					self.DAGfile.write("    python_callable=startDBImportExecution,\n")
-					self.DAGfile.write("    op_kwargs={\"command\": \"%s\"},\n"%(dbimportCommand))
+					self.DAGfile.write("    op_kwargs={\"command\": \"%s\", \"instanceID\": \"%s\"},\n"%(dbimportCommand, instanceID))
 					if row['airflow_pool'] != '':
 						self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
+					else:
+						if self.airflowAWSpoolToInstanceId == True:
+							self.DAGfile.write("    pool='%s',\n"%(instanceID))
+						else:
+							self.DAGfile.write("    pool='%s',\n"%(dagName))
 					if row['airflow_priority'] != '':
 						self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
 						self.DAGfile.write("    weight_rule='absolute',\n")

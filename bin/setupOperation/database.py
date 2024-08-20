@@ -621,7 +621,7 @@ class initialize(object):
 			query = sa.insert(configSchema.configuration).values(
 				configKey='airflow_aws_instanceids', 
 				valueStr='i-xxxxxxxxxxxxxxxxx', 
-				description='AWS Instance IDs to start the DBImport commands on')
+				description='AWS Instance IDs to start the DBImport commands on. Comma-separated list of instance IDs. Tasks will be randomly assigned to one of the EMR clusters specified.')
 			session.execute(query)
 			session.commit()
 
@@ -1016,6 +1016,11 @@ class initialize(object):
 
 		query = sa.update(configSchema.configuration).where(configSchema.configuration.configKey == 'import_staging_database').values(
 				description='Name of staging database to use during Imports. {DATABASE} is supported within the name and will be replaced during import with the name of the import database.')
+		session.execute(query)
+		session.commit()
+
+		query = sa.update(configSchema.configuration).where(configSchema.configuration.configKey == 'airflow_aws_instanceids').values(
+				description='AWS Instance IDs to start the DBImport commands on. Comma-separated list of instance IDs. Tasks will be randomly assigned to one of the EMR clusters specified.')
 		session.execute(query)
 		session.commit()
 
