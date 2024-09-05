@@ -1,0 +1,27 @@
+.home-root {
+  display: flex;
+  height: 100%;
+  width: auto;
+  background-color: rgb(184, 188, 196);
+}
+
+.home-text-block {
+  color: rgb(21, 27, 39);
+  background-color: rgb(250, 248, 248);
+  // use grid instead?
+  margin: auto auto 30% 35%;
+  padding: 37px;
+  border-radius: 7px;
+}
+
+// h1 {
+//   font-size: 2.5em;
+//   font-weight: 450;
+//   margin: 0;
+// }
+
+// p {
+//   font-size: 1.1em;
+//   font-weight: 450;
+//   margin: 20px 0 0 0;
+// }
