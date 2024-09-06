@@ -2,7 +2,8 @@ import { useState } from 'react'
 import './Login.scss'
 import { errorHandling } from '../utils/errorHandling'
 import { useNavigate } from 'react-router-dom'
-import Logo from '../components/Logo'
+import LogoWithText from '../components/LogoWithText'
+// import { getCookie } from '../utils/cookies'
 
 interface LogInResponse {
   access_token?: string
@@ -24,13 +25,19 @@ function LogIn() {
     [errorMessage, setErrorMessage] = useState('')
   const navigate = useNavigate()
 
+  // For redirecting to / if there alredy are a tooken
+  // const authToken = getCookie('DBI_auth_token')
+  // useEffect(() => {
+  //   if (authToken) {
+  //     navigate('/')
+  //   }
+  // }, [authToken, navigate])
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage('')
 
     try {
-      console.log('formdata', formData)
-
       await loginUser(formData)
       navigate('/')
     } catch (error) {
@@ -84,7 +91,7 @@ function LogIn() {
   return (
     <div className="login-root">
       <div className="login-container">
-        <Logo />
+        <LogoWithText fontSize="30px" logoSize="100px" textMarginTop="1%" />
         <div className="login-form">
           <h2>Log in</h2>
           <form onSubmit={handleSubmit}>
