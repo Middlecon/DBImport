@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './Login.scss'
 import { errorHandling } from '../utils/errorHandling'
 import { useNavigate } from 'react-router-dom'
+import Logo from '../components/Logo'
 
 interface LogInResponse {
   access_token?: string
@@ -66,12 +67,13 @@ function LogIn() {
       if (!response.ok && responseData.detail) {
         console.error('Login failed:', responseData.detail)
         setErrorMessage(responseData.detail?.[0].msg)
+        return
       }
 
       if (responseData.access_token && responseData.token_type) {
         console.log('auth_tokenDBI', responseData.access_token)
 
-        sessionStorage.setItem('DBI_auth_token', responseData.access_token)
+        document.cookie = `DBI_auth_token=${responseData.access_token}; path=/; secure; samesite=strict;`
       }
     } catch (error) {
       errorHandling('POST', 'on Log in', error)
@@ -82,14 +84,7 @@ function LogIn() {
   return (
     <div className="login-root">
       <div className="login-container">
-        <div className="login-logo-container">
-          <img
-            className="login-logo"
-            src="../public/dbimport_logo.webp"
-            alt="dbimport_logo"
-          />
-          <h1>DBImport</h1>
-        </div>
+        <Logo />
         <div className="login-form">
           <h2>Log in</h2>
           <form onSubmit={handleSubmit}>
