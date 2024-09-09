@@ -24,8 +24,9 @@
   &__menu {
     position: absolute;
     top: 35px;
-    width: 97%;
-    margin-left: 2px;
+    width: 96%;
+    max-height: 230px;
+    margin-left: 3px;
     background-color: rgb(239, 239, 239);
     border-radius: 8px;
     border: 1px solid rgb(205, 204, 204, 0.5);
@@ -77,7 +78,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
     cursor: pointer;
     background-color: rgb(217, 217, 217);
     border-bottom: 1px solid rgb(221, 221, 221);
@@ -89,9 +89,34 @@
     }
   }
 
+  &__item-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 7px 8px 12px;
+    box-sizing: border-box;
+  }
+
+  &__item-text {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-right: 10px;
+
+    // Hides scrollbar for Chrome, Safari and Opera
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    // Hides scrollbar for IE, Edge and Firefox
+    -ms-overflow-style: none; // IE and Edge
+    scrollbar-width: none; // Firefox
+  }
+
   &__chevron {
     font-size: 14px;
-    margin-left: auto;
+    flex-shrink: 0;
   }
 
   &__no-results {

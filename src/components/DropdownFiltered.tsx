@@ -71,10 +71,13 @@ const DropdownFiltered: React.FC<DropdownFilteredProps> = ({
                   className="filter-dropdown__item"
                   onClick={() => handleSelect(item)}
                 >
-                  {item}
-                  <span className="filter-dropdown__chevron">
-                    <ChevronRight />
-                  </span>
+                  <div className="filter-dropdown__item-content">
+                    <span className="filter-dropdown__item-text">{item}</span>
+
+                    <span className="filter-dropdown__chevron">
+                      <ChevronRight />
+                    </span>
+                  </div>
                 </li>
               ))
             ) : (
