@@ -1,0 +1,25 @@
+.import-root {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  padding-left: 40px;
+  background-color: rgb(184, 188, 196);
+  h1 {
+    margin-top: 100px;
+  }
+}
+
+.db-dropdown {
+  margin-top: 70px;
+}
+
+.import-text-block {
+  color: rgb(21, 27, 39);
+  background-color: rgb(250, 248, 248);
+  height: fit-content;
+  width: 60vw;
+  text-align: center;
+  margin-top: 50px;
+  padding: 20px 50px 40px 50px;
+  border-radius: 7px;
+}

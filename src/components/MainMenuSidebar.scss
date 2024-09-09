@@ -9,6 +9,38 @@
   &.minimized {
     width: 85px;
   }
+  h2 {
+    font-size: 16px;
+    margin: 4px 0 0 10px;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+    padding: 0;
+    list-style: none;
+
+    li {
+      margin-top: 20px;
+    }
+    .menu-link {
+      padding: 2px;
+      cursor: pointer;
+      display: flex;
+      text-decoration: none;
+      color: inherit;
+      width: 100%;
+      &:hover {
+        color: rgb(255, 255, 255);
+      }
+
+      &.active {
+        color: rgb(84, 139, 234);
+      }
+    }
+  }
 }
 
 .chevron-double {
@@ -25,54 +57,9 @@
     &:hover {
       color: rgb(255, 255, 255);
     }
-
-    svg {
-      width: 21px;
-      height: 21px;
-      fill: currentColor;
-      transition: inherit;
-    }
   }
 }
 
 .mainsidebar-logo-container {
   margin-top: 50px;
-}
-
-h2 {
-  font-size: 16px;
-  margin: 4px 0 0 10px;
-}
-
-ul {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 50px;
-  padding: 0;
-  list-style: none;
-
-  li {
-    margin-top: 20px;
-  }
-  .menu-link {
-    padding: 2px;
-    cursor: pointer;
-    display: flex;
-    text-decoration: none;
-    color: inherit;
-    width: 100%;
-    &:hover {
-      color: rgb(255, 255, 255);
-    }
-
-    &.active {
-      color: rgb(84, 139, 234);
-    }
-
-    svg {
-      width: 25px;
-      height: 25px;
-    }
-  }
 }
