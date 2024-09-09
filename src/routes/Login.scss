@@ -7,7 +7,6 @@
 }
 
 .login-container {
-  // background-color: blue;
   margin: auto;
   font-size: 30px;
   .login-logo {
@@ -22,22 +21,18 @@
 .login-form {
   text-align: center;
   div {
-    // background-color: black;
     text-align: left;
     padding-left: 30px;
   }
   h2 {
     font-size: 25px;
-    padding-bottom: 9px;
-    padding-top: 7px;
+    margin-bottom: 30px;
+    margin-top: 80px;
   }
   label {
-    // background-color: greenyellow;
     font-size: 19px;
   }
   input {
-    // background-color: red;
-    // margin-bottom: 7px;
     padding-top: 4px;
     width: 170px;
   }
@@ -55,7 +50,6 @@
 }
 
 .error-message {
-  // background-color: aqua;
   color: rgb(253, 89, 71);
   font-size: 20px;
   margin-left: 100px;

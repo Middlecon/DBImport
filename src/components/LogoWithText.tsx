@@ -4,16 +4,21 @@ import './LogoWithText.scss'
 function LogoWithText({
   fontSize,
   logoSize,
-  textMarginTop
+  textMarginTop,
+  textMarginLeft,
+  noText = false
 }: {
   fontSize: string
   logoSize: string
-  textMarginTop: string
+  textMarginTop?: string | undefined
+  textMarginLeft?: string | undefined
+  noText?: boolean
 }) {
   const style: CSSProperties & { [key: string]: string } = {
     '--font-size': fontSize,
     '--logo-size': logoSize,
-    '--text-margin-top': textMarginTop
+    '--text-margin-top': textMarginTop ? textMarginTop : '',
+    '--text-margin-left': textMarginLeft ? textMarginLeft : ''
   }
 
   return (
@@ -24,7 +29,7 @@ function LogoWithText({
           src="../public/dbimport_logo.webp"
           alt="dbimport_logo"
         />
-        <h1>DBImport</h1>
+        {!noText && <h1>DBImport</h1>}
       </div>
     </div>
   )
