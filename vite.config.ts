@@ -9,8 +9,8 @@ export default defineConfig({
       '/api': {
         target: 'https://osterlund.homedns.org:5188',
         changeOrigin: true,
-        secure: false, // Detta tillåter osäkra certifikat
-        rewrite: (path) => path.replace(/^\/api/, '') // Ta bort '/api' prefixet när du skickar till backend
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }
