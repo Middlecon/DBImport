@@ -98,8 +98,9 @@ function LogIn() {
             <div>
               <label htmlFor="username">Username: </label>
               <input
+                id="username"
                 type="text"
-                name="username"
+                autoComplete="username"
                 value={formData.username}
                 onChange={(e) =>
                   setFormData({ ...formData, username: e.target.value })
@@ -110,8 +111,9 @@ function LogIn() {
             <div>
               <label htmlFor="password">Password: </label>
               <input
+                id="password"
                 type="password"
-                name="password"
+                autoComplete="current-password"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
