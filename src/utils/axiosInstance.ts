@@ -26,4 +26,19 @@ axiosInstance.interceptors.request.use(
   }
 )
 
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log('error.response AXIOS', error.response)
+
+    if (error.response && error.response.status === 401) {
+      document.cookie =
+        'DBI_auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default axiosInstance

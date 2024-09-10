@@ -38,10 +38,12 @@ function App() {
   ])
 
   return (
+    <AuthProvider>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
+    </AuthProvider>
   )
 }
 
