@@ -3,8 +3,8 @@ import LogIn from './routes/LogIn'
 import MainLayout from './components/MainLayout'
 import Export from './routes/Export'
 import Home from './routes/Home'
-import Import from './routes/Import'
-import DbTable from './components/DbTable'
+import Import from './routes/import/Import'
+import DbTables from './routes/import/DbTables'
 
 export const router = createBrowserRouter([
   {
@@ -26,8 +26,8 @@ export const router = createBrowserRouter([
         element: <Import />,
         children: [
           {
-            path: '/import/:db',
-            element: <DbTable />
+            path: ':db',
+            element: <DbTables />
           }
         ]
       },
