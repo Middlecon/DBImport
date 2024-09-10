@@ -1,15 +1,21 @@
-import { useState } from 'react'
+// import { useState } from 'react'
 import ChevronDoubleLeft from '../assets/icons/ChevronDoubleLeft'
 import ImportIcon from '../assets/icons/ImportIcon'
-import ExportIcon from '../assets/icons/exportIcon'
+import ExportIcon from '../assets/icons/ExportIcon'
 import LogoWithText from './LogoWithText'
 
 import './MainMenuSidebar.scss'
 import ChevronDoubleRight from '../assets/icons/ChevronDoubleRight'
 import { NavLink } from 'react-router-dom'
 
-function MainSidebar() {
-  const [minimized, setMinimized] = useState(false)
+interface MainSidebarProps {
+  minimized: boolean
+  setMinimized: React.Dispatch<React.SetStateAction<boolean>>
+}
+const MainMenuSidebar: React.FC<MainSidebarProps> = ({
+  minimized,
+  setMinimized
+}) => {
   const handleToggleMinimize = () => {
     setMinimized((prevMinimized) => !prevMinimized)
   }
@@ -63,4 +69,4 @@ function MainSidebar() {
   )
 }
 
-export default MainSidebar
+export default MainMenuSidebar

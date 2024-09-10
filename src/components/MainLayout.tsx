@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import MainSidebar from './MainMenuSidebar'
+import MainMenuSidebar from './MainMenuSidebar'
 import './MainLayout.scss'
 
 const MainLayout: React.FC = () => {
+  const [minimized, setMinimized] = useState(false)
+
   return (
     <div style={{ display: 'flex' }}>
-      <MainSidebar />
-      <div className="outlet-container">
+      <MainMenuSidebar minimized={minimized} setMinimized={setMinimized} />
+      <div className={`outlet-container ${minimized ? 'minimized' : ''}`}>
         <Outlet />
       </div>
     </div>
