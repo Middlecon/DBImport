@@ -3,7 +3,6 @@ import DropdownFiltered from '../../components/DropdownFiltered'
 import { useDatabases } from '../../utils/queries'
 import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 
 function Import() {
   const { data, isLoading } = useDatabases()
@@ -11,11 +10,6 @@ function Import() {
   const navigate = useNavigate()
   const { db } = useParams<{ db: string }>()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
-  const queryClient = useQueryClient()
-
-  console.log('databases data', data)
-  console.log('databaseNames:', databaseNames)
-  console.log('db param:', db)
 
   useEffect(() => {
     if (isLoading) return
@@ -27,14 +21,8 @@ function Import() {
   }, [db, databaseNames, isLoading, navigate])
 
   const handleSelect = (item: string) => {
-    console.log('Selected item:', item)
-
-    queryClient.invalidateQueries({ queryKey: ['tables'] })
-
     navigate(`/import/${item}`)
   }
-
-  console.log('databases names', databaseNames)
 
   return (
     <>

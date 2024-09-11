@@ -1,4 +1,4 @@
-import { UseQueryResult, useQuery } from '@tanstack/react-query'
+import { UseQueryResult, useQuery, useQueryClient } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
 import { Database, Table } from './interfaces'
@@ -7,8 +7,6 @@ import { Database, Table } from './interfaces'
 
 const getDatabases = async () => {
   const response = await axiosInstance.get('/import/db')
-  console.log('databases', response.data)
-
   return response.data
 }
 
@@ -23,19 +21,23 @@ export const useDatabases = (): UseQueryResult<Database[], Error> => {
 
 const getDbTables = async (database: string) => {
   const response = await axiosInstance.get(`/import/table/${database}`)
-  console.log('tables', response.data)
-
   return response.data
 }
 
 export const useDbTables = (): UseQueryResult<Table[], Error> => {
   const { db } = useParams<{ db: string }>()
-  if (!db) {
-    throw new Error('Database parameter is missing')
-  }
+  const queryClient = useQueryClient()
+
+  queryClient.invalidateQueries({ queryKey: ['tables'] })
 
   return useQuery({
-    queryKey: ['tables'],
-    queryFn: () => getDbTables(db)
+    queryKey: ['tables', db],
+    queryFn: () => {
+      if (!db) {
+        return Promise.resolve([])
+      }
+      return getDbTables(db)
+    },
+    enabled: !!db
   })
 }

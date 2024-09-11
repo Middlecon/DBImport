@@ -27,8 +27,6 @@ function DbTable() {
     return <p>Error: {error?.message}</p>
   }
 
-  console.log('db tables', data)
-
   return (
     <>
       <div className="db-table">
