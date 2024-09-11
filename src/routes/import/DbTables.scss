@@ -2,9 +2,12 @@
   color: rgb(21, 27, 39);
   background-color: rgb(250, 248, 248);
   height: fit-content;
-  width: 60vw;
+  width: 100%;
   text-align: center;
   margin-top: 50px;
-  padding: 20px 50px 40px 50px;
   border-radius: 7px;
+}
+
+.db-tables-list {
+  list-style: none;
 }

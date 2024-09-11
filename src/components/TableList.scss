@@ -1,0 +1,81 @@
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 12px;
+  text-align: left;
+
+  td {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    position: relative;
+  }
+
+  th {
+    margin: 0;
+    padding: 10px 16px 8px 12px;
+    background-color: rgb(184, 188, 196);
+    font-weight: bold;
+    border: 1px solid #abaeb8;
+    border-bottom: 0;
+  }
+  .tooltip {
+    width: max-content;
+    height: min-content;
+    overflow: visible;
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateY(6px) translateX(2px);
+    background-color: #6e6e8c;
+    color: #fcfcfc;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    transition: opacity 0.3s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #6f6f89 transparent transparent transparent;
+    }
+  }
+
+  .fixed-width {
+    width: 50px;
+    max-width: 70px;
+    white-space: nowrap;
+    p {
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      margin: 0;
+    }
+    &:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+      overflow: visible;
+    }
+  }
+
+  .actions-row {
+    display: flex;
+    justify-content: space-between;
+    button {
+      border: none;
+      background-color: inherit;
+      padding: 0;
+    }
+    .actions-edit-button {
+      padding-right: 15px;
+    }
+  }
+}
