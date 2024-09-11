@@ -1,27 +1,7 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
-
-interface Database {
-  name: string
-  tables: number
-  lastImport: string
-  lastSize: number
-  lastRows: number
-}
-
-interface Table {
-  connection: string
-  database: string
-  etlEngine: string
-  etlPhaseType: string
-  importPhaseType: string
-  importTool: string
-  lastUpdateFromSource: string
-  sourceSchema: string
-  sourceTable: string
-  table: string
-}
+import { Database, Table } from './interfaces'
 
 // GET DATABASES
 
