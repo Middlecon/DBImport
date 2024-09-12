@@ -26,7 +26,7 @@ function TableList({ columns, data }: TableProps) {
         <tr>
           {columns.map((column) => (
             <th
-              key={column.accessor}
+              key={column.header}
               className={column.accessor === 'sourceTable' ? 'fixed-width' : ''}
             >
               {column.header}
