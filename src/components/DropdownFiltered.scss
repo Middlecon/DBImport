@@ -1,6 +1,6 @@
 .filter-dropdown {
   position: relative;
-  width: 200px;
+  width: min-content;
 
   &__button {
     width: 100%;
@@ -19,12 +19,14 @@
 
   &__chevron {
     margin-right: 5px;
+    margin-left: 15px;
   }
 
   &__menu {
     position: absolute;
     top: 35px;
-    width: 96%;
+    width: min-content;
+
     max-height: 230px;
     margin-left: 3px;
     background-color: rgb(239, 239, 239);
