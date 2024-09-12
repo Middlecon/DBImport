@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
     Authorization: `Bearer ${getCookie('DBI_auth_token') || ''}`
   },
   withCredentials: true,
-  timeout: 10000
+  timeout: 100000
 })
 
 axiosInstance.interceptors.request.use(

@@ -1,4 +1,4 @@
-import { UseQueryResult, useQuery, useQueryClient } from '@tanstack/react-query'
+import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
 import { Database, Table } from './interfaces'
@@ -26,9 +26,6 @@ const getDbTables = async (database: string) => {
 
 export const useDbTables = (): UseQueryResult<Table[], Error> => {
   const { db } = useParams<{ db: string }>()
-  const queryClient = useQueryClient()
-
-  queryClient.invalidateQueries({ queryKey: ['tables'] })
 
   return useQuery({
     queryKey: ['tables', db],
