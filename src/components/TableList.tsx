@@ -2,6 +2,7 @@ import './TableList.scss'
 import { Column, Table } from '../utils/interfaces'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
+import { useEffect, useRef, useState } from 'react'
 
 interface TableProps {
   columns: Column[]
@@ -9,6 +10,16 @@ interface TableProps {
 }
 
 function TableList({ columns, data }: TableProps) {
+  const [overflowState, setOverflowState] = useState<boolean[]>([])
+
+  const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
+
+  useEffect(() => {
+    const isOverflowing = cellRefs.current.map((cell) =>
+      cell ? cell.scrollWidth > cell.clientWidth : false
+    )
+    setOverflowState(isOverflowing)
+  }, [data, columns])
   return (
     <table className="custom-table">
       <thead>
@@ -35,10 +46,14 @@ function TableList({ columns, data }: TableProps) {
               >
                 {column.accessor === 'sourceTable' ? (
                   <>
-                    <p>{row[column.accessor as keyof Table]}</p>
-                    <span className="tooltip">
+                    <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
                       {row[column.accessor as keyof Table]}
-                    </span>
+                    </p>
+                    {overflowState[rowIndex] && (
+                      <span className="tooltip">
+                        {row[column.accessor as keyof Table]}
+                      </span>
+                    )}
                   </>
                 ) : column.isAction ? (
                   <div className="actions-row">
