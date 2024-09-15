@@ -1,21 +1,23 @@
 import React, { useState } from 'react'
-import './DropdownFiltered.scss'
+import './DropdownSearch.scss'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import ChevronRight from '../assets/icons/ChevronRight'
 
-interface DropdownFilteredProps {
+interface DropdownSearchProps {
   items: string[]
   initialTitle: string
   placeholder?: string
+  leftwards?: boolean
   onSelect: (item: string) => void
 }
 
-const DropdownFiltered: React.FC<DropdownFilteredProps> = ({
+const DropdownSearch: React.FC<DropdownSearchProps> = ({
   items,
   initialTitle,
   placeholder = 'Search...',
+  leftwards,
   onSelect
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -38,50 +40,44 @@ const DropdownFiltered: React.FC<DropdownFilteredProps> = ({
   )
 
   return (
-    <div className="filter-dropdown">
-      <button
-        className="filter-dropdown__button"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+    <div className="search-dropdown">
+      <button onClick={() => setIsOpen(!isOpen)}>
         {selectedItem || initialTitle}
-        <div className="filter-dropdown__chevron">
+        <div className="chevron-container">
           {isOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
       </button>
 
       {isOpen && (
-        <div className="filter-dropdown__menu">
-          <div className="filter-dropdown__search">
-            <span className="filter-dropdown__icon">
+        <div className={leftwards ? 'menu leftwards' : 'menu'}>
+          <div className="search">
+            <span className="icon">
               <FilterFunnel />
             </span>
             <input
               type="text"
-              className="filter-dropdown__input"
               value={searchTerm}
               onChange={handleInputChange}
               placeholder={placeholder}
             />
           </div>
-          <ul className="filter-dropdown__list">
-            {filteredItems.length ? (
-              filteredItems.map((item) => (
-                <li
-                  key={item}
-                  className="filter-dropdown__item"
-                  onClick={() => handleSelect(item)}
-                >
-                  <div className="filter-dropdown__item-content">
-                    <span className="filter-dropdown__item-text">{item}</span>
 
-                    <span className="filter-dropdown__chevron">
-                      <ChevronRight />
-                    </span>
+          <ul>
+            {filteredItems.length ? (
+              filteredItems.map((item, index) => (
+                <li key={index} onClick={() => handleSelect(item)}>
+                  <div className="item-content">
+                    <span className="item-text">{item}</span>
+                    {!leftwards && (
+                      <span className="chevron">
+                        <ChevronRight />
+                      </span>
+                    )}
                   </div>
                 </li>
               ))
             ) : (
-              <li className="filter-dropdown__no-results" no-hover>
+              <li className="no-results" no-hover>
                 No results found
               </li>
             )}
@@ -92,4 +88,4 @@ const DropdownFiltered: React.FC<DropdownFilteredProps> = ({
   )
 }
 
-export default DropdownFiltered
+export default DropdownSearch

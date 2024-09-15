@@ -1,20 +1,23 @@
-.custom-table {
+.custom-table-root {
   width: 100%;
+  max-height: 100vh;
   border-collapse: collapse;
   margin: 0;
   font-size: 12px;
   text-align: left;
+  border-radius: 20px;
 
   td {
     padding: 8px 12px;
     border: 1px solid #ddd;
     position: relative;
+    background-color: rgb(250, 248, 248);
   }
 
   th {
     margin: 0;
     padding: 10px 16px 8px 12px;
-    background-color: rgb(184, 188, 196);
+    background-color: rgb(171, 171, 172);
     font-weight: bold;
     border: 1px solid #abaeb8;
     border-bottom: 0;

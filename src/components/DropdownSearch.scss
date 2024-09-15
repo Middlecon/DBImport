@@ -1,8 +1,8 @@
-.filter-dropdown {
+.search-dropdown {
   position: relative;
   width: min-content;
 
-  &__button {
+  button {
     width: 100%;
     padding: 8px 12px;
     background-color: rgb(43, 62, 111);
@@ -13,20 +13,23 @@
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
+    white-space: nowrap;
     font-size: 14px;
     box-sizing: border-box;
   }
 
-  &__chevron {
+  .chevron-container {
     margin-right: 5px;
     margin-left: 15px;
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
-  &__menu {
+  .menu {
     position: absolute;
     top: 35px;
     width: min-content;
-
+    min-width: 95%;
     max-height: 230px;
     margin-left: 3px;
     background-color: rgb(239, 239, 239);
@@ -34,7 +37,6 @@
     border: 1px solid rgb(205, 204, 204, 0.5);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow: auto;
-    z-index: 10;
     li:nth-child(odd) {
       background-color: rgb(211, 209, 209);
       &:hover {
@@ -43,7 +45,11 @@
     }
   }
 
-  &__search {
+  .leftwards {
+    right: 0; // makes dropdown open up leftwards
+  }
+
+  .search {
     display: flex;
     align-items: center;
     padding: 3px 8px 0 8px;
@@ -53,12 +59,12 @@
     box-sizing: border-box;
   }
 
-  &__icon {
+  .icon {
     color: transparent;
     margin-right: 8px;
   }
 
-  &__input {
+  input {
     width: 100%;
     padding: 6px;
     border: none;
@@ -69,13 +75,13 @@
     box-sizing: border-box;
   }
 
-  &__list {
+  ul {
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  &__item {
+  li {
     width: 100%;
     display: flex;
     align-items: center;
@@ -91,7 +97,7 @@
     }
   }
 
-  &__item-content {
+  .item-content {
     display: flex;
     align-items: center;
     width: 100%;
@@ -99,29 +105,13 @@
     box-sizing: border-box;
   }
 
-  &__item-text {
+  .item-text {
     flex-grow: 1;
     white-space: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
     margin-right: 10px;
-
-    // Hides scrollbar for Chrome, Safari and Opera
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
-    // Hides scrollbar for IE, Edge and Firefox
-    -ms-overflow-style: none; // IE and Edge
-    scrollbar-width: none; // Firefox
   }
 
-  &__chevron {
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  &__no-results {
+  .no-results {
     font-size: 15px;
     width: 100%;
     text-align: center;

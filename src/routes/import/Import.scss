@@ -1,16 +1,39 @@
 .import-root {
   display: flex;
-  height: 100%;
   flex-direction: column;
-  padding: 0 40px 20% 40px;
+  height: 100%;
+  width: auto;
+  padding: 0 40px 30vh 40px;
   background-color: rgb(184, 188, 196);
-  h1 {
-    margin-top: 100px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  .breadcrumbs {
+    margin-top: 15px;
+    font-size: 14px;
+
+    span {
+      margin-left: 1px;
+      padding-bottom: 3px;
+    }
+    svg {
+      margin-bottom: -1px;
+      width: 9px;
+      height: 11px;
+    }
   }
 }
 
+.import-header {
+  display: flex;
+  padding: 30px 0px 40px 0;
+  justify-content: space-between;
+  z-index: 10000;
+}
+
 .db-dropdown {
-  margin-top: 70px;
+  display: flex;
+  margin-top: 15px;
+  z-index: 0;
 }
 
 .import-text-block {
@@ -22,4 +45,11 @@
   margin-top: 50px;
   padding: 20px 50px 40px 50px;
   border-radius: 7px;
+}
+
+.scrollable-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  width: 100%;
+  max-height: 520px;
 }

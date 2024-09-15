@@ -1,11 +1,14 @@
 import { Outlet, useNavigate, useParams } from 'react-router-dom'
-import DropdownFiltered from '../../components/DropdownFiltered'
+import DropdownSearch from '../../components/DropdownSearch'
 import { useDatabases } from '../../utils/queries'
 import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
+import ChevronRight from '../../assets/icons/ChevronRight'
 
 function Import() {
   const { data, isLoading } = useDatabases()
+  console.log('data DATABASEs', data)
+
   const databaseNames = useMemo(() => data?.map((db) => db.name) ?? [], [data])
   const navigate = useNavigate()
   const { db } = useParams<{ db: string }>()
@@ -27,14 +30,36 @@ function Import() {
   return (
     <>
       <div className="import-root">
-        <h1>Import</h1>
+        <div className="breadcrumbs">
+          Home
+          <span>
+            <ChevronRight />
+            <span>Import</span>
+          </span>
+        </div>
+
+        <div className="import-header">
+          <h1>Import</h1>
+          <div className="db-dropdown">
+            <DropdownSearch
+              items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
+              initialTitle={selectedDatabase || 'Select DB'}
+              leftwards={true}
+              onSelect={handleSelect}
+            />
+          </div>
+        </div>
+
+        {/* <h1>Import</h1>
         <div className="db-dropdown">
-          <DropdownFiltered
+          <DropdownSearch
             items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
             initialTitle={selectedDatabase || 'Select DB'}
+            leftwards={true}
             onSelect={handleSelect}
           />
-        </div>
+        </div> */}
+
         {!db ? (
           <div className="import-text-block">
             <p>
@@ -43,7 +68,9 @@ function Import() {
             </p>
           </div>
         ) : (
-          <Outlet />
+          <div className="scrollable-container">
+            <Outlet />
+          </div>
         )}
       </div>
     </>

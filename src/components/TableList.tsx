@@ -15,18 +15,18 @@ function TableList({ columns, data }: TableProps) {
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
 
   useEffect(() => {
-    const isOverflowing = cellRefs.current.map((cell) =>
-      cell ? cell.scrollWidth > cell.clientWidth : false
+    const isOverflowing = cellRefs.current.map((el) =>
+      el ? el.scrollWidth > el.clientWidth : false
     )
     setOverflowState(isOverflowing)
   }, [data, columns])
   return (
-    <table className="custom-table">
+    <table className="custom-table-root">
       <thead>
         <tr>
-          {columns.map((column) => (
+          {columns.map((column, index) => (
             <th
-              key={column.header}
+              key={index}
               className={column.accessor === 'sourceTable' ? 'fixed-width' : ''}
             >
               {column.header}
