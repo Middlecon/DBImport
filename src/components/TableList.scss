@@ -7,13 +7,6 @@
   text-align: left;
   border-radius: 20px;
 
-  td {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    position: relative;
-    background-color: rgb(250, 248, 248);
-  }
-
   th {
     margin: 0;
     padding: 10px 16px 8px 12px;
@@ -22,6 +15,15 @@
     border: 1px solid #abaeb8;
     border-bottom: 0;
   }
+
+  td {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    position: relative;
+    background-color: rgb(250, 248, 248);
+    white-space: nowrap;
+  }
+
   .tooltip {
     width: max-content;
     height: min-content;

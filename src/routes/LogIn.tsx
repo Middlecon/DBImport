@@ -78,7 +78,7 @@ function LogIn() {
       }
 
       if (responseData.access_token && responseData.token_type) {
-        console.log('auth_tokenDBI', responseData.access_token)
+        // console.log('auth_tokenDBI', responseData.access_token)
 
         document.cookie = `DBI_auth_token=${responseData.access_token}; path=/; secure; samesite=strict;`
       }

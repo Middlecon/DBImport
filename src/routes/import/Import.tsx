@@ -7,7 +7,7 @@ import ChevronRight from '../../assets/icons/ChevronRight'
 
 function Import() {
   const { data, isLoading } = useDatabases()
-  console.log('data DATABASEs', data)
+  // console.log('data DATABASES', data)
 
   const databaseNames = useMemo(() => data?.map((db) => db.name) ?? [], [data])
   const navigate = useNavigate()
@@ -68,9 +68,7 @@ function Import() {
             </p>
           </div>
         ) : (
-          <div className="scrollable-container">
-            <Outlet />
-          </div>
+          <Outlet />
         )}
       </div>
     </>

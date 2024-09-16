@@ -177,28 +177,35 @@ function DbTable() {
 
   return (
     <div className="db-table-root">
-      <div className="filters">
-        {checkboxFilters.map((filter, index) => (
-          <DropdownCheckbox
-            key={index}
-            items={filter.values}
-            title={filter.title}
-            onSelect={(items) => handleSelect(filter.accessor, items)}
-          />
-        ))}
-        {radioFilters.map((filter, index) => (
-          <DropdownRadio
-            key={index}
-            items={filter.values}
-            title={filter.title}
-            radioName={filter.radioName}
-            badgeContent={filter.badgeContent}
-            onSelect={(items) => handleSelect(filter.accessor, items)}
-          />
-        ))}
+      <div className="scrollable-container">
+        <div className="filters">
+          {checkboxFilters.map((filter, index) => (
+            <DropdownCheckbox
+              key={index}
+              items={filter.values}
+              title={filter.title}
+              onSelect={(items) => handleSelect(filter.accessor, items)}
+            />
+          ))}
+          {radioFilters.map((filter, index) => (
+            <DropdownRadio
+              key={index}
+              items={filter.values}
+              title={filter.title}
+              radioName={filter.radioName}
+              badgeContent={filter.badgeContent}
+              onSelect={(items) => handleSelect(filter.accessor, items)}
+            />
+          ))}
+        </div>
       </div>
+
       {filteredData ? (
-        <TableList columns={columns} data={filteredData} />
+        <div className="tables-container">
+          <div className="scrollable-container">
+            <TableList columns={columns} data={filteredData} />
+          </div>
+        </div>
       ) : (
         <div>Loading....</div>
       )}

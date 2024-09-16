@@ -7,7 +7,7 @@ const MainLayout: React.FC = () => {
   const [minimized, setMinimized] = useState(false)
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', height: '100vh' }}>
       <MainMenuSidebar minimized={minimized} setMinimized={setMinimized} />
       <div className={`outlet-container ${minimized ? 'minimized' : ''}`}>
         <Outlet />

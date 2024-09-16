@@ -1,16 +1,33 @@
+.db-table-root {
+  color: rgb(21, 27, 39);
+  height: fit-content;
+  width: fit-content;
+  min-width: 100%;
+  max-height: 80vh;
+
+  width: auto;
+  background-color: rgb(184, 188, 196);
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
 .filters {
   display: flex;
   gap: 25px;
   margin-bottom: 30px;
 }
 
-.db-table-root {
-  color: rgb(21, 27, 39);
-  height: fit-content;
-  width: fit-content;
-  min-width: 100%;
-}
-
 .db-tables-list {
   list-style: none;
+}
+
+.tables-container {
+  padding-bottom: 20px;
+}
+
+.scrollable-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  width: 100%;
+  max-height: 70vh;
 }
