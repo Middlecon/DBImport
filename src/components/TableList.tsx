@@ -1,18 +1,19 @@
 import './TableList.scss'
-import { Column, Table } from '../utils/interfaces'
+import { Column, UITable } from '../utils/interfaces'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import { useEffect, useRef, useState } from 'react'
 
 interface TableProps {
   columns: Column[]
-  data: Table[]
+  data: UITable[]
 }
 
 function TableList({ columns, data }: TableProps) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
 
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
+  console.log('data TableList', data)
 
   useEffect(() => {
     const isOverflowing = cellRefs.current.map((el) =>
@@ -47,11 +48,11 @@ function TableList({ columns, data }: TableProps) {
                 {column.accessor === 'sourceTable' ? (
                   <>
                     <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
-                      {row[column.accessor as keyof Table]}
+                      {row[column.accessor as keyof UITable]}
                     </p>
                     {overflowState[rowIndex] && (
                       <span className="tooltip">
-                        {row[column.accessor as keyof Table]}
+                        {row[column.accessor as keyof UITable]}
                       </span>
                     )}
                   </>
@@ -68,7 +69,9 @@ function TableList({ columns, data }: TableProps) {
                     </button>
                   </div>
                 ) : (
-                  <>{row[column.accessor as keyof Table]}</>
+                  (row[
+                    `${column.accessor}Display` as keyof UITable
+                  ] as string) ?? row[column.accessor as keyof UITable]
                 )}
               </td>
             ))}

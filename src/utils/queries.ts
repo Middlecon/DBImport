@@ -1,7 +1,8 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
-import { Database, Table } from './interfaces'
+import { Database, Table, UITable } from './interfaces'
+import { mapDisplayValue } from './nameMappings'
 
 // GET DATABASES
 
@@ -24,16 +25,38 @@ const getDbTables = async (database: string) => {
   return response.data
 }
 
-export const useDbTables = (): UseQueryResult<Table[], Error> => {
+export const useDbTables = (): UseQueryResult<UITable[], Error> => {
   const { db } = useParams<{ db: string }>()
 
   return useQuery({
     queryKey: ['tables', db],
-    queryFn: () => {
+    queryFn: async () => {
       if (!db) {
-        return Promise.resolve([])
+        return []
       }
-      return getDbTables(db)
+
+      const data: Table[] = await getDbTables(db)
+
+      return data.map(
+        (row: {
+          etlPhaseType: string
+          importPhaseType: string
+          importTool: string
+          etlEngine: string
+        }) => ({
+          ...row,
+          etlPhaseTypeDisplay: mapDisplayValue(
+            'etlPhaseType',
+            row.etlPhaseType
+          ),
+          importPhaseTypeDisplay: mapDisplayValue(
+            'importPhaseType',
+            row.importPhaseType
+          ),
+          importToolDisplay: mapDisplayValue('importTool', row.importTool),
+          etlEngineDisplay: mapDisplayValue('etlEngine', row.etlEngine)
+        })
+      )
     },
     enabled: !!db
   })
