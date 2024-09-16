@@ -2,9 +2,25 @@
   position: relative;
   width: min-content;
   max-height: 14px;
-  .radio {
+
+  .checkbox {
     margin-right: 8px;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #999;
+    border-radius: 50%;
+    outline: none;
+    transition: border-color 0.2s ease-in-out;
+
+    &:checked {
+      border-color: #2b3e6f;
+      background-color: #2b3e6f;
+      box-shadow: inset 0 0 0 3px #fff;
+    }
   }
 
   button {

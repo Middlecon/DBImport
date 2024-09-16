@@ -47,13 +47,13 @@ const DropdownCheckbox: React.FC<DropdownCheckboxProps> = ({
           <ul>
             {items.length ? (
               items.map((item, index) => (
-                <li key={index}>
+                <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">
                     <input
                       type="checkbox"
                       className="checkbox"
                       checked={selectedItems.includes(item)}
-                      onChange={() => handleSelect(item)}
+                      onChange={() => {}}
                     />
                     <span className="item-text">{item}</span>
                   </div>

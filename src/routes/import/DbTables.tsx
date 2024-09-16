@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
-import DropdownRadio from '../../components/DropdownRadio'
+import DropdownSingleSelect from '../../components/DropdownSingleSelect'
 import TableList from '../../components/TableList'
 import { Column } from '../../utils/interfaces'
 import { useDbTables } from '../../utils/queries'
@@ -188,7 +188,7 @@ function DbTable() {
             />
           ))}
           {radioFilters.map((filter, index) => (
-            <DropdownRadio
+            <DropdownSingleSelect
               key={index}
               items={filter.values}
               title={filter.title}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import './DropdownRadio.scss'
+import './DropdownSingleSelect.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 
@@ -23,9 +23,20 @@ const DropdownRadio: React.FC<DropdownRadioProps> = ({
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
 
   const handleSelect = (item: string) => {
-    setSelectedItem(item)
-    onSelect([item])
+    console.log('selectedItem', selectedItem)
+    if (selectedItem === item) {
+      setSelectedItem(null) // Unselect if the same item is clicked again
+      onSelect([]) // Pass an empty array to signify unselection
+    } else {
+      setSelectedItem(item) // Select the new item
+      onSelect([item])
+    }
   }
+
+  // const handleSelect = (item: string) => {
+  //   setSelectedItem(item)
+  //   onSelect([item])
+  // }
 
   return (
     <div className="select-dropdown">
@@ -49,14 +60,14 @@ const DropdownRadio: React.FC<DropdownRadioProps> = ({
           <ul>
             {items.length ? (
               items.map((item, index) => (
-                <li key={index}>
+                <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">
                     <input
-                      type="radio"
+                      type="checkbox"
                       name={radioName}
-                      className="radio"
+                      className="checkbox"
                       checked={selectedItem === item}
-                      onChange={() => handleSelect(item)}
+                      onChange={() => {}}
                     />
                     <span className="item-text">{item}</span>
                   </div>

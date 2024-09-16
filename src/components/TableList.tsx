@@ -13,7 +13,7 @@ function TableList({ columns, data }: TableProps) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
 
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
-  console.log('data TableList', data)
+  // console.log('data TableList', data)
 
   useEffect(() => {
     const isOverflowing = cellRefs.current.map((el) =>
