@@ -27,13 +27,13 @@ export const router = createBrowserRouter([
         element: <Import />,
         children: [
           {
-            path: ':db',
+            path: ':database',
             element: <DbTables />
           }
         ]
       },
       {
-        path: '/import/:db/:table',
+        path: '/import/:database/:table',
         element: <TableDetailedView />
       },
       {

@@ -6,7 +6,7 @@ export interface Database {
   lastRows: number
 }
 
-export interface Table {
+export interface DbTable {
   connection: string
   database: string
   etlEngine: string
@@ -30,4 +30,79 @@ export interface Column {
   header: string
   accessor?: keyof Table
   isAction?: boolean
+}
+
+export interface Table {
+  database: 'string'
+  table: 'string'
+  connection: 'string'
+  sourceSchema: 'string'
+  sourceTable: 'string'
+  importPhaseType: 'string'
+  etlPhaseType: 'string'
+  importTool: 'string'
+  etlEngine: 'string'
+  lastUpdateFromSource: 'string'
+  sqlWhereAddition: 'string'
+  nomergeIngestionSqlAddition: 'string'
+  includeInAirflow: true
+  airflowPriority: 'string'
+  validateImport: true
+  validationMethod: 'string'
+  validateSource: 'string'
+  validateDiffAllowed: 0
+  validationCustomQuerySourceSQL: 'string'
+  validationCustomQueryHiveSQL: 'string'
+  validationCustomQueryValidateImportTable: true
+  truncateTable: true
+  mappers: 0
+  softDeleteDuringMerge: true
+  sourceRowcount: 0
+  sourceRowcountIncr: 0
+  targetRowcount: 0
+  validationCustomQuerySourceValue: 'string'
+  validationCustomQueryHiveValue: 'string'
+  incrMode: 'string'
+  incrColumn: 'string'
+  incrValidationMethod: 'string'
+  incrMinvalue: 'string'
+  incrMaxvalue: 'string'
+  incrMinvaluePending: 'string'
+  incrMaxvaluePending: 'string'
+  pkColumnOverride: 'string'
+  pkColumnOverrideMergeonly: 'string'
+  mergeHeap: 0
+  splitCount: 0
+  sparkExecutorMemory: 'string'
+  sparkExecutors: 0
+  splitByColumn: 'string'
+  customQuery: 'string'
+  sqoopOptions: 'string'
+  lastSize: 0
+  lastRows: 0
+  lastMappers: 0
+  lastExecution: 0
+  useGeneratedSql: true
+  allowTextSplitter: true
+  forceString: 0
+  comment: 'string'
+  generatedHiveColumnDefinition: 'string'
+  generatedSqoopQuery: 'string'
+  generatedSqoopOptions: 'string'
+  generatedPkColumns: 'string'
+  generatedForeignKeys: 'string'
+  datalakeSource: 'string'
+  operatorNotes: 'string'
+  copyFinished: 'string'
+  copySlave: true
+  createForeignKeys: 0
+  invalidateImpala: 0
+  customMaxQuery: 'string'
+  mergeCompactionMethod: 'string'
+  sourceTableType: 'string'
+  importDatabase: 'string'
+  importTable: 'string'
+  historyDatabase: 'string'
+  historyTable: 'string'
+  columns: []
 }

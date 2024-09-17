@@ -9,20 +9,23 @@ function Import() {
   const { data, isLoading } = useDatabases()
   // console.log('data DATABASES', data)
 
-  const databaseNames = useMemo(() => data?.map((db) => db.name) ?? [], [data])
+  const databaseNames = useMemo(
+    () => data?.map((database) => database.name) ?? [],
+    [data]
+  )
   const navigate = useNavigate()
-  const { db } = useParams<{ db: string }>()
+  const { database } = useParams<{ database: string }>()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   useEffect(() => {
     if (isLoading) return
-    if (db && databaseNames.includes(db)) {
-      setSelectedDatabase(db)
-    } else if (db) {
+    if (database && databaseNames.includes(database)) {
+      setSelectedDatabase(database)
+    } else if (database) {
       navigate('/import', { replace: true })
     }
-  }, [db, databaseNames, isLoading, navigate])
+  }, [database, databaseNames, isLoading, navigate])
 
   const handleSelect = (item: string) => {
     navigate(`/import/${item}`)
@@ -60,7 +63,7 @@ function Import() {
           </div>
         </div>
 
-        {!db ? (
+        {!database ? (
           <div className="import-text-block">
             <p>
               Please select a DB in the above dropdown to show and edit settings
