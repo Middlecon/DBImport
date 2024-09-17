@@ -1,0 +1,25 @@
+.view-layout-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: auto;
+  padding: 0 40px;
+
+  background-color: rgb(184, 188, 196);
+  overflow-x: hidden;
+  overflow-y: hidden;
+  .fake-breadcrumbs {
+    margin-top: 15px;
+    font-size: 14px;
+
+    span {
+      margin-left: 1px;
+      padding-bottom: 3px;
+    }
+    svg {
+      margin-bottom: -1px;
+      width: 9px;
+      height: 11px;
+    }
+  }
+}

@@ -3,7 +3,7 @@ import DropdownSearch from '../../components/DropdownSearch'
 import { useDatabases } from '../../utils/queries'
 import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
-import ChevronRight from '../../assets/icons/ChevronRight'
+import ViewBaseLayout from '../../components/ViewBaseLayout'
 
 function Import() {
   const { data, isLoading } = useDatabases()
@@ -43,15 +43,7 @@ function Import() {
 
   return (
     <>
-      <div className="import-root">
-        <div className="breadcrumbs">
-          Home
-          <span>
-            <ChevronRight />
-            <span>Import</span>
-          </span>
-        </div>
-
+      <ViewBaseLayout breadcrumbs={['Import']}>
         <div className="import-header">
           <h1>Import</h1>
           <div className="db-dropdown">
@@ -78,7 +70,7 @@ function Import() {
         ) : (
           <Outlet context={outletContext} />
         )}
-      </div>
+      </ViewBaseLayout>
     </>
   )
 }
