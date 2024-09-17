@@ -5,6 +5,7 @@ import Export from './routes/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
 import DbTables from './routes/import/DbTables'
+import TableDetailedView from './routes/import/TableDetailedView'
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
             element: <DbTables />
           }
         ]
+      },
+      {
+        path: '/import/:db/:table',
+        element: <TableDetailedView />
       },
       {
         path: '/export',

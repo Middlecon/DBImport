@@ -24,11 +24,7 @@ function LogoWithText({
   return (
     <div className="logo-w-name-root">
       <div className="logo-container" style={style}>
-        <img
-          className="logo"
-          src="../public/dbimport_logo.webp"
-          alt="dbimport_logo"
-        />
+        <img className="logo" src="/dbimport_logo.webp" alt="dbimport_logo" />
         {!noText && <h1>DBImport</h1>}
       </div>
     </div>

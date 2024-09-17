@@ -3,6 +3,7 @@ import { Column, UITable } from '../utils/interfaces'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface TableProps {
   columns: Column[]
@@ -11,9 +12,14 @@ interface TableProps {
 
 function TableList({ columns, data }: TableProps) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
+  const navigate = useNavigate()
 
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
   // console.log('data TableList', data)
+
+  const handleTableClick = (db: string, table: string) => {
+    navigate(`/import/${db}/${table}`)
+  }
 
   useEffect(() => {
     const isOverflowing = cellRefs.current.map((el) =>
@@ -55,6 +61,16 @@ function TableList({ columns, data }: TableProps) {
                         {row[column.accessor as keyof UITable]}
                       </span>
                     )}
+                  </>
+                ) : column.accessor === 'table' ? (
+                  <>
+                    <p
+                      ref={(el) => (cellRefs.current[rowIndex] = el)}
+                      onClick={() => handleTableClick(row.database, row.table)}
+                      className="clickable-table-name"
+                    >
+                      {row[column.accessor as keyof UITable]}
+                    </p>
                   </>
                 ) : column.isAction ? (
                   <div className="actions-row">
