@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './DropdownCheckbox.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
@@ -7,16 +7,19 @@ interface DropdownCheckboxProps {
   items: string[]
   title: string
   onSelect: (selectedItems: string[]) => void
+  isOpen: boolean
+  onToggle: (isOpen: boolean) => void
 }
 
 const DropdownCheckbox: React.FC<DropdownCheckboxProps> = ({
   items,
   title,
-
-  onSelect
+  onSelect,
+  isOpen,
+  onToggle
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
     const newSelectedItems = selectedItems.includes(item)
@@ -27,9 +30,25 @@ const DropdownCheckbox: React.FC<DropdownCheckboxProps> = ({
     onSelect(newSelectedItems)
   }
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        onToggle(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [onToggle])
+
   return (
-    <div className="checkbox-dropdown">
-      <button onClick={() => setIsOpen(!isOpen)}>
+    <div className="checkbox-dropdown" ref={dropdownRef}>
+      <button onClick={() => onToggle(!isOpen)}>
         {title}
         {selectedItems.length > 0 ? (
           <span className="count-badge">{selectedItems.length}</span>

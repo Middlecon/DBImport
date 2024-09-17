@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './DropdownSearch.scss'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import ChevronDown from '../assets/icons/ChevronDown'
@@ -11,6 +11,8 @@ interface DropdownSearchProps {
   placeholder?: string
   leftwards?: boolean
   onSelect: (item: string) => void
+  isOpen: boolean
+  onToggle: (isOpen: boolean) => void
 }
 
 const DropdownSearch: React.FC<DropdownSearchProps> = ({
@@ -18,21 +20,35 @@ const DropdownSearch: React.FC<DropdownSearchProps> = ({
   initialTitle,
   placeholder = 'Search...',
   leftwards,
-  onSelect
+  onSelect,
+  isOpen,
+  onToggle
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        onToggle(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [onToggle])
 
   const handleSelect = (item: string) => {
     setSelectedItem(item)
     onSelect(item)
+    onToggle(false)
     setSearchTerm('')
-    setIsOpen(false)
   }
 
   const filteredItems = items.filter((item) =>
@@ -40,8 +56,8 @@ const DropdownSearch: React.FC<DropdownSearchProps> = ({
   )
 
   return (
-    <div className="search-dropdown">
-      <button onClick={() => setIsOpen(!isOpen)}>
+    <div className="search-dropdown" ref={dropdownRef}>
+      <button onClick={() => onToggle(!isOpen)}>
         {selectedItem || initialTitle}
         <div className="chevron-container">
           {isOpen ? <ChevronUp /> : <ChevronDown />}
@@ -57,8 +73,8 @@ const DropdownSearch: React.FC<DropdownSearchProps> = ({
             <input
               type="text"
               value={searchTerm}
-              onChange={handleInputChange}
               placeholder={placeholder}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './DropdownSingleSelect.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
@@ -9,6 +9,8 @@ interface DropdownRadioProps {
   radioName: string
   badgeContent?: string[]
   onSelect: (selectedItems: string[]) => void
+  isOpen: boolean
+  onToggle: (isOpen: boolean) => void
 }
 
 const DropdownRadio: React.FC<DropdownRadioProps> = ({
@@ -16,31 +18,43 @@ const DropdownRadio: React.FC<DropdownRadioProps> = ({
   title,
   radioName,
   badgeContent,
-
-  onSelect
+  onSelect,
+  isOpen,
+  onToggle
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
     console.log('selectedItem', selectedItem)
     if (selectedItem === item) {
-      setSelectedItem(null) // Unselect if the same item is clicked again
-      onSelect([]) // Pass an empty array to signify unselection
+      setSelectedItem(null)
+      onSelect([])
     } else {
-      setSelectedItem(item) // Select the new item
+      setSelectedItem(item)
       onSelect([item])
     }
   }
 
-  // const handleSelect = (item: string) => {
-  //   setSelectedItem(item)
-  //   onSelect([item])
-  // }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        onToggle(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [onToggle])
 
   return (
-    <div className="select-dropdown">
-      <button onClick={() => setIsOpen(!isOpen)}>
+    <div className="select-dropdown" ref={dropdownRef}>
+      <button onClick={() => onToggle(!isOpen)}>
         {title}
         {badgeContent && selectedItem ? (
           <span className="count-badge">

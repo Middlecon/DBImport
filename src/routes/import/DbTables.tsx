@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownSingleSelect from '../../components/DropdownSingleSelect'
 import TableList from '../../components/TableList'
@@ -6,6 +6,7 @@ import { Column } from '../../utils/interfaces'
 import { useDbTables } from '../../utils/queries'
 import './DbTables.scss'
 import { mapFilterValue } from '../../utils/nameMappings'
+import { useOutletContext } from 'react-router-dom'
 
 const columns: Column[] = [
   { header: 'Table', accessor: 'table' },
@@ -50,7 +51,7 @@ const checkboxFilters = [
   }
 ]
 
-const radioFilters = [
+const singleSelectFilters = [
   {
     title: 'Last update from source',
     accessor: 'lastUpdateFromSource',
@@ -75,11 +76,18 @@ const radioFilters = [
 //   }
 // ]
 
+interface OutletContextType {
+  openDropdown: string | null
+  handleDropdownToggle: (dropdownId: string, isOpen: boolean) => void
+}
+
 function DbTable() {
   const { data } = useDbTables()
   const [selectedFilters, setSelectedFilters] = useState<{
     [key: string]: string[]
   }>({})
+  const { openDropdown, handleDropdownToggle } =
+    useOutletContext<OutletContextType>()
 
   console.log('data Tables', data)
 
@@ -100,7 +108,7 @@ function DbTable() {
 
   const parseTimestamp = (timestamp: string | null): Date | null => {
     if (!timestamp) {
-      return null // Return null if timestamp is null or undefined
+      return null
     }
 
     try {
@@ -112,34 +120,26 @@ function DbTable() {
     }
   }
 
-  const getDateRange = (selection: string) => {
+  const getDateRange = useCallback((selection: string) => {
     const now = new Date()
-    let startDate: Date
-
     switch (selection) {
       case 'Last Day':
-        startDate = new Date(now.setDate(now.getDate() - 1))
-        break
+        return new Date(now.setDate(now.getDate() - 1))
       case 'Last Week':
-        startDate = new Date(now.setDate(now.getDate() - 7))
-        break
+        return new Date(now.setDate(now.getDate() - 7))
       case 'Last Month':
-        startDate = new Date(now.setMonth(now.getMonth() - 1))
-        break
+        return new Date(now.setMonth(now.getMonth() - 1))
       case 'Last Year':
-        startDate = new Date(now.setFullYear(now.getFullYear() - 1))
-        break
+        return new Date(now.setFullYear(now.getFullYear() - 1))
       default:
-        startDate = new Date(0)
+        return new Date(0)
     }
-
-    return startDate
-  }
+  }, [])
 
   const filteredData = useMemo(() => {
     if (!data) return []
 
-    const mappedFilters = [...checkboxFilters, ...radioFilters].reduce(
+    const mappedFilters = [...checkboxFilters, ...singleSelectFilters].reduce(
       (acc, filter) => {
         const mappedValues = selectedFilters[filter.accessor]?.map((value) =>
           mapFilterValue(filter.title, value)
@@ -173,31 +173,33 @@ function DbTable() {
         return selectedItems.includes(rowValue)
       })
     })
-  }, [data, selectedFilters])
+  }, [data, selectedFilters, getDateRange])
 
   return (
     <div className="db-table-root">
-      <div className="scrollable-container">
-        <div className="filters">
-          {checkboxFilters.map((filter, index) => (
-            <DropdownCheckbox
-              key={index}
-              items={filter.values}
-              title={filter.title}
-              onSelect={(items) => handleSelect(filter.accessor, items)}
-            />
-          ))}
-          {radioFilters.map((filter, index) => (
-            <DropdownSingleSelect
-              key={index}
-              items={filter.values}
-              title={filter.title}
-              radioName={filter.radioName}
-              badgeContent={filter.badgeContent}
-              onSelect={(items) => handleSelect(filter.accessor, items)}
-            />
-          ))}
-        </div>
+      <div className="filters">
+        {checkboxFilters.map((filter, index) => (
+          <DropdownCheckbox
+            key={index}
+            items={filter.values}
+            title={filter.title}
+            onSelect={(items) => handleSelect(filter.accessor, items)}
+            isOpen={openDropdown === filter.accessor}
+            onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
+          />
+        ))}
+        {singleSelectFilters.map((filter, index) => (
+          <DropdownSingleSelect
+            key={index}
+            items={filter.values}
+            title={filter.title}
+            radioName={filter.radioName}
+            badgeContent={filter.badgeContent}
+            onSelect={(items) => handleSelect(filter.accessor, items)}
+            isOpen={openDropdown === filter.accessor}
+            onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
+          />
+        ))}
       </div>
 
       {filteredData ? (

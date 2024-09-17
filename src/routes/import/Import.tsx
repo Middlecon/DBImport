@@ -13,6 +13,7 @@ function Import() {
   const navigate = useNavigate()
   const { db } = useParams<{ db: string }>()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   useEffect(() => {
     if (isLoading) return
@@ -25,6 +26,19 @@ function Import() {
 
   const handleSelect = (item: string) => {
     navigate(`/import/${item}`)
+  }
+
+  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
+    if (isOpen) {
+      setOpenDropdown(dropdownId)
+    } else if (openDropdown === dropdownId) {
+      setOpenDropdown(null)
+    }
+  }
+
+  const outletContext = {
+    openDropdown,
+    handleDropdownToggle
   }
 
   return (
@@ -46,19 +60,13 @@ function Import() {
               initialTitle={selectedDatabase || 'Select DB'}
               leftwards={true}
               onSelect={handleSelect}
+              isOpen={openDropdown === 'dbSearch'}
+              onToggle={(isOpen: boolean) =>
+                handleDropdownToggle('dbSearch', isOpen)
+              }
             />
           </div>
         </div>
-
-        {/* <h1>Import</h1>
-        <div className="db-dropdown">
-          <DropdownSearch
-            items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
-            initialTitle={selectedDatabase || 'Select DB'}
-            leftwards={true}
-            onSelect={handleSelect}
-          />
-        </div> */}
 
         {!db ? (
           <div className="import-text-block">
@@ -68,7 +76,7 @@ function Import() {
             </p>
           </div>
         ) : (
-          <Outlet />
+          <Outlet context={outletContext} />
         )}
       </div>
     </>
