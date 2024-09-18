@@ -1,16 +1,29 @@
-.table-d-v-root {
+.tabs {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: auto;
-  padding: 0 40px;
+  flex-direction: row;
+  gap: 20%;
+  padding-left: 40px;
+  color: rgb(86, 85, 85);
 
-  background-color: rgb(184, 188, 196);
-  overflow-x: hidden;
-  overflow-y: hidden;
-}
+  h2 {
+    cursor: pointer;
+    position: relative;
 
-.clickable-table-name {
-  cursor: pointer;
-  color: blue;
+    &:hover {
+      color: rgb(4, 4, 4);
+    }
+
+    &.active-tab {
+      color: rgb(4, 4, 4);
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 100%;
+        height: 2px;
+        background-color: black;
+      }
+    }
+  }
 }

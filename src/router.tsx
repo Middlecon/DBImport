@@ -6,6 +6,9 @@ import Home from './routes/Home'
 import Import from './routes/import/Import'
 import DbTables from './routes/import/DbTables'
 import TableDetailedView from './routes/import/TableDetailedView'
+import TableSettings from './routes/import/TableSettings'
+import TableColumns from './routes/import/TableColumns'
+import TableStatistics from './routes/import/TableStatistics'
 
 export const router = createBrowserRouter([
   {
@@ -34,7 +37,21 @@ export const router = createBrowserRouter([
       },
       {
         path: '/import/:database/:table',
-        element: <TableDetailedView />
+        element: <TableDetailedView />,
+        children: [
+          {
+            path: 'settings',
+            element: <TableSettings />
+          },
+          {
+            path: 'columns',
+            element: <TableColumns />
+          },
+          {
+            path: 'statistics',
+            element: <TableStatistics />
+          }
+        ]
       },
       {
         path: '/export',

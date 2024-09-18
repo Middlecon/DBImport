@@ -18,7 +18,7 @@ function TableList({ columns, data }: TableProps) {
   // console.log('data TableList', data)
 
   const handleTableClick = (db: string, table: string) => {
-    navigate(`/import/${db}/${table}`)
+    navigate(`/import/${db}/${table}/settings`)
   }
 
   useEffect(() => {
