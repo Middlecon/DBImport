@@ -19,7 +19,7 @@ export interface DbTable {
   table: string
 }
 
-export interface UITable extends Table {
+export interface UiDbTable extends Table {
   importPhaseTypeDisplay: string
   etlPhaseTypeDisplay: string
   importToolDisplay: string

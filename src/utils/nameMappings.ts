@@ -1,6 +1,6 @@
 export type FilterMapping = { [key: string]: string }
 
-const filterMappings: { [key: string]: FilterMapping } = {
+export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   importPhaseType: {
     full: 'Full',
     incr: 'Incremental',
@@ -22,14 +22,38 @@ const filterMappings: { [key: string]: FilterMapping } = {
   etlEngine: {
     hive: 'Hive',
     spark: 'Spark'
+  },
+  validationMethod: {
+    customQuery: 'Custom Query',
+    rowCount: 'Row Count'
+  },
+  validateSource: {
+    query: 'Query before import',
+    sqoop: 'Imported rows'
+  },
+  incrMode: {
+    append: 'Append',
+    lastModified: 'Last modified'
+  },
+  incrValidationMethod: {
+    full: 'Full',
+    incr: 'Incremental'
+  },
+  mergeCompactionMethod: {
+    default: 'Default',
+    none: 'None',
+    minor: 'Minor Compaction',
+    minor_and_wait: 'Minor Compaction and Wait',
+    major: 'Major Compaction',
+    major_and_wait: 'Major Compaction and Wait'
   }
 }
 
 export const mapDisplayValue = (key: string, value: string): string => {
-  return filterMappings[key]?.[value] || value
+  return nameDisplayMappings[key]?.[value] || value
 }
 
-export const nameMappings: { [key: string]: FilterMapping } = {
+const nameReverseMappings: { [key: string]: FilterMapping } = {
   'Import Type': {
     Full: 'full',
     Incremental: 'incr',
@@ -54,11 +78,11 @@ export const nameMappings: { [key: string]: FilterMapping } = {
   }
 }
 
-export const mapFilterValue = (
+export const reverseMapDisplayValue = (
   filterKey: string,
   filterValue: string
 ): string => {
-  const mapping = nameMappings[filterKey]
+  const mapping = nameReverseMappings[filterKey]
   return mapping?.[filterValue] || filterValue
 }
 
@@ -69,39 +93,10 @@ export const mapSelectedFilters = (selectedFilters: {
 
   for (const key in selectedFilters) {
     const mappedValues = selectedFilters[key].map((value) =>
-      mapFilterValue(key, value)
+      reverseMapDisplayValue(key, value)
     )
     mappedFilters[key] = mappedValues
   }
 
   return mappedFilters
-}
-
-export const reverseMapFilterValue = (title: string, value: string) => {
-  const mapping: { [key: string]: { [key: string]: string } } = {
-    'Import Type': {
-      full: 'Full',
-      incr: 'Incremental',
-      oracle_flashback: 'Oracle Flashback',
-      mssql_change_tracking: 'MSSQL Change Tracking'
-    },
-    'ETL Type': {
-      truncate_insert: 'Truncate and Insert',
-      insert: 'Insert only',
-      merge: 'Merge',
-      merge_history_audit: 'Merge with History Audit',
-      external_table: 'Only create external table',
-      none: 'None'
-    },
-    'Import Tool': {
-      spark: 'Spark',
-      sqoop: 'Sqoop'
-    },
-    'ETL Engine': {
-      hive: 'Hive',
-      spark: 'Spark'
-    }
-  }
-
-  return mapping[title]?.[value] || value
 }

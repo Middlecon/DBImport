@@ -1,3 +1,13 @@
+.table-header {
+  display: flex;
+  padding: 30px 0px 40px 0;
+  justify-content: space-between;
+  z-index: 16;
+  h1 {
+    font-size: 25px;
+  }
+}
+
 .tabs {
   display: flex;
   flex-direction: row;
@@ -6,8 +16,10 @@
   color: rgb(86, 85, 85);
 
   h2 {
+    margin: 0;
     cursor: pointer;
     position: relative;
+    font-size: 20px;
 
     &:hover {
       color: rgb(4, 4, 4);

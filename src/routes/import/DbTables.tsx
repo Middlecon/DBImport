@@ -5,7 +5,7 @@ import TableList from '../../components/TableList'
 import { Column } from '../../utils/interfaces'
 import { useDbTables } from '../../utils/queries'
 import './DbTables.scss'
-import { mapFilterValue } from '../../utils/nameMappings'
+import { reverseMapDisplayValue } from '../../utils/nameMappings'
 import { useOutletContext } from 'react-router-dom'
 
 const columns: Column[] = [
@@ -142,7 +142,7 @@ function DbTable() {
     const mappedFilters = [...checkboxFilters, ...singleSelectFilters].reduce(
       (acc, filter) => {
         const mappedValues = selectedFilters[filter.accessor]?.map((value) =>
-          mapFilterValue(filter.title, value)
+          reverseMapDisplayValue(filter.title, value)
         )
         acc[filter.accessor] = mappedValues || []
         return acc

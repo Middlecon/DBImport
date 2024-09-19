@@ -1,7 +1,7 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
-import { Database, DbTable, Table, UITable } from './interfaces'
+import { Database, DbTable, Table, UiDbTable } from './interfaces'
 import { mapDisplayValue } from './nameMappings'
 
 // GET DATABASES
@@ -25,7 +25,7 @@ const getDbTables = async (database: string) => {
   return response.data
 }
 
-export const useDbTables = (): UseQueryResult<UITable[], Error> => {
+export const useDbTables = (): UseQueryResult<UiDbTable[], Error> => {
   const { database } = useParams<{ database: string }>()
 
   return useQuery({

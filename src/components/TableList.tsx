@@ -1,5 +1,5 @@
 import './TableList.scss'
-import { Column, UITable } from '../utils/interfaces'
+import { Column, UiDbTable } from '../utils/interfaces'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import { useEffect, useRef, useState } from 'react'
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 
 interface TableProps {
   columns: Column[]
-  data: UITable[]
+  data: UiDbTable[]
 }
 
 function TableList({ columns, data }: TableProps) {
@@ -54,11 +54,11 @@ function TableList({ columns, data }: TableProps) {
                 {column.accessor === 'sourceTable' ? (
                   <>
                     <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
-                      {row[column.accessor as keyof UITable]}
+                      {row[column.accessor as keyof UiDbTable]}
                     </p>
                     {overflowState[rowIndex] && (
                       <span className="tooltip">
-                        {row[column.accessor as keyof UITable]}
+                        {row[column.accessor as keyof UiDbTable]}
                       </span>
                     )}
                   </>
@@ -69,7 +69,7 @@ function TableList({ columns, data }: TableProps) {
                       onClick={() => handleTableClick(row.database, row.table)}
                       className="clickable-table-name"
                     >
-                      {row[column.accessor as keyof UITable]}
+                      {row[column.accessor as keyof UiDbTable]}
                     </p>
                   </>
                 ) : column.isAction ? (
@@ -86,8 +86,8 @@ function TableList({ columns, data }: TableProps) {
                   </div>
                 ) : (
                   (row[
-                    `${column.accessor}Display` as keyof UITable
-                  ] as string) ?? row[column.accessor as keyof UITable]
+                    `${column.accessor}Display` as keyof UiDbTable
+                  ] as string) ?? row[column.accessor as keyof UiDbTable]
                 )}
               </td>
             ))}

@@ -1,0 +1,19 @@
+.table-details-block {
+  // background-color: rgb(190, 208, 190);
+  width: 100%;
+  height: fit-content;
+  padding: 20px;
+  h3 {
+    margin: 0;
+  }
+  dl {
+    display: flex;
+    gap: 30px;
+    flex-direction: column;
+    // background-color: rgb(190, 174, 217);
+    .dl-item-div {
+      display: flex;
+      // background-color: rgb(221, 193, 162);
+    }
+  }
+}

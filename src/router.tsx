@@ -5,10 +5,10 @@ import Export from './routes/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
 import DbTables from './routes/import/DbTables'
-import TableDetailedView from './routes/import/TableDetailedView'
-import TableSettings from './routes/import/TableSettings'
-import TableColumns from './routes/import/TableColumns'
-import TableStatistics from './routes/import/TableStatistics'
+import TableDetailedView from './routes/import/table/TableDetailedView'
+import TableSettings from './routes/import/table/settings/TableSettings'
+import TableColumns from './routes/import/table/columns/TableColumns'
+import TableStatistics from './routes/import/table/statistics/TableStatistics'
 
 export const router = createBrowserRouter([
   {
