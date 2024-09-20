@@ -20,8 +20,15 @@
     padding: 8px 12px;
     border: 1px solid #ddd;
     position: relative;
-    background-color: rgb(250, 248, 248);
     white-space: nowrap;
+  }
+
+  .dbtables-row {
+    background-color: rgb(250, 248, 248);
+  }
+
+  .dbtables-row:nth-child(even) {
+    background-color: #eeeeee;
   }
 
   .tooltip {

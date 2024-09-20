@@ -43,7 +43,7 @@ function TableList({ columns, data }: TableProps) {
       </thead>
       <tbody>
         {data.map((row, rowIndex) => (
-          <tr key={rowIndex}>
+          <tr key={rowIndex} className="dbtables-row">
             {columns.map((column) => (
               <td
                 key={`${rowIndex}-${column.accessor}`}
