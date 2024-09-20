@@ -1,22 +1,23 @@
 import React from 'react'
 import Card from './Card'
-import { Table } from '../../../../utils/interfaces'
+import { UITable } from '../../../../utils/interfaces'
 import {
   mapDisplayValue,
   nameDisplayMappings
 } from '../../../../utils/nameMappings'
-import { FieldType } from '../../../../utils/enums'
+import { FieldType, ValidationMethod } from '../../../../utils/enums'
 
 interface CardsRendererProps {
-  table: Table
+  table: UITable
 }
 
 interface Fields {
   label: string
   value: string | number | boolean
   type: FieldType
+  isConditionsMet?: boolean
   enumOptions?: { [key: string]: string }
-  hidden?: boolean
+  isHidden?: boolean
 }
 
 const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
@@ -102,7 +103,9 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
     }, // Boolean
     {
       label: 'Validation Method',
-      value: mapDisplayValue('validationMethod', table.validationMethod),
+      // value: mapDisplayValue('validationMethod', table.validationMethod),
+      value: ValidationMethod.CustomQuery,
+
       type: FieldType.Enum,
       enumOptions: getEnumOptions('validationMethod')
     }, // Enum mapping for 'Validation Method'
@@ -135,20 +138,20 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
     {
       label: 'Custom Query for Source SQL',
       value: table.validationCustomQuerySourceSQL,
-      type: FieldType.Text
-      // condition: "validationMethod === 'customQuery'"
-    }, // Conditionally active free-text
+      type: FieldType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // isConditionsMetally active free-text
     {
       label: 'Custom Query for Hive SQL',
       value: table.validationCustomQueryHiveSQL,
       type: FieldType.Text
-      // condition: "validationMethod === 'customQuery'"
-    }, // Conditionally active free-text
+      // isConditionsMet: "validationMethod === 'customQuery'"
+    }, // isConditionsMetally active free-text
     {
       label: 'Validate Import Table',
       value: true,
       type: FieldType.Boolean,
-      hidden: true
+      isHidden: true
     }, // Always true, hidden
     {
       label: 'Custom Query Source Value',
@@ -192,13 +195,13 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
       label: 'Custom Query',
       value: table.customQuery,
       type: FieldType.Text
-      // condition: 'useGeneratedSql === false'
+      // isConditionsMet: 'useGeneratedSql === false'
     }, // Active only if useGeneratedSql=false
     {
       label: 'Custom Max Query',
       value: table.customMaxQuery,
       type: FieldType.Text
-      // condition: 'useGeneratedSql === false'
+      // isConditionsMet: 'useGeneratedSql === false'
     }, // Active only if useGeneratedSql=false
     {
       label: 'Use Generated SQL',
@@ -214,7 +217,7 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
       label: 'Sqoop Options',
       value: table.sqoopOptions,
       type: FieldType.Text
-      // condition: "importTool === 'sqoop'"
+      // isConditionsMet: "importTool === 'sqoop'"
     }, // Free-text, active only if importTool=sqoop
     { label: 'Last Size', value: table.lastSize, type: FieldType.Readonly }, // Read-only
     { label: 'Last Rows', value: table.lastRows, type: FieldType.Readonly }, // Read-only
@@ -253,17 +256,16 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
   const incrementalImports: Fields[] = [
     {
       label: 'Incremental Mode',
-      value: table.incrMode,
+      value: mapDisplayValue('incrMode', table.incrMode),
       type: FieldType.Enum,
-      enumOptions: getEnumOptions('importPhaseType')
-      // condition: "importPhaseType === 'incr'"
+      enumOptions: getEnumOptions('incrMode')
+      // isConditionsMet: "importPhaseType === 'incr'"
     }, // Enum list, active if importPhaseType=incr
     {
       label: 'Incremental Column',
       value: table.incrColumn,
-      type: FieldType.Enum,
-      enumOptions: getEnumOptions('importPhaseType')
-      // condition: "importPhaseType === 'incr'"
+      type: FieldType.Text
+      // isConditionsMet: "importPhaseType === 'incr'"
     }, // Free-text, active if importPhaseType=incr
     {
       label: 'Incremental Validation Method',
@@ -272,8 +274,8 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
         table.incrValidationMethod
       ),
       type: FieldType.Enum,
-      enumOptions: getEnumOptions('importPhaseType')
-      // condition: "importPhaseType === 'incr'"
+      enumOptions: getEnumOptions('incrValidationMethod')
+      // isConditionsMet: "importPhaseType === 'incr'"
     }, // Enum list, active if importPhaseType=incr
     {
       label: 'Incremental Min Value',
@@ -311,7 +313,7 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
       label: 'Soft Delete During Merge',
       value: table.softDeleteDuringMerge,
       type: FieldType.Boolean
-      // condition:
+      // isConditionsMet:
       //   "etlPhaseType === 'merge' || etlPhaseType === 'merge_history_audit'"
     }, // Boolean, active only for merge types
     {
@@ -350,19 +352,19 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
       label: 'Split Count',
       value: table.splitCount,
       type: FieldType.Integer
-      // condition: "etlEngine === 'hive'"
+      // isConditionsMet: "etlEngine === 'hive'"
     }, // Integer, active if etlEngine=hive
     {
       label: 'Spark Executor Memory',
       value: table.sparkExecutorMemory,
       type: FieldType.Text
-      // condition: "etlEngine === 'spark' || ´importTool === 'spark'"
+      // isConditionsMet: "etlEngine === 'spark' || ´importTool === 'spark'"
     }, // Free-text, active if etlEngine or importTool=spark
     {
       label: 'Spark Executors',
       value: table.sparkExecutors,
       type: FieldType.Integer
-      // condition: "etlEngine === 'spark' || importTool === 'spark'"
+      // isConditionsMet: "etlEngine === 'spark' || importTool === 'spark'"
     } // Integer, active if etlEngine or importTool=spark
   ]
 

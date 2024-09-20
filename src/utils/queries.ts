@@ -1,8 +1,20 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
-import { Database, DbTable, Table, UiDbTable } from './interfaces'
+import { Database, DbTable, Table, UITable, UiDbTable } from './interfaces'
 import { mapDisplayValue } from './nameMappings'
+import {
+  EtlEngine,
+  EtlType,
+  ImportTool,
+  ImportType,
+  IncrMode,
+  IncrValidationMethod,
+  MergeCompactionMethod,
+  ValidateSource,
+  ValidationMethod,
+  mapEnumValue
+} from './enums'
 
 // GET DATABASES
 
@@ -85,7 +97,59 @@ export const useTable = (): UseQueryResult<Table, Error> => {
 
       const data: Table = await getTable(database, table)
 
-      return data
+      console.log('data', data)
+
+      const transformedData: UITable = {
+        ...data,
+        importPhaseType: mapEnumValue(
+          data.importPhaseType,
+          Object.values(ImportType),
+          'Unknown'
+        ),
+        etlPhaseType: mapEnumValue(
+          data.etlPhaseType,
+          Object.values(EtlType),
+          'Unknown'
+        ),
+        importTool: mapEnumValue(
+          data.importTool,
+          Object.values(ImportTool),
+          'Unknown'
+        ),
+        etlEngine: mapEnumValue(
+          data.etlEngine,
+          Object.values(EtlEngine),
+          'Unknown'
+        ),
+        validationMethod: mapEnumValue(
+          data.validationMethod,
+          Object.values(ValidationMethod),
+          'Unknown'
+        ),
+        validateSource: mapEnumValue(
+          data.validateSource,
+          Object.values(ValidateSource),
+          'Unknown'
+        ),
+        incrMode: mapEnumValue(
+          data.incrMode,
+          Object.values(IncrMode),
+          'Unknown'
+        ),
+        incrValidationMethod: mapEnumValue(
+          data.incrValidationMethod,
+          Object.values(IncrValidationMethod),
+          'Unknown'
+        ),
+        mergeCompactionMethod: mapEnumValue(
+          data.incrValidationMethod,
+          Object.values(MergeCompactionMethod),
+          'Unknown'
+        )
+      }
+      console.log('transformedData', transformedData)
+
+      return transformedData
     },
     enabled: !!database && !!table
   })

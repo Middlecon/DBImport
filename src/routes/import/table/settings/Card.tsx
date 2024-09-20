@@ -8,8 +8,9 @@ interface CardProps {
     label: string
     value: string | number | boolean
     type: FieldType
+    isConditionsMet?: boolean
     enumOptions?: { [key: string]: string } // Maybe not needed here
-    hidden?: boolean
+    isHidden?: boolean
   }>
 }
 

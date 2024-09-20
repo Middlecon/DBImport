@@ -1,11 +1,11 @@
 import { useOutletContext } from 'react-router-dom'
-import { Table } from '../../../../utils/interfaces'
+import { UITable } from '../../../../utils/interfaces'
 import './TableSettings.scss'
 import CardsRenderer from './CardsRenderer'
 
 function TableSettings() {
-  const { data } = useOutletContext<{ data: Table }>()
-  console.log('data', data)
+  const { data } = useOutletContext<{ data: UITable }>()
+  // console.log('data', data)
 
   return (
     <>

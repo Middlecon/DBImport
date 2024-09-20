@@ -1,51 +1,63 @@
+import {
+  EtlEngine,
+  EtlType,
+  ImportTool,
+  ImportType,
+  IncrMode,
+  IncrValidationMethod,
+  MergeCompactionMethod,
+  ValidateSource,
+  ValidationMethod
+} from './enums'
+
 export type FilterMapping = { [key: string]: string }
 
 export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   importPhaseType: {
-    full: 'Full',
-    incr: 'Incremental',
-    oracle_flashback: 'Oracle Flashback',
-    mssql_change_tracking: 'MSSQL Change Tracking'
+    [ImportType.Full]: 'Full',
+    [ImportType.Incremental]: 'Incremental',
+    [ImportType.OracleFlashback]: 'Oracle Flashback',
+    [ImportType.MSSQLChangeTracking]: 'MSSQL Change Tracking'
   },
   etlPhaseType: {
-    truncate_insert: 'Truncate and Insert',
-    insert: 'Insert only',
-    merge: 'Merge',
-    merge_history_audit: 'Merge with History Audit',
-    external_table: 'Only create external table',
-    none: 'None'
+    [EtlType.TruncateAndInsert]: 'Truncate and Insert',
+    [EtlType.InsertOnly]: 'Insert only',
+    [EtlType.Merge]: 'Merge',
+    [EtlType.MergeHistoryAudit]: 'Merge with History Audit',
+    [EtlType.External]: 'Only create external table',
+    [EtlType.None]: 'None'
   },
   importTool: {
-    spark: 'Spark',
-    sqoop: 'Sqoop'
+    [ImportTool.Spark]: 'Spark',
+    [ImportTool.Sqoop]: 'Sqoop'
   },
   etlEngine: {
-    hive: 'Hive',
-    spark: 'Spark'
+    [EtlEngine.Hive]: 'Hive',
+    [EtlEngine.Spark]: 'Spark'
   },
   validationMethod: {
-    customQuery: 'Custom Query',
-    rowCount: 'Row Count'
+    [ValidationMethod.CustomQuery]: 'Custom Query',
+    [ValidationMethod.RowCount]: 'Row Count'
   },
   validateSource: {
-    query: 'Query before import',
-    sqoop: 'Imported rows'
+    [ValidateSource.Query]: 'Query before import',
+    [ValidateSource.Scoop]: 'Imported rows'
   },
   incrMode: {
-    append: 'Append',
-    lastModified: 'Last modified'
+    [IncrMode.Append]: 'Append',
+    [IncrMode.LastModified]: 'Last modified'
   },
   incrValidationMethod: {
-    full: 'Full',
-    incr: 'Incremental'
+    [IncrValidationMethod.Full]: 'Full',
+    [IncrValidationMethod.Incremental]: 'Incremental'
   },
   mergeCompactionMethod: {
-    default: 'Default',
-    none: 'None',
-    minor: 'Minor Compaction',
-    minor_and_wait: 'Minor Compaction and Wait',
-    major: 'Major Compaction',
-    major_and_wait: 'Major Compaction and Wait'
+    [MergeCompactionMethod.Default]: 'Default',
+    [MergeCompactionMethod.None]: 'None',
+    [MergeCompactionMethod.Minor]: 'Minor Compaction',
+    [MergeCompactionMethod.MinorAndWait]: 'Minor Compaction and Wait',
+    [MergeCompactionMethod.Major]: 'Major Compaction',
+    [MergeCompactionMethod.MajorAndWait]: 'Major Compaction and Wait'
   }
 }
 

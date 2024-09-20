@@ -1,15 +1,21 @@
-import React from 'react'
 import { FieldType } from '../../../../utils/enums'
+import './Field.scss'
 
 interface FieldProps {
   label: string
   value: string | number | boolean
   type: FieldType
+  isConditionsMet?: boolean
   enumOptions?: { [key: string]: string } // Maybe not needed here
-  hidden?: boolean
+  isHidden?: boolean
 }
 
-const Field: React.FC<FieldProps> = ({ label, value, type }) => {
+const Field: React.FC<FieldProps> = ({
+  label,
+  value,
+  type,
+  isConditionsMet
+}) => {
   // if (type === 'enum') {
   //   console.log('value', value)
   //   console.log('typeof value', typeof value)
@@ -57,7 +63,11 @@ const Field: React.FC<FieldProps> = ({ label, value, type }) => {
   }
 
   return (
-    <div className="field">
+    <div
+      className={
+        isConditionsMet && isConditionsMet ? 'field' : 'disabled-field'
+      }
+    >
       <label>{label}:</label>
       {renderField()}
     </div>
