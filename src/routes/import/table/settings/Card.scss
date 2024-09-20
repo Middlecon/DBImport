@@ -1,19 +1,9 @@
-.table-details-block {
-  // background-color: rgb(190, 208, 190);
-  width: 100%;
-  height: fit-content;
-  padding: 20px;
-  h3 {
-    margin: 0;
-  }
-  dl {
-    display: flex;
-    gap: 30px;
-    flex-direction: column;
-    // background-color: rgb(190, 174, 217);
-    .dl-item-div {
-      display: flex;
-      // background-color: rgb(221, 193, 162);
-    }
-  }
+.card {
+  background-color: #faf8f8;
+  height: min-content;
+  max-width: fit-content;
+  padding: 40px;
+  margin-bottom: 40px;
+  margin-right: 40px;
+  border-radius: 5px;
 }

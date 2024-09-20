@@ -1,16 +1,16 @@
-import { FieldType } from '../../../../utils/enums'
-import './Field.scss'
+import { SettingType } from '../../../../utils/enums'
+import './Setting.scss'
 
-interface FieldProps {
+interface SettingProps {
   label: string
   value: string | number | boolean
-  type: FieldType
+  type: SettingType
   isConditionsMet?: boolean
   enumOptions?: { [key: string]: string } // Maybe not needed here
   isHidden?: boolean
 }
 
-const Field: React.FC<FieldProps> = ({
+const Setting: React.FC<SettingProps> = ({
   label,
   value,
   type,
@@ -21,7 +21,8 @@ const Field: React.FC<FieldProps> = ({
   //   console.log('typeof value', typeof value)
   //   console.log('enumOptions', enumOptions)
   // }
-  const renderField = () => {
+  console.log('isConditionsMet', isConditionsMet)
+  const renderSetting = () => {
     switch (type) {
       case 'boolean':
         return <span>{value ? 'True' : 'False'}</span>
@@ -63,15 +64,11 @@ const Field: React.FC<FieldProps> = ({
   }
 
   return (
-    <div
-      className={
-        isConditionsMet && isConditionsMet ? 'field' : 'disabled-field'
-      }
-    >
-      <label>{label}:</label>
-      {renderField()}
+    <div className={isConditionsMet === false ? 'disabled-setting' : 'setting'}>
+      <dt className="setting-label">{label}:</dt>
+      <dd className="setting-container">{renderSetting()}</dd>
     </div>
   )
 }
 
-export default Field
+export default Setting

@@ -26,7 +26,7 @@ const DropdownRadio: React.FC<DropdownRadioProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
-    console.log('selectedItem', selectedItem)
+    // console.log('selectedItem', selectedItem)
     if (selectedItem === item) {
       setSelectedItem(null)
       onSelect([])

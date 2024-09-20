@@ -8,9 +8,9 @@ export function mapEnumValue<T extends string>(
   return validValues.includes(value as T) ? (value as T) : fallback
 }
 
-// Field-type
+// Setting type
 
-export enum FieldType {
+export enum SettingType {
   Boolean = 'boolean',
   Readonly = 'readonly',
   Text = 'text',
@@ -22,7 +22,7 @@ export enum FieldType {
   BooleanOrDefaultFromConfig = 'booleanOrDefaultFromConfig(-1)'
 }
 
-// Table enums
+// Table
 
 export enum ImportType {
   Full = 'full',

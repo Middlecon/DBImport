@@ -89,7 +89,7 @@ function DbTable() {
   const { openDropdown, handleDropdownToggle } =
     useOutletContext<OutletContextType>()
 
-  console.log('data Tables', data)
+  // console.log('data Tables', data)
 
   // if (isLoading) {
   //   return <p>Loading...</p>

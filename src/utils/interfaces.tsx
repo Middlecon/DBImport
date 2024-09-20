@@ -132,18 +132,18 @@ export interface UITable {
   lastUpdateFromSource: 'string'
   sqlWhereAddition: 'string'
   nomergeIngestionSqlAddition: 'string'
-  includeInAirflow: true
+  includeInAirflow: boolean
   airflowPriority: 'string'
-  validateImport: true
+  validateImport: boolean
   validationMethod: ValidationMethod | 'Unknown'
   validateSource: ValidateSource | 'Unknown'
   validateDiffAllowed: 0
   validationCustomQuerySourceSQL: 'string'
   validationCustomQueryHiveSQL: 'string'
-  validationCustomQueryValidateImportTable: true
-  truncateTable: true
+  validationCustomQueryValidateImportTable: true // should stay true
+  truncateTable: boolean
   mappers: 0
-  softDeleteDuringMerge: true
+  softDeleteDuringMerge: boolean
   sourceRowcount: 0
   sourceRowcountIncr: 0
   targetRowcount: 0
@@ -169,8 +169,8 @@ export interface UITable {
   lastRows: 0
   lastMappers: 0
   lastExecution: 0
-  useGeneratedSql: true
-  allowTextSplitter: true
+  useGeneratedSql: boolean
+  allowTextSplitter: boolean
   forceString: 0
   comment: 'string'
   generatedHiveColumnDefinition: 'string'
@@ -181,7 +181,7 @@ export interface UITable {
   datalakeSource: 'string'
   operatorNotes: 'string'
   copyFinished: 'string'
-  copySlave: true
+  copySlave: boolean
   createForeignKeys: 0
   invalidateImpala: 0
   customMaxQuery: 'string'

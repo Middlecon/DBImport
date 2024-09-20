@@ -5,16 +5,23 @@ import {
   mapDisplayValue,
   nameDisplayMappings
 } from '../../../../utils/nameMappings'
-import { FieldType, ValidationMethod } from '../../../../utils/enums'
+import {
+  EtlEngine,
+  EtlType,
+  SettingType,
+  ImportTool,
+  ImportType,
+  ValidationMethod
+} from '../../../../utils/enums'
 
 interface CardsRendererProps {
   table: UITable
 }
 
-interface Fields {
+interface Settings {
   label: string
   value: string | number | boolean
-  type: FieldType
+  type: SettingType
   isConditionsMet?: boolean
   enumOptions?: { [key: string]: string }
   isHidden?: boolean
@@ -23,249 +30,255 @@ interface Fields {
 const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
   const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
 
-  const mainSettings: Fields[] = [
-    { label: 'Database', value: table.database, type: FieldType.Text }, // Database, read-only, potentially copyable
-    { label: 'Table', value: table.table, type: FieldType.Readonly }, // Table, read-only
-    { label: 'Connection', value: table.connection, type: FieldType.Text }, // Reference to /connection
-    { label: 'Source Schema', value: table.sourceSchema, type: FieldType.Text }, // Free-text field
-    { label: 'Source Table', value: table.sourceTable, type: FieldType.Text }, // Free-text field
+  const mainSettings: Settings[] = [
+    { label: 'Database', value: table.database, type: SettingType.Text }, //Free-text, default selected db, potentially copyable?
+    { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
+    { label: 'Connection', value: table.connection, type: SettingType.Text }, // Reference to /connection
+    {
+      label: 'Source Schema',
+      value: table.sourceSchema,
+      type: SettingType.Text
+    }, // Free-text setting
+    { label: 'Source Table', value: table.sourceTable, type: SettingType.Text }, // Free-text setting
     {
       label: 'Import Type',
       value: mapDisplayValue('importPhaseType', table.importPhaseType),
-      type: FieldType.Enum,
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('importPhaseType')
     }, // Enum mapping for 'Import Type'
     {
       label: 'ETL Type',
       value: mapDisplayValue('etlPhaseType', table.etlPhaseType),
-      type: FieldType.Enum,
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('etlPhaseType')
     }, // Enum mapping for 'ETL Type'
     {
       label: 'Import Tool',
       value: mapDisplayValue('importTool', table.importTool),
-      type: FieldType.Enum,
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool')
     }, // Enum mapping for 'Import Tool'
     {
       label: 'ETL Engine',
       value: mapDisplayValue('etlEngine', table.etlEngine),
-      type: FieldType.Enum,
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine')
     }, // Enum mapping for 'ETL Engine'
     {
       label: 'Last Update From Source',
       value: table.lastUpdateFromSource,
-      type: FieldType.Readonly
-    }, // Read-only date field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
       label: 'Source Table Type',
       value: table.sourceTableType,
-      type: FieldType.Readonly
-    }, // Read-only field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
       label: 'Import Database',
       value: table.importDatabase,
-      type: FieldType.Text
-    }, // Free-text field
-    { label: 'Import Table', value: table.importTable, type: FieldType.Text }, // Free-text field
+      type: SettingType.Text
+    }, // Free-text setting
+    { label: 'Import Table', value: table.importTable, type: SettingType.Text }, // Free-text setting
     {
       label: 'History Database',
       value: table.historyDatabase,
-      type: FieldType.Text
-    }, // Free-text field
-    { label: 'History Table', value: table.historyTable, type: FieldType.Text } // Free-text field
+      type: SettingType.Text
+    }, // Free-text setting
+    {
+      label: 'History Table',
+      value: table.historyTable,
+      type: SettingType.Text
+    } // Free-text setting
   ]
 
-  const schedule: Fields[] = [
+  const schedule: Settings[] = [
     {
       label: 'Airflow Priority',
       value: table.airflowPriority,
-      type: FieldType.Integer
-    }, // Integer (not string in API)
+      type: SettingType.Integer
+    }, // Integer (should not be string in API)
     {
       label: 'Include in Airflow',
       value: table.includeInAirflow,
-      type: FieldType.Boolean
+      type: SettingType.Boolean
     }, // Boolean
     {
       label: 'Operator Notes',
       value: table.operatorNotes,
-      type: FieldType.Text
-    } // Free-text field
+      type: SettingType.Text
+    } // Free-text setting
   ]
 
-  const validation: Fields[] = [
+  const validation: Settings[] = [
     {
       label: 'Validate Import',
       value: table.validateImport,
-      type: FieldType.Boolean
+      type: SettingType.Boolean
     }, // Boolean
     {
       label: 'Validation Method',
-      // value: mapDisplayValue('validationMethod', table.validationMethod),
-      value: ValidationMethod.CustomQuery,
-
-      type: FieldType.Enum,
+      value: mapDisplayValue('validationMethod', table.validationMethod),
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('validationMethod')
     }, // Enum mapping for 'Validation Method'
     {
       label: 'Validate Source',
       value: mapDisplayValue('validateSource', table.validateSource),
-      type: FieldType.Enum,
+      type: SettingType.Enum,
       enumOptions: getEnumOptions('validateSource')
     }, // Enum mapping for 'Validate Source'
     {
       label: 'Allowed Validation Difference',
       value: table.validateDiffAllowed,
-      type: FieldType.Integer
+      type: SettingType.Integer
     }, // Integer
     {
       label: 'Source Row Count',
       value: table.sourceRowcount,
-      type: FieldType.Readonly
-    }, // Read-only field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
       label: 'Source Row Count Incremental',
       value: table.sourceRowcountIncr,
-      type: FieldType.Readonly
-    }, // Read-only field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
       label: 'Target Row Count',
       value: table.targetRowcount,
-      type: FieldType.Readonly
-    }, // Read-only field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
-      label: 'Custom Query for Source SQL',
+      label: 'Custom Query Source SQL',
       value: table.validationCustomQuerySourceSQL,
-      type: FieldType.Text,
+      type: SettingType.Text,
       isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
-    }, // isConditionsMetally active free-text
+    }, // free-text, active if validationMethod=customQuery
     {
-      label: 'Custom Query for Hive SQL',
+      label: 'Custom Query Hive SQL',
       value: table.validationCustomQueryHiveSQL,
-      type: FieldType.Text
-      // isConditionsMet: "validationMethod === 'customQuery'"
-    }, // isConditionsMetally active free-text
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // free-text, active if validationMethod=customQuery
     {
       label: 'Validate Import Table',
       value: true,
-      type: FieldType.Boolean,
+      type: SettingType.Boolean,
       isHidden: true
-    }, // Always true, hidden
+    }, // Always true and always hidden, should be displayed/visible in UI
     {
       label: 'Custom Query Source Value',
       value: table.validationCustomQuerySourceValue,
-      type: FieldType.Readonly
-    }, // Read-only field
+      type: SettingType.Readonly
+    }, // Read-only setting
     {
       label: 'Custom Query Hive Value',
       value: table.validationCustomQueryHiveValue,
-      type: FieldType.Readonly
-    } // Read-only field
+      type: SettingType.Readonly
+    } // Read-only setting
   ]
 
-  const importOptions: Fields[] = [
+  const importOptions: Settings[] = [
     {
       label: 'Truncate Table',
       value: table.truncateTable,
-      type: FieldType.Boolean
+      type: SettingType.Boolean
     }, // Boolean
     {
       label: 'Allow Text Splitter',
       value: table.allowTextSplitter,
-      type: FieldType.Boolean
+      type: SettingType.Boolean
     }, // Boolean
     {
       label: 'Force String',
       value: table.forceString,
-      type: FieldType.BooleanOrDefaultFromConfig
-    }, // Boolean or -1 (default from config)
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, // Boolean or -1 (Default from config)
     {
       label: 'Split By Column',
       value: table.splitByColumn,
-      type: FieldType.Text
-    }, // Free-text field
+      type: SettingType.Text
+    }, // Free-text setting
     {
       label: 'SQL WHERE Addition',
       value: table.sqlWhereAddition,
-      type: FieldType.Text
-    }, // Free-text field
+      type: SettingType.Text
+    }, // Free-text setting
     {
       label: 'Custom Query',
       value: table.customQuery,
-      type: FieldType.Text
-      // isConditionsMet: 'useGeneratedSql === false'
+      type: SettingType.Text,
+      isConditionsMet: table.useGeneratedSql === false
     }, // Active only if useGeneratedSql=false
     {
       label: 'Custom Max Query',
       value: table.customMaxQuery,
-      type: FieldType.Text
-      // isConditionsMet: 'useGeneratedSql === false'
+      type: SettingType.Text,
+      isConditionsMet: table.useGeneratedSql === false
     }, // Active only if useGeneratedSql=false
     {
       label: 'Use Generated SQL',
       value: table.useGeneratedSql,
-      type: FieldType.Boolean
+      type: SettingType.Boolean
     }, // Boolean
     {
       label: 'No Merge Ingestion SQL Addition',
       value: table.nomergeIngestionSqlAddition,
-      type: FieldType.Text
-    }, // Free-text field (not sure where this is used)
+      type: SettingType.Text
+    }, // Free-text setting (nmore information might come about this one)
     {
       label: 'Sqoop Options',
       value: table.sqoopOptions,
-      type: FieldType.Text
-      // isConditionsMet: "importTool === 'sqoop'"
+      type: SettingType.Text,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
     }, // Free-text, active only if importTool=sqoop
-    { label: 'Last Size', value: table.lastSize, type: FieldType.Readonly }, // Read-only
-    { label: 'Last Rows', value: table.lastRows, type: FieldType.Readonly }, // Read-only
+    { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
+    { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
     {
       label: 'Last Mappers',
       value: table.lastMappers,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Generated Hive Column Definition',
       value: table.generatedHiveColumnDefinition,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Generated Sqoop Query',
       value: table.generatedSqoopQuery,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Generated Sqoop Options',
       value: table.generatedSqoopOptions,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Generated Primary Key Columns',
       value: table.generatedPkColumns,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Generated Foreign Keys',
       value: table.generatedForeignKeys,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     } // Read-only
   ]
 
-  const incrementalImports: Fields[] = [
+  const incrementalImports: Settings[] = [
     {
       label: 'Incremental Mode',
       value: mapDisplayValue('incrMode', table.incrMode),
-      type: FieldType.Enum,
-      enumOptions: getEnumOptions('incrMode')
-      // isConditionsMet: "importPhaseType === 'incr'"
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('incrMode'),
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
     }, // Enum list, active if importPhaseType=incr
     {
       label: 'Incremental Column',
       value: table.incrColumn,
-      type: FieldType.Text
-      // isConditionsMet: "importPhaseType === 'incr'"
+      type: SettingType.Text,
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
     }, // Free-text, active if importPhaseType=incr
     {
       label: 'Incremental Validation Method',
@@ -273,120 +286,125 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
         'incrValidationMethod',
         table.incrValidationMethod
       ),
-      type: FieldType.Enum,
-      enumOptions: getEnumOptions('incrValidationMethod')
-      // isConditionsMet: "importPhaseType === 'incr'"
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('incrValidationMethod'),
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
     }, // Enum list, active if importPhaseType=incr
     {
       label: 'Incremental Min Value',
       value: table.incrMinvalue,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Incremental Max Value',
       value: table.incrMaxvalue,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Pending Min Value',
       value: table.incrMinvaluePending,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     }, // Read-only
     {
       label: 'Pending Max Value',
       value: table.incrMaxvaluePending,
-      type: FieldType.Readonly
+      type: SettingType.Readonly
     } // Read-only
   ]
-  const etlOptions: Fields[] = [
+  const etlOptions: Settings[] = [
     {
       label: 'Create Foreign Keys',
       value: table.createForeignKeys,
-      type: FieldType.BooleanOrAuto
+      type: SettingType.BooleanOrAuto
     }, // Boolean or Auto (-1)
     {
       label: 'Invalidate Impala',
       value: table.invalidateImpala,
-      type: FieldType.BooleanOrAuto
+      type: SettingType.BooleanOrAuto
     }, // Boolean or Auto (-1)
     {
       label: 'Soft Delete During Merge',
       value: table.softDeleteDuringMerge,
-      type: FieldType.Boolean
-      // isConditionsMet:
-      //   "etlPhaseType === 'merge' || etlPhaseType === 'merge_history_audit'"
-    }, // Boolean, active only for merge types
+      type: SettingType.Boolean,
+      isConditionsMet:
+        table.etlPhaseType === EtlType.Merge ||
+        table.etlPhaseType === EtlType.MergeHistoryAudit
+    }, // Boolean, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
     {
       label: 'Primary Key Override',
       value: table.pkColumnOverride,
-      type: FieldType.Text
-    }, // Comma-separated list
+      type: SettingType.Text
+    }, // Comma-separated list with columns from "columns":{}
     {
       label: 'Primary Key Override (Merge only)',
       value: table.pkColumnOverrideMergeonly,
-      type: FieldType.Text
-    }, // Comma-separated list
+      type: SettingType.Text
+    }, // Comma-separated list with columns from "columns":{}
     {
       label: 'Merge Heap (MB)',
       value: table.mergeHeap,
-      type: FieldType.Integer
-    }, // Integer in MB
+      type: SettingType.Integer
+    }, // Integer, value is MB
     {
       label: 'Merge Compaction Method',
       value: mapDisplayValue(
         'mergeCompactionMethod',
         table.mergeCompactionMethod
       ),
-      type: FieldType.Enum
-    }, // Enum list
+      type: SettingType.Enum
+    }, // Enum mapping for 'Merge Compaction Method'
     {
       label: 'Datalake Source',
       value: table.datalakeSource,
-      type: FieldType.Text
-    } // Free-text field
+      type: SettingType.Text
+    } // Free-text setting
   ]
 
-  const performance: Fields[] = [
-    { label: 'Mappers', value: table.mappers, type: FieldType.IntegerOrAuto }, // Integer, -1 = Auto
+  const performance: Settings[] = [
+    { label: 'Mappers', value: table.mappers, type: SettingType.IntegerOrAuto }, // Integer, -1 = Auto
     {
       label: 'Split Count',
       value: table.splitCount,
-      type: FieldType.Integer
-      // isConditionsMet: "etlEngine === 'hive'"
+      type: SettingType.Integer,
+      isConditionsMet: table.etlEngine === EtlEngine.Hive
     }, // Integer, active if etlEngine=hive
     {
       label: 'Spark Executor Memory',
       value: table.sparkExecutorMemory,
-      type: FieldType.Text
-      // isConditionsMet: "etlEngine === 'spark' || ´importTool === 'spark'"
+      type: SettingType.Text,
+      isConditionsMet:
+        table.etlEngine === EtlEngine.Spark ||
+        table.importTool === ImportTool.Spark
     }, // Free-text, active if etlEngine or importTool=spark
     {
       label: 'Spark Executors',
       value: table.sparkExecutors,
-      type: FieldType.Integer
-      // isConditionsMet: "etlEngine === 'spark' || importTool === 'spark'"
+      type: SettingType.Integer,
+      isConditionsMet:
+        table.etlEngine === EtlEngine.Spark ||
+        table.importTool === ImportTool.Spark
     } // Integer, active if etlEngine or importTool=spark
   ]
 
-  const siteToSiteCopy: Fields[] = [
+  const siteToSiteCopy: Settings[] = [
     {
       label: 'Copy Finished',
       value: table.copyFinished,
-      type: FieldType.Readonly
-    }, // Read-only timestamp
-    { label: 'Copy Slave', value: table.copySlave, type: FieldType.Readonly } // Read-only Boolean
+      type: SettingType.Readonly
+    }, // Read-only, timestamp
+    { label: 'Copy Slave', value: table.copySlave, type: SettingType.Readonly } // Read-only, Boolean
   ]
 
   return (
     <div className="cards">
-      <Card title="Main Settings" fields={mainSettings} />
-      <Card title="Schedule" fields={schedule} />
-      <Card title="Validation" fields={validation} />
-      <Card title="Import Options" fields={importOptions} />
-      <Card title="Incremental Imports" fields={incrementalImports} />
-      <Card title="ETL Options" fields={etlOptions} />
-      <Card title="Performance" fields={performance} />
-      <Card title="Site-to-site Copy" fields={siteToSiteCopy} />
+      <Card title="Main Settings" settings={mainSettings} />
+      <Card title="Schedule" settings={schedule} />
+      <Card title="Validation" settings={validation} />
+      <Card title="Import Options" settings={importOptions} />
+      <Card title="Incremental Imports" settings={incrementalImports} />
+      <Card title="ETL Options" settings={etlOptions} />
+      <Card title="Performance" settings={performance} />
+      <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
     </div>
   )
 }

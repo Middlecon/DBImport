@@ -1,26 +1,28 @@
-import React from 'react'
-import Field from './Field'
-import { FieldType } from '../../../../utils/enums'
+import { SettingType } from '../../../../utils/enums'
+import Setting from './Setting'
+import './Card.scss'
 
 interface CardProps {
   title: string
-  fields: Array<{
+  settings: Array<{
     label: string
     value: string | number | boolean
-    type: FieldType
+    type: SettingType
     isConditionsMet?: boolean
     enumOptions?: { [key: string]: string } // Maybe not needed here
     isHidden?: boolean
   }>
 }
 
-const Card: React.FC<CardProps> = ({ title, fields }) => {
+const Card: React.FC<CardProps> = ({ title, settings }) => {
   return (
     <div className="card">
       <h3>{title}</h3>
-      {fields.map((field, idx) => (
-        <Field key={idx} {...field} />
-      ))}
+      <dl>
+        {settings.map((setting, idx) => (
+          <Setting key={idx} {...setting} />
+        ))}
+      </dl>
     </div>
   )
 }
