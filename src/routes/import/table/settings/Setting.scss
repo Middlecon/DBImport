@@ -1,35 +1,74 @@
-.setting {
+.setting-container {
+  position: relative;
+  padding-left: 5px;
+  padding-right: 18px;
+  min-height: 20px;
+  width: 195px; // width that works with the widest enum display description name
+  background-color: #edecec;
+  border-radius: 3px;
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   display: flex;
-  gap: 3px;
+  align-items: center;
+}
+
+.setting,
+.disabled-setting {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
   margin-top: 10px;
+  font-size: 14px;
+  position: relative;
+  .expanded-content {
+    position: absolute;
+    right: 0;
+    top: 20px;
+    z-index: 20;
+    margin-top: 5px;
+    background-color: #f9f9f9;
+    border-radius: 3px;
+    padding: 5px;
+    white-space: normal;
+    word-break: break-word;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px,
+      rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+  }
 }
 
 .disabled-setting {
-  display: flex;
-  gap: 5px;
-  margin-top: 10px;
   color: rgb(174, 174, 174);
-  border-radius: 3px;
   .setting-container {
     background-color: #f0f0f0;
   }
 }
 
-.setting,
-.disabled-setting {
-  font-size: 14px;
+.setting-label {
+  width: 200px;
 }
 
-.setting-container {
-  padding-left: 5px;
-  padding-right: 20px;
-  min-height: 20px;
-  min-width: 100px;
-  max-width: 200px;
-  background-color: #edecec;
-  border-radius: 3px;
+.chevron,
+.chevron-expanded {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  svg {
+    width: 10px;
+    height: 7px;
+  }
 }
 
-// .setting-label {
-//   max-width: 200px;
-// }
+.chevron-expanded {
+  width: 100%;
+}
+
+.collapsed-content {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: calc(100% - 20px);
+}

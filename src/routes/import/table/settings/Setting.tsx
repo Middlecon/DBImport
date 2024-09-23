@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import { SettingType } from '../../../../utils/enums'
 import './Setting.scss'
+import ChevronDown from '../../../../assets/icons/ChevronDown'
+import ChevronUp from '../../../../assets/icons/ChevronUp'
 
 interface SettingProps {
   label: string
@@ -21,7 +24,35 @@ const Setting: React.FC<SettingProps> = ({
   //   console.log('typeof value', typeof value)
   //   console.log('enumOptions', enumOptions)
   // }
-  console.log('isConditionsMet', isConditionsMet)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+  const [hasOverflow, setHasOverflow] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const childWidth =
+        containerRef.current.firstElementChild?.scrollWidth || 0
+      const isOverflowing = childWidth > containerRef.current.clientWidth
+
+      // console.log('Child content width:', childWidth)
+      // console.log('Container width:', containerRef.current.clientWidth)
+      // console.log('Is overflowing:', isOverflowing)
+
+      setHasOverflow(isOverflowing)
+    }
+  }, [value])
+  // console.log('hasOverflow', hasOverflow)
+
+  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
+    console.log('dropdownId', dropdownId)
+    if (isOpen) {
+      setOpenDropdown(dropdownId)
+    } else if (openDropdown === dropdownId) {
+      setOpenDropdown(null)
+    }
+  }
+  // console.log('isConditionsMet', isConditionsMet)
   const renderSetting = () => {
     switch (type) {
       case 'boolean':
@@ -66,7 +97,31 @@ const Setting: React.FC<SettingProps> = ({
   return (
     <div className={isConditionsMet === false ? 'disabled-setting' : 'setting'}>
       <dt className="setting-label">{label}:</dt>
-      <dd className="setting-container">{renderSetting()}</dd>
+      <dd className="setting-container" ref={containerRef}>
+        <div className="collapsed-content">{renderSetting()}</div>
+        {hasOverflow && !openDropdown && (
+          <div
+            className="chevron"
+            onClick={() => handleDropdownToggle(label, true)}
+          >
+            <ChevronDown />
+          </div>
+        )}
+        {hasOverflow && openDropdown && (
+          <div
+            className="chevron"
+            onClick={() => handleDropdownToggle(label, false)}
+          >
+            <ChevronUp />
+          </div>
+        )}
+      </dd>
+
+      {hasOverflow && openDropdown && (
+        <>
+          <div className="expanded-content">{renderSetting()}</div>
+        </>
+      )}
     </div>
   )
 }
