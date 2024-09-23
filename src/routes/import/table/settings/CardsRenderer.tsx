@@ -13,6 +13,7 @@ import {
   ImportType,
   ValidationMethod
 } from '../../../../utils/enums'
+import './CardsRenderer.scss'
 
 interface CardsRendererProps {
   table: UITable
@@ -396,20 +397,34 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
   ]
 
   return (
-    <div className="cards">
-      <div className="div1">
-        <Card title="Main Settings" settings={mainSettings} />
-        <Card title="Performance" settings={performance} />
-        <Card title="Validation" settings={validation} />
-        <Card title="Schedule" settings={schedule} />
-        <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+    <>
+      <div className="cards">
+        <div className="cards-container">
+          <Card title="Main Settings" settings={mainSettings} />
+          <Card title="Performance" settings={performance} />
+          <Card title="Validation" settings={validation} />
+          <Card title="Schedule" settings={schedule} />
+          <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+        </div>
+        <div className="cards-container">
+          <Card title="Import Options" settings={importOptions} />
+          <Card title="ETL Options" settings={etlOptions} />
+          <Card title="Incremental Imports" settings={incrementalImports} />
+        </div>
       </div>
-      <div className="div2">
-        <Card title="Import Options" settings={importOptions} />
-        <Card title="ETL Options" settings={etlOptions} />
-        <Card title="Incremental Imports" settings={incrementalImports} />
+      <div className="cards-narrow">
+        <div className="cards-container">
+          <Card title="Main Settings" settings={mainSettings} />
+          <Card title="Import Options" settings={importOptions} />
+          <Card title="ETL Options" settings={etlOptions} />
+          <Card title="Incremental Imports" settings={incrementalImports} />
+          <Card title="Performance" settings={performance} />
+          <Card title="Validation" settings={validation} />
+          <Card title="Schedule" settings={schedule} />
+          <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
