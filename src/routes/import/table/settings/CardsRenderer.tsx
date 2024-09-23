@@ -397,14 +397,18 @@ const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
 
   return (
     <div className="cards">
-      <Card title="Main Settings" settings={mainSettings} />
-      <Card title="Schedule" settings={schedule} />
-      <Card title="Validation" settings={validation} />
-      <Card title="Import Options" settings={importOptions} />
-      <Card title="Incremental Imports" settings={incrementalImports} />
-      <Card title="ETL Options" settings={etlOptions} />
-      <Card title="Performance" settings={performance} />
-      <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+      <div className="div1">
+        <Card title="Main Settings" settings={mainSettings} />
+        <Card title="Performance" settings={performance} />
+        <Card title="Validation" settings={validation} />
+        <Card title="Schedule" settings={schedule} />
+        <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+      </div>
+      <div className="div2">
+        <Card title="Import Options" settings={importOptions} />
+        <Card title="ETL Options" settings={etlOptions} />
+        <Card title="Incremental Imports" settings={incrementalImports} />
+      </div>
     </div>
   )
 }
