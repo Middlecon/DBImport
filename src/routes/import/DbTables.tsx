@@ -2,13 +2,13 @@ import { useState, useMemo, useCallback } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownSingleSelect from '../../components/DropdownSingleSelect'
 import TableList from '../../components/TableList'
-import { Column } from '../../utils/interfaces'
+import { Column, DbTable } from '../../utils/interfaces'
 import { useDbTables } from '../../utils/queries'
 import './DbTables.scss'
 import { reverseMapDisplayValue } from '../../utils/nameMappings'
 import { useOutletContext } from 'react-router-dom'
 
-const columns: Column[] = [
+const columns: Column<DbTable>[] = [
   { header: 'Table', accessor: 'table' },
   { header: 'Connection', accessor: 'connection' },
   { header: 'Source Schema', accessor: 'sourceSchema' },
@@ -18,7 +18,7 @@ const columns: Column[] = [
   { header: 'Import Tool', accessor: 'importTool' },
   { header: 'ETL Engine', accessor: 'etlEngine' },
   { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
-  { header: 'Actions', isAction: true }
+  { header: 'Actions', isAction: 'both' }
 ]
 
 const checkboxFilters = [
@@ -81,7 +81,7 @@ interface OutletContextType {
   handleDropdownToggle: (dropdownId: string, isOpen: boolean) => void
 }
 
-function DbTable() {
+function DbTables() {
   const { data } = useDbTables()
   const [selectedFilters, setSelectedFilters] = useState<{
     [key: string]: string[]
@@ -203,11 +203,7 @@ function DbTable() {
       </div>
 
       {filteredData ? (
-        <div className="tables-container">
-          <div className="scrollable-container">
-            <TableList columns={columns} data={filteredData} />
-          </div>
-        </div>
+        <TableList columns={columns} data={filteredData} />
       ) : (
         <div>Loading....</div>
       )}
@@ -215,4 +211,4 @@ function DbTable() {
   )
 }
 
-export default DbTable
+export default DbTables

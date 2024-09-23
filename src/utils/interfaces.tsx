@@ -38,10 +38,10 @@ export interface UiDbTable extends Table {
   etlEngineDisplay: string
 }
 
-export interface Column {
+export interface Column<T> {
   header: string
-  accessor?: keyof Table
-  isAction?: boolean
+  accessor?: keyof T
+  isAction?: 'edit' | 'delete' | 'both'
 }
 
 export interface Table {
@@ -192,4 +192,24 @@ export interface UITable {
   historyDatabase: 'string'
   historyTable: 'string'
   columns: []
+}
+
+export interface Columns {
+  columnName: 'string'
+  columnOrder: 'string'
+  sourceColumnName: 'string'
+  columnType: 'string'
+  sourceColumnType: 'string'
+  sourceDatabaseType: 'string'
+  columnNameOverride: 'string'
+  columnTypeOverride: 'string'
+  sqoopColumnType: 'string'
+  sqoopColumnTypeOverride: 'string'
+  forceString: 'string'
+  includeInImport: 'string'
+  sourcePrimaryKey: 'string'
+  lastUpdateFromSource: 'string'
+  comment: 'string'
+  operatorNotes: 'string'
+  anonymizationFunction: 'string'
 }
