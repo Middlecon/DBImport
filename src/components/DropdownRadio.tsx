@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import './DropdownSingleSelect.scss'
+import { useEffect, useRef, useState } from 'react'
+import './DropdownRadio.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 
@@ -13,7 +13,7 @@ interface DropdownRadioProps {
   onToggle: (isOpen: boolean) => void
 }
 
-const DropdownRadio: React.FC<DropdownRadioProps> = ({
+function DropdownRadio({
   items,
   title,
   radioName,
@@ -21,7 +21,7 @@ const DropdownRadio: React.FC<DropdownRadioProps> = ({
   onSelect,
   isOpen,
   onToggle
-}) => {
+}: DropdownRadioProps) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 

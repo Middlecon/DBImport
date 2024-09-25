@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import MainMenuSidebar from './MainMenuSidebar'
 import './MainLayout.scss'
 
-const MainLayout: React.FC = () => {
+function MainLayout() {
   const [minimized, setMinimized] = useState(false)
 
   return (

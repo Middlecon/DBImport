@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useParams } from 'react-router-dom'
-import DropdownSearch from '../../components/DropdownSearch'
+import Dropdown from '../../components/Dropdown'
 import { useDatabases } from '../../utils/queries'
 import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
@@ -13,6 +13,7 @@ function Import() {
     () => data?.map((database) => database.name) ?? [],
     [data]
   )
+
   const navigate = useNavigate()
   const { database } = useParams<{ database: string }>()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
@@ -50,15 +51,17 @@ function Import() {
         <div className="import-header">
           <h1>Import</h1>
           <div className="db-dropdown">
-            <DropdownSearch
+            <Dropdown
               items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
-              initialTitle={selectedDatabase || 'Select DB'}
-              leftwards={true}
               onSelect={handleSelect}
               isOpen={openDropdown === 'dbSearch'}
               onToggle={(isOpen: boolean) =>
                 handleDropdownToggle('dbSearch', isOpen)
               }
+              searchFilter={true}
+              initialTitle={selectedDatabase || 'Select DB'}
+              leftwards={true}
+              chevron={true}
             />
           </div>
         </div>

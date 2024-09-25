@@ -1,8 +1,14 @@
-export default function ChevronDown() {
+export default function ChevronDown({
+  width,
+  height
+}: {
+  width?: string
+  height?: string
+}) {
   return (
     <svg
-      width="14"
-      height="8"
+      width={width ? width : '14'}
+      height={height ? height : '8'}
       viewBox="0 0 14 8"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

@@ -11,10 +11,7 @@ interface MainSidebarProps {
   minimized: boolean
   setMinimized: React.Dispatch<React.SetStateAction<boolean>>
 }
-const MainMenuSidebar: React.FC<MainSidebarProps> = ({
-  minimized,
-  setMinimized
-}) => {
+function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const handleToggleMinimize = () => {
     setMinimized((prevMinimized) => !prevMinimized)
   }

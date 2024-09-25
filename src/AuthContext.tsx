@@ -12,9 +12,7 @@ export const AuthContext = createContext<AuthContextType>({
   logout: () => {}
 })
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children
-}) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!getCookie('DBI_auth_token')
   )

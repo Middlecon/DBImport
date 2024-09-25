@@ -1,4 +1,3 @@
-import React from 'react'
 import Card from './Card'
 import { UITable } from '../../../../utils/interfaces'
 import {
@@ -28,13 +27,17 @@ interface Settings {
   isHidden?: boolean
 }
 
-const CardsRenderer: React.FC<CardsRendererProps> = ({ table }) => {
+function CardsRenderer({ table }: CardsRendererProps) {
   const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
 
   const mainSettings: Settings[] = [
-    { label: 'Database', value: table.database, type: SettingType.Text }, //Free-text, default selected db, potentially copyable?
+    { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
-    { label: 'Connection', value: table.connection, type: SettingType.Text }, // Reference to /connection
+    {
+      label: 'Connection',
+      value: table.connection,
+      type: SettingType.Reference
+    }, // Reference to /connection
     {
       label: 'Source Schema',
       value: table.sourceSchema,

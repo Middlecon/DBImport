@@ -13,17 +13,7 @@ interface SettingProps {
   isHidden?: boolean
 }
 
-const Setting: React.FC<SettingProps> = ({
-  label,
-  value,
-  type,
-  isConditionsMet
-}) => {
-  // if (type === 'enum') {
-  //   console.log('value', value)
-  //   console.log('typeof value', typeof value)
-  //   console.log('enumOptions', enumOptions)
-  // }
+function Setting({ label, value, type, isConditionsMet }: SettingProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const [hasOverflow, setHasOverflow] = useState(false)
@@ -66,6 +56,8 @@ const Setting: React.FC<SettingProps> = ({
       case 'enum':
         return <span>{value}</span>
       case 'integer':
+        return <span>{value}</span>
+      case 'reference':
         return <span>{value}</span>
       case 'hidden':
         return null

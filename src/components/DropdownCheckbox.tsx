@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './DropdownCheckbox.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
@@ -11,13 +11,13 @@ interface DropdownCheckboxProps {
   onToggle: (isOpen: boolean) => void
 }
 
-const DropdownCheckbox: React.FC<DropdownCheckboxProps> = ({
+function DropdownCheckbox({
   items,
   title,
   onSelect,
   isOpen,
   onToggle
-}) => {
+}: DropdownCheckboxProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
 

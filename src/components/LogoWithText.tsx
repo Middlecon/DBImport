@@ -1,19 +1,21 @@
 import { CSSProperties } from 'react'
 import './LogoWithText.scss'
 
+interface LogoWithTextProps {
+  fontSize: string
+  logoSize: string
+  textMarginTop?: string | undefined
+  textMarginLeft?: string | undefined
+  noText?: boolean
+}
+
 function LogoWithText({
   fontSize,
   logoSize,
   textMarginTop,
   textMarginLeft,
   noText = false
-}: {
-  fontSize: string
-  logoSize: string
-  textMarginTop?: string | undefined
-  textMarginLeft?: string | undefined
-  noText?: boolean
-}) {
+}: LogoWithTextProps) {
   const style: CSSProperties & { [key: string]: string } = {
     '--font-size': fontSize,
     '--logo-size': logoSize,
