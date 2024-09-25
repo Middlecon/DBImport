@@ -16,6 +16,7 @@ export enum SettingType {
   Text = 'text',
   Enum = 'enum',
   Integer = 'integer',
+  Reference = 'reference',
   Hidden = 'hidden', // Needed here or handled in other way?
   BooleanOrAuto = 'booleanOrAuto(-1)',
   IntegerOrAuto = 'integerOrAuto(-1)',

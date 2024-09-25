@@ -6,9 +6,14 @@ import {
   IncrMode,
   IncrValidationMethod,
   MergeCompactionMethod,
+  SettingType,
   ValidateSource,
   ValidationMethod
 } from './enums'
+
+export interface Connection {
+  name: 'string'
+}
 
 export interface Database {
   name: string
@@ -212,4 +217,13 @@ export interface Columns {
   comment: 'string'
   operatorNotes: 'string'
   anonymizationFunction: 'string'
+}
+
+export interface TableSetting {
+  label: string
+  value: string | number | boolean
+  type: SettingType
+  isConditionsMet?: boolean
+  enumOptions?: { [key: string]: string } // Maybe not needed here
+  isHidden?: boolean
 }

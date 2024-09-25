@@ -1,7 +1,14 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import { useParams } from 'react-router-dom'
-import { Database, DbTable, Table, UITable, UiDbTable } from './interfaces'
+import {
+  Connection,
+  Database,
+  DbTable,
+  Table,
+  UITable,
+  UiDbTable
+} from './interfaces'
 import { mapDisplayValue } from './nameMappings'
 import {
   EtlEngine,
@@ -15,6 +22,20 @@ import {
   ValidationMethod,
   mapEnumValue
 } from './enums'
+
+// GET CONNECTIONS
+
+const getConnections = async () => {
+  const response = await axiosInstance.get('/connection')
+  return response.data
+}
+
+export const useConnections = (): UseQueryResult<Connection[], Error> => {
+  return useQuery({
+    queryKey: ['connections'],
+    queryFn: getConnections
+  })
+}
 
 // GET DATABASES
 
@@ -97,7 +118,7 @@ export const useTable = (): UseQueryResult<Table, Error> => {
 
       const data: Table = await getTable(database, table)
 
-      console.log('data', data)
+      // console.log('data', data)
 
       const transformedData: UITable = {
         ...data,
@@ -147,7 +168,7 @@ export const useTable = (): UseQueryResult<Table, Error> => {
           'Unknown'
         )
       }
-      console.log('transformedData', transformedData)
+      // console.log('transformedData', transformedData)
 
       return transformedData
     },

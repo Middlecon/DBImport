@@ -6,4 +6,12 @@
   margin-bottom: 40px;
   margin-right: 40px;
   border-radius: 5px;
+  h3 {
+    margin-top: 7px;
+  }
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
 }
