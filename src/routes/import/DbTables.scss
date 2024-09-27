@@ -7,17 +7,28 @@
   max-height: 80vh;
 
   width: auto;
-  background-color: rgb(184, 188, 196);
+  // background-color: rgb(184, 188, 196);
   overflow-x: hidden;
   overflow-y: hidden;
 }
 
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 25px;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .db-tables-list {
   list-style: none;
+}
+
+@media screen and (max-width: 600px) {
+  .filters {
+    margin-bottom: 50px;
+  }
+  .filters > * {
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
 }

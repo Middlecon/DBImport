@@ -7,13 +7,36 @@
   text-align: left;
   border-radius: 20px;
 
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 14;
+  }
+
   th {
     margin: 0;
     padding: 10px 16px 8px 12px;
     background-color: rgb(171, 171, 172);
     font-weight: bold;
+    outline: 0.3px solid #abaeb8;
+    z-index: 14;
+  }
+
+  // To make table header borders stay filled with the right color when scroll across browsers, for Chrome:
+  th:after,
+  th:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+  }
+  th:before {
+    top: 0;
     border: 1px solid #abaeb8;
-    border-bottom: 0;
+  }
+  th:after {
+    bottom: 0;
+    border: 1px solid #abaeb8;
   }
 
   td {
@@ -21,6 +44,7 @@
     border: 1px solid #ddd;
     position: relative;
     white-space: nowrap;
+    z-index: 13;
   }
 
   .dbtables-row {

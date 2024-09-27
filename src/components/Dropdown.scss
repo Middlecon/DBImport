@@ -1,11 +1,12 @@
-.search-dropdown {
+.dropdown {
   position: relative;
   width: min-content;
 
-  button {
+  .dropdown-selected-item {
     width: 100%;
     padding: 8px 12px;
     background-color: rgb(43, 62, 111);
+    // background-color: #2b66ca;
     color: rgb(255, 255, 255);
     border: none;
     border-radius: 10px;
@@ -14,14 +15,13 @@
     justify-content: space-between;
     cursor: pointer;
     white-space: nowrap;
-    font-size: 14px;
     box-sizing: border-box;
   }
 
   .chevron-container {
     margin-right: 5px;
     margin-left: 15px;
-    font-size: 14px;
+    // font-size: 14px;
     flex-shrink: 0;
   }
 
@@ -47,6 +47,9 @@
     .search {
       display: flex;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 21;
       padding: 3px 8px 0 8px;
       background-color: rgb(217, 217, 217);
       color: rgb(130, 125, 125);
@@ -69,8 +72,11 @@
     // box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow: auto;
     z-index: 19;
+    li {
+      background-color: rgb(233, 233, 233);
+    }
     li:nth-child(odd) {
-      background-color: rgb(238, 238, 238);
+      background-color: rgb(242, 242, 242);
       &:hover {
         background-color: rgb(231, 231, 231);
       }
@@ -78,9 +84,11 @@
     .search {
       display: flex;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 21;
       padding: 3px 8px 0 8px;
       background-color: #fcfcfc;
-      color: rgb(195, 20, 20);
       border-bottom: 1px solid rgb(200, 197, 197);
       box-sizing: border-box;
     }

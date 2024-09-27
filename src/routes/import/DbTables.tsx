@@ -51,7 +51,7 @@ const checkboxFilters = [
   }
 ]
 
-const singleSelectFilters = [
+const radioFilters = [
   {
     title: 'Last update from source',
     accessor: 'lastUpdateFromSource',
@@ -139,7 +139,7 @@ function DbTables() {
   const filteredData = useMemo(() => {
     if (!data) return []
 
-    const mappedFilters = [...checkboxFilters, ...singleSelectFilters].reduce(
+    const mappedFilters = [...checkboxFilters, ...radioFilters].reduce(
       (acc, filter) => {
         const mappedValues = selectedFilters[filter.accessor]?.map((value) =>
           reverseMapDisplayValue(filter.title, value)
@@ -188,7 +188,7 @@ function DbTables() {
             onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
           />
         ))}
-        {singleSelectFilters.map((filter, index) => (
+        {radioFilters.map((filter, index) => (
           <DropdownRadio
             key={index}
             items={filter.values}

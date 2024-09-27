@@ -5,7 +5,7 @@
   width: auto;
   padding: 0 40px;
 
-  background-color: rgb(184, 188, 196);
+  background-color: #cdcfd3;
   overflow-x: hidden;
   overflow-y: hidden;
   .fake-breadcrumbs {
@@ -38,11 +38,17 @@
 
 .import-text-block {
   color: rgb(21, 27, 39);
-  background-color: rgb(250, 248, 248);
+  background-color: #ffffff;
   height: fit-content;
-  width: 60vw;
   text-align: center;
   margin-top: 50px;
   padding: 40px 50px;
   border-radius: 7px;
+}
+
+@media screen and (max-width: 600px) {
+  .import-header {
+    display: flex;
+    flex-direction: column;
+  }
 }

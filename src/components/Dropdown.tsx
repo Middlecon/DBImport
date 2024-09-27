@@ -51,7 +51,9 @@ function Dropdown<T>({
 }: DropdownProps<T>): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedItem, setSelectedItem] = useState<T | null>(null)
+  const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -68,6 +70,21 @@ function Dropdown<T>({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [onToggle])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+
+    if (menuRef.current) {
+      if (value) {
+        setSavedScrollPosition(menuRef.current.scrollTop)
+        menuRef.current.scrollTop = 0
+      } else {
+        menuRef.current.scrollTop = savedScrollPosition
+      }
+    }
+
+    setSearchTerm(value)
+  }
 
   const handleSelect = (item: T) => {
     setSelectedItem(item)
@@ -91,7 +108,7 @@ function Dropdown<T>({
     getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const buttonStyle: React.CSSProperties = {
+  const dropdownStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     color: textColor,
     border: border,
@@ -101,8 +118,12 @@ function Dropdown<T>({
   }
 
   return (
-    <div className="search-dropdown" ref={dropdownRef}>
-      <button style={buttonStyle} onClick={() => onToggle(!isOpen)}>
+    <div className="dropdown" ref={dropdownRef}>
+      <div
+        className="dropdown-selected-item"
+        style={dropdownStyle}
+        onClick={() => onToggle(!isOpen)}
+      >
         {selectedItem ? getItemLabel(selectedItem) : initialTitle}
         <div className="chevron-container">
           {isOpen ? (
@@ -117,10 +138,11 @@ function Dropdown<T>({
             />
           )}
         </div>
-      </button>
+      </div>
 
       {isOpen && (
         <div
+          ref={menuRef}
           className={
             leftwards
               ? lightStyle
@@ -140,7 +162,7 @@ function Dropdown<T>({
                 type="text"
                 value={searchTerm}
                 placeholder={placeholder}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleInputChange}
               />
             </div>
           )}

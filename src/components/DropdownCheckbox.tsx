@@ -48,7 +48,10 @@ function DropdownCheckbox({
 
   return (
     <div className="checkbox-dropdown" ref={dropdownRef}>
-      <button onClick={() => onToggle(!isOpen)}>
+      <div
+        className="checkbox-dropdown-selected-item"
+        onClick={() => onToggle(!isOpen)}
+      >
         {title}
         {selectedItems.length > 0 ? (
           <span className="count-badge">{selectedItems.length}</span>
@@ -59,7 +62,7 @@ function DropdownCheckbox({
         <div className="chevron-container">
           {isOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
-      </button>
+      </div>
 
       {isOpen && (
         <div className="menu">

@@ -1,4 +1,4 @@
-.select-dropdown {
+.radio-dropdown {
   position: relative;
   width: min-content;
   max-height: 14px;
@@ -23,7 +23,7 @@
     }
   }
 
-  button {
+  .radio-dropdown-selected-item {
     width: 100%;
     padding: 6px 12px;
     background-color: rgb(99, 104, 118);
@@ -36,8 +36,6 @@
     align-items: center;
     justify-content: space-between;
     white-space: nowrap;
-    cursor: pointer;
-    font-size: 14px;
     box-sizing: border-box;
   }
 
@@ -81,7 +79,7 @@
     border: 1px solid rgb(205, 204, 204, 0.5);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow: auto;
-    z-index: 10;
+    z-index: 22;
     li:nth-child(odd) {
       background-color: rgb(211, 209, 209);
       &:hover {
@@ -133,5 +131,11 @@
     padding: 8px 12px;
     color: rgb(136, 136, 136);
     box-sizing: border-box;
+  }
+
+  @media screen and (max-width: 600px) {
+    .radio-dropdown-selected-item {
+      white-space: initial;
+    }
   }
 }

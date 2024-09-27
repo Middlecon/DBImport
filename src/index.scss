@@ -1,4 +1,16 @@
 @font-face {
+  font-family: 'Bai Jamjuree Bold';
+  src: url('../public/fonts/BaiJamjuree-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Work Sans Regular';
+  src: url('../public/fonts/WorkSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
   font-family: 'Work Sans Variable';
   src: url('../public/fonts/WorkSans-VariableFont_wght.ttf') format('truetype');
   font-weight: 100 900;
@@ -30,9 +42,24 @@ body {
   width: 100%;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+th,
+button {
+  font-family: 'Bai Jamjuree Bold', sans-serif;
+}
+
+button {
+  font-size: 14px;
+  cursor: pointer;
+}
+
 h1 {
   font-size: 2.5em;
-  font-weight: 450;
   margin: 0;
 }
 
@@ -41,10 +68,7 @@ p {
   font-weight: 450;
 }
 
-span {
-  font-family: 'Work Sans Variable', sans-serif;
-}
-
+span,
 input {
   font-family: 'Work Sans Variable', sans-serif;
 }

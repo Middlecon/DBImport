@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import './DropdownRadio.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
+import './DropdownRadio.scss'
 
 interface DropdownRadioProps {
   items: string[]
@@ -26,7 +26,6 @@ function DropdownRadio({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
-    // console.log('selectedItem', selectedItem)
     if (selectedItem === item) {
       setSelectedItem(null)
       onSelect([])
@@ -53,8 +52,11 @@ function DropdownRadio({
   }, [onToggle])
 
   return (
-    <div className="select-dropdown" ref={dropdownRef}>
-      <button onClick={() => onToggle(!isOpen)}>
+    <div className="radio-dropdown" ref={dropdownRef}>
+      <div
+        className="radio-dropdown-selected-item"
+        onClick={() => onToggle(!isOpen)}
+      >
         {title}
         {badgeContent && selectedItem ? (
           <span className="count-badge">
@@ -67,7 +69,7 @@ function DropdownRadio({
         <div className="chevron-container">
           {isOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
-      </button>
+      </div>
 
       {isOpen && (
         <div className="menu">

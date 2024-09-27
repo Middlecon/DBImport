@@ -43,7 +43,14 @@
       }
 
       &.active {
-        color: rgb(84, 139, 234);
+        // color: #548bea; // Based on the blue in the DBImport-logo
+
+        // color: #2b66ca; // Middlecon-blue
+
+        // based on Middlecon-blue:
+        // color: #2f78f4;
+        // color: #387bec;
+        color: #407bdf;
       }
     }
   }
