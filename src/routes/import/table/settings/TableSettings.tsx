@@ -5,7 +5,6 @@ import CardsRenderer from './CardsRenderer'
 
 function TableSettings() {
   const { data } = useOutletContext<{ data: UITable }>()
-  // console.log('data', data)
 
   return (
     <>

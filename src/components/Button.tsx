@@ -1,14 +1,22 @@
 import './Button.scss'
 
-interface EditButtonProps {
+interface ButtonProps {
   title: string
-  onClick: () => void
+  onClick?: () => void
+  type?: 'button' | 'reset' | 'submit' | undefined
+
   lightStyle?: boolean
 }
 
-function EditButton({ title, onClick, lightStyle = false }: EditButtonProps) {
+function Button({
+  title,
+  type = 'button',
+  onClick,
+  lightStyle = false
+}: ButtonProps) {
   return (
     <button
+      type={type}
       className={lightStyle ? 'light-button' : 'dark-button'}
       onClick={onClick}
     >
@@ -17,4 +25,4 @@ function EditButton({ title, onClick, lightStyle = false }: EditButtonProps) {
   )
 }
 
-export default EditButton
+export default Button

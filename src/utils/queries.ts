@@ -163,7 +163,7 @@ export const useTable = (): UseQueryResult<Table, Error> => {
           'Unknown'
         ),
         mergeCompactionMethod: mapEnumValue(
-          data.incrValidationMethod,
+          data.mergeCompactionMethod,
           Object.values(MergeCompactionMethod),
           'Unknown'
         )

@@ -1,18 +1,21 @@
-.logo-w-name-root {
+.logo-w-text-root {
   display: flex;
 }
-.logo-container {
+
+.logo-w-text-container {
   color: rgb(255, 255, 255);
   margin: auto;
   display: flex;
   font-size: var(--font-size);
-  .logo {
-    width: var(--logo-size);
-    height: var(--logo-size);
-  }
-  h1 {
-    margin-top: var(--text-margin-top);
-    margin-left: var(--text-margin-left);
-    // font-family: 'Roboto Slab Variable';
-  }
+}
+
+.logo-w-text-logo {
+  width: var(--logo-size);
+  height: var(--logo-size);
+}
+
+.logo-w-text-h1 {
+  margin-top: var(--text-margin-top);
+  margin-left: var(--text-margin-left);
+  // font-family: 'Roboto Slab Variable';
 }

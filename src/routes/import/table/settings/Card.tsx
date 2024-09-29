@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './Card.scss'
-import EditButton from '../../../../components/Button'
+import Button from '../../../../components/Button'
 import EditTableModal from '../../../../components/EditTableModal'
 import Setting from './Setting'
 import { TableSetting } from '../../../../utils/interfaces'
@@ -9,9 +9,11 @@ import { TableSetting } from '../../../../utils/interfaces'
 interface CardProps {
   title: string
   settings: TableSetting[]
+  isNotEditable?: boolean
+  isDisabled?: boolean
 }
 
-function Card({ title, settings }: CardProps) {
+function Card({ title, settings, isNotEditable, isDisabled }: CardProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // const [currentSettings, setCurrentSettings] = useState(settings)
@@ -45,24 +47,24 @@ function Card({ title, settings }: CardProps) {
   //   setCurrentSettings(newSettings)
   // }
   const handleSave = (newSettings: TableSetting[]) => {
-    console.log('newSettings', newSettings)
+    console.log('CARD newSettings', newSettings)
     // mutation.mutate(newSettings)
     setIsEditModalOpen(false)
   }
 
   return (
-    <div className="card">
+    <div className={isDisabled ? 'card-disabled' : 'card'}>
       <div className="card-head">
-        <h3>{title}</h3>
-        <EditButton title="Edit" onClick={handleOpenModal} />
+        <h3 className="card-h3">{title}</h3>
+        {!isNotEditable && <Button title="Edit" onClick={handleOpenModal} />}
       </div>
-      <dl>
-        {settings.map((setting, idx) => (
-          <Setting key={idx} {...setting} />
+      <dl className="card-dl">
+        {settings.map((setting, index) => (
+          <Setting key={index} {...setting} />
         ))}
       </dl>
 
-      {isEditModalOpen && (
+      {isEditModalOpen && !isNotEditable && !isDisabled && (
         <EditTableModal
           title={`Edit ${title}`}
           settings={settings}

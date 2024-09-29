@@ -6,7 +6,7 @@ import ChevronUp from '../../../../assets/icons/ChevronUp'
 
 interface SettingProps {
   label: string
-  value: string | number | boolean
+  value: string | number | boolean | null
   type: SettingType
   isConditionsMet?: boolean
   enumOptions?: { [key: string]: string } // Maybe not needed here
@@ -33,6 +33,22 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
     }
   }, [value])
   // console.log('hasOverflow', hasOverflow)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpenDropdown(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     console.log('dropdownId', dropdownId)
@@ -87,7 +103,7 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
   }
 
   return (
-    <div className={isConditionsMet === false ? 'disabled-setting' : 'setting'}>
+    <div className={isConditionsMet === false ? 'setting-disabled' : 'setting'}>
       <dt className="setting-label">{label}:</dt>
       <dd className="setting-container" ref={containerRef}>
         <div className="collapsed-content">{renderSetting()}</div>

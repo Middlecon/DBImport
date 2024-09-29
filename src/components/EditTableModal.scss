@@ -1,4 +1,4 @@
-.modal-backdrop {
+.edit-table-modal-backdrop {
   z-index: 100;
   position: fixed;
   top: 0;
@@ -9,48 +9,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  .text-input {
-    border: 0.5px solid rgb(42, 42, 42);
-  }
 }
 
-.modal-content {
+.edit-table-modal-content {
   background: white;
-  padding: 40px;
+  margin-left: 50px;
+  padding: 40px 45px 45px 40px;
   border-radius: 8px;
   width: 500px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  h2 {
-    margin-bottom: 40px;
-  }
 }
 
-.modal-body {
+.edit-table-modal-h2 {
+  margin-bottom: 40px;
+  margin-top: 0;
+}
+
+.edit-table-modal-body {
   margin-bottom: 20px;
   font-size: 14px;
-  height: 500px;
+  height: fit-content;
   label {
     width: 200px;
   }
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: space-around;
-}
-
-.modal-setting {
+.edit-table-modal-setting {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 10px;
+  margin-top: 10px;
   &:nth-child(2) {
-    margin-bottom: 50px;
+    margin-bottom: 40px;
   }
   &:nth-child(5) {
-    margin-bottom: 50px;
+    margin-bottom: 40px;
   }
   &:nth-child(4n + 5) {
-    margin-bottom: 50px;
+    margin-bottom: 40px;
   }
+}
+
+.radio-edit {
+  label {
+    margin-right: 40px;
+  }
+}
+
+.edit-table-modal-text-input {
+  border: 0.5px solid rgb(42, 42, 42);
+  width: calc(100% - 217px);
+}
+
+.edit-table-modal-changed {
+  background-color: blue;
+  width: 20px;
+  color: crimson;
+}
+
+.edit-table-modal-footer {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 50px;
 }

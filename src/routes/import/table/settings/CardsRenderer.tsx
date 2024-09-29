@@ -197,7 +197,7 @@ function CardsRenderer({ table }: CardsRendererProps) {
       label: 'Force String',
       value: table.forceString,
       type: SettingType.BooleanOrDefaultFromConfig
-    }, // Boolean or -1 (Default from config)
+    }, // Boolean or -1 (-1="Default from config")
     {
       label: 'Split By Column',
       value: table.splitByColumn,
@@ -355,7 +355,8 @@ function CardsRenderer({ table }: CardsRendererProps) {
         'mergeCompactionMethod',
         table.mergeCompactionMethod
       ),
-      type: SettingType.Enum
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('mergeCompactionMethod')
     }, // Enum mapping for 'Merge Compaction Method'
     {
       label: 'Datalake Source',
@@ -420,11 +421,20 @@ function CardsRenderer({ table }: CardsRendererProps) {
           <Card title="Main Settings" settings={mainSettings} />
           <Card title="Import Options" settings={importOptions} />
           <Card title="ETL Options" settings={etlOptions} />
-          <Card title="Incremental Imports" settings={incrementalImports} />
+          <Card
+            title="Incremental Imports"
+            settings={incrementalImports}
+            isNotEditable={table.importPhaseType !== 'incremental'}
+            isDisabled={table.importPhaseType !== 'incremental'}
+          />
           <Card title="Performance" settings={performance} />
           <Card title="Validation" settings={validation} />
           <Card title="Schedule" settings={schedule} />
-          <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+          <Card
+            title="Site-to-site Copy"
+            settings={siteToSiteCopy}
+            isNotEditable={true}
+          />
         </div>
       </div>
     </>

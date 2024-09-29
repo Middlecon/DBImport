@@ -221,7 +221,7 @@ export interface Columns {
 
 export interface TableSetting {
   label: string
-  value: string | number | boolean
+  value: string | number | boolean | null
   type: SettingType
   isConditionsMet?: boolean
   enumOptions?: { [key: string]: string } // Maybe not needed here
