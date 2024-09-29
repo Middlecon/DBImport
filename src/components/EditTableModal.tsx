@@ -70,6 +70,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     onSave(updatedSettings)
     onClose()
   }
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const renderEditSetting = (setting: TableSetting, index: number) => {
     const dropdownId = `dropdown-${index}`
@@ -233,6 +234,13 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
           <Button title="Save" onClick={handleSave} />
         </div>
       </div>
+      {showConfirmation && (
+        <ConfirmationModal
+          onConfirm={handleConfirmCancel}
+          onCancel={handleCloseConfirmation}
+          message="Any unsaved changes will be lost."
+        />
+      )}
     </div>
   )
 }
