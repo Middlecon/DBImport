@@ -14,7 +14,7 @@ interface EditModalProps {
 }
 
 function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
-  const filteredSettings = settings.filter((setting) => {
+  const editableSettings = settings.filter((setting) => {
     const isReadonly = setting.type === 'readonly'
     const isHidden = setting.isHidden
     const isDatabaseOrTable =
@@ -28,15 +28,15 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     [connectionsData]
   )
 
-  console.log('filteredSettings', filteredSettings)
+  // console.log('editableSettings', editableSettings)
 
-  const [originalSettings] = useState(filteredSettings)
-  const [editedSettings, setEditedSettings] = useState(filteredSettings)
+  const [originalSettings] = useState(editableSettings)
+  const [editedSettings, setEditedSettings] = useState(editableSettings)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   // const [isChanged, setIsChanged] = useState<boolean>(false)
 
-  console.log('originalSettings', originalSettings)
+  // console.log('originalSettings', originalSettings)
   // console.log('editedSettings', editedSettings)
 
   const handleInputChange = (
@@ -44,17 +44,31 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     newValue: string | number | boolean | null
   ) => {
     const newSettings = [...editedSettings]
+    const currentValue = newSettings[index].value
+
+    // Only stores previous value if it's a whole number
     if (newValue === -1) {
-      const currentValue = newSettings[index].value
-      if (typeof currentValue === 'number' && currentValue !== -1) {
+      if (
+        typeof currentValue === 'number' &&
+        currentValue !== -1 &&
+        Number.isInteger(currentValue)
+      ) {
         setPrevValue(currentValue)
       }
     }
 
-    // if (editedSettings[index].value !== originalSettings[index].value) {
-    //   setIsChanged(true)
-    // }
+    // Stores previous value if it's a whole number when newValue is null
+    if (newValue === null) {
+      if (
+        typeof currentValue === 'number' &&
+        currentValue !== null &&
+        Number.isInteger(currentValue)
+      ) {
+        setPrevValue(currentValue)
+      }
+    }
 
+    // Sets the new value
     newSettings[index].value = newValue
     setEditedSettings(newSettings)
   }
@@ -82,15 +96,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
         (es) => es.label === setting.label
       )
 
-      // Updates the integer type field to 0 if it's null
-      if (
-        editedSetting &&
-        editedSetting.type === 'integer' &&
-        editedSetting.value === null
-      ) {
-        editedSetting.value = 0
-      }
-
       return editedSetting ? editedSetting : setting
     })
 
@@ -115,14 +120,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   const renderEditSetting = (setting: TableSetting, index: number) => {
-    // const isChanged =
-    //   editedSettings[index].value !== originalSettings[index].value
-
     const dropdownId = `dropdown-${index}`
-    let dropdownOptions: string[] = []
-    if (setting.type === 'enum' && setting.enumOptions) {
-      dropdownOptions = Object.values(setting.enumOptions)
-    }
 
     switch (setting.type) {
       case 'boolean':
@@ -156,107 +154,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             )} */}
           </>
         )
-
-      case 'readonly':
-        return (
-          <>
-            <label>{setting.label}:</label>
-            <span>{setting.value}</span>
-          </>
-        )
-
-      case 'text':
-        return (
-          <>
-            <label>{setting.label}:</label>
-            <input
-              className="edit-table-modal-text-input"
-              type="text"
-              value={setting.value ? String(setting.value) : ''}
-              onChange={(e) => handleInputChange(index, e.target.value)}
-            />
-          </>
-        )
-
-      case 'enum':
-        return (
-          <>
-            <label>{setting.label}:</label>
-            <Dropdown
-              keyLabel={setting.label}
-              items={dropdownOptions}
-              onSelect={handleSelect}
-              isOpen={openDropdown === dropdownId}
-              onToggle={(isOpen: boolean) =>
-                handleDropdownToggle(dropdownId, isOpen)
-              }
-              searchFilter={false}
-              initialTitle={String(setting.value)}
-              backgroundColor="inherit"
-              textColor="black"
-              border="0.5px solid rgb(42, 42, 42)"
-              borderRadius="3px"
-              height="21.5px"
-              padding="8px 3px"
-              chevronWidth="11"
-              chevronHeight="7"
-              lightStyle={true}
-            />
-          </>
-        )
-
-      case 'integer':
-        return (
-          <>
-            <label>{setting.label}:</label>
-            <input
-              type="number"
-              value={
-                setting.value !== null && setting.value !== undefined
-                  ? Number(setting.value)
-                  : ''
-              }
-              onChange={(e) => {
-                const value = e.target.value
-                const newValue = value === '' ? null : Number(value)
-                handleInputChange(index, newValue)
-              }}
-              step="1"
-              placeholder="0"
-            />
-          </>
-        )
-      case 'reference':
-        return (
-          <>
-            <label>{setting.label}:</label>
-
-            <Dropdown
-              keyLabel={setting.label}
-              items={
-                connectionNames.length > 0 ? connectionNames : ['Loading...']
-              }
-              onSelect={handleSelect}
-              isOpen={openDropdown === dropdownId}
-              onToggle={(isOpen: boolean) =>
-                handleDropdownToggle(dropdownId, isOpen)
-              }
-              searchFilter={true}
-              initialTitle={String(setting.value)}
-              backgroundColor="inherit"
-              textColor="black"
-              border="0.5px solid rgb(42, 42, 42)"
-              borderRadius="3px"
-              height="21.5px"
-              padding="8px 3px"
-              chevronWidth="11"
-              chevronHeight="7"
-              lightStyle={true}
-            />
-          </>
-        )
-      case 'hidden':
-        return null
       case 'booleanOrAuto(-1)':
         return (
           <>
@@ -295,47 +192,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             </div>
           </>
         )
-      case 'integerOrAuto(-1)':
-        return (
-          <>
-            <label>{setting.label}:</label>
-
-            <div className="radio-edit">
-              <input
-                type="number"
-                value={
-                  setting.value === -1
-                    ? '' // Shows empty string when disabled (Auto is checked)
-                    : setting.value !== null && setting.value !== undefined
-                    ? Number(setting.value)
-                    : ''
-                }
-                onChange={(e) => {
-                  const value = e.target.value
-                  const newValue = value === '' ? null : Number(value)
-                  handleInputChange(index, newValue)
-                }}
-                step="1"
-                placeholder={setting.value === -1 ? '' : '0'}
-                disabled={setting.value === -1}
-              />
-              <label>
-                <input
-                  type="checkbox"
-                  checked={setting.value === -1}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      handleInputChange(index, -1) // Sets to -1 for Auto
-                    } else {
-                      handleInputChange(index, prevValue) // Restores the previous value
-                    }
-                  }}
-                />
-                Auto
-              </label>
-            </div>
-          </>
-        )
 
       case 'booleanOrDefaultFromConfig(-1)':
         return (
@@ -362,7 +218,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                 />
                 False
               </label>
-              <label>
+              <label className="label-default-from-config">
                 <input
                   type="radio"
                   name={`booleanOrDefaultFromConfig(-1)-${index}`}
@@ -370,7 +226,398 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   checked={setting.value === -1}
                   onChange={() => handleInputChange(index, false)}
                 />
+                Default from config
+              </label>
+            </div>
+          </>
+        )
+
+      case 'booleanOrDefaultFromConnection(-1)':
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <div className="radio-edit">
+              <label>
+                <input
+                  type="radio"
+                  name={`booleanOrDefaultFromConnection(-1)-${index}`}
+                  value="true"
+                  checked={setting.value === true}
+                  onChange={() => handleInputChange(index, true)}
+                />
+                True
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name={`booleanOrDefaultFromConnection(-1)-${index}`}
+                  value="false"
+                  checked={setting.value === false}
+                  onChange={() => handleInputChange(index, false)}
+                />
+                False
+              </label>
+              <label className="label-default-from-config">
+                <input
+                  type="radio"
+                  name={`booleanOrDefaultFromConnection(-1)-${index}`}
+                  value="-1"
+                  checked={setting.value === -1}
+                  onChange={() => handleInputChange(index, false)}
+                />
+                Default from connection
+              </label>
+            </div>
+          </>
+        )
+
+      case 'readonly':
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <span>{setting.value}</span>
+          </>
+        )
+
+      case 'text':
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <input
+              className="edit-table-modal-text-input"
+              type="text"
+              value={setting.value ? String(setting.value) : ''}
+              onChange={(e) => handleInputChange(index, e.target.value)}
+            />
+          </>
+        )
+
+      case 'enum': {
+        const dropdownOptions = setting.enumOptions
+          ? Object.values(setting.enumOptions)
+          : []
+
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <Dropdown
+              keyLabel={setting.label}
+              items={dropdownOptions}
+              onSelect={handleSelect}
+              isOpen={openDropdown === dropdownId}
+              onToggle={(isOpen: boolean) =>
+                handleDropdownToggle(dropdownId, isOpen)
+              }
+              searchFilter={false}
+              initialTitle={String(setting.value)}
+              backgroundColor="inherit"
+              textColor="black"
+              border="0.5px solid rgb(42, 42, 42)"
+              borderRadius="3px"
+              height="21.5px"
+              padding="8px 3px"
+              chevronWidth="11"
+              chevronHeight="7"
+              lightStyle={true}
+            />
+          </>
+        )
+      }
+
+      case 'reference':
+        return (
+          <>
+            <label>{setting.label}:</label>
+
+            <Dropdown
+              keyLabel={setting.label}
+              items={
+                connectionNames.length > 0 ? connectionNames : ['Loading...']
+              }
+              onSelect={handleSelect}
+              isOpen={openDropdown === dropdownId}
+              onToggle={(isOpen: boolean) =>
+                handleDropdownToggle(dropdownId, isOpen)
+              }
+              searchFilter={true}
+              initialTitle={String(setting.value)}
+              backgroundColor="inherit"
+              textColor="black"
+              border="0.5px solid rgb(42, 42, 42)"
+              borderRadius="3px"
+              height="21.5px"
+              padding="8px 3px"
+              chevronWidth="11"
+              chevronHeight="7"
+              lightStyle={true}
+            />
+          </>
+        )
+      case 'hidden':
+        return null
+
+      case 'integerFromOneOrNull':
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <input
+              className="edit-table-modal-number-input"
+              type="number"
+              value={
+                setting.value !== null && setting.value !== undefined
+                  ? Number(setting.value)
+                  : ''
+              }
+              onChange={(e) => {
+                let value: string | number | null =
+                  e.target.value === '' ? '' : Number(e.target.value)
+
+                if (
+                  isNaN(Number(value)) &&
+                  typeof value === 'number' &&
+                  value < 0
+                ) {
+                  value = null
+                  e.target.value = ''
+                }
+
+                handleInputChange(
+                  index,
+                  value === '' || isNaN(Number(value)) ? null : value
+                )
+              }}
+              onBlur={(e) => {
+                const value = e.target.value
+                // If input is empty or not a valid number greater than 1, set to null
+                if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
+                  handleInputChange(index, null)
+                  e.target.value = ''
+                }
+              }}
+              onKeyDown={(e) => {
+                // Prevent invalid characters from being typed
+                console.log('e', e)
+
+                console.log('e.key', e.key)
+                if (
+                  ['0', 'e', 'E', '+', '-', '.', ',', 'Dead'].includes(e.key) // Dead is still working, fix so it is not
+                ) {
+                  e.preventDefault()
+                }
+              }}
+              step="1"
+            />
+          </>
+        )
+
+      case 'integerFromZeroOrNull':
+        return (
+          <>
+            <label>{setting.label}:</label>
+            <input
+              className="edit-table-modal-number-input"
+              type="number"
+              value={
+                setting.value !== null && setting.value !== undefined
+                  ? Number(setting.value)
+                  : ''
+              }
+              onChange={(e) => {
+                let value: string | number | null =
+                  e.target.value === '' ? '' : Number(e.target.value)
+
+                if (typeof value === 'number' && value < 0) {
+                  value = null
+                }
+
+                handleInputChange(index, value === '' ? null : value)
+              }}
+              onBlur={(e) => {
+                const value = e.target.value
+                // If input is empty or not a valid number greater than 1, set to null
+                if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
+                  handleInputChange(index, null)
+                  e.target.value = ''
+                }
+              }}
+              step="1"
+            />
+          </>
+        )
+
+      case 'integerFromZeroOrAuto(-1)':
+        return (
+          <>
+            <label>{setting.label}:</label>
+
+            <div>
+              <input
+                className="edit-table-modal-number-input"
+                type="number"
+                value={
+                  setting.value === -1
+                    ? '' // Shows empty string when disabled (Auto is checked)
+                    : setting.value !== null && setting.value !== undefined
+                    ? Number(setting.value)
+                    : ''
+                }
+                onChange={(e) => {
+                  let value: string | number =
+                    e.target.value === '' ? '' : Number(e.target.value)
+
+                  if (typeof value === 'number' && value < 0) {
+                    value = -1
+                  }
+
+                  handleInputChange(index, value === '' ? null : value)
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value
+                  // If input is empty or not a valid number greater than 1, set to Auto (-1)
+                  if (
+                    value === '' ||
+                    isNaN(Number(value)) ||
+                    Number(value) < 0
+                  ) {
+                    handleInputChange(index, -1)
+                    e.target.value = ''
+                  }
+                }}
+                step="1"
+                disabled={setting.value === -1}
+              />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={setting.value === -1}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleInputChange(index, -1) // Sets to -1 for Auto
+                    } else {
+                      // console.log('prevValue', typeof prevValue)
+                      handleInputChange(index, prevValue === '' ? 0 : prevValue) // Restores the previous value
+                    }
+                  }}
+                />
                 Auto
+              </label>
+            </div>
+          </>
+        )
+
+      case 'integerFromOneOrAuto(-1)':
+        return (
+          <>
+            <label>{setting.label}:</label>
+
+            <div>
+              <input
+                className="edit-table-modal-number-input"
+                type="number"
+                value={
+                  setting.value === -1 || setting.value === 0
+                    ? '' // Shows empty string when disabled (Auto is checked)
+                    : setting.value !== null && setting.value !== undefined
+                    ? Number(setting.value)
+                    : ''
+                }
+                onChange={(e) => {
+                  let value: string | number =
+                    e.target.value === '' ? '' : Number(e.target.value)
+
+                  if (typeof value === 'number' && value < -1) {
+                    value = -1
+                  }
+
+                  handleInputChange(index, value === '' ? null : value)
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value
+                  // If input is empty or not a valid number greater than 1, set to Auto (-1)
+                  if (
+                    value === '' ||
+                    isNaN(Number(value)) ||
+                    Number(value) < 1
+                  ) {
+                    handleInputChange(index, -1)
+                    e.target.value = ''
+                  }
+                }}
+                step="1"
+                disabled={setting.value === 0 || setting.value === -1}
+              />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={setting.value === -1 || setting.value === 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleInputChange(index, -1) // Sets to -1 for Auto
+                    } else {
+                      handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
+                    }
+                  }}
+                />
+                Auto
+              </label>
+            </div>
+          </>
+        )
+
+      case 'integerFromOneOrDefaultFromConfig(null)':
+        return (
+          <>
+            <label>{setting.label}:</label>
+
+            <div>
+              <input
+                className="edit-table-modal-number-input"
+                type="number"
+                value={
+                  setting.value === null
+                    ? '' // Shows empty string when disabled (Default from config is checked)
+                    : setting.value !== null && setting.value !== undefined
+                    ? Number(setting.value)
+                    : ''
+                }
+                onChange={(e) => {
+                  let value: string | number | null =
+                    e.target.value === '' ? '' : Number(e.target.value)
+
+                  if (typeof value === 'number' && value < 1) {
+                    value = null
+                  }
+
+                  handleInputChange(index, value === '' ? null : value)
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value
+                  // If input is empty or not a valid number greater than 1, set to null
+                  if (
+                    value === '' ||
+                    isNaN(Number(value)) ||
+                    Number(value) < 1
+                  ) {
+                    handleInputChange(index, null)
+                    e.target.value = ''
+                  }
+                }}
+                step="1"
+                disabled={setting.value === null}
+              />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={setting.value === null}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleInputChange(index, null) // Sets to null for Default from config
+                    } else {
+                      handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
+                    }
+                  }}
+                />
+                Default from config
               </label>
             </div>
           </>

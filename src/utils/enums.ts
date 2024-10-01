@@ -12,28 +12,32 @@ export function mapEnumValue<T extends string>(
 
 export enum SettingType {
   Boolean = 'boolean',
+  BooleanOrAuto = 'booleanOrAuto(-1)',
+  BooleanOrDefaultFromConfig = 'booleanOrDefaultFromConfig(-1)',
+  BooleanOrDefaultFromConnection = 'booleanOrDefaultFromConnection(-1)',
   Readonly = 'readonly',
   Text = 'text',
   Enum = 'enum',
-  Integer = 'integer',
   Reference = 'reference',
   Hidden = 'hidden', // Needed here or handled in other way?
-  BooleanOrAuto = 'booleanOrAuto(-1)',
-  IntegerOrAuto = 'integerOrAuto(-1)',
-  BooleanOrDefaultFromConfig = 'booleanOrDefaultFromConfig(-1)'
+  IntegerFromZeroOrNull = 'integerFromZeroOrNull',
+  IntegerFromOneOrNull = 'integerFromOneOrNull',
+  IntegerFromZeroOrAuto = 'integerFromZeroOrAuto(-1)',
+  IntegerFromOneOrAuto = 'integerFromOneOrAuto(-1)',
+  IntegerFromOneOrDefaultFromConfig = 'integerFromOneOrDefaultFromConfig(null)'
 }
 
 // Table
 
 export enum ImportType {
   Full = 'full',
-  Incremental = 'incremental',
+  Incremental = 'incr',
   OracleFlashback = 'oracle_flashback',
   MSSQLChangeTracking = 'mssql_change_tracking'
 }
 
 export enum EtlType {
-  TruncateAndInsert = 'full',
+  TruncateAndInsert = 'truncate_insert',
   InsertOnly = 'insert',
   Merge = 'merge',
   MergeHistoryAudit = 'merge_history_audit',
@@ -58,7 +62,7 @@ export enum ValidationMethod {
 
 export enum ValidateSource {
   Query = 'query',
-  Scoop = 'sqoop'
+  Sqoop = 'sqoop'
 }
 
 export enum IncrMode {
@@ -68,7 +72,7 @@ export enum IncrMode {
 
 export enum IncrValidationMethod {
   Full = 'full',
-  Incremental = 'incremental'
+  Incremental = 'incr'
 }
 
 export enum MergeCompactionMethod {

@@ -63,6 +63,27 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
     switch (type) {
       case 'boolean':
         return <span>{value ? 'True' : 'False'}</span>
+
+      case 'booleanOrAuto(-1)':
+        if (typeof value === 'boolean') {
+          return <span>{value ? 'True' : 'False'}</span>
+        } else {
+          return <span>Auto</span>
+        }
+      case 'booleanOrDefaultFromConfig(-1)':
+        if (typeof value === 'boolean') {
+          return <span>{value ? 'True' : 'False'}</span>
+        } else {
+          return <span>Default from config</span>
+        }
+
+      case 'booleanOrDefaultFromConnection(-1)':
+        if (typeof value === 'boolean') {
+          return <span>{value ? 'True' : 'False'}</span>
+        } else {
+          return <span>Default from connnection</span>
+        }
+
       case 'readonly':
         return <span>{value}</span>
 
@@ -71,28 +92,35 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
 
       case 'enum':
         return <span>{value}</span>
-      case 'integer':
-        return <span>{value}</span>
+
       case 'reference':
         return <span>{value}</span>
       case 'hidden':
         return null
-      case 'booleanOrAuto(-1)':
-        if (typeof value === 'boolean') {
-          return <span>{value ? 'True' : 'False'}</span>
-        } else {
-          return <span>Auto</span>
-        }
-      case 'integerOrAuto(-1)':
+
+      case 'integerFromZeroOrNull':
+        return <span>{value}</span>
+
+      case 'integerFromOneOrNull':
+        return <span>{value}</span>
+
+      case 'integerFromZeroOrAuto(-1)':
         if (typeof value === 'number' && value > -1) {
           return <span>{value}</span>
         } else {
           return <span>Auto</span>
         }
 
-      case 'booleanOrDefaultFromConfig(-1)':
-        if (typeof value === 'boolean') {
-          return <span>{value ? 'True' : 'False'}</span>
+      case 'integerFromOneOrAuto(-1)':
+        if (typeof value === 'number' && value > -1) {
+          return <span>{value}</span>
+        } else {
+          return <span>Auto</span>
+        }
+
+      case 'integerFromOneOrDefaultFromConfig(null)':
+        if (typeof value === 'number' && value !== null) {
+          return <span>{value}</span>
         } else {
           return <span>Default from config</span>
         }

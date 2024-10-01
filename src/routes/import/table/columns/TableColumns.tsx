@@ -1,10 +1,19 @@
-import { useOutletContext } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Column, Columns, UITable } from '../../../../utils/interfaces'
 import TableList from '../../../../components/TableList'
+import { useQueryClient } from '@tanstack/react-query'
 
 function TableColumns() {
-  const { data } = useOutletContext<{ data: UITable }>()
-  const columnsData = data.columns
+  const { table } = useParams<{ table: string }>()
+
+  const queryClient = useQueryClient()
+  const tableData: UITable | undefined = queryClient.getQueryData([
+    'table',
+    table
+  ])
+  if (!tableData) return <span>Loading...</span>
+
+  const columnsData = tableData.columns
 
   const columns: Column<Columns>[] = [
     { header: 'Column Name', accessor: 'columnName' },

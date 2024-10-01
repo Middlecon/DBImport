@@ -1,5 +1,5 @@
 import Card from './Card'
-import { UITable } from '../../../../utils/interfaces'
+import { TableSetting, UITable } from '../../../../utils/interfaces'
 import {
   mapDisplayValue,
   nameDisplayMappings
@@ -18,19 +18,11 @@ interface CardsRendererProps {
   table: UITable
 }
 
-interface Settings {
-  label: string
-  value: string | number | boolean
-  type: SettingType
-  isConditionsMet?: boolean
-  enumOptions?: { [key: string]: string }
-  isHidden?: boolean
-}
-
 function CardsRenderer({ table }: CardsRendererProps) {
   const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
+  console.log(' CardsRenderer table', table)
 
-  const mainSettings: Settings[] = [
+  const mainSettings: TableSetting[] = [
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
     {
@@ -96,93 +88,7 @@ function CardsRenderer({ table }: CardsRendererProps) {
     } // Free-text setting
   ]
 
-  const schedule: Settings[] = [
-    {
-      label: 'Airflow Priority',
-      value: table.airflowPriority,
-      type: SettingType.Integer
-    }, // Integer (should not be string in API)
-    {
-      label: 'Include in Airflow',
-      value: table.includeInAirflow,
-      type: SettingType.Boolean
-    }, // Boolean
-    {
-      label: 'Operator Notes',
-      value: table.operatorNotes,
-      type: SettingType.Text
-    } // Free-text setting
-  ]
-
-  const validation: Settings[] = [
-    {
-      label: 'Validate Import',
-      value: table.validateImport,
-      type: SettingType.Boolean
-    }, // Boolean
-    {
-      label: 'Validation Method',
-      value: mapDisplayValue('validationMethod', table.validationMethod),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('validationMethod')
-    }, // Enum mapping for 'Validation Method'
-    {
-      label: 'Validate Source',
-      value: mapDisplayValue('validateSource', table.validateSource),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('validateSource')
-    }, // Enum mapping for 'Validate Source'
-    {
-      label: 'Allowed Validation Difference',
-      value: table.validateDiffAllowed,
-      type: SettingType.Integer
-    }, // Integer
-    {
-      label: 'Source Row Count',
-      value: table.sourceRowcount,
-      type: SettingType.Readonly
-    }, // Read-only setting
-    {
-      label: 'Source Row Count Incremental',
-      value: table.sourceRowcountIncr,
-      type: SettingType.Readonly
-    }, // Read-only setting
-    {
-      label: 'Target Row Count',
-      value: table.targetRowcount,
-      type: SettingType.Readonly
-    }, // Read-only setting
-    {
-      label: 'Custom Query Source SQL',
-      value: table.validationCustomQuerySourceSQL,
-      type: SettingType.Text,
-      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
-    }, // free-text, active if validationMethod=customQuery
-    {
-      label: 'Custom Query Hive SQL',
-      value: table.validationCustomQueryHiveSQL,
-      type: SettingType.Text,
-      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
-    }, // free-text, active if validationMethod=customQuery
-    {
-      label: 'Validate Import Table',
-      value: true,
-      type: SettingType.Boolean,
-      isHidden: true
-    }, // Always true and always hidden, should be displayed/visible in UI
-    {
-      label: 'Custom Query Source Value',
-      value: table.validationCustomQuerySourceValue,
-      type: SettingType.Readonly
-    }, // Read-only setting
-    {
-      label: 'Custom Query Hive Value',
-      value: table.validationCustomQueryHiveValue,
-      type: SettingType.Readonly
-    } // Read-only setting
-  ]
-
-  const importOptions: Settings[] = [
+  const importOptions: TableSetting[] = [
     {
       label: 'Truncate Table',
       value: table.truncateTable,
@@ -203,6 +109,12 @@ function CardsRenderer({ table }: CardsRendererProps) {
       value: table.splitByColumn,
       type: SettingType.Text
     }, // Free-text setting
+    {
+      label: 'Sqoop Options',
+      value: table.sqoopOptions,
+      type: SettingType.Text,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
+    }, // Free-text, active only if importTool=sqoop
     {
       label: 'SQL WHERE Addition',
       value: table.sqlWhereAddition,
@@ -230,12 +142,6 @@ function CardsRenderer({ table }: CardsRendererProps) {
       value: table.nomergeIngestionSqlAddition,
       type: SettingType.Text
     }, // Free-text setting (nmore information might come about this one)
-    {
-      label: 'Sqoop Options',
-      value: table.sqoopOptions,
-      type: SettingType.Text,
-      isConditionsMet: table.importTool === ImportTool.Sqoop
-    }, // Free-text, active only if importTool=sqoop
     { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
     { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
     {
@@ -270,7 +176,27 @@ function CardsRenderer({ table }: CardsRendererProps) {
     } // Read-only
   ]
 
-  const incrementalImports: Settings[] = [
+  const incrementalImports: TableSetting[] = [
+    {
+      label: 'Incremental Min Value',
+      value: table.incrMinvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Incremental Max Value',
+      value: table.incrMaxvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Min Value',
+      value: table.incrMinvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Max Value',
+      value: table.incrMaxvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
     {
       label: 'Incremental Mode',
       value: mapDisplayValue('incrMode', table.incrMode),
@@ -293,47 +219,15 @@ function CardsRenderer({ table }: CardsRendererProps) {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('incrValidationMethod'),
       isConditionsMet: table.importPhaseType === ImportType.Incremental
-    }, // Enum list, active if importPhaseType=incr
-    {
-      label: 'Incremental Min Value',
-      value: table.incrMinvalue,
-      type: SettingType.Readonly
-    }, // Read-only
-    {
-      label: 'Incremental Max Value',
-      value: table.incrMaxvalue,
-      type: SettingType.Readonly
-    }, // Read-only
-    {
-      label: 'Pending Min Value',
-      value: table.incrMinvaluePending,
-      type: SettingType.Readonly
-    }, // Read-only
-    {
-      label: 'Pending Max Value',
-      value: table.incrMaxvaluePending,
-      type: SettingType.Readonly
-    } // Read-only
+    } // Enum list, active if importPhaseType=incr
   ]
-  const etlOptions: Settings[] = [
+
+  const etlOptions: TableSetting[] = [
     {
       label: 'Create Foreign Keys',
       value: table.createForeignKeys,
-      type: SettingType.BooleanOrAuto
+      type: SettingType.BooleanOrDefaultFromConnection
     }, // Boolean or Auto (-1)
-    {
-      label: 'Invalidate Impala',
-      value: table.invalidateImpala,
-      type: SettingType.BooleanOrAuto
-    }, // Boolean or Auto (-1)
-    {
-      label: 'Soft Delete During Merge',
-      value: table.softDeleteDuringMerge,
-      type: SettingType.Boolean,
-      isConditionsMet:
-        table.etlPhaseType === EtlType.Merge ||
-        table.etlPhaseType === EtlType.MergeHistoryAudit
-    }, // Boolean, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
     {
       label: 'Primary Key Override',
       value: table.pkColumnOverride,
@@ -345,10 +239,18 @@ function CardsRenderer({ table }: CardsRendererProps) {
       type: SettingType.Text
     }, // Comma-separated list with columns from "columns":{}
     {
-      label: 'Merge Heap (MB)',
-      value: table.mergeHeap,
-      type: SettingType.Integer
-    }, // Integer, value is MB
+      label: 'Invalidate Impala',
+      value: table.invalidateImpala,
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, // Boolean or Auto (-1)
+    {
+      label: 'Soft Delete During Merge',
+      value: table.softDeleteDuringMerge,
+      type: SettingType.Boolean,
+      isConditionsMet:
+        table.etlPhaseType === EtlType.Merge ||
+        table.etlPhaseType === EtlType.MergeHistoryAudit
+    }, // Boolean, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
     {
       label: 'Merge Compaction Method',
       value: mapDisplayValue(
@@ -365,14 +267,23 @@ function CardsRenderer({ table }: CardsRendererProps) {
     } // Free-text setting
   ]
 
-  const performance: Settings[] = [
-    { label: 'Mappers', value: table.mappers, type: SettingType.IntegerOrAuto }, // Integer, -1 = Auto
+  const performance: TableSetting[] = [
     {
-      label: 'Split Count',
+      label: 'Mappers',
+      value: table.mappers,
+      type: SettingType.IntegerFromOneOrAuto
+    }, // Integer, -1 = Auto
+    {
+      label: 'Hive Split Count',
       value: table.splitCount,
-      type: SettingType.Integer,
+      type: SettingType.IntegerFromOneOrNull,
       isConditionsMet: table.etlEngine === EtlEngine.Hive
     }, // Integer, active if etlEngine=hive
+    {
+      label: 'Hive Java Heap (MB)',
+      value: table.mergeHeap,
+      type: SettingType.IntegerFromZeroOrNull
+    }, // Integer, value is MB
     {
       label: 'Spark Executor Memory',
       value: table.sparkExecutorMemory,
@@ -384,14 +295,100 @@ function CardsRenderer({ table }: CardsRendererProps) {
     {
       label: 'Spark Executors',
       value: table.sparkExecutors,
-      type: SettingType.Integer,
+      type: SettingType.IntegerFromOneOrDefaultFromConfig,
       isConditionsMet:
         table.etlEngine === EtlEngine.Spark ||
         table.importTool === ImportTool.Spark
     } // Integer, active if etlEngine or importTool=spark
   ]
 
-  const siteToSiteCopy: Settings[] = [
+  const validation: TableSetting[] = [
+    {
+      label: 'Validate Import',
+      value: table.validateImport,
+      type: SettingType.Boolean
+    }, // Boolean
+    {
+      label: 'Validation Method',
+      value: mapDisplayValue('validationMethod', table.validationMethod),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('validationMethod')
+    }, // Enum mapping for 'Validation Method'
+    {
+      label: 'Validate Source',
+      value: mapDisplayValue('validateSource', table.validateSource),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('validateSource')
+    }, // Enum mapping for 'Validate Source'
+    {
+      label: 'Allowed Validation Difference',
+      value: table.validateDiffAllowed,
+      type: SettingType.IntegerFromZeroOrAuto
+    }, // Integer
+    {
+      label: 'Custom Query Source SQL',
+      value: table.validationCustomQuerySourceSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // free-text, active if validationMethod=customQuery
+    {
+      label: 'Custom Query Hive SQL',
+      value: table.validationCustomQueryHiveSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // free-text, active if validationMethod=customQuery
+    {
+      label: 'Source Row Count',
+      value: table.sourceRowcount,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Source Row Count Incremental',
+      value: table.sourceRowcountIncr,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Target Row Count',
+      value: table.targetRowcount,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Validate Import Table',
+      value: true,
+      type: SettingType.Boolean,
+      isHidden: true
+    }, // Always true and always hidden, should be displayed/visible in UI
+    {
+      label: 'Custom Query Source Value',
+      value: table.validationCustomQuerySourceValue,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Custom Query Hive Value',
+      value: table.validationCustomQueryHiveValue,
+      type: SettingType.Readonly
+    } // Read-only setting
+  ]
+
+  const schedule: TableSetting[] = [
+    {
+      label: 'Airflow Priority',
+      value: table.airflowPriority,
+      type: SettingType.IntegerFromOneOrNull
+    }, // Integer (should not be string in API)
+    {
+      label: 'Include in Airflow',
+      value: table.includeInAirflow,
+      type: SettingType.Boolean
+    }, // Boolean
+    {
+      label: 'Operator Notes',
+      value: table.operatorNotes,
+      type: SettingType.Text
+    } // Free-text setting
+  ]
+
+  const siteToSiteCopy: TableSetting[] = [
     {
       label: 'Copy Finished',
       value: table.copyFinished,
@@ -404,35 +401,61 @@ function CardsRenderer({ table }: CardsRendererProps) {
     <>
       <div className="cards">
         <div className="cards-container">
-          <Card title="Main Settings" settings={mainSettings} />
-          <Card title="Performance" settings={performance} />
-          <Card title="Validation" settings={validation} />
-          <Card title="Schedule" settings={schedule} />
-          <Card title="Site-to-site Copy" settings={siteToSiteCopy} />
+          <Card
+            title="Main Settings"
+            settings={mainSettings}
+            tableData={table}
+          />
+          <Card title="Performance" settings={performance} tableData={table} />
+          <Card title="Validation" settings={validation} tableData={table} />
+          <Card title="Schedule" settings={schedule} tableData={table} />
+          <Card
+            title="Site-to-site Copy"
+            settings={siteToSiteCopy}
+            tableData={table}
+          />
         </div>
         <div className="cards-container">
-          <Card title="Import Options" settings={importOptions} />
-          <Card title="ETL Options" settings={etlOptions} />
-          <Card title="Incremental Imports" settings={incrementalImports} />
+          <Card
+            title="Import Options"
+            settings={importOptions}
+            tableData={table}
+          />
+          <Card title="ETL Options" settings={etlOptions} tableData={table} />
+          <Card
+            title="Incremental Imports"
+            settings={incrementalImports}
+            tableData={table}
+          />
         </div>
       </div>
       <div className="cards-narrow">
         <div className="cards-container">
-          <Card title="Main Settings" settings={mainSettings} />
-          <Card title="Import Options" settings={importOptions} />
-          <Card title="ETL Options" settings={etlOptions} />
+          <Card
+            title="Main Settings"
+            settings={mainSettings}
+            tableData={table}
+          />
+          <Card
+            title="Import Options"
+            settings={importOptions}
+            tableData={table}
+          />
+          <Card title="ETL Options" settings={etlOptions} tableData={table} />
           <Card
             title="Incremental Imports"
             settings={incrementalImports}
-            isNotEditable={table.importPhaseType !== 'incremental'}
-            isDisabled={table.importPhaseType !== 'incremental'}
+            tableData={table}
+            isNotEditable={table.importPhaseType !== 'incr'}
+            isDisabled={table.importPhaseType !== 'incr'}
           />
-          <Card title="Performance" settings={performance} />
-          <Card title="Validation" settings={validation} />
-          <Card title="Schedule" settings={schedule} />
+          <Card title="Performance" settings={performance} tableData={table} />
+          <Card title="Validation" settings={validation} tableData={table} />
+          <Card title="Schedule" settings={schedule} tableData={table} />
           <Card
             title="Site-to-site Copy"
             settings={siteToSiteCopy}
+            tableData={table}
             isNotEditable={true}
           />
         </div>

@@ -104,7 +104,7 @@ const getTable = async (database: string, table: string) => {
   return response.data
 }
 
-export const useTable = (): UseQueryResult<Table, Error> => {
+export const useTable = (): UseQueryResult<UITable, Error> => {
   const { database, table } = useParams<{ database: string; table: string }>()
 
   return useQuery({
@@ -120,7 +120,7 @@ export const useTable = (): UseQueryResult<Table, Error> => {
 
       // console.log('data', data)
 
-      const transformedData: UITable = {
+      const dataWithEnumTypes: UITable = {
         ...data,
         importPhaseType: mapEnumValue(
           data.importPhaseType,
@@ -170,7 +170,7 @@ export const useTable = (): UseQueryResult<Table, Error> => {
       }
       // console.log('transformedData', transformedData)
 
-      return transformedData
+      return dataWithEnumTypes
     },
     enabled: !!database && !!table
   })
