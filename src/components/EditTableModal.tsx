@@ -14,6 +14,8 @@ interface EditModalProps {
 }
 
 function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
+  // console.log('settings EditTableModal', settings)
+
   const editableSettings = settings.filter((setting) => {
     const isReadonly = setting.type === 'readonly'
     const isHidden = setting.isHidden
@@ -35,6 +37,12 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   // const [isChanged, setIsChanged] = useState<boolean>(false)
+
+  const validationMethodSetting = editedSettings.find(
+    (s) => s.label === 'Validation Method'
+  )
+  const isCustomQueryDisabled =
+    validationMethodSetting?.value !== 'Custom Query'
 
   // console.log('originalSettings', originalSettings)
   // console.log('editedSettings', editedSettings)
@@ -279,7 +287,30 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
           </>
         )
 
-      case 'text':
+      case 'text': {
+        if (
+          setting.label === 'Custom Query Source SQL' ||
+          setting.label === 'Custom Query Hive SQL'
+        ) {
+          return (
+            <>
+              <label
+                className={
+                  isCustomQueryDisabled ? 'edit-table-modal-label-disabled' : ''
+                }
+              >
+                {setting.label}:
+              </label>
+              <input
+                className="edit-table-modal-text-input"
+                type="text"
+                value={setting.value ? String(setting.value) : ''}
+                onChange={(e) => handleInputChange(index, e.target.value)}
+                disabled={isCustomQueryDisabled} // Conditionally disable the input
+              />
+            </>
+          )
+        }
         return (
           <>
             <label>{setting.label}:</label>
@@ -291,6 +322,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             />
           </>
         )
+      }
 
       case 'enum': {
         const dropdownOptions = setting.enumOptions

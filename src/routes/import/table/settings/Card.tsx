@@ -24,6 +24,9 @@ function Card({
   isNotEditable,
   isDisabled
 }: CardProps) {
+  // console.log('settings CARD', settings)
+
+  // console.log('title', title)
   const { table } = useParams<{ table: string }>()
   const queryClient = useQueryClient()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
