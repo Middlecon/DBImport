@@ -1,5 +1,5 @@
 import Card from './Card'
-import { TableSetting, UITable } from '../../../../utils/interfaces'
+import { TableSetting } from '../../../../utils/interfaces'
 import {
   mapDisplayValue,
   nameDisplayMappings
@@ -13,14 +13,16 @@ import {
   ValidationMethod
 } from '../../../../utils/enums'
 import './CardsRenderer.scss'
+import { useTable } from '../../../../utils/queries'
 
-interface CardsRendererProps {
-  table: UITable
-}
+function CardsRenderer() {
+  const { data: table, isFetching } = useTable()
 
-function CardsRenderer({ table }: CardsRendererProps) {
+  if (isFetching) return <div>Loading...</div>
+  if (!table) return <div>No data found.</div>
+
   const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
-  console.log(' CardsRenderer table', table)
+  // console.log(' CardsRenderer table', table)
 
   const mainSettings: TableSetting[] = [
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?

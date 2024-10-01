@@ -2,11 +2,9 @@ import { Outlet, useNavigate, useParams } from 'react-router-dom'
 import './TableDetailedView.scss'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
 import { useState } from 'react'
-import { useTable } from '../../../utils/queries'
 
 function TableDetailedView() {
   const { database, table } = useParams()
-  const { data } = useTable()
   const [selectedTab, setSelectedTab] = useState('settings')
   const navigate = useNavigate()
 
@@ -41,7 +39,7 @@ function TableDetailedView() {
             Statistics
           </h2>
         </div>
-        {data ? <Outlet context={{ data }} /> : <div>Loading....</div>}
+        <Outlet />
       </ViewBaseLayout>
     </>
   )
