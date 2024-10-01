@@ -21,15 +21,11 @@
   margin-top: 10px;
   font-size: 14px;
   position: relative;
-  &:nth-child(2) {
-    margin-bottom: 40px;
-  }
-  &:nth-child(5) {
-    margin-bottom: 40px;
-  }
-  &:nth-child(4n + 5) {
-    margin-bottom: 40px;
-  }
+}
+
+.setting-group-spacing {
+  height: 20px;
+  width: 100%;
 }
 
 .expanded-content {

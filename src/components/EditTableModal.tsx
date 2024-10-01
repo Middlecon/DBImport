@@ -654,6 +654,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             </div>
           </>
         )
+      case 'spacing':
+        return <div className="setting-group-spacing"> </div>
 
       default:
         return null

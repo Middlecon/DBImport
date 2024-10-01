@@ -124,6 +124,8 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
         } else {
           return <span>Default from config</span>
         }
+      case 'spacing':
+        return <div className="setting-group-spacing"> </div>
 
       default:
         return null
@@ -132,8 +134,14 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
 
   return (
     <div className={isConditionsMet === false ? 'setting-disabled' : 'setting'}>
-      <dt className="setting-label">{label}:</dt>
-      <dd className="setting-container" ref={containerRef}>
+      <dt className="setting-label">
+        {label}
+        {type !== 'spacing' && ':'}
+      </dt>
+      <dd
+        className={type !== 'spacing' ? 'setting-container' : ''}
+        ref={containerRef}
+      >
         <div className="collapsed-content">{renderSetting()}</div>
         {hasOverflow && !openDropdown && (
           <div

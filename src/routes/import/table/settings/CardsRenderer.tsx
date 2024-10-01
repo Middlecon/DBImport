@@ -28,6 +28,11 @@ function CardsRenderer() {
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
     {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
+    {
       label: 'Connection',
       value: table.connection,
       type: SettingType.Reference
@@ -38,6 +43,11 @@ function CardsRenderer() {
       type: SettingType.Text
     }, // Free-text setting
     { label: 'Source Table', value: table.sourceTable, type: SettingType.Text }, // Free-text setting
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     {
       label: 'Import Type',
       value: mapDisplayValue('importPhaseType', table.importPhaseType),
@@ -62,6 +72,11 @@ function CardsRenderer() {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine')
     }, // Enum mapping for 'ETL Engine'
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     {
       label: 'Last Update From Source',
       value: table.lastUpdateFromSource,
@@ -118,6 +133,11 @@ function CardsRenderer() {
       isConditionsMet: table.importTool === ImportTool.Sqoop
     }, // Free-text, active only if importTool=sqoop
     {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
+    {
       label: 'SQL WHERE Addition',
       value: table.sqlWhereAddition,
       type: SettingType.Text
@@ -144,6 +164,11 @@ function CardsRenderer() {
       value: table.nomergeIngestionSqlAddition,
       type: SettingType.Text
     }, // Free-text setting (nmore information might come about this one)
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
     { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
     {
@@ -151,6 +176,11 @@ function CardsRenderer() {
       value: table.lastMappers,
       type: SettingType.Readonly
     }, // Read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     {
       label: 'Generated Hive Column Definition',
       value: table.generatedHiveColumnDefinition,
@@ -200,6 +230,11 @@ function CardsRenderer() {
       type: SettingType.Readonly
     }, // Read-only
     {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
+    {
       label: 'Incremental Mode',
       value: mapDisplayValue('incrMode', table.incrMode),
       type: SettingType.Enum,
@@ -241,6 +276,11 @@ function CardsRenderer() {
       type: SettingType.Text
     }, // Comma-separated list with columns from "columns":{}
     {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
+    {
       label: 'Invalidate Impala',
       value: table.invalidateImpala,
       type: SettingType.BooleanOrDefaultFromConfig
@@ -276,6 +316,11 @@ function CardsRenderer() {
       type: SettingType.IntegerFromOneOrAuto
     }, // Integer, -1 = Auto
     {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
+    {
       label: 'Hive Split Count',
       value: table.splitCount,
       type: SettingType.IntegerFromOneOrNull,
@@ -286,6 +331,11 @@ function CardsRenderer() {
       value: table.mergeHeap,
       type: SettingType.IntegerFromZeroOrNull
     }, // Integer, value is MB
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     {
       label: 'Spark Executor Memory',
       value: table.sparkExecutorMemory,
@@ -339,6 +389,11 @@ function CardsRenderer() {
       type: SettingType.Text,
       isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
     }, // free-text, active if validationMethod=customQuery
+    {
+      label: '',
+      value: '',
+      type: SettingType.Spacing
+    }, // Layout space
     {
       label: 'Source Row Count',
       value: table.sourceRowcount,
