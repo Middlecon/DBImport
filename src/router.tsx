@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import LogIn from './routes/LogIn'
 import MainLayout from './components/MainLayout'
-import Export from './routes/Export'
+// import Export from './routes/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
 import DbTables from './routes/import/DbTables'
@@ -55,7 +55,20 @@ export const router = createBrowserRouter([
       },
       {
         path: '/export',
-        element: <Export />
+        element: <div>Export</div>
+        // element: <Export />
+      },
+      {
+        path: '/airflow',
+        element: <div>Airflow</div>
+      },
+      {
+        path: '/connection',
+        element: <div>Connection</div>
+      },
+      {
+        path: '/configuration',
+        element: <div>Configuration</div>
       }
     ]
   }

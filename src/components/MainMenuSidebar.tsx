@@ -6,6 +6,9 @@ import LogoWithText from './LogoWithText'
 import './MainMenuSidebar.scss'
 import ChevronDoubleRight from '../assets/icons/ChevronDoubleRight'
 import { NavLink } from 'react-router-dom'
+import ApacheAirflowIcon from '../assets/icons/ApacheAirflowIcon'
+import ConnectionIcon from '../assets/icons/ConnectionIcon'
+import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
 
 interface MainSidebarProps {
   minimized: boolean
@@ -50,6 +53,39 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               >
                 <ExportIcon />
                 {!minimized && <h2>Export</h2>}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/airflow"
+                className={({ isActive }) =>
+                  `menu-link ${isActive ? 'active' : ''}`
+                }
+              >
+                <ApacheAirflowIcon />
+                {!minimized && <h2>Airflow</h2>}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/connection"
+                className={({ isActive }) =>
+                  `menu-link ${isActive ? 'active' : ''}`
+                }
+              >
+                <ConnectionIcon />
+                {!minimized && <h2>Connection</h2>}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/configuration"
+                className={({ isActive }) =>
+                  `menu-link ${isActive ? 'active' : ''}`
+                }
+              >
+                <ConfigurationIcon />
+                {!minimized && <h2>Configuration</h2>}
               </NavLink>
             </li>
           </ul>
