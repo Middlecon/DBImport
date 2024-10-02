@@ -2,11 +2,26 @@ import { useState, useMemo, useCallback } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 import TableList from '../../components/TableList'
-import { Column, DbTable } from '../../utils/interfaces'
-import { useDbTables } from '../../utils/queries'
+import {
+  Column,
+  DbTable,
+  TableSetting,
+  UiDbTable,
+  UITable
+} from '../../utils/interfaces'
+import { fetchTableData, useDbTables } from '../../utils/queries'
 import './DbTables.scss'
-import { reverseMapDisplayValue } from '../../utils/nameMappings'
+import {
+  getEnumOptions,
+  mapDisplayValue,
+  reverseMapDisplayValue
+} from '../../utils/nameMappings'
 import { useOutletContext } from 'react-router-dom'
+import EditTableModal from '../../components/EditTableModal'
+import { SettingType } from '../../utils/enums'
+import { updateTableData } from '../../utils/dataFunctions'
+import { useQueryClient } from '@tanstack/react-query'
+import { useUpdateTable } from '../../utils/mutations'
 
 const columns: Column<DbTable>[] = [
   { header: 'Table', accessor: 'table' },
@@ -83,21 +98,19 @@ interface OutletContextType {
 
 function DbTables() {
   const { data } = useDbTables()
+  const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
+  const [tableData, setTableData] = useState<UITable | null>(null)
+
+  const [isModalOpen, setModalOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const { mutate: updateTable } = useUpdateTable()
+
   const [selectedFilters, setSelectedFilters] = useState<{
     [key: string]: string[]
   }>({})
+
   const { openDropdown, handleDropdownToggle } =
     useOutletContext<OutletContextType>()
-
-  // console.log('data Tables', data)
-
-  // if (isLoading) {
-  //   return <p>Loading...</p>
-  // }
-
-  // if (isError) {
-  //   return <p>Error: {error?.message}</p>
-  // }
 
   const handleSelect = (filterKey: string, items: string[]) => {
     setSelectedFilters((prevFilters) => ({
@@ -175,6 +188,80 @@ function DbTables() {
     })
   }, [data, selectedFilters, getDateRange])
 
+  const handleEditClick = async (row: UiDbTable) => {
+    const { database, table } = row
+
+    try {
+      const fetchedTableData = await queryClient.fetchQuery({
+        queryKey: ['table', table],
+        queryFn: () => fetchTableData(database, table)
+      })
+
+      setTableData(fetchedTableData)
+
+      const rowData: TableSetting[] = [
+        { label: 'Database', value: row.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
+        { label: 'Table', value: row.table, type: SettingType.Readonly }, // Free-text, read-only
+        {
+          label: '',
+          value: '',
+          type: SettingType.GroupingSpace
+        }, // Layout space
+        {
+          label: 'Import Type',
+          value: mapDisplayValue('importPhaseType', row.importPhaseType),
+          type: SettingType.Enum,
+          enumOptions: getEnumOptions('importPhaseType')
+        }, // Enum mapping for 'Import Type'
+        {
+          label: 'ETL Type',
+          value: mapDisplayValue('etlPhaseType', row.etlPhaseType),
+          type: SettingType.Enum,
+          enumOptions: getEnumOptions('etlPhaseType')
+        }, // Enum mapping for 'ETL Type'
+        {
+          label: 'Import Tool',
+          value: mapDisplayValue('importTool', row.importTool),
+          type: SettingType.Enum,
+          enumOptions: getEnumOptions('importTool')
+        }, // Enum mapping for 'Import Tool'
+        {
+          label: 'ETL Engine',
+          value: mapDisplayValue('etlEngine', row.etlEngine),
+          type: SettingType.Enum,
+          enumOptions: getEnumOptions('etlEngine')
+        } // Enum mapping for 'ETL Engine'
+      ]
+
+      setCurrentRow(rowData)
+      setModalOpen(true)
+    } catch (error) {
+      console.error('Failed to fetch table data:', error)
+    }
+  }
+
+  const handleSave = (updatedSettings: TableSetting[]) => {
+    if (!tableData) {
+      console.error('Table data is not available.')
+      return
+    }
+    console.log('tableData', tableData)
+
+    const editedTableData = updateTableData(tableData, updatedSettings)
+    updateTable(editedTableData, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['tables', tableData.database]
+        })
+        console.log('Update successful', response)
+        setModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error updating table', error)
+      }
+    })
+  }
+
   return (
     <div className="db-table-root">
       <div className="filters">
@@ -203,9 +290,21 @@ function DbTables() {
       </div>
 
       {filteredData ? (
-        <TableList columns={columns} data={filteredData} />
+        <TableList
+          columns={columns}
+          data={filteredData}
+          onEdit={handleEditClick}
+        />
       ) : (
         <div>Loading....</div>
+      )}
+      {isModalOpen && currentRow && (
+        <EditTableModal
+          title="column"
+          settings={currentRow}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSave}
+        />
       )}
     </div>
   )

@@ -12,7 +12,7 @@ export function mapEnumValue<T extends string>(
 
 export enum SettingType {
   Boolean = 'boolean',
-  BooleanOrAuto = 'booleanOrAuto(-1)',
+  BooleanNumber = 'booleanNumber',
   BooleanOrDefaultFromConfig = 'booleanOrDefaultFromConfig(-1)',
   BooleanOrDefaultFromConnection = 'booleanOrDefaultFromConnection(-1)',
   Readonly = 'readonly',

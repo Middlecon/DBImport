@@ -104,74 +104,73 @@ const getTable = async (database: string, table: string) => {
   return response.data
 }
 
-export const useTable = (): UseQueryResult<UITable, Error> => {
-  const { database, table } = useParams<{ database: string; table: string }>()
+export const fetchTableData = async (
+  database: string,
+  table: string
+): Promise<UITable> => {
+  if (!database || !table) {
+    throw new Error(
+      'Cannot fetch table because database or/and table params are not defined'
+    )
+  }
 
+  const data: Table = await getTable(database, table)
+
+  const dataWithEnumTypes: UITable = {
+    ...data,
+    importPhaseType: mapEnumValue(
+      data.importPhaseType,
+      Object.values(ImportType),
+      'Unknown'
+    ),
+    etlPhaseType: mapEnumValue(
+      data.etlPhaseType,
+      Object.values(EtlType),
+      'Unknown'
+    ),
+    importTool: mapEnumValue(
+      data.importTool,
+      Object.values(ImportTool),
+      'Unknown'
+    ),
+    etlEngine: mapEnumValue(
+      data.etlEngine,
+      Object.values(EtlEngine),
+      'Unknown'
+    ),
+    validationMethod: mapEnumValue(
+      data.validationMethod,
+      Object.values(ValidationMethod),
+      'Unknown'
+    ),
+    validateSource: mapEnumValue(
+      data.validateSource,
+      Object.values(ValidateSource),
+      'Unknown'
+    ),
+    incrMode: mapEnumValue(data.incrMode, Object.values(IncrMode), 'Unknown'),
+    incrValidationMethod: mapEnumValue(
+      data.incrValidationMethod,
+      Object.values(IncrValidationMethod),
+      'Unknown'
+    ),
+    mergeCompactionMethod: mapEnumValue(
+      data.mergeCompactionMethod,
+      Object.values(MergeCompactionMethod),
+      'Unknown'
+    )
+  }
+
+  return dataWithEnumTypes
+}
+
+export const useTable = (
+  database?: string,
+  table?: string
+): UseQueryResult<UITable, Error> => {
   return useQuery({
     queryKey: ['table', table],
-    queryFn: async () => {
-      if (!database || !table) {
-        throw new Error(
-          'Can not fetch table because database or/and table params is not defined'
-        )
-      }
-
-      const data: Table = await getTable(database, table)
-
-      // console.log('data', data)
-
-      const dataWithEnumTypes: UITable = {
-        ...data,
-        importPhaseType: mapEnumValue(
-          data.importPhaseType,
-          Object.values(ImportType),
-          'Unknown'
-        ),
-        etlPhaseType: mapEnumValue(
-          data.etlPhaseType,
-          Object.values(EtlType),
-          'Unknown'
-        ),
-        importTool: mapEnumValue(
-          data.importTool,
-          Object.values(ImportTool),
-          'Unknown'
-        ),
-        etlEngine: mapEnumValue(
-          data.etlEngine,
-          Object.values(EtlEngine),
-          'Unknown'
-        ),
-        validationMethod: mapEnumValue(
-          data.validationMethod,
-          Object.values(ValidationMethod),
-          'Unknown'
-        ),
-        validateSource: mapEnumValue(
-          data.validateSource,
-          Object.values(ValidateSource),
-          'Unknown'
-        ),
-        incrMode: mapEnumValue(
-          data.incrMode,
-          Object.values(IncrMode),
-          'Unknown'
-        ),
-        incrValidationMethod: mapEnumValue(
-          data.incrValidationMethod,
-          Object.values(IncrValidationMethod),
-          'Unknown'
-        ),
-        mergeCompactionMethod: mapEnumValue(
-          data.mergeCompactionMethod,
-          Object.values(MergeCompactionMethod),
-          'Unknown'
-        )
-      }
-      // console.log('transformedData', transformedData)
-
-      return dataWithEnumTypes
-    },
+    queryFn: () => fetchTableData(database!, table!),
     enabled: !!database && !!table
   })
 }

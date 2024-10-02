@@ -69,6 +69,8 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   }
 }
 
+export const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
+
 export const mapDisplayValue = (key: string, value: string): string => {
   return nameDisplayMappings[key]?.[value] || value
 }

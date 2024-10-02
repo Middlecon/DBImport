@@ -14,8 +14,6 @@ interface EditModalProps {
 }
 
 function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
-  // console.log('settings EditTableModal', settings)
-
   const editableSettings = settings.filter((setting) => {
     const isReadonly = setting.type === 'readonly'
     const isHidden = setting.isHidden
@@ -30,24 +28,17 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     [connectionsData]
   )
 
-  // console.log('editableSettings', editableSettings)
-
   const [originalSettings] = useState(editableSettings)
   const [editedSettings, setEditedSettings] = useState(editableSettings)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
 
-  // const [isChanged, setIsChanged] = useState<boolean>(false)
-
   const validationMethodSetting = editedSettings.find(
     (s) => s.label === 'Validation Method'
   )
   const isCustomQueryDisabled =
     validationMethodSetting?.value !== 'Custom Query'
-
-  // console.log('originalSettings', originalSettings)
-  // console.log('editedSettings', editedSettings)
 
   const handleInputChange = (
     index: number,
@@ -162,7 +153,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             )} */}
           </>
         )
-      case 'booleanOrAuto(-1)':
+      case 'booleanNumber':
         return (
           <>
             <label>{setting.label}:</label>
@@ -170,32 +161,22 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
               <label>
                 <input
                   type="radio"
-                  name={`booleanOrAuto-${index}`}
+                  name={`booleanNumber-${index}`}
                   value="true"
-                  checked={setting.value === true}
-                  onChange={() => handleInputChange(index, true)}
+                  checked={setting.value === 1}
+                  onChange={() => handleInputChange(index, 1)}
                 />
                 True
               </label>
               <label>
                 <input
                   type="radio"
-                  name={`booleanOrAuto-${index}`}
+                  name={`booleanNumber-${index}`}
                   value="false"
-                  checked={setting.value === false}
-                  onChange={() => handleInputChange(index, false)}
+                  checked={setting.value === 0}
+                  onChange={() => handleInputChange(index, 0)}
                 />
                 False
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name={`booleanOrAuto-${index}`}
-                  value="-1"
-                  checked={setting.value === -1}
-                  onChange={() => handleInputChange(index, false)}
-                />
-                Auto
               </label>
             </div>
           </>
@@ -211,8 +192,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   type="radio"
                   name={`booleanOrDefaultFromConfig(-1)-${index}`}
                   value="true"
-                  checked={setting.value === true}
-                  onChange={() => handleInputChange(index, true)}
+                  checked={setting.value === 1}
+                  onChange={() => handleInputChange(index, 1)}
                 />
                 True
               </label>
@@ -221,8 +202,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   type="radio"
                   name={`booleanOrDefaultFromConfig(-1)-${index}`}
                   value="false"
-                  checked={setting.value === false}
-                  onChange={() => handleInputChange(index, false)}
+                  checked={setting.value === 0}
+                  onChange={() => handleInputChange(index, 0)}
                 />
                 False
               </label>
@@ -232,7 +213,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   name={`booleanOrDefaultFromConfig(-1)-${index}`}
                   value="-1"
                   checked={setting.value === -1}
-                  onChange={() => handleInputChange(index, false)}
+                  onChange={() => handleInputChange(index, -1)}
                 />
                 Default from config
               </label>
@@ -251,7 +232,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   name={`booleanOrDefaultFromConnection(-1)-${index}`}
                   value="true"
                   checked={setting.value === true}
-                  onChange={() => handleInputChange(index, true)}
+                  onChange={() => handleInputChange(index, 1)}
                 />
                 True
               </label>
@@ -261,7 +242,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   name={`booleanOrDefaultFromConnection(-1)-${index}`}
                   value="false"
                   checked={setting.value === false}
-                  onChange={() => handleInputChange(index, false)}
+                  onChange={() => handleInputChange(index, 0)}
                 />
                 False
               </label>
@@ -271,7 +252,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                   name={`booleanOrDefaultFromConnection(-1)-${index}`}
                   value="-1"
                   checked={setting.value === -1}
-                  onChange={() => handleInputChange(index, false)}
+                  onChange={() => handleInputChange(index, -1)}
                 />
                 Default from connection
               </label>
@@ -428,9 +409,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
               }}
               onKeyDown={(e) => {
                 // Prevent invalid characters from being typed
-                console.log('e', e)
-
-                console.log('e.key', e.key)
                 if (
                   ['0', 'e', 'E', '+', '-', '.', ',', 'Dead'].includes(e.key) // Dead is still working, fix so it is not
                 ) {
@@ -526,7 +504,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                     if (e.target.checked) {
                       handleInputChange(index, -1) // Sets to -1 for Auto
                     } else {
-                      // console.log('prevValue', typeof prevValue)
                       handleInputChange(index, prevValue === '' ? 0 : prevValue) // Restores the previous value
                     }
                   }}

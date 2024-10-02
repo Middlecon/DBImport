@@ -34,14 +34,6 @@ function updateColumnData(
   indexInColumns: number,
   columnKey: string
 ) {
-  // console.log(
-  //   'Updating column at index:',
-  //   indexInColumns,
-  //   'with key:',
-  //   columnKey,
-  //   'and value:',
-  //   setting.value
-  // )
   if (!columnKey || !tableData.columns) return
 
   if (
@@ -64,13 +56,10 @@ export function updateTableData(
   const updatedTableData = { ...tableData }
 
   updatedSettings.forEach((setting) => {
-    // console.log('setting.label', setting.label)
     const key = column
       ? getKeyFromColumnLabel(setting.label)
       : getKeyFromLabel(setting.label)
     if (key) {
-      // console.log('key', key)
-
       let value = setting.value
 
       if (setting.type === 'enum' && setting.enumOptions) {
@@ -80,14 +69,11 @@ export function updateTableData(
         const indexInColumnsSetting = updatedSettings.find(
           (setting) => setting.label === 'Column Order'
         )
-        // console.log('indexInColumnsSetting', indexInColumnsSetting)
         const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-        // console.log('GOT IN to column in updateTableData')
         updateColumnData(updatedTableData, setting, indexInColumns, key)
       } else {
         updatedTableData[key] = value
       }
-      // updatedTableData[key] = value
     }
   })
 

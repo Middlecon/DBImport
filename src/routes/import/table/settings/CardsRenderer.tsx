@@ -14,15 +14,19 @@ import {
 } from '../../../../utils/enums'
 import './CardsRenderer.scss'
 import { useTable } from '../../../../utils/queries'
+import { useParams } from 'react-router-dom'
 
 function CardsRenderer() {
-  const { data: table, isFetching } = useTable()
+  const { database, table: tableParam } = useParams<{
+    database: string
+    table: string
+  }>()
+  const { data: table, isFetching } = useTable(database, tableParam)
 
   if (isFetching) return <div>Loading...</div>
   if (!table) return <div>No data found.</div>
 
   const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
-  // console.log(' CardsRenderer table', table)
 
   const mainSettings: TableSetting[] = [
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
@@ -106,21 +110,21 @@ function CardsRenderer() {
   ]
 
   const importOptions: TableSetting[] = [
-    {
-      label: 'Truncate Table',
-      value: table.truncateTable,
-      type: SettingType.Boolean
-    }, // Boolean
+    // {
+    //   label: 'Truncate Table',
+    //   value: table.truncateTable,
+    //   type: SettingType.Boolean
+    // }, // Boolean, true or false,  should not be in UI and set it to 0 at post (not let it be the value how we got it from the API?)
     {
       label: 'Allow Text Splitter',
       value: table.allowTextSplitter,
       type: SettingType.Boolean
-    }, // Boolean
+    }, // Boolean, true or false
     {
       label: 'Force String',
       value: table.forceString,
       type: SettingType.BooleanOrDefaultFromConfig
-    }, // Boolean or -1 (-1="Default from config")
+    }, // Boolean (1, 0) or -1 (-1="Default from config")
     {
       label: 'Split By Column',
       value: table.splitByColumn,
@@ -158,7 +162,7 @@ function CardsRenderer() {
       label: 'Use Generated SQL',
       value: table.useGeneratedSql,
       type: SettingType.Boolean
-    }, // Boolean
+    }, // Boolean, true or false
     {
       label: 'No Merge Ingestion SQL Addition',
       value: table.nomergeIngestionSqlAddition,
@@ -264,7 +268,7 @@ function CardsRenderer() {
       label: 'Create Foreign Keys',
       value: table.createForeignKeys,
       type: SettingType.BooleanOrDefaultFromConnection
-    }, // Boolean or Auto (-1)
+    }, // Boolean (1, 0) or Default from connection (-1)
     {
       label: 'Primary Key Override',
       value: table.pkColumnOverride,
@@ -284,7 +288,7 @@ function CardsRenderer() {
       label: 'Invalidate Impala',
       value: table.invalidateImpala,
       type: SettingType.BooleanOrDefaultFromConfig
-    }, // Boolean or Auto (-1)
+    }, // Boolean (1, 0) or Auto (-1)
     {
       label: 'Soft Delete During Merge',
       value: table.softDeleteDuringMerge,
@@ -292,7 +296,7 @@ function CardsRenderer() {
       isConditionsMet:
         table.etlPhaseType === EtlType.Merge ||
         table.etlPhaseType === EtlType.MergeHistoryAudit
-    }, // Boolean, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
+    }, // Boolean, true or false, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
     {
       label: 'Merge Compaction Method',
       value: mapDisplayValue(
@@ -359,7 +363,7 @@ function CardsRenderer() {
       label: 'Validate Import',
       value: table.validateImport,
       type: SettingType.Boolean
-    }, // Boolean
+    }, // Boolean, true or false
     {
       label: 'Validation Method',
       value: mapDisplayValue('validationMethod', table.validationMethod),
@@ -409,12 +413,12 @@ function CardsRenderer() {
       value: table.targetRowcount,
       type: SettingType.Readonly
     }, // Read-only setting
-    {
-      label: 'Validate Import Table',
-      value: true,
-      type: SettingType.Boolean,
-      isHidden: true
-    }, // Always true and always hidden, should be displayed/visible in UI
+    // {
+    //   label: 'Validate Import Table',
+    //   value: true,
+    //   type: SettingType.Boolean,
+    //   isHidden: true
+    // }, // Always true and always hidden, should not be displayed/visible in UI
     {
       label: 'Custom Query Source Value',
       value: table.validationCustomQuerySourceValue,
@@ -437,7 +441,7 @@ function CardsRenderer() {
       label: 'Include in Airflow',
       value: table.includeInAirflow,
       type: SettingType.Boolean
-    }, // Boolean
+    }, // Boolean, true or false
     {
       label: 'Operator Notes',
       value: table.operatorNotes,

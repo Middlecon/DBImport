@@ -25,14 +25,9 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
         containerRef.current.firstElementChild?.scrollWidth || 0
       const isOverflowing = childWidth > containerRef.current.clientWidth
 
-      // console.log('Child content width:', childWidth)
-      // console.log('Container width:', containerRef.current.clientWidth)
-      // console.log('Is overflowing:', isOverflowing)
-
       setHasOverflow(isOverflowing)
     }
   }, [value])
-  // console.log('hasOverflow', hasOverflow)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -51,35 +46,37 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
   }, [])
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    console.log('dropdownId', dropdownId)
     if (isOpen) {
       setOpenDropdown(dropdownId)
     } else if (openDropdown === dropdownId) {
       setOpenDropdown(null)
     }
   }
-  // console.log('isConditionsMet', isConditionsMet)
   const renderSetting = () => {
     switch (type) {
       case 'boolean':
         return <span>{value ? 'True' : 'False'}</span>
 
-      case 'booleanOrAuto(-1)':
-        if (typeof value === 'boolean') {
-          return <span>{value ? 'True' : 'False'}</span>
+      case 'booleanNumber':
+        if (value === 1) {
+          return <span>True</span>
         } else {
-          return <span>Auto</span>
+          return <span>False</span>
         }
       case 'booleanOrDefaultFromConfig(-1)':
-        if (typeof value === 'boolean') {
-          return <span>{value ? 'True' : 'False'}</span>
+        if (value === 1) {
+          return <span>True</span>
+        } else if (value === 0) {
+          return <span>False</span>
         } else {
           return <span>Default from config</span>
         }
 
       case 'booleanOrDefaultFromConnection(-1)':
-        if (typeof value === 'boolean') {
-          return <span>{value ? 'True' : 'False'}</span>
+        if (value === 1) {
+          return <span>True</span>
+        } else if (value === 0) {
+          return <span>False</span>
         } else {
           return <span>Default from connnection</span>
         }

@@ -24,9 +24,6 @@ function Card({
   isNotEditable,
   isDisabled
 }: CardProps) {
-  // console.log('settings CARD', settings)
-
-  // console.log('title', title)
   const { table: tableParam } = useParams<{ table: string }>()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -36,9 +33,6 @@ function Card({
 
   const handleSave = (updatedSettings: TableSetting[]) => {
     const editedTableData = updateTableData(tableData, updatedSettings)
-    // console.log('CARD updatedSettings', updatedSettings)
-    // console.log('updatedTableData', updateTableData(tableData, updatedSettings))
-    // console.log('editedTableData', editedTableData)
 
     updateTable(editedTableData, {
       onSuccess: (response) => {

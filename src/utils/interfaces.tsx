@@ -238,7 +238,7 @@ export interface TableUpdate {
   sqoopOptions: string
   useGeneratedSql: boolean
   allowTextSplitter: boolean
-  forceString: 0
+  forceString: number
   comment: string
   datalakeSource: string
   operatorNotes: string
@@ -265,7 +265,7 @@ export interface Columns {
   columnTypeOverride: string
   sqoopColumnType: string
   sqoopColumnTypeOverride: string
-  forceString: string
+  forceString: number
   includeInImport: string
   sourcePrimaryKey: string
   lastUpdateFromSource: string
