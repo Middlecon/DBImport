@@ -1,4 +1,5 @@
 import {
+  AnonymizationFunction,
   EtlEngine,
   EtlType,
   ImportTool,
@@ -9,7 +10,7 @@ import {
   ValidateSource,
   ValidationMethod
 } from './enums'
-import { UITable } from './interfaces'
+import { Columns, UITable } from './interfaces'
 
 export type FilterMapping = { [key: string]: string }
 
@@ -59,6 +60,12 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
     [MergeCompactionMethod.MinorAndWait]: 'Minor Compaction and Wait',
     [MergeCompactionMethod.Major]: 'Major Compaction',
     [MergeCompactionMethod.MajorAndWait]: 'Major Compaction and Wait'
+  },
+  anonymizationFunction: {
+    [AnonymizationFunction.None]: 'None',
+    [AnonymizationFunction.Hash]: 'Hash',
+    [AnonymizationFunction.ReplaceWithStar]: 'Replace with star',
+    [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
   }
 }
 
@@ -191,6 +198,32 @@ export function getKeyFromLabel(label: string): keyof UITable | undefined {
   return labelToUITableKey[label]
 }
 
+export const labelToColumnKey: { [label: string]: keyof Columns } = {
+  'Column Name': 'columnName',
+  'Column Order': 'columnOrder',
+  'Source Column Name': 'sourceColumnName',
+  'Column Type': 'columnType',
+  'Source Column Type': 'sourceColumnType',
+  'Source Database Type': 'sourceDatabaseType',
+  'Column Name Override': 'columnNameOverride',
+  'Column Type Override': 'columnTypeOverride',
+  'Sqoop Column Type': 'sqoopColumnType',
+  'Sqoop Column Type Override': 'sqoopColumnTypeOverride',
+  'Force String': 'forceString',
+  'Include In Import': 'includeInImport',
+  'Source Primary Key': 'sourcePrimaryKey',
+  'Last Update From Source': 'lastUpdateFromSource',
+  Comment: 'comment',
+  'Operator Notes': 'operatorNotes',
+  'Anonymization Function': 'anonymizationFunction'
+}
+
+export function getKeyFromColumnLabel(
+  label: string
+): keyof Columns | undefined {
+  return labelToColumnKey[label]
+}
+
 export const reverseMapDisplayValue = (
   filterKey: string,
   filterValue: string
@@ -247,6 +280,12 @@ export const nameReverseMappings: {
     'Minor Compaction and Wait': MergeCompactionMethod.MinorAndWait,
     'Major Compaction': MergeCompactionMethod.Major,
     'Major Compaction and Wait': MergeCompactionMethod.MajorAndWait
+  },
+  'Anonymization Function': {
+    None: AnonymizationFunction.None,
+    Hash: AnonymizationFunction.Hash,
+    'Replace with star': AnonymizationFunction.ReplaceWithStar,
+    'Show first 4 chars': AnonymizationFunction.ShowFirst4Chars
   }
 }
 

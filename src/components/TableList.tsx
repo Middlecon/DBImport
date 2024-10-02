@@ -8,9 +8,10 @@ import { Column } from '../utils/interfaces'
 interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
+  onEdit?: (row: T) => void
 }
 
-function TableList<T>({ columns, data }: TableProps<T>) {
+function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
@@ -66,7 +67,7 @@ function TableList<T>({ columns, data }: TableProps<T>) {
       return (
         <div className="actions-row">
           {column.isAction === 'edit' || column.isAction === 'both' ? (
-            <button onClick={() => console.log('Edit', row)}>
+            <button onClick={() => onEdit && onEdit(row)} disabled={!onEdit}>
               <EditIcon />
             </button>
           ) : null}

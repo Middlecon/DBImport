@@ -84,3 +84,10 @@ export enum MergeCompactionMethod {
   Major = 'major',
   MajorAndWait = 'major_and_wait'
 }
+
+export enum AnonymizationFunction {
+  None = 'None',
+  Hash = 'Hash',
+  ReplaceWithStar = 'Replace with star',
+  ShowFirst4Chars = 'Show first 4 chars'
+}

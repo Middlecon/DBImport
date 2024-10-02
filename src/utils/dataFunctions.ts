@@ -1,5 +1,9 @@
 import { UITable, TableSetting, TableUpdate } from './interfaces'
-import { getKeyFromLabel, reverseMapEnumValue } from './nameMappings'
+import {
+  getKeyFromColumnLabel,
+  getKeyFromLabel,
+  reverseMapEnumValue
+} from './nameMappings'
 
 const fieldsToRemove = [
   'sourceRowcount',
@@ -24,24 +28,66 @@ const fieldsToRemove = [
   'copySlave'
 ]
 
+function updateColumnData(
+  tableData: UITable,
+  setting: TableSetting,
+  indexInColumns: number,
+  columnKey: string
+) {
+  // console.log(
+  //   'Updating column at index:',
+  //   indexInColumns,
+  //   'with key:',
+  //   columnKey,
+  //   'and value:',
+  //   setting.value
+  // )
+  if (!columnKey || !tableData.columns) return
+
+  if (
+    typeof indexInColumns !== 'number' ||
+    indexInColumns < 0 ||
+    indexInColumns >= tableData.columns.length
+  ) {
+    console.error('Invalid column index:', indexInColumns)
+    return
+  }
+
+  tableData.columns[indexInColumns][columnKey] = setting.value
+}
+
 export function updateTableData(
   tableData: UITable,
-  newSettings: TableSetting[]
+  updatedSettings: TableSetting[],
+  column?: boolean
 ): TableUpdate {
   const updatedTableData = { ...tableData }
 
-  newSettings.forEach((setting) => {
-    const key = getKeyFromLabel(setting.label)
+  updatedSettings.forEach((setting) => {
+    // console.log('setting.label', setting.label)
+    const key = column
+      ? getKeyFromColumnLabel(setting.label)
+      : getKeyFromLabel(setting.label)
     if (key) {
+      // console.log('key', key)
+
       let value = setting.value
 
-      // Handle enum values; assuming enums have a specific type field and possibly enumOptions
       if (setting.type === 'enum' && setting.enumOptions) {
-        // This assumes enumOptions maps display names to enum keys
         value = reverseMapEnumValue(setting.label, value as string)
       }
-
-      updatedTableData[key] = value
+      if (column === true) {
+        const indexInColumnsSetting = updatedSettings.find(
+          (setting) => setting.label === 'Column Order'
+        )
+        // console.log('indexInColumnsSetting', indexInColumnsSetting)
+        const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+        // console.log('GOT IN to column in updateTableData')
+        updateColumnData(updatedTableData, setting, indexInColumns, key)
+      } else {
+        updatedTableData[key] = value
+      }
+      // updatedTableData[key] = value
     }
   })
 

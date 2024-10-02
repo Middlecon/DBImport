@@ -36,6 +36,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   const [editedSettings, setEditedSettings] = useState(editableSettings)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
+
   // const [isChanged, setIsChanged] = useState<boolean>(false)
 
   const validationMethodSetting = editedSettings.find(
@@ -110,8 +112,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     onSave(updatedSettings)
     onClose()
   }
-
-  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const handleCancelClick = () => {
     setShowConfirmation(true)

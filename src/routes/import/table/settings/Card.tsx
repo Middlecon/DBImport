@@ -27,26 +27,27 @@ function Card({
   // console.log('settings CARD', settings)
 
   // console.log('title', title)
-  const { table } = useParams<{ table: string }>()
-  const queryClient = useQueryClient()
+  const { table: tableParam } = useParams<{ table: string }>()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)
 
-  const handleSave = (newSettings: TableSetting[]) => {
-    const editedTableData = updateTableData(tableData, newSettings)
-    // console.log('CARD newSettings', newSettings)
-    // console.log('updatedTableData', updateTableData(tableData, newSettings))
+  const handleSave = (updatedSettings: TableSetting[]) => {
+    const editedTableData = updateTableData(tableData, updatedSettings)
+    // console.log('CARD updatedSettings', updatedSettings)
+    // console.log('updatedTableData', updateTableData(tableData, updatedSettings))
     // console.log('editedTableData', editedTableData)
 
     updateTable(editedTableData, {
       onSuccess: (response) => {
-        queryClient.invalidateQueries({ queryKey: ['table', table] })
+        queryClient.invalidateQueries({ queryKey: ['table', tableParam] })
         console.log('Update successful', response)
         setIsEditModalOpen(false)
       },
       onError: (error) => {
+        queryClient.invalidateQueries({ queryKey: ['table', tableParam] })
         console.error('Error updating table', error)
       }
     })
