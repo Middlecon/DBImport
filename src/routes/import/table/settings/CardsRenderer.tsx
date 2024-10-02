@@ -30,7 +30,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Connection',
@@ -46,7 +46,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Import Type',
@@ -75,7 +75,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Last Update From Source',
@@ -135,7 +135,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'SQL WHERE Addition',
@@ -167,7 +167,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
     { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
@@ -179,7 +179,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Generated Hive Column Definition',
@@ -232,7 +232,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Incremental Mode',
@@ -278,7 +278,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Invalidate Impala',
@@ -318,7 +318,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Hive Split Count',
@@ -334,7 +334,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Spark Executor Memory',
@@ -392,7 +392,7 @@ function CardsRenderer() {
     {
       label: '',
       value: '',
-      type: SettingType.Spacing
+      type: SettingType.GroupingSpace
     }, // Layout space
     {
       label: 'Source Row Count',

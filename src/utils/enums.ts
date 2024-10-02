@@ -25,7 +25,7 @@ export enum SettingType {
   IntegerFromZeroOrAuto = 'integerFromZeroOrAuto(-1)',
   IntegerFromOneOrAuto = 'integerFromOneOrAuto(-1)',
   IntegerFromOneOrDefaultFromConfig = 'integerFromOneOrDefaultFromConfig(null)',
-  Spacing = 'spacing'
+  GroupingSpace = 'groupingSpace'
 }
 
 // Table
