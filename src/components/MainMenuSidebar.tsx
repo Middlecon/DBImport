@@ -44,49 +44,49 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 {!minimized && <h2>Import</h2>}
               </NavLink>
             </li>
-            <li>
-              <NavLink
+            <li className="mainsidebar-disabled">
+              {/* <NavLink
                 to="/export"
                 className={({ isActive }) =>
                   `menu-link ${isActive ? 'active' : ''}`
                 }
-              >
-                <ExportIcon />
-                {!minimized && <h2>Export</h2>}
-              </NavLink>
+              > */}
+              <ExportIcon />
+              {!minimized && <h2>Export</h2>}
+              {/* </NavLink> */}
             </li>
-            <li>
-              <NavLink
+            <li className="mainsidebar-disabled">
+              {/* <NavLink
                 to="/airflow"
                 className={({ isActive }) =>
                   `menu-link ${isActive ? 'active' : ''}`
                 }
-              >
-                <ApacheAirflowIcon />
-                {!minimized && <h2>Airflow</h2>}
-              </NavLink>
+              > */}
+              <ApacheAirflowIcon />
+              {!minimized && <h2>Airflow</h2>}
+              {/* </NavLink> */}
             </li>
-            <li>
-              <NavLink
+            <li className="mainsidebar-disabled">
+              {/* <NavLink
                 to="/connection"
                 className={({ isActive }) =>
                   `menu-link ${isActive ? 'active' : ''}`
                 }
-              >
-                <ConnectionIcon />
-                {!minimized && <h2>Connection</h2>}
-              </NavLink>
+              > */}
+              <ConnectionIcon />
+              {!minimized && <h2>Connection</h2>}
+              {/* </NavLink> */}
             </li>
-            <li>
-              <NavLink
+            <li className="mainsidebar-disabled">
+              {/* <NavLink
                 to="/configuration"
                 className={({ isActive }) =>
                   `menu-link ${isActive ? 'active' : ''}`
                 }
-              >
-                <ConfigurationIcon />
-                {!minimized && <h2>Configuration</h2>}
-              </NavLink>
+              > */}
+              <ConfigurationIcon />
+              {!minimized && <h2>Configuration</h2>}
+              {/* </NavLink> */}
             </li>
           </ul>
         </div>

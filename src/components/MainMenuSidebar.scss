@@ -57,6 +57,11 @@
   }
 }
 
+.mainsidebar-disabled {
+  display: flex;
+  color: rgb(75, 75, 75);
+}
+
 .chevron-double {
   display: flex;
   justify-content: flex-end;
