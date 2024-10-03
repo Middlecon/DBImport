@@ -90,7 +90,7 @@ function Setting({ label, value, type, isConditionsMet }: SettingProps) {
       case 'enum':
         return <span>{value}</span>
 
-      case 'reference':
+      case 'connectionReference':
         return <span>{value}</span>
       case 'hidden':
         return null

@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
-import { TableUpdate } from './interfaces'
+import { TableCreateUpdate } from './interfaces'
 
-const postTable = async (table: TableUpdate) => {
+const postTable = async (table: TableCreateUpdate) => {
   console.log('postTable table', table)
   const response = await axiosInstance.post('/import/table', table)
   console.log('postTable response.data', response.data)
@@ -12,7 +12,7 @@ const postTable = async (table: TableUpdate) => {
 
 export const useUpdateTable = () => {
   return useMutation({
-    mutationFn: (tableUpdated: TableUpdate) => {
+    mutationFn: (tableUpdated: TableCreateUpdate) => {
       return postTable(tableUpdated)
     }
   })

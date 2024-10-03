@@ -8,7 +8,7 @@ export enum SettingType {
   Readonly = 'readonly',
   Text = 'text',
   Enum = 'enum',
-  Reference = 'reference',
+  ConnectionReference = 'connectionReference',
   Hidden = 'hidden', // Needed here or handled in other way?
   IntegerFromZeroOrNull = 'integerFromZeroOrNull',
   IntegerFromOneOrNull = 'integerFromOneOrNull',

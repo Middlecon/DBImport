@@ -337,7 +337,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
         )
       }
 
-      case 'reference':
+      case 'connectionReference':
         return (
           <>
             <label>{setting.label}:</label>

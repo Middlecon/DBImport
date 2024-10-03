@@ -1,4 +1,4 @@
-import { UITable, TableSetting, TableUpdate } from './interfaces'
+import { UITable, TableSetting, TableCreateUpdate } from './interfaces'
 import {
   getKeyFromColumnLabel,
   getKeyFromLabel,
@@ -52,7 +52,7 @@ export function updateTableData(
   tableData: UITable,
   updatedSettings: TableSetting[],
   column?: boolean
-): TableUpdate {
+): TableCreateUpdate {
   const updatedTableData = { ...tableData }
 
   updatedSettings.forEach((setting) => {
@@ -82,7 +82,7 @@ export function updateTableData(
       acc[key] = updatedTableData[key]
     }
     return acc
-  }, {} as TableUpdate)
+  }, {} as TableCreateUpdate)
 
   return finalTableData
 }

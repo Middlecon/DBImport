@@ -39,7 +39,7 @@ function CardsRenderer() {
     {
       label: 'Connection',
       value: table.connection,
-      type: SettingType.Reference
+      type: SettingType.ConnectionReference
     }, // Reference to /connection
     {
       label: 'Source Database Type',

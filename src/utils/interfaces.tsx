@@ -199,7 +199,7 @@ export interface UITable {
   columns: Columns[]
 }
 
-export interface TableUpdate {
+export interface TableCreateUpdate {
   database: string
   table: string
   connection: string
@@ -281,4 +281,18 @@ export interface TableSetting {
   isConditionsMet?: boolean
   enumOptions?: { [key: string]: string } // Maybe not needed here
   isHidden?: boolean
+}
+
+// Crate table
+
+export interface TableCreate {
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+  importPhaseType: ImportType
+  etlPhaseType: EtlType
+  importTool: ImportTool
+  etlEngine: EtlEngine
 }
