@@ -121,7 +121,7 @@ export interface Table {
   importTable: string
   historyDatabase: string
   historyTable: string
-  columns: []
+  columns: Columns[]
 }
 
 export interface UITable {
@@ -196,7 +196,7 @@ export interface UITable {
   importTable: string
   historyDatabase: string
   historyTable: string
-  columns: []
+  columns: Columns[]
 }
 
 export interface TableUpdate {
@@ -251,7 +251,7 @@ export interface TableUpdate {
   importTable: string
   historyDatabase: string
   historyTable: string
-  columns: []
+  columns: Columns[]
 }
 
 export interface Columns {

@@ -29,7 +29,6 @@ function TableColumns() {
       { header: 'Source Column Name', accessor: 'sourceColumnName' },
       { header: 'Column Type', accessor: 'columnType' },
       { header: 'Source Column Type', accessor: 'sourceColumnType' },
-      { header: 'Source Database Type', accessor: 'sourceDatabaseType' },
       { header: 'Column Name Override', accessor: 'columnNameOverride' },
       { header: 'Column Type Override', accessor: 'columnTypeOverride' },
       { header: 'Sqoop Column Type', accessor: 'sqoopColumnType' },
@@ -76,11 +75,6 @@ function TableColumns() {
         {
           label: 'Source Column Type',
           value: row.sourceColumnType,
-          type: SettingType.Readonly
-        }, // Read-only, free-text
-        {
-          label: 'Source Database Type',
-          value: row.sourceDatabaseType,
           type: SettingType.Readonly
         }, // Read-only, free-text
         {

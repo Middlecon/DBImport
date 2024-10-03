@@ -42,6 +42,11 @@ function CardsRenderer() {
       type: SettingType.Reference
     }, // Reference to /connection
     {
+      label: 'Source Database Type',
+      value: table.columns?.[0]?.sourceDatabaseType ?? '',
+      type: SettingType.Readonly
+    }, // Read-only, free-text, should be displayed, from inside table.columns[]
+    {
       label: 'Source Schema',
       value: table.sourceSchema,
       type: SettingType.Text
