@@ -1,15 +1,26 @@
-import { Outlet, useNavigate, useParams } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import './TableDetailedView.scss'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
-import { useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 function TableDetailedView() {
   const { database, table } = useParams()
-  const [selectedTab, setSelectedTab] = useState('settings')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const pathSegments = location.pathname.split('/').filter(Boolean)
+  const tab = pathSegments[3] || 'settings'
+
+  const validTabs = useMemo(() => ['settings', 'columns', 'statistics'], [])
+  const selectedTab = validTabs.includes(tab) ? tab : 'settings'
+
+  useEffect(() => {
+    if (!validTabs.includes(tab)) {
+      navigate(`/import/${database}/${table}/settings`, { replace: true })
+    }
+  }, [tab, database, table, navigate, validTabs])
 
   const handleTabClick = (tabName: string) => {
-    setSelectedTab(tabName)
     navigate(`/import/${database}/${table}/${tabName}`)
   }
 

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import LogIn from './routes/LogIn'
 import MainLayout from './components/MainLayout'
 // import Export from './routes/Export'
@@ -50,6 +50,12 @@ export const router = createBrowserRouter([
           {
             path: 'statistics',
             element: <TableStatistics />
+          },
+
+          // Wildcard route to catch unmatched paths
+          {
+            path: '*',
+            element: <Navigate to="settings" replace />
           }
         ]
       },
