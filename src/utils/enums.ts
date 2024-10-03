@@ -1,13 +1,3 @@
-// Enum mapping, string to enum
-
-export function mapEnumValue<T extends string>(
-  value: string,
-  validValues: T[],
-  fallback: 'Unknown'
-): T | 'Unknown' {
-  return validValues.includes(value as T) ? (value as T) : fallback
-}
-
 // Setting type
 
 export enum SettingType {

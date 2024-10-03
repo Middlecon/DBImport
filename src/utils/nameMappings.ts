@@ -291,16 +291,36 @@ export const nameReverseMappings: {
   }
 }
 
+// Enum mapping
+
+export function mapEnumValue<T extends string>(
+  value: string,
+  validValues: T[]
+): T {
+  if (validValues.includes(value as T)) {
+    return value as T
+  } else {
+    throw new Error(`Invalid enum value: ${value}`)
+  }
+}
+
 export const reverseMapEnumValue = (
   category: string,
   displayValue: string
 ): string => {
   const categoryMappings = nameReverseMappings[category]
+
   if (!categoryMappings) {
-    console.warn(`No mappings found for category: ${category}`)
-    return 'unknown'
+    throw new Error(`No mappings found for category: ${category}`)
   }
 
   const backendValue = categoryMappings[displayValue]
-  return backendValue || 'unknown' // Maybe have another fallback
+
+  if (!backendValue) {
+    throw new Error(
+      `No backend value found for display value: '${displayValue}' in category: '${category}'`
+    )
+  }
+
+  return backendValue
 }

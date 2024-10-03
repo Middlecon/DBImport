@@ -130,18 +130,18 @@ export interface UITable {
   connection: string
   sourceSchema: string
   sourceTable: string
-  importPhaseType: ImportType | 'Unknown'
-  etlPhaseType: EtlType | 'Unknown'
-  importTool: ImportTool | 'Unknown'
-  etlEngine: EtlEngine | 'Unknown'
+  importPhaseType: ImportType
+  etlPhaseType: EtlType
+  importTool: ImportTool
+  etlEngine: EtlEngine
   lastUpdateFromSource: string
   sqlWhereAddition: string
   nomergeIngestionSqlAddition: string
   includeInAirflow: boolean
   airflowPriority: string
   validateImport: boolean
-  validationMethod: ValidationMethod | 'Unknown'
-  validateSource: ValidateSource | 'Unknown'
+  validationMethod: ValidationMethod
+  validateSource: ValidateSource
   validateDiffAllowed: 0
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
@@ -154,9 +154,9 @@ export interface UITable {
   targetRowcount: 0
   validationCustomQuerySourceValue: string
   validationCustomQueryHiveValue: string
-  incrMode: IncrMode | 'Unknown'
+  incrMode: IncrMode
   incrColumn: string
-  incrValidationMethod: IncrValidationMethod | 'Unknown'
+  incrValidationMethod: IncrValidationMethod
   incrMinvalue: string
   incrMaxvalue: string
   incrMinvaluePending: string
@@ -190,7 +190,7 @@ export interface UITable {
   createForeignKeys: 0
   invalidateImpala: 0
   customMaxQuery: string
-  mergeCompactionMethod: MergeCompactionMethod | 'Unknown'
+  mergeCompactionMethod: MergeCompactionMethod
   sourceTableType: string
   importDatabase: string
   importTable: string
@@ -205,18 +205,18 @@ export interface TableUpdate {
   connection: string
   sourceSchema: string
   sourceTable: string
-  importPhaseType: ImportType | 'Unknown'
-  etlPhaseType: EtlType | 'Unknown'
-  importTool: ImportTool | 'Unknown'
-  etlEngine: EtlEngine | 'Unknown'
+  importPhaseType: ImportType
+  etlPhaseType: EtlType
+  importTool: ImportTool
+  etlEngine: EtlEngine
   lastUpdateFromSource: string
   sqlWhereAddition: string
   nomergeIngestionSqlAddition: string
   includeInAirflow: boolean
   airflowPriority: string
   validateImport: boolean
-  validationMethod: ValidationMethod | 'Unknown'
-  validateSource: ValidateSource | 'Unknown'
+  validationMethod: ValidationMethod
+  validateSource: ValidateSource
   validateDiffAllowed: 0
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
@@ -224,9 +224,9 @@ export interface TableUpdate {
   truncateTable: boolean
   mappers: 0
   softDeleteDuringMerge: boolean
-  incrMode: IncrMode | 'Unknown'
+  incrMode: IncrMode
   incrColumn: string
-  incrValidationMethod: IncrValidationMethod | 'Unknown'
+  incrValidationMethod: IncrValidationMethod
   pkColumnOverride: string
   pkColumnOverrideMergeonly: string
   mergeHeap: 0
@@ -245,7 +245,7 @@ export interface TableUpdate {
   createForeignKeys: 0
   invalidateImpala: 0
   customMaxQuery: string
-  mergeCompactionMethod: MergeCompactionMethod | 'Unknown'
+  mergeCompactionMethod: MergeCompactionMethod
   sourceTableType: string
   importDatabase: string
   importTable: string

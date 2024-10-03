@@ -100,7 +100,7 @@ function DbTables() {
   const { data } = useDbTables()
   const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
-
+  const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -190,12 +190,15 @@ function DbTables() {
 
   const handleEditClick = async (row: UiDbTable) => {
     const { database, table } = row
+    setTableName(table)
 
     try {
       const fetchedTableData = await queryClient.fetchQuery({
         queryKey: ['table', table],
         queryFn: () => fetchTableData(database, table)
       })
+
+      console.log('fetchedTableData', fetchedTableData)
 
       setTableData(fetchedTableData)
 
@@ -300,7 +303,7 @@ function DbTables() {
       )}
       {isModalOpen && currentRow && (
         <EditTableModal
-          title="column"
+          title={`Edit table ${tableName}`}
           settings={currentRow}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}

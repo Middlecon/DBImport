@@ -139,7 +139,7 @@ function TableColumns() {
           label: 'Anonymization Function',
           value: row.anonymizationFunction,
           type: SettingType.Enum,
-          enumOptions: getEnumOptions('importPhaseType')
+          enumOptions: getEnumOptions('anonymizationFunction')
         } // Enum mapping for 'Anonymization Function'
       ]
 

@@ -31,7 +31,7 @@ function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
     const accessorKey = column.accessor as keyof T
     const displayKey = `${String(accessorKey)}Display` as keyof T
 
-    const cellValue = row[displayKey] ?? row[accessorKey]
+    const cellValue = row[displayKey] ?? row[accessorKey] ?? ''
 
     if (column.accessor === 'sourceTable') {
       return (

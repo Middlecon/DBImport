@@ -9,7 +9,7 @@ import {
   UITable,
   UiDbTable
 } from './interfaces'
-import { mapDisplayValue } from './nameMappings'
+import { mapDisplayValue, mapEnumValue } from './nameMappings'
 import {
   EtlEngine,
   EtlType,
@@ -19,8 +19,7 @@ import {
   IncrValidationMethod,
   MergeCompactionMethod,
   ValidateSource,
-  ValidationMethod,
-  mapEnumValue
+  ValidationMethod
 } from './enums'
 
 // GET CONNECTIONS
@@ -120,44 +119,27 @@ export const fetchTableData = async (
     ...data,
     importPhaseType: mapEnumValue(
       data.importPhaseType,
-      Object.values(ImportType),
-      'Unknown'
+      Object.values(ImportType)
     ),
-    etlPhaseType: mapEnumValue(
-      data.etlPhaseType,
-      Object.values(EtlType),
-      'Unknown'
-    ),
-    importTool: mapEnumValue(
-      data.importTool,
-      Object.values(ImportTool),
-      'Unknown'
-    ),
-    etlEngine: mapEnumValue(
-      data.etlEngine,
-      Object.values(EtlEngine),
-      'Unknown'
-    ),
+    etlPhaseType: mapEnumValue(data.etlPhaseType, Object.values(EtlType)),
+    importTool: mapEnumValue(data.importTool, Object.values(ImportTool)),
+    etlEngine: mapEnumValue(data.etlEngine, Object.values(EtlEngine)),
     validationMethod: mapEnumValue(
       data.validationMethod,
-      Object.values(ValidationMethod),
-      'Unknown'
+      Object.values(ValidationMethod)
     ),
     validateSource: mapEnumValue(
       data.validateSource,
-      Object.values(ValidateSource),
-      'Unknown'
+      Object.values(ValidateSource)
     ),
-    incrMode: mapEnumValue(data.incrMode, Object.values(IncrMode), 'Unknown'),
+    incrMode: mapEnumValue(data.incrMode, Object.values(IncrMode)),
     incrValidationMethod: mapEnumValue(
       data.incrValidationMethod,
-      Object.values(IncrValidationMethod),
-      'Unknown'
+      Object.values(IncrValidationMethod)
     ),
     mergeCompactionMethod: mapEnumValue(
       data.mergeCompactionMethod,
-      Object.values(MergeCompactionMethod),
-      'Unknown'
+      Object.values(MergeCompactionMethod)
     )
   }
 

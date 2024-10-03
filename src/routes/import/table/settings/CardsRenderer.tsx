@@ -114,7 +114,7 @@ function CardsRenderer() {
     //   label: 'Truncate Table',
     //   value: table.truncateTable,
     //   type: SettingType.Boolean
-    // }, // Boolean, true or false,  should not be in UI and set it to 0 at post (not let it be the value how we got it from the API?)
+    // }, // Boolean, true or false, should not be displayed/visible in UI
     {
       label: 'Allow Text Splitter',
       value: table.allowTextSplitter,
