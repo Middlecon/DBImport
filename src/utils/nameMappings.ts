@@ -245,7 +245,7 @@ export const nameReverseMappings: {
   },
   'ETL Type': {
     'Truncate and Insert': EtlType.TruncateAndInsert,
-    'Insert Only': EtlType.InsertOnly,
+    'Insert only': EtlType.InsertOnly,
     Merge: EtlType.Merge,
     'Merge with History Audit': EtlType.MergeHistoryAudit,
     'Only create external table': EtlType.External,
