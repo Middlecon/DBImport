@@ -83,7 +83,8 @@ function Import() {
                 title="+ Create table"
                 onClick={() => setModalOpen(true)}
                 fontFamily={`'Work Sans Variable', sans-serif`}
-                fontSize="16px"
+                fontSize="14px"
+                padding="4px 13px 7.5px 9px"
               />
             )}
             <Dropdown
@@ -97,6 +98,7 @@ function Import() {
               initialTitle={selectedDatabase || 'Select DB'}
               leftwards={true}
               chevron={true}
+              placeholder="Search for db..."
             />
           </div>
         </div>
@@ -113,6 +115,7 @@ function Import() {
             <Outlet context={outletContext} />
             {isModalOpen && (
               <CreateTableModal
+                database={database}
                 onSave={handleSave}
                 onClose={() => setModalOpen(false)}
               />

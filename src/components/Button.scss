@@ -1,10 +1,11 @@
 .dark-button,
 .light-button {
   min-width: 54px;
-  padding: 7.5px 12px;
+  padding: 4px 12px 9px 12px;
   border-radius: 10px;
   display: flex;
   justify-content: center;
+  align-items: center;
   cursor: pointer;
 }
 
@@ -18,4 +19,8 @@
   background-color: rgb(43, 62, 111);
   color: rgb(255, 255, 255);
   border: none;
+}
+
+.button-title {
+  height: 14px;
 }

@@ -1,0 +1,33 @@
+.setting-grouping-space {
+  height: 20px;
+  width: 100%;
+}
+
+.radio-edit {
+  label {
+    margin-right: 40px;
+  }
+  .label-default-from-config {
+    margin-right: 0;
+  }
+}
+
+.table-input-fields-label-disabled {
+  color: rgb(174, 174, 174);
+}
+
+.table-input-fields-text-input {
+  border: 0.5px solid rgb(42, 42, 42);
+  width: calc(100% - 217px);
+}
+
+.table-input-fields-number-input {
+  max-width: 120px;
+  margin-right: 5px;
+}
+
+.table-input-fields-changed {
+  background-color: blue;
+  width: 20px;
+  color: crimson;
+}

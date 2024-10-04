@@ -8,6 +8,7 @@ interface ButtonProps {
   lightStyle?: boolean
   fontFamily?: string
   fontSize?: string
+  padding?: string
 }
 
 function Button({
@@ -16,7 +17,8 @@ function Button({
   onClick,
   lightStyle = false,
   fontFamily,
-  fontSize
+  fontSize,
+  padding
 }: ButtonProps) {
   const style: React.CSSProperties = {}
   if (fontFamily) {
@@ -26,14 +28,20 @@ function Button({
     style.fontSize = fontSize
   }
 
+  const buttonStyle: React.CSSProperties = {
+    fontFamily: fontFamily,
+    fontSize: fontSize,
+    padding: padding
+  }
+
   return (
     <button
       type={type}
       className={lightStyle ? 'light-button' : 'dark-button'}
       onClick={onClick}
-      style={style}
+      style={buttonStyle}
     >
-      {title}
+      <div className="button-title">{title}</div>
     </button>
   )
 }

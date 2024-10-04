@@ -1,10 +1,12 @@
 .dropdown {
   position: relative;
   width: min-content;
+  font-size: 14px;
 
   .dropdown-selected-item {
     width: 100%;
-    padding: 8px 12px;
+    height: 100%;
+    padding: 7.5px 12px;
     background-color: rgb(43, 62, 111);
     // background-color: #2b66ca;
     color: rgb(255, 255, 255);
@@ -16,7 +18,7 @@
     cursor: pointer;
     white-space: nowrap;
     box-sizing: border-box;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .chevron-container {

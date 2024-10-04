@@ -19,6 +19,7 @@ interface DropdownProps<T> {
   leftwards?: boolean
   backgroundColor?: string
   textColor?: string
+  fontSize?: string
   border?: string
   borderRadius?: string
   height?: string
@@ -41,6 +42,7 @@ function Dropdown<T>({
   leftwards,
   backgroundColor,
   textColor,
+  fontSize,
   border,
   borderRadius,
   height,
@@ -111,6 +113,7 @@ function Dropdown<T>({
   const dropdownStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     color: textColor,
+    fontSize: fontSize,
     border: border,
     borderRadius: borderRadius,
     height: height,

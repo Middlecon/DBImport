@@ -1,7 +1,7 @@
 .radio-dropdown {
   position: relative;
   width: min-content;
-  max-height: 14px;
+  // max-height: 14px;
 
   .checkbox {
     margin-right: 8px;
@@ -9,17 +9,17 @@
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #999;
+    width: 13px;
+    height: 13px;
+    border: 1px solid #8f8f8f;
     border-radius: 50%;
     outline: none;
     transition: border-color 0.2s ease-in-out;
 
     &:checked {
-      border-color: #2b3e6f;
-      background-color: #2b3e6f;
-      box-shadow: inset 0 0 0 3px #fff;
+      border-color: #8f8f8f;
+      background-color: #434343;
+      box-shadow: inset 0 0 0 3px #ffffff;
     }
   }
 
@@ -28,6 +28,8 @@
     padding: 6px 12px;
     background-color: rgb(99, 104, 118);
     color: rgb(255, 255, 255);
+    font-size: 14px;
+
     // background-color: rgb(43, 62, 111);
     // color: rgb(255, 255, 255);
     border: none;
@@ -114,7 +116,7 @@
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 8px 7px 8px 12px;
+    padding: 5px 7px 6px 12px;
     box-sizing: border-box;
   }
 

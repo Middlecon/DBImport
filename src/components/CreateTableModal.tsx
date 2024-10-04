@@ -15,6 +15,7 @@ import { getEnumOptions } from '../utils/nameMappings'
 import './EditTableModal.scss'
 
 interface CreateTableModalProps {
+  database: string
   onSave: (newTableData: TableSetting[]) => void
   onClose: () => void
 }
@@ -43,57 +44,65 @@ interface CreateTableModalProps {
 //   etlEngine: EtlEngine.Spark
 // }
 
-const settings: TableSetting[] = [
-  { label: 'Database', value: '', type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
-  { label: 'Table', value: '', type: SettingType.Text }, // Free-text, read-only
-  {
-    label: '',
-    value: '',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    label: 'Connection',
-    value: '',
-    type: SettingType.ConnectionReference
-  }, // Reference to /connection
-  {
-    label: 'Source Schema',
-    value: '',
-    type: SettingType.Text
-  }, // Free-text setting
-  { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
-  {
-    label: '',
-    value: '',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    label: 'Import Type',
-    value: '',
-    type: SettingType.Enum,
-    enumOptions: getEnumOptions('importPhaseType')
-  }, // Enum mapping for 'Import Type'
-  {
-    label: 'ETL Type',
-    value: '',
-    type: SettingType.Enum,
-    enumOptions: getEnumOptions('etlPhaseType')
-  }, // Enum mapping for 'ETL Type'
-  {
-    label: 'Import Tool',
-    value: '',
-    type: SettingType.Enum,
-    enumOptions: getEnumOptions('importTool')
-  }, // Enum mapping for 'Import Tool'
-  {
-    label: 'ETL Engine',
-    value: '',
-    type: SettingType.Enum,
-    enumOptions: getEnumOptions('etlEngine')
-  } // Enum mapping for 'ETL Engine'
-]
+function initialCreateTableSeetings(database: string) {
+  const settings: TableSetting[] = [
+    { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
+    { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Connection',
+      value: 'Select...',
+      type: SettingType.ConnectionReference
+    }, // Reference to /connection
+    {
+      label: 'Source Schema',
+      value: null,
+      type: SettingType.Text
+    }, // Free-text setting
+    { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Import Type',
+      value: 'Select...',
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType')
+    }, // Enum mapping for 'Import Type'
+    {
+      label: 'ETL Type',
+      value: 'Select...',
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType')
+    }, // Enum mapping for 'ETL Type'
+    {
+      label: 'Import Tool',
+      value: 'Select...',
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool')
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Engine',
+      value: 'Select...',
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine')
+    } // Enum mapping for 'ETL Engine'
+  ]
+  return settings
+}
 
-function CreateTableModal({ onSave, onClose }: CreateTableModalProps) {
+function CreateTableModal({
+  database,
+  onSave,
+  onClose
+}: CreateTableModalProps) {
+  const settings = initialCreateTableSeetings(database)
   const { data: connectionsData } = useConnections()
   const connectionNames = useMemo(
     () => connectionsData?.map((connection) => connection.name) ?? [],
@@ -108,7 +117,9 @@ function CreateTableModal({ onSave, onClose }: CreateTableModalProps) {
     index: number,
     newValue: string | number | boolean | null
   ) => {
+    // Creates a new array, copying all elements of editedSettings
     const newSettings = [...editedSettings]
+
     const currentValue = newSettings[index].value
 
     // Only stores previous value if it's a whole number
@@ -133,10 +144,47 @@ function CreateTableModal({ onSave, onClose }: CreateTableModalProps) {
       }
     }
 
-    // Sets the new value
-    newSettings[index].value = newValue
+    // Creates a new object for the setting being updated
+    const updatedSetting = { ...newSettings[index], value: newValue }
+
+    // Replaces the old object in the array with the new object
+    newSettings[index] = updatedSetting
     setEditedSettings(newSettings)
   }
+
+  // const handleInputChange = (
+  //   index: number,
+  //   newValue: string | number | boolean | null
+  // ) => {
+  //   const newSettings = [...editedSettings]
+  //   const currentValue = newSettings[index].value
+
+  //   // Only stores previous value if it's a whole number
+  //   if (newValue === -1) {
+  //     if (
+  //       typeof currentValue === 'number' &&
+  //       currentValue !== -1 &&
+  //       Number.isInteger(currentValue)
+  //     ) {
+  //       setPrevValue(currentValue)
+  //     }
+  //   }
+
+  //   // Stores previous value if it's a whole number when newValue is null
+  //   if (newValue === null) {
+  //     if (
+  //       typeof currentValue === 'number' &&
+  //       currentValue !== null &&
+  //       Number.isInteger(currentValue)
+  //     ) {
+  //       setPrevValue(currentValue)
+  //     }
+  //   }
+
+  //   // Sets the new value
+  //   newSettings[index].value = newValue
+  //   setEditedSettings(newSettings)
+  // }
 
   const handleSelect = (item: string | number | boolean, keyLabel?: string) => {
     const index = editedSettings.findIndex(
@@ -153,7 +201,7 @@ function CreateTableModal({ onSave, onClose }: CreateTableModalProps) {
         (es) => es.label === setting.label
       )
 
-      return editedSetting ? editedSetting : setting
+      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
     onSave(newTableSettings)

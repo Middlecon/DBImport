@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Dropdown from '../components/Dropdown'
 import { TableSetting } from './interfaces'
+import './TableInputFields.scss'
 
 interface TableInputFieldsProps {
   index: number
@@ -64,7 +65,7 @@ function TableInputFields({
             </label>
           </div>
           {/* {isChanged && (
-            <span className="edit-table-modal-changed">Changed</span>
+            <span className="table-input-fields-changed">Changed</span>
           )} */}
         </>
       )
@@ -192,13 +193,13 @@ function TableInputFields({
           <>
             <label
               className={
-                isCustomQueryDisabled ? 'edit-table-modal-label-disabled' : ''
+                isCustomQueryDisabled ? 'table-input-fields-label-disabled' : ''
               }
             >
               {setting.label}:
             </label>
             <input
-              className="edit-table-modal-text-input"
+              className="table-input-fields-text-input"
               type="text"
               value={setting.value ? String(setting.value) : ''}
               onChange={(e) => handleInputChange(index, e.target.value)}
@@ -211,7 +212,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="edit-table-modal-text-input"
+            className="table-input-fields-text-input"
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(e) => handleInputChange(index, e.target.value)}
@@ -240,6 +241,7 @@ function TableInputFields({
             initialTitle={String(setting.value)}
             backgroundColor="inherit"
             textColor="black"
+            fontSize="14px"
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
@@ -273,6 +275,7 @@ function TableInputFields({
             initialTitle={String(setting.value)}
             backgroundColor="inherit"
             textColor="black"
+            fontSize="14px"
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
@@ -291,7 +294,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="edit-table-modal-number-input"
+            className="table-input-fields-number-input"
             type="number"
             value={
               setting.value !== null && setting.value !== undefined
@@ -342,7 +345,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="edit-table-modal-number-input"
+            className="table-input-fields-number-input"
             type="number"
             value={
               setting.value !== null && setting.value !== undefined
@@ -379,7 +382,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="edit-table-modal-number-input"
+              className="table-input-fields-number-input"
               type="number"
               value={
                 setting.value === -1
@@ -434,7 +437,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="edit-table-modal-number-input"
+              className="table-input-fields-number-input"
               type="number"
               value={
                 setting.value === -1 || setting.value === 0
@@ -489,7 +492,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="edit-table-modal-number-input"
+              className="table-input-fields-number-input"
               type="number"
               value={
                 setting.value === null
