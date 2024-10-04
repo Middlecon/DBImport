@@ -32,16 +32,20 @@ function Card({
   const handleCloseModal = () => setIsEditModalOpen(false)
 
   const handleSave = (updatedSettings: TableSetting[]) => {
+    const tableDataCopy = { ...tableData }
+    const editedTableData = updateTableData(tableDataCopy, updatedSettings)
     const editedTableData = updateTableData(tableData, updatedSettings)
 
+    queryClient.setQueryData(['table', tableParam], editedTableData)
     updateTable(editedTableData, {
       onSuccess: (response) => {
-        queryClient.invalidateQueries({ queryKey: ['table', tableParam] })
+        queryClient.invalidateQueries({ queryKey: ['table', tableParam] }) // For getting fresh data from database to the cache
         console.log('Update successful', response)
         setIsEditModalOpen(false)
       },
       onError: (error) => {
-        queryClient.invalidateQueries({ queryKey: ['table', tableParam] })
+        queryClient.setQueryData(['table', tableParam], tableData)
+
         console.error('Error updating table', error)
       }
     })

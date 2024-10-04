@@ -28,7 +28,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     [connectionsData]
   )
 
-  const [originalSettings] = useState(editableSettings)
+  const [originalEditableSettings] = useState(editableSettings)
   const [editedSettings, setEditedSettings] = useState(editableSettings)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
@@ -44,7 +44,9 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     index: number,
     newValue: string | number | boolean | null
   ) => {
+    // Creates a new array, copying all elements of editedSettings
     const newSettings = [...editedSettings]
+
     const currentValue = newSettings[index].value
 
     // Only stores previous value if it's a whole number
@@ -69,8 +71,11 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
       }
     }
 
-    // Sets the new value
-    newSettings[index].value = newValue
+    // Creates a new object for the setting being updated
+    const updatedSetting = { ...newSettings[index], value: newValue }
+
+    // Replaces the old object in the array with the new object
+    newSettings[index] = updatedSetting
     setEditedSettings(newSettings)
   }
 
@@ -92,12 +97,13 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   const handleSave = () => {
+    // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
     const updatedSettings = settings.map((setting) => {
       const editedSetting = editedSettings.find(
         (es) => es.label === setting.label
       )
 
-      return editedSetting ? editedSetting : setting
+      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
     onSave(updatedSettings)
@@ -109,7 +115,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   const handleConfirmCancel = () => {
-    setEditedSettings(originalSettings)
+    setEditedSettings(originalEditableSettings)
     setShowConfirmation(false)
     onClose()
   }
