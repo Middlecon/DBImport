@@ -20,12 +20,16 @@
     margin: 4px 0 0 10px;
   }
 
+  .menu-options {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   ul {
     display: flex;
     flex-direction: column;
-    // align-items: center;
-    margin-top: 50px;
-    margin-left: 20%;
+    margin-top: 40px;
     padding: 0;
     list-style: none;
 

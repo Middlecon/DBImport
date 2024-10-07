@@ -1,14 +1,15 @@
 import ChevronDoubleLeft from '../assets/icons/ChevronDoubleLeft'
 import ImportIcon from '../assets/icons/ImportIcon'
 import ExportIcon from '../assets/icons/ExportIcon'
-import LogoWithText from './LogoWithText'
-
-import './MainMenuSidebar.scss'
 import ChevronDoubleRight from '../assets/icons/ChevronDoubleRight'
 import { NavLink } from 'react-router-dom'
 import ApacheAirflowIcon from '../assets/icons/ApacheAirflowIcon'
 import ConnectionIcon from '../assets/icons/ConnectionIcon'
 import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
+// import DBImportIconTextLogo from '../assets/icons/DBImportIconTextLogo' // For using the svgs instead of programmed text logo
+// import DBImportIconLogo from '../assets/icons/DBImportIconLogo' // For using the svgs instead of programmed text logo
+import './MainMenuSidebar.scss'
+import LogoWithText from './LogoWithText'
 
 interface MainSidebarProps {
   minimized: boolean
@@ -23,15 +24,20 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
     <>
       <div className={`mainsidebar-root ${minimized ? 'minimized' : ''}`}>
         <div className="mainsidebar-logo-container">
-          <LogoWithText
-            fontSize="10px"
-            logoSize="40px"
-            textMarginTop="4.5%"
-            textMarginLeft="5px"
-            noText={minimized ? true : false}
-          />
+          <LogoWithText size="small" noText={minimized ? true : false} />
+          {/* {minimized ? (
+            <DBImportIconLogo />
+          ) : (
+            <>
+              <DBImportIconTextLogo size="small" />
+            </>
+          )} */}
         </div>
-        <div>
+        {/* <p style={{ fontSize: '5.5px', color: ' white', marginLeft: 88 }}> // To compare sharpness to logo svg text
+          Powered by
+        </p> */}
+
+        <div className="menu-options">
           <ul>
             <li>
               <NavLink

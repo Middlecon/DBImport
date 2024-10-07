@@ -97,6 +97,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   const handleSave = () => {
+    console.log('settings EditTableModal', settings)
+    console.log('editedSettings', editedSettings)
     // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
     const updatedSettings = settings.map((setting) => {
       const editedSetting = editedSettings.find(
@@ -106,6 +108,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
       return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
+    console.log('updatedSettings', updatedSettings)
     onSave(updatedSettings)
     onClose()
   }

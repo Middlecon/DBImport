@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './Login.scss'
 import { errorHandling } from '../utils/errorHandling'
 import { useNavigate } from 'react-router-dom'
+// import DBImportIconTextLogo from '../assets/icons/DBImportIconTextLogo'
 import LogoWithText from '../components/LogoWithText'
 // import { getCookie } from '../utils/cookies'
 
@@ -25,7 +26,7 @@ function LogIn() {
     [errorMessage, setErrorMessage] = useState('')
   const navigate = useNavigate()
 
-  // For redirecting to / if there alredy are a tooken
+  // For redirecting from login to / if there alredy are a tooken
   // const authToken = getCookie('DBI_auth_token')
   // useEffect(() => {
   //   if (authToken) {
@@ -91,11 +92,13 @@ function LogIn() {
   return (
     <div className="login-root">
       <div className="login-container">
-        <LogoWithText fontSize="30px" logoSize="100px" textMarginTop="1%" />
+        {/* <DBImportIconTextLogo size="big" /> */}
+        <LogoWithText size="big" />
+
         <div className="login-form">
           <h2>Log in</h2>
           <form onSubmit={handleSubmit}>
-            <div>
+            <div className="input-container">
               <label htmlFor="username">Username: </label>
               <input
                 id="username"
@@ -108,7 +111,7 @@ function LogIn() {
                 required
               />
             </div>
-            <div>
+            <div className="input-container">
               <label htmlFor="password">Password: </label>
               <input
                 id="password"
