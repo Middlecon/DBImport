@@ -50,12 +50,6 @@ export const router = createBrowserRouter([
           {
             path: 'statistics',
             element: <TableStatistics />
-          },
-
-          // Wildcard route to catch unmatched paths
-          {
-            path: '*',
-            element: <Navigate to="settings" replace />
           }
         ]
       },
@@ -75,6 +69,11 @@ export const router = createBrowserRouter([
       {
         path: '/configuration',
         element: <div>Configuration</div>
+      },
+      // Wildcard route to catch unmatched paths
+      {
+        path: '*',
+        element: <Navigate to="/" replace />
       }
     ]
   }
