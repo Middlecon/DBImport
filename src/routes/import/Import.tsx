@@ -8,8 +8,8 @@ import Button from '../../components/Button'
 import CreateTableModal from '../../components/CreateTableModal'
 import { TableSetting } from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
-// import { useCreateTable } from '../../utils/mutations'
-// import { useQueryClient } from '@tanstack/react-query'
+import { useCreateTable } from '../../utils/mutations'
+import { useQueryClient } from '@tanstack/react-query'
 
 function Import() {
   const { data, isLoading } = useDatabases()
@@ -23,8 +23,8 @@ function Import() {
   const navigate = useNavigate()
   const { database } = useParams<{ database: string }>()
   const { data: tables } = useDbTables(database ? database : null)
-  // const { mutate: createTable } = useCreateTable()
-  // const queryClient = useQueryClient()
+  const { mutate: createTable } = useCreateTable()
+  const queryClient = useQueryClient()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
@@ -71,18 +71,18 @@ function Import() {
     const newTable = createTableData(newTableData)
     console.log('newTable', newTable)
 
-    // createTable(newTable, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({
-    //       queryKey: ['tables', newTable.database]
-    //     })
-    //     console.log('Update successful', response)
-    //     setCreateModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    //     console.error('Error updating table', error)
-    //   }
-    // })
+    createTable(newTable, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['tables', newTable.database]
+        })
+        console.log('Update successful', response)
+        setCreateModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error updating table', error)
+      }
+    })
   }
 
   return (

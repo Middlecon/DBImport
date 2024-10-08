@@ -1,17 +1,21 @@
 import { useMemo, useState } from 'react'
 import {
+  EtlEngine,
+  EtlType,
+  ImportTool,
+  ImportType,
   // EtlEngine,
   // EtlType,
   // ImportTool,
   // ImportType,
   SettingType
 } from '../utils/enums'
-import { TableSetting } from '../utils/interfaces'
+import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
-import { getEnumOptions } from '../utils/nameMappings'
+import { getEnumOptions, mapDisplayValue } from '../utils/nameMappings'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './TableModals.scss'
 
@@ -50,6 +54,58 @@ function initialCreateTableSeetings(
   database: string,
   prefilledConnection: string
 ) {
+  //   const settings: TableSetting[] = [
+  //     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
+  //     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
+  //     {
+  //       label: '',
+  //       value: '',
+  //       type: SettingType.GroupingSpace
+  //     }, // Layout space
+  //     {
+  //       label: 'Connection',
+  //       value: prefilledConnection,
+  //       type: SettingType.ConnectionReference
+  //     }, // Reference to /connection
+  //     {
+  //       label: 'Source Schema',
+  //       value: null,
+  //       type: SettingType.Text
+  //     }, // Free-text setting
+  //     { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
+  //     {
+  //       label: '',
+  //       value: '',
+  //       type: SettingType.GroupingSpace
+  //     }, // Layout space
+  //     {
+  //       label: 'Import Type',
+  //       value: 'Full',
+  //       type: SettingType.Enum,
+  //       enumOptions: getEnumOptions('importPhaseType')
+  //     }, // Enum mapping for 'Import Type'
+  //     {
+  //       label: 'ETL Type',
+  //       value: 'Truncate and Insert',
+  //       type: SettingType.Enum,
+  //       enumOptions: getEnumOptions('etlPhaseType')
+  //     }, // Enum mapping for 'ETL Type'
+  //     {
+  //       label: 'Import Tool',
+  //       value: 'Spark',
+  //       type: SettingType.Enum,
+  //       enumOptions: getEnumOptions('importTool')
+  //     }, // Enum mapping for 'Import Tool'
+  //     {
+  //       label: 'ETL Engine',
+  //       value: 'Spark',
+  //       type: SettingType.Enum,
+  //       enumOptions: getEnumOptions('etlEngine')
+  //     } // Enum mapping for 'ETL Engine'
+  //   ]
+  //   return settings
+  // }
+
   const settings: TableSetting[] = [
     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
@@ -76,25 +132,25 @@ function initialCreateTableSeetings(
     }, // Layout space
     {
       label: 'Import Type',
-      value: 'Full',
+      value: mapDisplayValue('importPhaseType', ImportType.Full),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importPhaseType')
     }, // Enum mapping for 'Import Type'
     {
       label: 'ETL Type',
-      value: 'Truncate and Insert',
+      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlPhaseType')
     }, // Enum mapping for 'ETL Type'
     {
       label: 'Import Tool',
-      value: 'Spark',
+      value: mapDisplayValue('importTool', ImportTool.Spark),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool')
     }, // Enum mapping for 'Import Tool'
     {
       label: 'ETL Engine',
-      value: 'Spark',
+      value: mapDisplayValue('etlEngine', EtlEngine.Spark),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine')
     } // Enum mapping for 'ETL Engine'
@@ -132,7 +188,7 @@ function CreateTableModal({
 
   const handleInputChange = (
     index: number,
-    newValue: string | number | boolean | null
+    newValue: TableSettingsValueTypes | null
   ) => {
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
@@ -146,7 +202,7 @@ function CreateTableModal({
     setEditedSettings(updatedSettings)
   }
 
-  const handleSelect = (item: string | number | boolean, keyLabel?: string) => {
+  const handleSelect = (item: TableSettingsValueTypes, keyLabel?: string) => {
     const index = editedSettings.findIndex(
       (setting) => setting.label === keyLabel
     )

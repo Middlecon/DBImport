@@ -10,7 +10,7 @@ import {
   ValidateSource,
   ValidationMethod
 } from './enums'
-import { Columns, UITable } from './interfaces'
+import { Columns, TableCreateMapped, UITable } from './interfaces'
 
 export type FilterMapping = { [key: string]: string }
 
@@ -69,6 +69,67 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   }
 }
 
+// export const importTypeMetadata = {
+//   importPhaseType: {
+//     [ImportType.Full]: { key: 'importPhaseType', display: 'Full' },
+//     [ImportType.Incremental]: {
+//       key: 'importPhaseType',
+//       display: 'Incremental'
+//     },
+//     [ImportType.OracleFlashback]: {
+//       key: 'importPhaseType',
+//       display: 'Incremental'
+//     },
+//     [ImportType.MSSQLChangeTracking]: 'MSSQL Change Tracking'
+//   },
+//   etlPhaseType: {
+//     [EtlType.TruncateAndInsert]: 'Truncate and Insert',
+//     [EtlType.InsertOnly]: 'Insert only',
+//     [EtlType.Merge]: 'Merge',
+//     [EtlType.MergeHistoryAudit]: 'Merge with History Audit',
+//     [EtlType.External]: 'Only create external table',
+//     [EtlType.None]: 'None'
+//   },
+//   importTool: {
+//     [ImportTool.Spark]: 'Spark',
+//     [ImportTool.Sqoop]: 'Sqoop'
+//   },
+//   etlEngine: {
+//     [EtlEngine.Hive]: 'Hive',
+//     [EtlEngine.Spark]: 'Spark'
+//   },
+//   validationMethod: {
+//     [ValidationMethod.CustomQuery]: 'Custom Query',
+//     [ValidationMethod.RowCount]: 'Row Count'
+//   },
+//   validateSource: {
+//     [ValidateSource.Query]: 'Query before import',
+//     [ValidateSource.Sqoop]: 'Imported rows'
+//   },
+//   incrMode: {
+//     [IncrMode.Append]: 'Append',
+//     [IncrMode.LastModified]: 'Last modified'
+//   },
+//   incrValidationMethod: {
+//     [IncrValidationMethod.Full]: 'Full',
+//     [IncrValidationMethod.Incremental]: 'Incremental'
+//   },
+//   mergeCompactionMethod: {
+//     [MergeCompactionMethod.Default]: 'Default',
+//     [MergeCompactionMethod.None]: 'None',
+//     [MergeCompactionMethod.Minor]: 'Minor Compaction',
+//     [MergeCompactionMethod.MinorAndWait]: 'Minor Compaction and Wait',
+//     [MergeCompactionMethod.Major]: 'Major Compaction',
+//     [MergeCompactionMethod.MajorAndWait]: 'Major Compaction and Wait'
+//   },
+//   anonymizationFunction: {
+//     [AnonymizationFunction.None]: 'None',
+//     [AnonymizationFunction.Hash]: 'Hash',
+//     [AnonymizationFunction.ReplaceWithStar]: 'Replace with star',
+//     [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
+//   }
+// }
+
 export const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
 
 export const mapDisplayValue = (key: string, value: string): string => {
@@ -122,6 +183,64 @@ export const reverseNameMappings: { [key: string]: FilterMapping } = {
     'Major Compaction': MergeCompactionMethod.Major,
     'Major Compaction and Wait': MergeCompactionMethod.MajorAndWait
   }
+}
+
+export const labelToKeyMap: Record<
+  string,
+  keyof Omit<TableCreateMapped, 'columns'>
+> = {
+  Database: 'database',
+  Table: 'table',
+  Connection: 'connection',
+  'Source Schema': 'sourceSchema',
+  'Source Table': 'sourceTable',
+  'Import Type': 'importPhaseType',
+  'ETL Type': 'etlPhaseType',
+  'Import Tool': 'importTool',
+  'ETL Engine': 'etlEngine',
+  'Last Update From Source': 'lastUpdateFromSource',
+  'SQL Where Addition': 'sqlWhereAddition',
+  'No Merge Ingestion SQL Addition': 'nomergeIngestionSqlAddition',
+  'Include in Airflow': 'includeInAirflow',
+  'Airflow Priority': 'airflowPriority',
+  'Validate Import': 'validateImport',
+  'Validation Method': 'validationMethod',
+  'Validate Source': 'validateSource',
+  'Validate Diff Allowed': 'validateDiffAllowed',
+  'Validation Custom Query Source SQL': 'validationCustomQuerySourceSQL',
+  'Validation Custom Query Hive SQL': 'validationCustomQueryHiveSQL',
+  'Validation Custom Query Validate Import Table':
+    'validationCustomQueryValidateImportTable',
+  'Truncate Table': 'truncateTable',
+  Mappers: 'mappers',
+  'Soft Delete During Merge': 'softDeleteDuringMerge',
+  'Incremental Mode': 'incrMode',
+  'Incremental Column': 'incrColumn',
+  'Incremental Validation Method': 'incrValidationMethod',
+  'Primary Key Column Override': 'pkColumnOverride',
+  'Primary Key Column Override Merge Only': 'pkColumnOverrideMergeonly',
+  'Merge Heap': 'mergeHeap',
+  'Split Count': 'splitCount',
+  'Spark Executor Memory': 'sparkExecutorMemory',
+  'Spark Executors': 'sparkExecutors',
+  'Split By Column': 'splitByColumn',
+  'Custom Query': 'customQuery',
+  'Sqoop Options': 'sqoopOptions',
+  'Use Generated SQL': 'useGeneratedSql',
+  'Allow Text Splitter': 'allowTextSplitter',
+  'Force String': 'forceString',
+  Comment: 'comment',
+  'Datalake Source': 'datalakeSource',
+  'Operator Notes': 'operatorNotes',
+  'Create Foreign Keys': 'createForeignKeys',
+  'Invalidate Impala': 'invalidateImpala',
+  'Custom Max Query': 'customMaxQuery',
+  'Merge Compaction Method': 'mergeCompactionMethod',
+  'Source Table Type': 'sourceTableType',
+  'Import Database': 'importDatabase',
+  'Import Table': 'importTable',
+  'History Database': 'historyDatabase',
+  'History Table': 'historyTable'
 }
 
 export const labelToUITableKey: { [label: string]: keyof UITable } = {

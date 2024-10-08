@@ -1,6 +1,5 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
-import { useParams } from 'react-router-dom'
 import {
   Connection,
   Database,
@@ -57,20 +56,13 @@ const getDbTables = async (database: string) => {
   return response.data
 }
 
-export const useDbTables = (): UseQueryResult<UiDbTable[], Error> => {
-  const { database } = useParams<{ database: string }>()
-
+export const useDbTables = (
+  database: string | null
+): UseQueryResult<UiDbTable[], Error> => {
   return useQuery({
     queryKey: ['tables', database],
     queryFn: async () => {
-      if (!database) {
-        throw new Error(
-          'Can not fetch database tables because database params is not defined'
-        )
-      }
-
-      const data: DbTable[] = await getDbTables(database)
-
+      const data: DbTable[] = await getDbTables(database!) // We are sure that database is not null here because of the enabled flag
       return data.map(
         (row: {
           etlPhaseType: string
@@ -92,7 +84,8 @@ export const useDbTables = (): UseQueryResult<UiDbTable[], Error> => {
         })
       )
     },
-    enabled: !!database
+    enabled: !!database,
+    refetchOnWindowFocus: false
   })
 }
 

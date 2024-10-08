@@ -1,4 +1,5 @@
 import {
+  AnonymizationFunction,
   EtlEngine,
   EtlType,
   ImportTool,
@@ -199,7 +200,7 @@ export interface UITable {
   columns: Columns[]
 }
 
-export interface TableCreateUpdate {
+export interface TableUpdate {
   database: string
   table: string
   connection: string
@@ -254,6 +255,183 @@ export interface TableCreateUpdate {
   columns: Columns[]
 }
 
+// // Without includeInAirflow:
+// export interface TableCreateWithoutEnum {
+//   database: string
+//   table: string
+//   connection: string
+//   sourceSchema: string
+//   sourceTable: string
+//   importPhaseType: string
+//   etlPhaseType: string
+//   importTool: string
+//   etlEngine: string
+//   lastUpdateFromSource: null
+//   sqlWhereAddition: null
+//   nomergeIngestionSqlAddition: null
+//   airflowPriority: null
+//   validateImport: null
+//   validationMethod: null
+//   validateSource: null
+//   validateDiffAllowed: null
+//   validationCustomQuerySourceSQL: null
+//   validationCustomQueryHiveSQL: null
+//   validationCustomQueryValidateImportTable: null
+//   truncateTable: null
+//   mappers: null
+//   softDeleteDuringMerge: null
+//   incrMode: null
+//   incrColumn: null
+//   incrValidationMethod: null
+//   pkColumnOverride: null
+//   pkColumnOverrideMergeonly: null
+//   mergeHeap: null
+//   splitCount: null
+//   sparkExecutorMemory: null
+//   sparkExecutors: null
+//   splitByColumn: null
+//   customQuery: null
+//   sqoopOptions: null
+//   useGeneratedSql: null
+//   allowTextSplitter: null
+//   forceString: null
+//   comment: null
+//   datalakeSource: null
+//   operatorNotes: null
+//   createForeignKeys: null
+//   invalidateImpala: null
+//   customMaxQuery: null
+//   mergeCompactionMethod: null
+//   sourceTableType: null
+//   importDatabase: null
+//   importTable: null
+//   historyDatabase: null
+//   historyTable: null
+//   columns: []
+// }
+
+// With includeInAirflow:
+export interface TableCreateWithoutEnum {
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+  importPhaseType: string
+  etlPhaseType: string
+  importTool: string
+  etlEngine: string
+  lastUpdateFromSource: null
+  sqlWhereAddition: null
+  nomergeIngestionSqlAddition: null
+  includeInAirflow: null
+  airflowPriority: null
+  validateImport: null
+  validationMethod: null
+  validateSource: null
+  validateDiffAllowed: null
+  validationCustomQuerySourceSQL: null
+  validationCustomQueryHiveSQL: null
+  validationCustomQueryValidateImportTable: null
+  truncateTable: null
+  mappers: null
+  softDeleteDuringMerge: null
+  incrMode: null
+  incrColumn: null
+  incrValidationMethod: null
+  pkColumnOverride: null
+  pkColumnOverrideMergeonly: null
+  mergeHeap: null
+  splitCount: null
+  sparkExecutorMemory: null
+  sparkExecutors: null
+  splitByColumn: null
+  customQuery: null
+  sqoopOptions: null
+  useGeneratedSql: null
+  allowTextSplitter: null
+  forceString: null
+  comment: null
+  datalakeSource: null
+  operatorNotes: null
+  createForeignKeys: null
+  invalidateImpala: null
+  customMaxQuery: null
+  mergeCompactionMethod: null
+  sourceTableType: null
+  importDatabase: null
+  importTable: null
+  historyDatabase: null
+  historyTable: null
+  columns: []
+}
+
+export interface TableCreate {
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+  importPhaseType: ImportType
+  etlPhaseType: EtlType
+  importTool: ImportTool
+  etlEngine: EtlEngine
+  lastUpdateFromSource: null
+  sqlWhereAddition: null
+  nomergeIngestionSqlAddition: null
+  includeInAirflow: null
+  airflowPriority: null
+  validateImport: null
+  validationMethod: null
+  validateSource: null
+  validateDiffAllowed: null
+  validationCustomQuerySourceSQL: null
+  validationCustomQueryHiveSQL: null
+  validationCustomQueryValidateImportTable: null
+  truncateTable: null
+  mappers: null
+  softDeleteDuringMerge: null
+  incrMode: null
+  incrColumn: null
+  incrValidationMethod: null
+  pkColumnOverride: null
+  pkColumnOverrideMergeonly: null
+  mergeHeap: null
+  splitCount: null
+  sparkExecutorMemory: null
+  sparkExecutors: null
+  splitByColumn: null
+  customQuery: null
+  sqoopOptions: null
+  useGeneratedSql: null
+  allowTextSplitter: null
+  forceString: null
+  comment: null
+  datalakeSource: null
+  operatorNotes: null
+  createForeignKeys: null
+  invalidateImpala: null
+  customMaxQuery: null
+  mergeCompactionMethod: null
+  sourceTableType: null
+  importDatabase: null
+  importTable: null
+  historyDatabase: null
+  historyTable: null
+  columns: Columns[]
+}
+
+export type TableCreateMapped = {
+  [K in keyof Omit<TableCreate, 'columns'>]: TableCreate[K]
+} & {
+  columns: Columns[]
+}
+// type TableCreateKey = keyof TableCreate2
+
+// export type TableCreateMapped = {
+//   [K in TableCreateKey]: TableCreate2[K]
+// }
+
 export interface Columns {
   columnName: string
   columnOrder: string
@@ -274,14 +452,39 @@ export interface Columns {
   anonymizationFunction: string
 }
 
+export type EnumTypes =
+  | ImportType
+  | EtlType
+  | ImportTool
+  | EtlEngine
+  | ValidationMethod
+  | ValidateSource
+  | IncrMode
+  | IncrValidationMethod
+  | MergeCompactionMethod
+  | AnonymizationFunction
+
+export type TableSettingsValueTypes = string | number | boolean | EnumTypes
+
 export interface TableSetting {
   label: string
-  value: string | number | boolean | null
+  value: TableSettingsValueTypes | null
   type: SettingType
   isConditionsMet?: boolean
-  enumOptions?: { [key: string]: string } // Maybe not needed here
+  enumOptions?: {
+    [key: string]: string
+  }
   isHidden?: boolean
 }
+
+// export interface TableSetting {
+//   label: string
+//   value: string | number | boolean | null
+//   type: SettingType
+//   isConditionsMet?: boolean
+//   enumOptions?: { [key: string]: string } // Maybe not needed here
+//   isHidden?: boolean
+// }
 
 // Crate table
 
