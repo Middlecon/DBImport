@@ -50,11 +50,6 @@ function Import() {
     }
   }
 
-  const outletContext = {
-    openDropdown,
-    handleDropdownToggle
-  }
-
   const mostCommonConnection = useMemo(() => {
     if (!tables || tables.length < 1) return null
     console.log(' mostCommonConnection tables', tables)
@@ -130,7 +125,7 @@ function Import() {
           </div>
         ) : (
           <>
-            <Outlet context={outletContext} />
+            <Outlet />
             {isCreateModalOpen && mostCommonConnection && (
               <CreateTableModal
                 database={database}

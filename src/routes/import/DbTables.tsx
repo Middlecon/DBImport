@@ -16,7 +16,7 @@ import {
   mapDisplayValue,
   reverseMapDisplayValue
 } from '../../utils/nameMappings'
-import { useOutletContext } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import EditTableModal from '../../components/EditTableModal'
 import { SettingType } from '../../utils/enums'
 import { updateTableData } from '../../utils/dataFunctions'
@@ -91,17 +91,14 @@ const radioFilters = [
 //   }
 // ]
 
-interface OutletContextType {
-  openDropdown: string | null
-  handleDropdownToggle: (dropdownId: string, isOpen: boolean) => void
-}
-
 function DbTables() {
-  const { data } = useDbTables()
+  const { database } = useParams<{ database: string }>()
+  const { data } = useDbTables(database ? database : null)
   const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
 
@@ -109,8 +106,13 @@ function DbTables() {
     [key: string]: string[]
   }>({})
 
-  const { openDropdown, handleDropdownToggle } =
-    useOutletContext<OutletContextType>()
+  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
+    if (isOpen) {
+      setOpenDropdown(dropdownId)
+    } else if (openDropdown === dropdownId) {
+      setOpenDropdown(null)
+    }
+  }
 
   const handleSelect = (filterKey: string, items: string[]) => {
     setSelectedFilters((prevFilters) => ({
