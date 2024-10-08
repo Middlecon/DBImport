@@ -11,7 +11,7 @@ interface TableInputFieldsProps {
     newValue: string | number | boolean | null
   ) => void
   handleSelect: (item: string | number | boolean, keyLabel?: string) => void
-  prevValue: string | number | boolean
+  prevValue?: string | number | boolean
   connectionNames?: 'string'[]
   isCustomQueryDisabled?: boolean
 }
@@ -21,13 +21,20 @@ function TableInputFields({
   index,
   handleInputChange,
   handleSelect,
-  prevValue,
+  prevValue = '',
   isCustomQueryDisabled = true,
   connectionNames
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-
+  // console.log('setting', setting)
   const dropdownId = `dropdown-${index}`
+  const isRequired =
+    setting.label === 'Database' ||
+    setting.label === 'Table' ||
+    setting.label === 'Source Schema' ||
+    setting.label === 'Source Table'
+
+  const showRequiredIndicator = isRequired && !setting.value
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -210,12 +217,21 @@ function TableInputFields({
       }
       return (
         <>
-          <label>{setting.label}:</label>
+          <label>
+            {setting.label}:{' '}
+            {showRequiredIndicator && (
+              <span style={{ color: 'red' }}>
+                *{/* <span style={{ fontSize: 11 }}> required</span> */}
+              </span>
+            )}
+          </label>
+
           <input
             className="table-input-fields-text-input"
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(e) => handleInputChange(index, e.target.value)}
+            required={isRequired}
           />
         </>
       )

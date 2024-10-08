@@ -12,10 +12,12 @@ import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import { getEnumOptions } from '../utils/nameMappings'
-import './EditTableModal.scss'
+import RequiredFieldsInfo from './RequiredFieldsInfo'
+import './TableModals.scss'
 
 interface CreateTableModalProps {
   database: string
+  prefilledConnection: string
   onSave: (newTableData: TableSetting[]) => void
   onClose: () => void
 }
@@ -44,7 +46,10 @@ interface CreateTableModalProps {
 //   etlEngine: EtlEngine.Spark
 // }
 
-function initialCreateTableSeetings(database: string) {
+function initialCreateTableSeetings(
+  database: string,
+  prefilledConnection: string
+) {
   const settings: TableSetting[] = [
     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
@@ -55,7 +60,7 @@ function initialCreateTableSeetings(database: string) {
     }, // Layout space
     {
       label: 'Connection',
-      value: 'Select...',
+      value: prefilledConnection,
       type: SettingType.ConnectionReference
     }, // Reference to /connection
     {
@@ -71,25 +76,25 @@ function initialCreateTableSeetings(database: string) {
     }, // Layout space
     {
       label: 'Import Type',
-      value: 'Select...',
+      value: 'Full',
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importPhaseType')
     }, // Enum mapping for 'Import Type'
     {
       label: 'ETL Type',
-      value: 'Select...',
+      value: 'Truncate and Insert',
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlPhaseType')
     }, // Enum mapping for 'ETL Type'
     {
       label: 'Import Tool',
-      value: 'Select...',
+      value: 'Spark',
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool')
     }, // Enum mapping for 'Import Tool'
     {
       label: 'ETL Engine',
-      value: 'Select...',
+      value: 'Spark',
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine')
     } // Enum mapping for 'ETL Engine'
@@ -99,92 +104,47 @@ function initialCreateTableSeetings(database: string) {
 
 function CreateTableModal({
   database,
+  prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
-  const settings = initialCreateTableSeetings(database)
+  const settings = initialCreateTableSeetings(database, prefilledConnection)
   const { data: connectionsData } = useConnections()
   const connectionNames = useMemo(
     () => connectionsData?.map((connection) => connection.name) ?? [],
     [connectionsData]
   )
 
-  const [editedSettings, setEditedSettings] = useState<TableSetting[]>([])
-  const [prevValue, setPrevValue] = useState<string | number | boolean>('')
+  const [editedSettings, setEditedSettings] = useState<TableSetting[]>(settings)
   const [showConfirmation, setShowConfirmation] = useState(false)
+
+  const isRequiredFieldEmpty = useMemo(() => {
+    const requiredLabels = [
+      'Database',
+      'Table',
+      'Source Schema',
+      'Source Table'
+    ]
+    return editedSettings.some(
+      (setting) => requiredLabels.includes(setting.label) && !setting.value
+    )
+  }, [editedSettings])
 
   const handleInputChange = (
     index: number,
     newValue: string | number | boolean | null
   ) => {
-    // Creates a new array, copying all elements of editedSettings
-    const newSettings = [...editedSettings]
-
-    const currentValue = newSettings[index].value
-
-    // Only stores previous value if it's a whole number
-    if (newValue === -1) {
-      if (
-        typeof currentValue === 'number' &&
-        currentValue !== -1 &&
-        Number.isInteger(currentValue)
-      ) {
-        setPrevValue(currentValue)
-      }
+    if (index < 0 || index >= editedSettings.length) {
+      console.warn(`Invalid index: ${index}`)
+      return
     }
 
-    // Stores previous value if it's a whole number when newValue is null
-    if (newValue === null) {
-      if (
-        typeof currentValue === 'number' &&
-        currentValue !== null &&
-        Number.isInteger(currentValue)
-      ) {
-        setPrevValue(currentValue)
-      }
-    }
+    const updatedSettings = editedSettings.map((setting, i) =>
+      i === index ? { ...setting, value: newValue } : setting
+    )
 
-    // Creates a new object for the setting being updated
-    const updatedSetting = { ...newSettings[index], value: newValue }
-
-    // Replaces the old object in the array with the new object
-    newSettings[index] = updatedSetting
-    setEditedSettings(newSettings)
+    setEditedSettings(updatedSettings)
   }
-
-  // const handleInputChange = (
-  //   index: number,
-  //   newValue: string | number | boolean | null
-  // ) => {
-  //   const newSettings = [...editedSettings]
-  //   const currentValue = newSettings[index].value
-
-  //   // Only stores previous value if it's a whole number
-  //   if (newValue === -1) {
-  //     if (
-  //       typeof currentValue === 'number' &&
-  //       currentValue !== -1 &&
-  //       Number.isInteger(currentValue)
-  //     ) {
-  //       setPrevValue(currentValue)
-  //     }
-  //   }
-
-  //   // Stores previous value if it's a whole number when newValue is null
-  //   if (newValue === null) {
-  //     if (
-  //       typeof currentValue === 'number' &&
-  //       currentValue !== null &&
-  //       Number.isInteger(currentValue)
-  //     ) {
-  //       setPrevValue(currentValue)
-  //     }
-  //   }
-
-  //   // Sets the new value
-  //   newSettings[index].value = newValue
-  //   setEditedSettings(newSettings)
-  // }
 
   const handleSelect = (item: string | number | boolean, keyLabel?: string) => {
     const index = editedSettings.findIndex(
@@ -222,30 +182,32 @@ function CreateTableModal({
   }
 
   return (
-    <div className="edit-table-modal-backdrop">
-      <div className="edit-table-modal-content">
-        <h2 className="edit-table-modal-h2">Create table</h2>
+    <div className="table-modal-backdrop">
+      <div className="table-modal-content">
+        <h2 className="table-modal-h2">Create table</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault()
             handleSave()
           }}
         >
-          <div className="edit-table-modal-body">
-            {settings.map((setting, index) => (
-              <div key={index} className="edit-table-modal-setting">
-                <TableInputFields
-                  index={index}
-                  setting={setting}
-                  handleInputChange={handleInputChange}
-                  handleSelect={handleSelect}
-                  prevValue={prevValue}
-                  connectionNames={connectionNames}
-                />
-              </div>
-            ))}
+          <div className="table-modal-body">
+            {editedSettings &&
+              editedSettings.map((setting, index) => (
+                <div key={index} className="table-modal-setting">
+                  <TableInputFields
+                    index={index}
+                    setting={setting}
+                    handleInputChange={handleInputChange}
+                    handleSelect={handleSelect}
+                    connectionNames={connectionNames}
+                  />
+                </div>
+              ))}
           </div>
-          <div className="edit-table-modal-footer">
+          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+
+          <div className="table-modal-footer">
             <Button
               title="Cancel"
               onClick={handleCancelClick}
@@ -263,15 +225,6 @@ function CreateTableModal({
         />
       )}
     </div>
-    // <div className="confirmation-modal-backdrop">
-    //   <div className="confirmation-modal-content">
-    //     <h3 className="confirmation-modal-h3">Create table</h3>
-    //     <div className="confirmation-modal-footer">
-    //       <Button title="Cancel" onClick={onClose} lightStyle={true} />
-    //       <Button type="submit" title="Save" />
-    //     </div>
-    //   </div>
-    // </div>
   )
 }
 

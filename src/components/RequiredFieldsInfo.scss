@@ -1,0 +1,12 @@
+.required-info,
+.disabled-required-info {
+  color: red;
+  display: flex;
+  justify-content: end;
+  visibility: visible;
+  margin: 25px 0 11px 0;
+}
+
+.disabled-required-info {
+  visibility: hidden;
+}

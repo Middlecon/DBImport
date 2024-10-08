@@ -1,12 +1,15 @@
 import { Outlet, useNavigate, useParams } from 'react-router-dom'
 import Dropdown from '../../components/Dropdown'
-import { useDatabases } from '../../utils/queries'
+import { useDatabases, useDbTables } from '../../utils/queries'
 import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
 import CreateTableModal from '../../components/CreateTableModal'
 import { TableSetting } from '../../utils/interfaces'
+import { createTableData } from '../../utils/dataFunctions'
+// import { useCreateTable } from '../../utils/mutations'
+// import { useQueryClient } from '@tanstack/react-query'
 
 function Import() {
   const { data, isLoading } = useDatabases()
@@ -19,9 +22,12 @@ function Import() {
 
   const navigate = useNavigate()
   const { database } = useParams<{ database: string }>()
+  const { data: tables } = useDbTables(database ? database : null)
+  // const { mutate: createTable } = useCreateTable()
+  // const queryClient = useQueryClient()
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   useEffect(() => {
     if (isLoading) return
@@ -49,22 +55,34 @@ function Import() {
     handleDropdownToggle
   }
 
+  const mostCommonConnection = useMemo(() => {
+    if (!tables || tables.length < 1) return null
+    console.log(' mostCommonConnection tables', tables)
+    const connectionCounts = tables.reduce((acc, row) => {
+      const connection = row.connection
+      if (connection) {
+        acc[connection] = (acc[connection] || 0) + 1
+      }
+      return acc
+    }, {} as { [key: string]: number })
+
+    return Object.keys(connectionCounts).reduce((a, b) =>
+      connectionCounts[a] > connectionCounts[b] ? a : b
+    )
+  }, [tables])
+
   const handleSave = (newTableData: TableSetting[]) => {
     console.log('newTableData', newTableData)
-    // if (!tableData) {
-    //   console.error('Table data is not available.')
-    //   return
-    // }
-    // console.log('tableData', tableData)
+    const newTable = createTableData(newTableData)
+    console.log('newTable', newTable)
 
-    // const editedTableData = updateTableData(tableData, updatedSettings)
-    // updateTable(editedTableData, {
+    // createTable(newTable, {
     //   onSuccess: (response) => {
     //     queryClient.invalidateQueries({
-    //       queryKey: ['tables', tableData.database]
+    //       queryKey: ['tables', newTable.database]
     //     })
     //     console.log('Update successful', response)
-    //     setModalOpen(false)
+    //     setCreateModalOpen(false)
     //   },
     //   onError: (error) => {
     //     console.error('Error updating table', error)
@@ -81,7 +99,7 @@ function Import() {
             {selectedDatabase && (
               <Button
                 title="+ Create table"
-                onClick={() => setModalOpen(true)}
+                onClick={() => setCreateModalOpen(true)}
                 fontFamily={`'Work Sans Variable', sans-serif`}
                 fontSize="14px"
                 padding="4px 13px 7.5px 9px"
@@ -113,11 +131,12 @@ function Import() {
         ) : (
           <>
             <Outlet context={outletContext} />
-            {isModalOpen && (
+            {isCreateModalOpen && mostCommonConnection && (
               <CreateTableModal
                 database={database}
+                prefilledConnection={mostCommonConnection}
                 onSave={handleSave}
-                onClose={() => setModalOpen(false)}
+                onClose={() => setCreateModalOpen(false)}
               />
             )}
           </>
