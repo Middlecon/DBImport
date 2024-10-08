@@ -30,13 +30,11 @@ function Card({
   const { mutate: updateTable } = useUpdateTable()
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)
-  console.log('settings', settings)
 
   const handleSave = (updatedSettings: TableSetting[]) => {
     const tableDataCopy = { ...tableData }
     const editedTableData = updateTableData(tableDataCopy, updatedSettings)
-    console.log('editedTableData', editedTableData)
-    console.log('handleSave settings', settings)
+
     queryClient.setQueryData(['table', tableParam], editedTableData)
     updateTable(editedTableData, {
       onSuccess: (response) => {

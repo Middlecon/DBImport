@@ -165,11 +165,25 @@ function TableColumns() {
 
   return (
     <div style={{ marginTop: 40 }}>
-      <TableList
-        columns={columns}
-        data={columnsData}
-        onEdit={handleEditClick}
-      />
+      {columnsData.length > 0 ? (
+        <TableList
+          columns={columns}
+          data={columnsData}
+          onEdit={handleEditClick}
+        />
+      ) : (
+        <p
+          style={{
+            padding: ' 40px 50px 44px 50px',
+            backgroundColor: 'white',
+            borderRadius: 7,
+            textAlign: 'center'
+          }}
+        >
+          No columns yet in this table.
+        </p>
+      )}
+
       {isModalOpen && currentRow && (
         <EditTableModal
           title={`Edit column ${currentRow[0].value}`}

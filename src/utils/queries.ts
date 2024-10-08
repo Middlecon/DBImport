@@ -63,7 +63,7 @@ export const useDbTables = (
     queryKey: ['tables', database],
     queryFn: async () => {
       const data: DbTable[] = await getDbTables(database!) // We are sure that database is not null here because of the enabled flag
-      return data.map(
+      const enumMappedData = data.map(
         (row: {
           etlPhaseType: string
           importPhaseType: string
@@ -83,6 +83,8 @@ export const useDbTables = (
           etlEngineDisplay: mapDisplayValue('etlEngine', row.etlEngine)
         })
       )
+
+      return enumMappedData
     },
     enabled: !!database,
     refetchOnWindowFocus: false
