@@ -93,7 +93,7 @@ const radioFilters = [
 
 function DbTables() {
   const { database } = useParams<{ database: string }>()
-  const { data } = useDbTables(database ? database : null)
+  const { data, isLoading } = useDbTables(database ? database : null)
   const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
@@ -189,6 +189,7 @@ function DbTables() {
       })
     })
   }, [data, selectedFilters, getDateRange])
+  console.log('filteredData', filteredData)
 
   const handleEditClick = async (row: UiDbTable) => {
     const { database, table } = row
@@ -299,6 +300,7 @@ function DbTables() {
           columns={columns}
           data={filteredData}
           onEdit={handleEditClick}
+          isLoading={isLoading}
         />
       ) : (
         <div>Loading....</div>

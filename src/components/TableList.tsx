@@ -8,10 +8,11 @@ import { Column } from '../utils/interfaces'
 interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
+  isLoading: boolean
   onEdit?: (row: T) => void
 }
-
-function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
+function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
+  const [loading, setLoading] = useState(true)
   const [overflowState, setOverflowState] = useState<boolean[]>([])
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
@@ -20,12 +21,18 @@ function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
     navigate(`/import/${db}/${table}/settings`)
   }
 
+  // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
   useEffect(() => {
+    if (isLoading) {
+      setLoading(true)
+    } else {
     const isOverflowing = cellRefs.current.map((el) =>
       el ? el.scrollWidth > el.clientWidth : false
     )
     setOverflowState(isOverflowing)
-  }, [data, columns])
+      setLoading(false)
+    }
+  }, [data, columns, isLoading])
 
   const renderCellContent = (row: T, column: Column<T>, rowIndex: number) => {
     const accessorKey = column.accessor as keyof T
@@ -88,7 +95,14 @@ function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
 
   return (
     <div className="tables-container">
-      <div className="scrollable-container">
+      {loading ? (
+        <div className="loading-container">
+          <p>Loading tables...</p>
+        </div>
+      ) : (
+        <div
+          className="scrollable-container"
+        >
         <table className="custom-table-root">
           <thead>
             <tr>
@@ -105,7 +119,8 @@ function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
             </tr>
           </thead>
           <tbody>
-            {data.map((row, rowIndex) => (
+              {data.length > 0 &&
+                data.map((row, rowIndex) => (
               <tr key={rowIndex} className="dbtables-row">
                 {columns.map((column) => (
                   <td
@@ -119,9 +134,26 @@ function TableList<T>({ columns, data, onEdit }: TableProps<T>) {
                 ))}
               </tr>
             ))}
+              {data.length === 0 && !isLoading && (
+                <tr>
+                  <td colSpan={columns.length}>
+                    <p
+                      style={{
+                        padding: ' 40px 50px 44px 50px',
+                        backgroundColor: 'white',
+                        borderRadius: 7,
+                        textAlign: 'center'
+                      }}
+                    >
+                      No data available
+                    </p>
+                  </td>
+                </tr>
+              )}
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }

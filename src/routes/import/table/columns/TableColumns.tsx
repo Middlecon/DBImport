@@ -15,7 +15,7 @@ function TableColumns() {
     database: string
     table: string
   }>()
-  const { data: table, isFetching } = useTable(database, tableParam)
+  const { data: table, isFetching, isLoading } = useTable(database, tableParam)
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -170,6 +170,7 @@ function TableColumns() {
           columns={columns}
           data={columnsData}
           onEdit={handleEditClick}
+          isLoading={isLoading}
         />
       ) : (
         <p
