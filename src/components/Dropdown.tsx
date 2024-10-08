@@ -73,6 +73,13 @@ function Dropdown<T>({
     }
   }, [onToggle])
 
+  useEffect(() => {
+    // Reset the selected item if the initial title changes (e.g., selectedDatabase is reset)
+    if (initialTitle) {
+      setSelectedItem(null)
+    }
+  }, [initialTitle])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
 

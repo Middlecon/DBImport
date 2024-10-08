@@ -31,10 +31,11 @@ function Import() {
 
   useEffect(() => {
     if (isLoading) return
-    if (database && databaseNames.includes(database)) {
+
+    if (!database || !databaseNames.includes(database)) {
+      setSelectedDatabase(null)
+    } else {
       setSelectedDatabase(database)
-    } else if (database) {
-      navigate('/import', { replace: true })
     }
   }, [database, databaseNames, isLoading, navigate])
 
