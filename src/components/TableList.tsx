@@ -16,20 +16,40 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
+  const [tableHeight, setTableHeight] = useState(
+    `${window.innerHeight - 240}px`
+  )
 
   const handleTableClick = (db: string, table: string) => {
     navigate(`/import/${db}/${table}/settings`)
   }
+
+  // Dynamically adjusts the height of the table's scrollable container based on the window height and the height of the filters container
+  useEffect(() => {
+    const updateHeight = () => {
+      const windowHeight = window.innerHeight
+      const filtersDiv = document.querySelector('.filters')
+      const filtersHeight = filtersDiv ? filtersDiv?.scrollHeight : 0
+      console.log('filtersHeight', filtersHeight)
+      const offset = filtersHeight + 200
+      setTableHeight(`${windowHeight - offset}px`)
+    }
+
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+
+    return () => window.removeEventListener('resize', updateHeight)
+  }, [])
 
   // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
   useEffect(() => {
     if (isLoading) {
       setLoading(true)
     } else {
-    const isOverflowing = cellRefs.current.map((el) =>
-      el ? el.scrollWidth > el.clientWidth : false
-    )
-    setOverflowState(isOverflowing)
+      const isOverflowing = cellRefs.current.map((el) =>
+        el ? el.scrollWidth > el.clientWidth : false
+      )
+      setOverflowState(isOverflowing)
       setLoading(false)
     }
   }, [data, columns, isLoading])
@@ -102,38 +122,39 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
       ) : (
         <div
           className="scrollable-container"
+          style={{ maxHeight: tableHeight }}
         >
-        <table className="custom-table-root">
-          <thead>
-            <tr>
-              {columns.map((column, index) => (
-                <th
-                  key={index}
-                  className={
-                    column.accessor === 'sourceTable' ? 'fixed-width' : ''
-                  }
-                >
-                  {column.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-              {data.length > 0 &&
-                data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="dbtables-row">
-                {columns.map((column) => (
-                  <td
-                    key={`${rowIndex}-${String(column.accessor)}`}
+          <table className="custom-table-root">
+            <thead>
+              <tr>
+                {columns.map((column, index) => (
+                  <th
+                    key={index}
                     className={
                       column.accessor === 'sourceTable' ? 'fixed-width' : ''
                     }
                   >
-                    {renderCellContent(row, column, rowIndex)}
-                  </td>
+                    {column.header}
+                  </th>
                 ))}
               </tr>
-            ))}
+            </thead>
+            <tbody>
+              {data.length > 0 &&
+                data.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="dbtables-row">
+                    {columns.map((column) => (
+                      <td
+                        key={`${rowIndex}-${String(column.accessor)}`}
+                        className={
+                          column.accessor === 'sourceTable' ? 'fixed-width' : ''
+                        }
+                      >
+                        {renderCellContent(row, column, rowIndex)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               {data.length === 0 && !isLoading && (
                 <tr>
                   <td colSpan={columns.length}>
@@ -150,9 +171,9 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
                   </td>
                 </tr>
               )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

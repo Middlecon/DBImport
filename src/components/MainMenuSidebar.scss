@@ -5,6 +5,7 @@
   color: rgb(217, 217, 217);
   width: 250px;
   height: 100vh;
+  max-height: 100vh;
   margin-top: 0;
   position: fixed;
   top: 0;
@@ -87,4 +88,10 @@
   display: flex;
   justify-content: center;
   margin-top: 50px;
+}
+
+@media screen and (max-height: 464px) {
+  .mainsidebar-root {
+    overflow-y: scroll;
+  }
 }

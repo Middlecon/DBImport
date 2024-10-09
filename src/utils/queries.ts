@@ -147,7 +147,7 @@ export const useTable = (
 ): UseQueryResult<UITable, Error> => {
   return useQuery({
     queryKey: ['table', table],
-    queryFn: () => fetchTableData(database!, table!),
+    queryFn: () => fetchTableData(database!, table!), // We are sure that database and table is not null here because of the enabled flag
     enabled: !!database && !!table
   })
 }

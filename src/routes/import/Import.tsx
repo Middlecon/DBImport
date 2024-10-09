@@ -53,7 +53,6 @@ function Import() {
 
   const mostCommonConnection = useMemo(() => {
     if (!tables || tables.length < 1) return null
-    console.log(' mostCommonConnection tables', tables)
     const connectionCounts = tables.reduce((acc, row) => {
       const connection = row.connection
       if (connection) {
