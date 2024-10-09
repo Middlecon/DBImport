@@ -886,7 +886,10 @@ class dbCalls:
 		resultDict['targetRowcount'] = row[26]
 		resultDict['validationCustomQuerySourceValue'] = row[27]
 		resultDict['validationCustomQueryHiveValue'] = row[28]
-		resultDict['incrMode'] = row[29]
+		if row[29] == None or row[29] == "":       
+			resultDict['incrMode'] = "lastmodified"
+		else:
+			resultDict['incrMode'] = row[29]
 		resultDict['incrColumn'] = row[30]
 		resultDict['incrValidationMethod'] = row[31]
 		resultDict['incrMinvalue'] = row[32]
@@ -906,7 +909,10 @@ class dbCalls:
 		resultDict['lastRows'] = row[46]
 		resultDict['lastMappers'] = row[47]
 		resultDict['lastExecution'] = row[48]
-		resultDict['useGeneratedSql'] = row[49]
+		if row[49] == -1:       # -1 is not allowed, but default in the database. Setting these to 1
+			resultDict['useGeneratedSql'] = 1
+		else:
+			resultDict['useGeneratedSql'] = row[49]
 		resultDict['allowTextSplitter'] = row[50]
 		resultDict['forceString'] = row[51]
 		resultDict['comment'] = row[52]
@@ -995,6 +1001,24 @@ class dbCalls:
 
 		log.debug(table)
 		log.info("User '%s' updated/created import table '%s.%s'"%(currentUser, getattr(table, "database"), getattr(table, "table")))
+
+		# Set default values
+		if getattr(table, "includeInAirflow") == None:							setattr(table, "includeInAirflow", 1)
+		if getattr(table, "validateImport") == None:							setattr(table, "validateImport", 1)	
+		if getattr(table, "validationMethod") == None:							setattr(table, "validationMethod", "rowCount")
+		if getattr(table, "validateSource") == None:							setattr(table, "validateSource", "query")
+		if getattr(table, "validateDiffAllowed") == None:						setattr(table, "validateDiffAllowed", -1)
+		if getattr(table, "validationCustomQueryValidateImportTable") == None:	setattr(table, "validationCustomQueryValidateImportTable", 1)
+		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
+		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
+		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
+		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
+		if getattr(table, "useGeneratedSql") == None:							setattr(table, "useGeneratedSql", -1)
+		if getattr(table, "allowTextSplitter") == None:							setattr(table, "allowTextSplitter", 0)
+		if getattr(table, "forceString") == None:								setattr(table, "forceString", -1)
+		if getattr(table, "invalidateImpala") == None:							setattr(table, "invalidateImpala", -1)
+		if getattr(table, "mergeCompactionMethod") == None:						setattr(table, "mergeCompactionMethod", "default")
+		if getattr(table, "createForeignKeys") == None:							setattr(table, "createForeignKeys", -1)
 
 		try:
 			query = insert(configSchema.importTables).values(

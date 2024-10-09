@@ -290,21 +290,21 @@ class importTableDetailsWrite(BaseModel):
 	lastUpdateFromSource: Union[str, None] = None
 	sqlWhereAddition: Union[str, None] = None
 	nomergeIngestionSqlAddition: Union[str, None] = None
-	includeInAirflow: bool
+	includeInAirflow: Union[bool, None] = None
 	airflowPriority: Union[str, None] = None
-	validateImport: bool
-	validationMethod: str
-	validateSource: str
-	validateDiffAllowed: int
+	validateImport: Union[bool, None] = None
+	validationMethod: Union[str, None] = None
+	validateSource: Union[str, None] = None
+	validateDiffAllowed: Union[int, None] = None
 	validationCustomQuerySourceSQL: Union[str, None] = None
 	validationCustomQueryHiveSQL: Union[str, None] = None
-	validationCustomQueryValidateImportTable: bool
-	truncateTable: bool
-	mappers: int
-	softDeleteDuringMerge: bool
+	validationCustomQueryValidateImportTable: Union[bool, None] = None
+	truncateTable: Union[bool, None] = None
+	mappers: Union[int, None] = None
+	softDeleteDuringMerge: Union[bool, None] = None
 	incrMode: Union[str, None] = None
 	incrColumn: Union[str, None] = None
-	incrValidationMethod: str
+	incrValidationMethod: Union[str, None] = None
 	pkColumnOverride: Union[str, None] = None
 	pkColumnOverrideMergeonly: Union[str, None] = None
 	mergeHeap: Union[int, None] = None
@@ -314,22 +314,76 @@ class importTableDetailsWrite(BaseModel):
 	splitByColumn: Union[str, None] = None
 	customQuery: Union[str, None] = None
 	sqoopOptions: Union[str, None] = None
-	useGeneratedSql: bool
-	allowTextSplitter: bool
-	forceString: int
+	useGeneratedSql: Union[bool, None] = None
+	allowTextSplitter: Union[bool, None] = None
+	forceString: Union[int, None] = None
 	comment: Union[str, None] = None
 	datalakeSource: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
-	createForeignKeys: int
-	invalidateImpala: int
+	createForeignKeys: Union[int, None] = None
+	invalidateImpala: Union[int, None] = None
 	customMaxQuery: Union[str, None] = None
-	mergeCompactionMethod: str
+	mergeCompactionMethod: Union[str, None] = None
 	sourceTableType: Union[str, None] = None
 	importDatabase: Union[str, None] = None
 	importTable: Union[str, None] = None
 	historyDatabase: Union[str, None] = None
 	historyTable: Union[str, None] = None
 	columns: List[importTableColumnsWrite] = []
+
+#class importTableDetailsWrite(BaseModel):
+#	database: str
+#	table: str
+#	connection: str
+#	sourceSchema: str
+#	sourceTable: str
+#	importPhaseType: str
+#	etlPhaseType: str
+#	importTool: str
+#	etlEngine: str
+#	lastUpdateFromSource: Union[str, None] = None
+#	sqlWhereAddition: Union[str, None] = None
+#	nomergeIngestionSqlAddition: Union[str, None] = None
+#	includeInAirflow: bool
+#	airflowPriority: Union[str, None] = None
+#	validateImport: bool
+#	validationMethod: str
+#	validateSource: str
+#	validateDiffAllowed: int
+#	validationCustomQuerySourceSQL: Union[str, None] = None
+#	validationCustomQueryHiveSQL: Union[str, None] = None
+#	validationCustomQueryValidateImportTable: bool
+#	truncateTable: bool
+#	mappers: int
+#	softDeleteDuringMerge: bool
+#	incrMode: Union[str, None] = None
+#	incrColumn: Union[str, None] = None
+#	incrValidationMethod: str
+#	pkColumnOverride: Union[str, None] = None
+#	pkColumnOverrideMergeonly: Union[str, None] = None
+#	mergeHeap: Union[int, None] = None
+#	splitCount: Union[int, None] = None
+#	sparkExecutorMemory: Union[str, None] = None
+#	sparkExecutors: Union[int, None] = None
+#	splitByColumn: Union[str, None] = None
+#	customQuery: Union[str, None] = None
+#	sqoopOptions: Union[str, None] = None
+#	useGeneratedSql: bool
+#	allowTextSplitter: bool
+#	forceString: int
+#	comment: Union[str, None] = None
+#	datalakeSource: Union[str, None] = None
+#	operatorNotes: Union[str, None] = None
+#	createForeignKeys: int
+#	invalidateImpala: int
+#	customMaxQuery: Union[str, None] = None
+#	mergeCompactionMethod: str
+#	sourceTableType: Union[str, None] = None
+#	importDatabase: Union[str, None] = None
+#	importTable: Union[str, None] = None
+#	historyDatabase: Union[str, None] = None
+#	historyTable: Union[str, None] = None
+#	columns: List[importTableColumnsWrite] = []
 
 class exportConnections(BaseModel):
 	name: str
