@@ -11,30 +11,13 @@ import {
 } from '../../utils/interfaces'
 import { fetchTableData, useDbTables } from '../../utils/queries'
 import './DbTables.scss'
-import {
-  getEnumOptions,
-  mapDisplayValue,
-  reverseMapDisplayValue
-} from '../../utils/nameMappings'
+import { getEnumOptions, mapDisplayValue } from '../../utils/nameMappings'
 import { useParams } from 'react-router-dom'
 import EditTableModal from '../../components/EditTableModal'
 import { SettingType } from '../../utils/enums'
 import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
-
-const columns: Column<DbTable>[] = [
-  { header: 'Table', accessor: 'table' },
-  { header: 'Connection', accessor: 'connection' },
-  { header: 'Source Schema', accessor: 'sourceSchema' },
-  { header: 'Source Table', accessor: 'sourceTable' },
-  { header: 'Import Type', accessor: 'importPhaseType' },
-  { header: 'ETL Type', accessor: 'etlPhaseType' },
-  { header: 'Import Tool', accessor: 'importTool' },
-  { header: 'ETL Engine', accessor: 'etlEngine' },
-  { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
-  { header: 'Actions', isAction: 'both' }
-]
 
 const checkboxFilters = [
   {
@@ -92,6 +75,22 @@ const radioFilters = [
 // ]
 
 function DbTables() {
+  const columns: Column<DbTable>[] = useMemo(
+    () => [
+      { header: 'Table', accessor: 'table' },
+      { header: 'Connection', accessor: 'connection' },
+      { header: 'Source Schema', accessor: 'sourceSchema' },
+      { header: 'Source Table', accessor: 'sourceTable' },
+      { header: 'Import Type', accessor: 'importPhaseType' },
+      { header: 'ETL Type', accessor: 'etlPhaseType' },
+      { header: 'Import Tool', accessor: 'importTool' },
+      { header: 'ETL Engine', accessor: 'etlEngine' },
+      { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
+      { header: 'Actions', isAction: 'both' }
+    ],
+    []
+  )
+
   const { database } = useParams<{ database: string }>()
   const { data, isLoading } = useDbTables(database ? database : null)
   const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
@@ -153,43 +152,32 @@ function DbTables() {
 
   const filteredData = useMemo(() => {
     if (!data) return []
-
-    const mappedFilters = [...checkboxFilters, ...radioFilters].reduce(
-      (acc, filter) => {
-        const mappedValues = selectedFilters[filter.accessor]?.map((value) =>
-          reverseMapDisplayValue(filter.title, value)
-        )
-        acc[filter.accessor] = mappedValues || []
-        return acc
-      },
-      {} as { [key: string]: string[] }
-    )
-
     return data.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 
-      return Object.keys(mappedFilters).every((filterKey) => {
-        const selectedItems = mappedFilters[filterKey]
+      return [...checkboxFilters, ...radioFilters].every((filter) => {
+        const selectedItems =
+          selectedFilters[filter.accessor]?.map((value) => value) || []
 
-        if (filterKey === 'lastUpdateFromSource') {
-          if (selectedItems.length === 0) return true
+        if (selectedItems.length === 0) return true
 
+        // Handling the date filter separately
+        if (filter.accessor === 'lastUpdateFromSource') {
           const selectedRange = selectedItems[0]
           const startDate = getDateRange(selectedRange)
 
           if (!rowDate) return false
-
           return rowDate >= startDate
         }
 
-        if (selectedItems.length === 0) return true
+        const accessorKey = filter.accessor as keyof typeof row
+        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
 
-        const rowValue = row[filterKey as keyof typeof row] as string
         return selectedItems.includes(rowValue)
       })
     })
   }, [data, selectedFilters, getDateRange])
-  console.log('filteredData', filteredData)
 
   const handleEditClick = async (row: UiDbTable) => {
     const { database, table } = row

@@ -1,9 +1,9 @@
-import './TableList.scss'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Column } from '../utils/interfaces'
+import './TableList.scss'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -16,10 +16,6 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
-
-  const handleTableClick = (db: string, table: string) => {
-    navigate(`/import/${db}/${table}/settings`)
-  }
 
   useEffect(() => {
     const updateHeight = () => {
@@ -52,64 +48,71 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
     }
   }, [data, columns, isLoading])
 
-  const renderCellContent = (row: T, column: Column<T>, rowIndex: number) => {
-    const accessorKey = column.accessor as keyof T
-    const displayKey = `${String(accessorKey)}Display` as keyof T
+  const renderCellContent = useCallback(
+    (row: T, column: Column<T>, rowIndex: number) => {
+      const handleTableClick = (db: string, table: string) => {
+        navigate(`/import/${db}/${table}/settings`)
+      }
 
-    const cellValue = row[displayKey] ?? row[accessorKey] ?? ''
+      const accessorKey = column.accessor as keyof T
+      const displayKey = `${String(accessorKey)}Display` as keyof T
 
-    if (column.accessor === 'sourceTable') {
-      return (
-        <>
-          <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
+      const cellValue = row[displayKey] ?? row[accessorKey] ?? ''
+
+      if (column.accessor === 'sourceTable') {
+        return (
+          <>
+            <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
+              {String(cellValue)}
+            </p>
+            {overflowState[rowIndex] && (
+              <span className="tooltip">{String(cellValue)}</span>
+            )}
+          </>
+        )
+      }
+
+      if (column.accessor === 'table') {
+        return (
+          <p
+            ref={(el) => (cellRefs.current[rowIndex] = el)}
+            onClick={() =>
+              handleTableClick(
+                String(row['database' as keyof T]),
+                String(row['table' as keyof T])
+              )
+            }
+            className="clickable-table-name"
+          >
             {String(cellValue)}
           </p>
-          {overflowState[rowIndex] && (
-            <span className="tooltip">{String(cellValue)}</span>
-          )}
-        </>
-      )
-    }
+        )
+      }
 
-    if (column.accessor === 'table') {
-      return (
-        <p
-          ref={(el) => (cellRefs.current[rowIndex] = el)}
-          onClick={() =>
-            handleTableClick(
-              String(row['database' as keyof T]),
-              String(row['table' as keyof T])
-            )
-          }
-          className="clickable-table-name"
-        >
-          {String(cellValue)}
-        </p>
-      )
-    }
+      if (column.isAction) {
+        return (
+          <div className="actions-row">
+            {column.isAction === 'edit' || column.isAction === 'both' ? (
+              <button onClick={() => onEdit && onEdit(row)} disabled={!onEdit}>
+                <EditIcon />
+              </button>
+            ) : null}
+            {column.isAction === 'delete' || column.isAction === 'both' ? (
+              <button
+                className="actions-delete-button"
+                onClick={() => console.log('Delete', row)}
+              >
+                <DeleteIcon />
+              </button>
+            ) : null}
+          </div>
+        )
+      }
 
-    if (column.isAction) {
-      return (
-        <div className="actions-row">
-          {column.isAction === 'edit' || column.isAction === 'both' ? (
-            <button onClick={() => onEdit && onEdit(row)} disabled={!onEdit}>
-              <EditIcon />
-            </button>
-          ) : null}
-          {column.isAction === 'delete' || column.isAction === 'both' ? (
-            <button
-              className="actions-delete-button"
-              onClick={() => console.log('Delete', row)}
-            >
-              <DeleteIcon />
-            </button>
-          ) : null}
-        </div>
-      )
-    }
-
-    return String(cellValue)
-  }
+      return String(cellValue)
+    },
+    [overflowState, onEdit, navigate]
+  )
 
   return (
     <div className="tables-container">
@@ -152,16 +155,21 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
                 ))}
               {data.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={columns.length}>
+                  <td
+                    colSpan={columns.length}
+                    style={{
+                      padding: 0
+                    }}
+                  >
                     <p
                       style={{
                         padding: ' 40px 50px 44px 50px',
+                        margin: 0,
                         backgroundColor: 'white',
-                        borderRadius: 7,
                         textAlign: 'center'
                       }}
                     >
-                      No data available
+                      No data matching
                     </p>
                   </td>
                 </tr>
@@ -174,4 +182,13 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
   )
 }
 
-export default TableList
+const MemoizedTableList = React.memo(TableList, (prevProps, nextProps) => {
+  // Only re-renders if the filteredData (data) or other important props change
+  return (
+    prevProps.data === nextProps.data &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.columns === nextProps.columns
+  )
+}) as typeof TableList
+
+export default MemoizedTableList

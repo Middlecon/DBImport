@@ -7,7 +7,7 @@
 }
 
 .custom-table-root {
-  width: 100%;
+  width: calc(100% - 2px);
   max-height: 70vh;
   border-collapse: collapse;
   margin: 0;
