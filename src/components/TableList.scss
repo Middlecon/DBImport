@@ -4,6 +4,24 @@
   overflow-y: auto;
   width: 100%;
   height: calc(100vh - 200px - var(--filters-height));
+  &::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #dbdbde;
+    margin-top: 50px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+  }
 }
 
 .custom-table-root {
@@ -30,22 +48,26 @@
     z-index: 14;
   }
 
-  // To make table header borders stay filled with the right color when scroll across browsers, for Chrome:
-  th:after,
-  th:before {
-    content: '';
-    position: absolute;
-    left: 0;
-    width: 100%;
-  }
-  th:before {
-    top: 0;
-    border: 1px solid #abaeb8;
-  }
-  th:after {
-    bottom: 0;
-    border: 1px solid #abaeb8;
-  }
+  // To make table header borders stay filled with the right color when scroll across browsers, for Chrome (update: does not seem to be needed anymore, keep it here for a while longer if turns out to be needed again):
+  // th:after,
+  // th:before {
+  //   content: '';
+  //   position: absolute;
+  //   left: 0;
+  //   width: 100%;
+  // }
+  // th:before {
+  //   top: 0;
+  //   border: 1px solid #abaeb8;
+  // }
+  // th:after {
+  //   bottom: 0;
+  //   border: 1px solid #abaeb8;
+  // }
+  // th:last-child {
+  //   left: 0;
+  //   border-right: 3px solid #abaeb8;
+  // }
 
   td {
     padding: 8px 12px;
