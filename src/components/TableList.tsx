@@ -16,23 +16,19 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
   const [overflowState, setOverflowState] = useState<boolean[]>([])
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
-  const [tableHeight, setTableHeight] = useState(
-    `${window.innerHeight - 240}px`
-  )
 
   const handleTableClick = (db: string, table: string) => {
     navigate(`/import/${db}/${table}/settings`)
   }
 
-  // Dynamically adjusts the height of the table's scrollable container based on the window height and the height of the filters container
   useEffect(() => {
     const updateHeight = () => {
-      const windowHeight = window.innerHeight
       const filtersDiv = document.querySelector('.filters')
-      const filtersHeight = filtersDiv ? filtersDiv?.scrollHeight : 0
-      console.log('filtersHeight', filtersHeight)
-      const offset = filtersHeight + 200
-      setTableHeight(`${windowHeight - offset}px`)
+      const filtersHeight = filtersDiv ? filtersDiv.scrollHeight : 0
+      document.documentElement.style.setProperty(
+        '--filters-height',
+        `${filtersHeight}px`
+      )
     }
 
     updateHeight()
@@ -40,6 +36,8 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
 
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
+
+  // }, [])
 
   // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
   useEffect(() => {
@@ -120,10 +118,7 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
           <p>Loading tables...</p>
         </div>
       ) : (
-        <div
-          className="scrollable-container"
-          style={{ maxHeight: tableHeight }}
-        >
+        <div className="scrollable-container">
           <table className="custom-table-root">
             <thead>
               <tr>

@@ -1,7 +1,9 @@
 .scrollable-container {
+  flex: 1 1 auto;
   overflow-x: auto;
   overflow-y: auto;
   width: 100%;
+  height: calc(100vh - 200px - var(--filters-height));
 }
 
 .custom-table-root {
@@ -129,4 +131,10 @@
 
 .columns-container {
   padding-bottom: 20px;
+}
+
+@media screen and (max-width: 600px) {
+  .scrollable-container {
+    height: calc(100vh - 259px - var(--filters-height));
+  }
 }
