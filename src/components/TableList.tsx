@@ -11,11 +11,18 @@ interface TableProps<T> {
   isLoading: boolean
   onEdit?: (row: T) => void
 }
+
 function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
+  const [visibleData, setVisibleData] = useState<T[]>([])
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [allDataLoaded, setAllDataLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
+
   const [overflowState, setOverflowState] = useState<boolean[]>([])
+
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
+  const chunkSize = 50
 
   useEffect(() => {
     const updateHeight = () => {
@@ -33,8 +40,6 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
 
-  // }, [])
-
   // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
   useEffect(() => {
     if (isLoading) {
@@ -47,6 +52,37 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
       setLoading(false)
     }
   }, [data, columns, isLoading])
+
+  useEffect(() => {
+    setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
+  }, [data])
+
+  // Automatically loads more rows in chunks in the background after the initial render
+  useEffect(() => {
+    const loadMoreRowsAsync = async () => {
+      if (isLoadingMore || allDataLoaded) return // Avoids loading if already loading or all data is loaded
+
+      setIsLoadingMore(true)
+
+      const offset = visibleData.length
+      const newData = data.slice(offset, offset + chunkSize)
+
+      if (newData.length === 0) {
+        setAllDataLoaded(true)
+      } else {
+        setVisibleData((prevData) => [...prevData, ...newData])
+      }
+
+      setIsLoadingMore(false)
+    }
+    if (visibleData.length < data.length && !isLoadingMore) {
+      const intervalId = setInterval(() => {
+        loadMoreRowsAsync()
+      }, 100) // Loads rows every 200ms asynchronously without blocking the UI
+
+      return () => clearInterval(intervalId) // Cleans up interval on unmount or data changes
+    }
+  }, [visibleData, data, isLoadingMore, allDataLoaded])
 
   const renderCellContent = useCallback(
     (row: T, column: Column<T>, rowIndex: number) => {
@@ -138,8 +174,8 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
               </tr>
             </thead>
             <tbody>
-              {data.length > 0 &&
-                data.map((row, rowIndex) => (
+              {visibleData &&
+                visibleData.map((row, rowIndex) => (
                   <tr key={rowIndex} className="dbtables-row">
                     {columns.map((column) => (
                       <td
@@ -169,13 +205,18 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
                         textAlign: 'center'
                       }}
                     >
-                      No data matching
+                      No data matching.
                     </p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+      {isLoadingMore && !allDataLoaded && (
+        <div className="loading-more-indicator">
+          <p>Loading more rows...</p>
         </div>
       )}
     </div>
