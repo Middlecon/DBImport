@@ -744,7 +744,7 @@ class config(object, metaclass=Singleton):
 	
 		logging.debug("Executing common_config.printConnectionAliasDetails() - Finished")
 
-	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True):
+	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True, jdbcURL=None):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
@@ -762,22 +762,27 @@ class config(object, metaclass=Singleton):
 		self.db_cachedb = False
 		self.db_snowflake = False
 		self.db_awss3 = False
+		self.jdbc_servertype = None
 
 		# Fetch data from jdbc_connection table
-		query = "select jdbc_url, credentials, private_key_path, public_key_path, environment from jdbc_connections where dbalias = %s "
-		logging.debug("Executing the following SQL: %s" % (query))
-		self.mysql_cursor.execute(query, (connection_alias, ))
+		if jdbcURL != None and decryptCredentials == False:
+			# This is required from RestAPI when looking up all connections and returning a full list including database types. No need to do the lookup here as well
+			self.jdbc_url = jdbcURL
+		else:
+			query = "select jdbc_url, credentials, private_key_path, public_key_path, environment from jdbc_connections where dbalias = %s "
+			logging.debug("Executing the following SQL: %s" % (query))
+			self.mysql_cursor.execute(query, (connection_alias, ))
 
-		if self.mysql_cursor.rowcount != 1:
-			raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
+			if self.mysql_cursor.rowcount != 1:
+				raise invalidConfiguration("The requested connection alias cant be found in the 'jdbc_connections' table")
 
-		row = self.mysql_cursor.fetchone()
+			row = self.mysql_cursor.fetchone()
 
-		self.jdbc_url = row[0]
-		jdbcCredentials = row[1]
-		privateKeyFile = row[2]
-		publicKeyFile = row[3]
-		self.jdbc_environment = row[4]
+			self.jdbc_url = row[0]
+			jdbcCredentials = row[1]
+			privateKeyFile = row[2]
+			publicKeyFile = row[3]
+			self.jdbc_environment = row[4]
 
 		if decryptCredentials == True and copySlave == False:
 			if jdbcCredentials is not None and jdbcCredentials.startswith("arn:aws:secretsmanager:"):
@@ -849,7 +854,9 @@ class config(object, metaclass=Singleton):
 			self.atlasJdbcSourceSupport = True
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_hostname = self.jdbc_url[17:].split(':')[0].split(';')[0]
 
@@ -896,7 +903,9 @@ class config(object, metaclass=Singleton):
 			self.db_mssql = True
 			self.jdbc_servertype = constant.MSSQL
 			self.jdbc_force_column_lowercase = True
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "jTDS")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Server", "jTDS")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_hostname = self.jdbc_url[22:].split(':')[0].split(';')[0]
 			try:
@@ -917,7 +926,9 @@ class config(object, metaclass=Singleton):
 			self.db_oracle = True
 			self.jdbc_servertype = constant.ORACLE
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Oracle", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Oracle", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 			self.jdbc_database = "-"
 
@@ -960,7 +971,9 @@ class config(object, metaclass=Singleton):
 			self.db_mysql = True
 			self.jdbc_servertype = constant.MYSQL
 			self.jdbc_force_column_lowercase = True
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MySQL", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MySQL", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
@@ -982,7 +995,9 @@ class config(object, metaclass=Singleton):
 			self.db_postgresql = True
 			self.jdbc_servertype = constant.POSTGRESQL
 			self.jdbc_force_column_lowercase = True
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("PostgreSQL", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("PostgreSQL", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[18:].split(':')[0].split(';')[0].split('/')[0]
@@ -1004,7 +1019,9 @@ class config(object, metaclass=Singleton):
 			self.db_progress = True
 			self.jdbc_servertype = constant.PROGRESS
 			self.jdbc_force_column_lowercase = True
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Progress DB", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Progress DB", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[27:].split(':')[0].split(';')[0]
@@ -1026,7 +1043,9 @@ class config(object, metaclass=Singleton):
 			self.db_db2udb = True
 			self.jdbc_servertype = constant.DB2_UDB
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 UDB", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 UDB", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[11:].split(':')[0].split(';')[0].split('/')[0]
@@ -1064,7 +1083,9 @@ class config(object, metaclass=Singleton):
 			self.db_db2as400 = True
 			self.jdbc_servertype = constant.DB2_AS400
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 AS400", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("DB2 AS400", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
@@ -1084,7 +1105,9 @@ class config(object, metaclass=Singleton):
 			self.atlasJdbcSourceSupport = False
 			self.db_mongodb = True
 			self.jdbc_servertype = constant.MONGO
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MongoDB", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("MongoDB", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[8:].split(':')[0]
@@ -1105,7 +1128,9 @@ class config(object, metaclass=Singleton):
 			self.db_cachedb = True
 			self.jdbc_servertype = constant.CACHEDB
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("CacheDB", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("CacheDB", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[13:].split(':')[0].split(';')[0].split('/')[0]
@@ -1126,7 +1151,9 @@ class config(object, metaclass=Singleton):
 			self.db_snowflake = True
 			self.jdbc_servertype = constant.SNOWFLAKE
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SnowFlake", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SnowFlake", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[17:].split('/')[0]
@@ -1189,7 +1216,9 @@ class config(object, metaclass=Singleton):
 			self.db_informix = True
 			self.jdbc_servertype = constant.INFORMIX
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Informix", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("Informix", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[21:].split(':')[0].split(';')[0].split('/')[0]
@@ -1214,7 +1243,9 @@ class config(object, metaclass=Singleton):
 			self.db_sqlanywhere = True
 			self.jdbc_servertype = constant.SQLANYWHERE
 			self.jdbc_force_column_lowercase = False
-			self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Anywhere", "default")
+			if jdbcURL == None:
+				# jdbcURL have a value only when executed from restAPI server in order to get a full list of connection. Lookup of drivers is not needed in that case
+				self.jdbc_driver, self.jdbc_classpath = self.getJDBCDriverConfig("SQL Anywhere", "default")
 			self.jdbc_classpath_for_python = self.jdbc_classpath
 
 			self.jdbc_hostname = self.jdbc_url[16:].split('?')[0]

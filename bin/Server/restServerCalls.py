@@ -417,7 +417,7 @@ class dbCalls:
 		# return jsonResult
 		return (result, returnCode)
 
-	def getAllConnections(self):
+	def getAllConnections(self, listOnlyName):
 		""" Returns all Connections """
 		log = logging.getLogger(self.logger)
 
@@ -429,7 +429,8 @@ class dbCalls:
 
 		tableJDBCconnections = aliased(configSchema.jdbcConnections)
 		jdbcConnections = (session.query(
-					tableJDBCconnections.dbalias
+					tableJDBCconnections.dbalias,
+					tableJDBCconnections.jdbc_url
 				)
 				.select_from(tableJDBCconnections)
 				.order_by(tableJDBCconnections.dbalias)
@@ -440,6 +441,28 @@ class dbCalls:
 		for row in jdbcConnections:
 			resultDict = {}
 			resultDict["name"] = row[0]
+			if listOnlyName == False:
+				resultDict["connectionString"] = row[1]
+
+				self.common_config.lookupConnectionAlias(row[0], decryptCredentials=False, jdbcURL=row[1])
+
+				serverType = None
+				if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"
+				if self.common_config.jdbc_servertype == constant.ORACLE:			serverType = "Oracle"	
+				if self.common_config.jdbc_servertype == constant.MSSQL:			serverType = "MSSQL Server"
+				if self.common_config.jdbc_servertype == constant.POSTGRESQL:		serverType = "PostgreSQL"
+				if self.common_config.jdbc_servertype == constant.PROGRESS:			serverType = "Progress"
+				if self.common_config.jdbc_servertype == constant.DB2_UDB:			serverType = "DB2 UDB"
+				if self.common_config.jdbc_servertype == constant.DB2_AS400:		serverType = "DB2 AS400"
+				if self.common_config.jdbc_servertype == constant.MONGO:			serverType = "MongoDB"
+				if self.common_config.jdbc_servertype == constant.CACHEDB:			serverType = "Cache"
+				if self.common_config.jdbc_servertype == constant.SNOWFLAKE:		serverType = "Snowflake"
+				if self.common_config.jdbc_servertype == constant.AWS_S3:			serverType = "AWS S3"
+				if self.common_config.jdbc_servertype == constant.INFORMIX:			serverType = "Informix"
+				if self.common_config.jdbc_servertype == constant.SQLANYWHERE:		serverType = "SQL Anywhere"
+				resultDict["serverType"] = serverType
+
+
 			listOfConnections.append(resultDict)
 
 		jsonResult = json.loads(json.dumps(listOfConnections))

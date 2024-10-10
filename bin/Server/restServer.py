@@ -347,8 +347,8 @@ async def update_global_configuration(configuration: dataModels.configuration, c
 	return returnMsg
 
 @app.get("/connection", response_model=List[dataModels.connection])
-async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getAllConnections()
+async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)], listOnlyName: bool=False):
+	return dbCalls.getAllConnections(listOnlyName)
 
 @app.get("/connection/{connection}", response_model=dataModels.connectionDetails)
 async def get_connection_details(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):

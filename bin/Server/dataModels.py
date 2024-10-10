@@ -43,6 +43,8 @@ class importDBs(BaseModel):
 
 class connection(BaseModel):
 	name: str
+	connectionString: Union[str, None] = None
+	serverType: Union[str, None] = None
 
 class connectionDetails(BaseModel):
 	name: str
