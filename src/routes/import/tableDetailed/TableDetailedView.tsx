@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
-import './TableDetailedView.scss'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
 import { useEffect, useMemo } from 'react'
+import './TableDetailedView.scss'
 
 function TableDetailedView() {
   const { database, table } = useParams()

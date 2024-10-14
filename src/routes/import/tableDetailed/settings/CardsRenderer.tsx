@@ -129,7 +129,7 @@ function CardsRenderer() {
       label: 'Force String',
       value: table.forceString,
       type: SettingType.BooleanOrDefaultFromConfig
-    }, // Boolean (1, 0) or -1 (-1="Default from config")
+    }, //  Boolean, (1, 0) or Default from Config (-1)
     {
       label: 'Split By Column',
       value: table.splitByColumn,
@@ -273,7 +273,7 @@ function CardsRenderer() {
       label: 'Create Foreign Keys',
       value: table.createForeignKeys,
       type: SettingType.BooleanOrDefaultFromConnection
-    }, // Boolean (1, 0) or Default from connection (-1)
+    }, // Boolean (1, 0) or Default from Connection (-1)
     {
       label: 'Primary Key Override',
       value: table.pkColumnOverride,
@@ -293,7 +293,7 @@ function CardsRenderer() {
       label: 'Invalidate Impala',
       value: table.invalidateImpala,
       type: SettingType.BooleanOrDefaultFromConfig
-    }, // Boolean (1, 0) or Auto (-1)
+    }, // Boolean, (1, 0) or Default from Config (-1)
     {
       label: 'Soft Delete During Merge',
       value: table.softDeleteDuringMerge,

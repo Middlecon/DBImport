@@ -1,9 +1,8 @@
 .setting-container {
   position: relative;
   padding-left: 5px;
-  padding-right: 18px;
+  padding-right: 10px;
   min-height: 20px;
-  width: 195px; // width that works with the widest enum display description name
   background-color: #edecec;
   border-radius: 3px;
   overflow-x: hidden;
@@ -31,8 +30,9 @@
 .expanded-content {
   position: absolute;
   right: 0;
-  top: 20px;
-  z-index: 20;
+  top: 15px;
+  z-index: 200;
+  max-width: 820px;
   margin-top: 5px;
   background-color: #f9f9f9;
   border-radius: 3px;
@@ -58,7 +58,8 @@
 .chevron-expanded {
   position: absolute;
   right: 5px;
-  top: 50%;
+  top: 0;
+  padding-top: 18px;
   transform: translateY(-50%);
   cursor: pointer;
   svg {
@@ -71,10 +72,21 @@
   width: 100%;
 }
 
-.collapsed-content {
-  overflow-x: hidden;
+.collapsed-content,
+.collapsed-content-textarea {
+  overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   display: inline-block;
   width: calc(100% - 20px);
+}
+
+.collapsed-content {
+  white-space: nowrap;
+}
+
+.collapsed-content-textarea {
+  height: fit-content;
+  max-height: 52px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

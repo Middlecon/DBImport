@@ -1,4 +1,5 @@
-.table-modal-backdrop {
+.table-modal-backdrop,
+.table-modal-backdrop-connection {
   z-index: 100;
   position: fixed;
   top: 0;
@@ -11,13 +12,24 @@
   justify-content: center;
 }
 
-.table-modal-content {
+.table-modal-backdrop-connection {
+  align-items: normal;
+}
+
+.table-modal-content,
+.table-modal-content-connection {
   background: white;
   margin-left: 50px;
   padding: 40px 45px 45px 40px;
   border-radius: 8px;
   width: 584px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.table-modal-content-connection {
+  overflow-y: scroll;
+  margin-top: 40px;
+  margin-bottom: 40px;
 }
 
 .table-modal-h2 {
@@ -36,7 +48,7 @@
 
 .table-modal-setting {
   display: flex;
-  align-items: center;
+  // align-items: center;
   gap: 7px;
   margin-top: 10px;
 }
