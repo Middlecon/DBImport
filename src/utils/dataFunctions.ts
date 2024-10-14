@@ -3,13 +3,46 @@ import {
   UITable,
   TableSetting,
   TableUpdate,
-  TableCreateWithoutEnum
+  TableCreateWithoutEnum,
+  Connection
 } from './interfaces'
 import {
   getKeyFromColumnLabel,
+  getKeyFromConnectionLabel,
   getKeyFromLabel,
   reverseMapEnumValue
 } from './nameMappings'
+
+// Connection
+
+export function updateConnectionData(
+  originalData: Connection,
+  updatedSettings: TableSetting[]
+): Connection {
+  const updatedConnectionData = { ...originalData }
+
+  updatedSettings.forEach((setting) => {
+    const key = getKeyFromConnectionLabel(setting.label)
+    if (key) {
+      updatedConnectionData[key] = setting.value
+    }
+    // }
+  })
+
+  const finalConnectionData = Object.keys(updatedConnectionData).reduce(
+    (acc, key) => {
+      if (!fieldsToRemove.includes(key)) {
+        acc[key] = updatedConnectionData[key]
+      }
+      return acc
+    },
+    {} as Connection
+  )
+
+  return finalConnectionData
+}
+
+// Table
 
 const fieldsToRemove = [
   'sourceRowcount',

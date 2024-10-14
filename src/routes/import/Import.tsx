@@ -39,7 +39,7 @@ function Import() {
     }
   }, [database, databaseNames, isLoading, navigate])
 
-  const handleSelect = (item: string) => {
+  const handleSelect = (item: string | null) => {
     navigate(`/import/${item}`)
   }
 

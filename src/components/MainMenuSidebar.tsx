@@ -72,16 +72,16 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {!minimized && <h2>Airflow</h2>}
               {/* </NavLink> */}
             </li>
-            <li className="mainsidebar-disabled">
-              {/* <NavLink
+            <li>
+              <NavLink
                 to="/connection"
                 className={({ isActive }) =>
                   `menu-link ${isActive ? 'active' : ''}`
                 }
-              > */}
-              <ConnectionIcon />
-              {!minimized && <h2>Connection</h2>}
-              {/* </NavLink> */}
+              >
+                <ConnectionIcon />
+                {!minimized && <h2>Connection</h2>}
+              </NavLink>
             </li>
             <li className="mainsidebar-disabled">
               {/* <NavLink

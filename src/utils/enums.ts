@@ -7,6 +7,7 @@ export enum SettingType {
   BooleanOrDefaultFromConnection = 'booleanOrDefaultFromConnection(-1)',
   Readonly = 'readonly',
   Text = 'text',
+  Textarea = 'textarea',
   Enum = 'enum',
   ConnectionReference = 'connectionReference',
   Hidden = 'hidden', // Needed here or handled in other way?
@@ -15,6 +16,8 @@ export enum SettingType {
   IntegerFromZeroOrAuto = 'integerFromZeroOrAuto(-1)',
   IntegerFromOneOrAuto = 'integerFromOneOrAuto(-1)',
   IntegerFromOneOrDefaultFromConfig = 'integerFromOneOrDefaultFromConfig(null)',
+  Time = 'time',
+  TimeZone = 'timezone',
   GroupingSpace = 'groupingSpace'
 }
 

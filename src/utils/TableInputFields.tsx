@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { getAllTimezones } from 'countries-and-timezones'
 import Dropdown from '../components/Dropdown'
 import { TableSetting } from './interfaces'
 import './TableInputFields.scss'
@@ -10,9 +11,12 @@ interface TableInputFieldsProps {
     index: number,
     newValue: string | number | boolean | null
   ) => void
-  handleSelect: (item: string | number | boolean, keyLabel?: string) => void
+  handleSelect: (
+    item: string | number | boolean | null,
+    keyLabel?: string
+  ) => void
   prevValue?: string | number | boolean
-  connectionNames?: 'string'[]
+  connectionNames?: string[]
   isCustomQueryDisabled?: boolean
 }
 
@@ -26,15 +30,25 @@ function TableInputFields({
   connectionNames
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  // console.log('setting', setting)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
   const dropdownId = `dropdown-${index}`
   const isRequired =
     setting.label === 'Database' ||
     setting.label === 'Table' ||
     setting.label === 'Source Schema' ||
-    setting.label === 'Source Table'
+    setting.label === 'Source Table' ||
+    setting.label === 'Connection String'
 
   const showRequiredIndicator = isRequired && !setting.value
+
+  const autoResizeTextarea = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+      textareaRef.current.style.maxHeight = `${textareaRef.current.scrollHeight}px`
+    }
+  }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -43,6 +57,12 @@ function TableInputFields({
       setOpenDropdown(null)
     }
   }
+
+  useEffect(() => {
+    if (setting.value) {
+      autoResizeTextarea()
+    }
+  }, [setting.value])
 
   switch (setting.type) {
     case 'boolean':
@@ -138,7 +158,7 @@ function TableInputFields({
                 checked={setting.value === -1}
                 onChange={() => handleInputChange(index, -1)}
               />
-              Default from config
+              Default from Config
             </label>
           </div>
         </>
@@ -177,7 +197,7 @@ function TableInputFields({
                 checked={setting.value === -1}
                 onChange={() => handleInputChange(index, -1)}
               />
-              Default from connection
+              Default from Connection
             </label>
           </div>
         </>
@@ -210,7 +230,7 @@ function TableInputFields({
               type="text"
               value={setting.value ? String(setting.value) : ''}
               onChange={(e) => handleInputChange(index, e.target.value)}
-              disabled={isCustomQueryDisabled} // Conditionally disable the input
+              disabled={isCustomQueryDisabled}
             />
           </>
         )
@@ -218,12 +238,8 @@ function TableInputFields({
       return (
         <>
           <label>
-            {setting.label}:{' '}
-            {showRequiredIndicator && (
-              <span style={{ color: 'red' }}>
-                *{/* <span style={{ fontSize: 11 }}> required</span> */}
-              </span>
-            )}
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <input
@@ -231,6 +247,33 @@ function TableInputFields({
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(e) => handleInputChange(index, e.target.value)}
+            required={isRequired}
+          />
+        </>
+      )
+    }
+
+    case 'textarea': {
+      return (
+        <>
+          <label>
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+          <textarea
+            ref={textareaRef}
+            value={setting.value ? String(setting.value) : ''}
+            style={{
+              width: 'calc(100% - 217px)',
+              maxWidth: 'calc(100% - 217px)',
+              minWidth: 'calc(100% - 217px)'
+              // height:
+              //   setting.label === 'Connection String' ? '100%' : 'fit-content'
+            }}
+            onChange={(e) => {
+              handleInputChange(index, e.target.value)
+              autoResizeTextarea()
+            }}
             required={isRequired}
           />
         </>
@@ -512,7 +555,7 @@ function TableInputFields({
               type="number"
               value={
                 setting.value === null
-                  ? '' // Shows empty string when disabled (Default from config is checked)
+                  ? '' // Shows empty string when disabled (Default from Config is checked)
                   : setting.value !== null && setting.value !== undefined
                   ? Number(setting.value)
                   : ''
@@ -544,17 +587,75 @@ function TableInputFields({
                 checked={setting.value === null}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    handleInputChange(index, null) // Sets to null for Default from config
+                    handleInputChange(index, null) // Sets to null for Default from Config
                   } else {
                     handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
                   }
                 }}
               />
-              Default from config
+              Default from Config
             </label>
           </div>
         </>
       )
+
+    case 'time': {
+      return (
+        <>
+          <label>{setting.label}:</label>
+          <input
+            className="table-input-fields-text-input"
+            type="time"
+            step="1"
+            value={setting.value ? String(setting.value) : ''}
+            onChange={(e) => handleInputChange(index, e.target.value)}
+          />
+        </>
+      )
+    }
+
+    case 'timezone': {
+      // const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone // Maybe use if field is required
+      // console.log("User's current time zone:", userTimeZone)
+      const allTimeZones = getAllTimezones({ deprecated: true })
+
+      const timeZoneNames = Object.keys(allTimeZones)
+      timeZoneNames.sort((a, b) => a.localeCompare(b))
+
+      return (
+        <>
+          <label>{setting.label}:</label>
+          <Dropdown
+            keyLabel={setting.label}
+            items={timeZoneNames}
+            onSelect={handleSelect}
+            isOpen={openDropdown === dropdownId}
+            onToggle={(isOpen: boolean) =>
+              handleDropdownToggle(dropdownId, isOpen)
+            }
+            searchFilter={true}
+            initialTitle={
+              setting.value
+                ? String(setting.value)
+                : // userTimeZone ||
+                  'Select...'
+            }
+            cross={true}
+            backgroundColor="inherit"
+            textColor="black"
+            fontSize="14px"
+            border="0.5px solid rgb(42, 42, 42)"
+            borderRadius="3px"
+            height="21.5px"
+            padding="8px 3px"
+            chevronWidth="11"
+            chevronHeight="7"
+            lightStyle={true}
+          />
+        </>
+      )
+    }
+
     case 'groupingSpace':
       return <div className="setting-grouping-space"> </div>
 

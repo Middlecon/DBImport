@@ -12,8 +12,12 @@ import {
   ValidationMethod
 } from './enums'
 
-export interface Connection {
-  name: 'string'
+export interface ConnectionNames {
+  name: string
+}
+export interface Connections extends ConnectionNames {
+  connectionString: string
+  serverType: string
 }
 
 export interface Database {
@@ -22,6 +26,32 @@ export interface Database {
   lastImport: string
   lastSize: number
   lastRows: number
+}
+
+export interface Connection {
+  name: string
+  connectionString: string
+  privateKeyPath: string
+  publicKeyPath: string
+  credentials: string
+  source: string
+  forceString: number
+  maxSessions: number
+  createDatalakeImport: boolean
+  timeWindowStart: string
+  timeWindowStop: string
+  timeWindowTimezone: string
+  operatorNotes: string
+  contactInformation: string
+  description: string
+  owner: string
+  environment: string
+  seedFile: string
+  createForeignKey: boolean
+  atlasDiscovery: boolean
+  atlasIncludeFilter: string
+  atlasExcludeFilter: string
+  atlasLastDiscovery: string
 }
 
 export interface DbTable {
@@ -255,62 +285,6 @@ export interface TableUpdate {
   columns: Columns[]
 }
 
-// // Without includeInAirflow:
-// export interface TableCreateWithoutEnum {
-//   database: string
-//   table: string
-//   connection: string
-//   sourceSchema: string
-//   sourceTable: string
-//   importPhaseType: string
-//   etlPhaseType: string
-//   importTool: string
-//   etlEngine: string
-//   lastUpdateFromSource: null
-//   sqlWhereAddition: null
-//   nomergeIngestionSqlAddition: null
-//   airflowPriority: null
-//   validateImport: null
-//   validationMethod: null
-//   validateSource: null
-//   validateDiffAllowed: null
-//   validationCustomQuerySourceSQL: null
-//   validationCustomQueryHiveSQL: null
-//   validationCustomQueryValidateImportTable: null
-//   truncateTable: null
-//   mappers: null
-//   softDeleteDuringMerge: null
-//   incrMode: null
-//   incrColumn: null
-//   incrValidationMethod: null
-//   pkColumnOverride: null
-//   pkColumnOverrideMergeonly: null
-//   mergeHeap: null
-//   splitCount: null
-//   sparkExecutorMemory: null
-//   sparkExecutors: null
-//   splitByColumn: null
-//   customQuery: null
-//   sqoopOptions: null
-//   useGeneratedSql: null
-//   allowTextSplitter: null
-//   forceString: null
-//   comment: null
-//   datalakeSource: null
-//   operatorNotes: null
-//   createForeignKeys: null
-//   invalidateImpala: null
-//   customMaxQuery: null
-//   mergeCompactionMethod: null
-//   sourceTableType: null
-//   importDatabase: null
-//   importTable: null
-//   historyDatabase: null
-//   historyTable: null
-//   columns: []
-// }
-
-// With includeInAirflow:
 export interface TableCreateWithoutEnum {
   database: string
   table: string
@@ -426,11 +400,6 @@ export type TableCreateMapped = {
 } & {
   columns: Columns[]
 }
-// type TableCreateKey = keyof TableCreate2
-
-// export type TableCreateMapped = {
-//   [K in TableCreateKey]: TableCreate2[K]
-// }
 
 export interface Columns {
   columnName: string
@@ -476,17 +445,6 @@ export interface TableSetting {
   }
   isHidden?: boolean
 }
-
-// export interface TableSetting {
-//   label: string
-//   value: string | number | boolean | null
-//   type: SettingType
-//   isConditionsMet?: boolean
-//   enumOptions?: { [key: string]: string } // Maybe not needed here
-//   isHidden?: boolean
-// }
-
-// Crate table
 
 export interface TableCreate {
   database: string

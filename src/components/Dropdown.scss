@@ -138,7 +138,8 @@
     }
   }
 
-  .item-content {
+  .item-content,
+  .item-content-clear {
     display: flex;
     align-items: center;
     width: 100%;
@@ -150,6 +151,12 @@
     flex-grow: 1;
     white-space: nowrap;
     margin-right: 10px;
+  }
+
+  .item-content-clear {
+    background-color: #fafafa;
+    color: rgb(110, 110, 110);
+    border-bottom: 0.5px solid rgb(143, 143, 143);
   }
 
   .no-results {

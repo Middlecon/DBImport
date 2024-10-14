@@ -10,7 +10,7 @@ import {
   ValidateSource,
   ValidationMethod
 } from './enums'
-import { Columns, TableCreateMapped, UITable } from './interfaces'
+import { Columns, Connection, TableCreateMapped, UITable } from './interfaces'
 
 export type FilterMapping = { [key: string]: string }
 
@@ -68,67 +68,6 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
     [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
   }
 }
-
-// export const importTypeMetadata = {
-//   importPhaseType: {
-//     [ImportType.Full]: { key: 'importPhaseType', display: 'Full' },
-//     [ImportType.Incremental]: {
-//       key: 'importPhaseType',
-//       display: 'Incremental'
-//     },
-//     [ImportType.OracleFlashback]: {
-//       key: 'importPhaseType',
-//       display: 'Incremental'
-//     },
-//     [ImportType.MSSQLChangeTracking]: 'MSSQL Change Tracking'
-//   },
-//   etlPhaseType: {
-//     [EtlType.TruncateAndInsert]: 'Truncate and Insert',
-//     [EtlType.InsertOnly]: 'Insert only',
-//     [EtlType.Merge]: 'Merge',
-//     [EtlType.MergeHistoryAudit]: 'Merge with History Audit',
-//     [EtlType.External]: 'Only create external table',
-//     [EtlType.None]: 'None'
-//   },
-//   importTool: {
-//     [ImportTool.Spark]: 'Spark',
-//     [ImportTool.Sqoop]: 'Sqoop'
-//   },
-//   etlEngine: {
-//     [EtlEngine.Hive]: 'Hive',
-//     [EtlEngine.Spark]: 'Spark'
-//   },
-//   validationMethod: {
-//     [ValidationMethod.CustomQuery]: 'Custom Query',
-//     [ValidationMethod.RowCount]: 'Row Count'
-//   },
-//   validateSource: {
-//     [ValidateSource.Query]: 'Query before import',
-//     [ValidateSource.Sqoop]: 'Imported rows'
-//   },
-//   incrMode: {
-//     [IncrMode.Append]: 'Append',
-//     [IncrMode.LastModified]: 'Last modified'
-//   },
-//   incrValidationMethod: {
-//     [IncrValidationMethod.Full]: 'Full',
-//     [IncrValidationMethod.Incremental]: 'Incremental'
-//   },
-//   mergeCompactionMethod: {
-//     [MergeCompactionMethod.Default]: 'Default',
-//     [MergeCompactionMethod.None]: 'None',
-//     [MergeCompactionMethod.Minor]: 'Minor Compaction',
-//     [MergeCompactionMethod.MinorAndWait]: 'Minor Compaction and Wait',
-//     [MergeCompactionMethod.Major]: 'Major Compaction',
-//     [MergeCompactionMethod.MajorAndWait]: 'Major Compaction and Wait'
-//   },
-//   anonymizationFunction: {
-//     [AnonymizationFunction.None]: 'None',
-//     [AnonymizationFunction.Hash]: 'Hash',
-//     [AnonymizationFunction.ReplaceWithStar]: 'Replace with star',
-//     [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
-//   }
-// }
 
 export const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
 
@@ -442,4 +381,36 @@ export const reverseMapEnumValue = (
   }
 
   return backendValue
+}
+
+export const labelToConnectionKey: { [label: string]: keyof Connection } = {
+  Name: 'name',
+  'Connection String': 'connectionString',
+  'Private Key Path': 'privateKeyPath',
+  'Public Key Path': 'publicKeyPath',
+  Credentials: 'credentials',
+  Source: 'source',
+  'Force String': 'forceString',
+  'Max Sessions': 'maxSessions',
+  'Create Datalake Import': 'createDatalakeImport',
+  'Time Window Start': 'timeWindowStart',
+  'Time Window Stop': 'timeWindowStop',
+  'Time Window Timezone': 'timeWindowTimezone',
+  'Operator Notes': 'operatorNotes',
+  'Contact Information': 'contactInformation',
+  Description: 'description',
+  Owner: 'owner',
+  Environment: 'environment',
+  'Seed File': 'seedFile',
+  'Create Foreign Key': 'createForeignKey',
+  'Atlas Discovery': 'atlasDiscovery',
+  'Atlas Include Filter': 'atlasIncludeFilter',
+  'Atlas Exclude Filter': 'atlasExcludeFilter',
+  'Atlas Last Discovery': 'atlasLastDiscovery'
+}
+
+export function getKeyFromConnectionLabel(
+  label: string
+): keyof Connection | undefined {
+  return labelToConnectionKey[label]
 }

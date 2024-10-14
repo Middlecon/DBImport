@@ -289,6 +289,7 @@ function DbTables() {
           data={filteredData}
           onEdit={handleEditClick}
           isLoading={isLoading}
+          scrollbarMarginTop="50px"
         />
       ) : (
         <div>Loading....</div>

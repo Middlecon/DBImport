@@ -17,7 +17,7 @@ import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import { getEnumOptions, mapDisplayValue } from '../utils/nameMappings'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
-import './TableModals.scss'
+import './Modals.scss'
 
 interface CreateTableModalProps {
   database: string
@@ -25,30 +25,6 @@ interface CreateTableModalProps {
   onSave: (newTableData: TableSetting[]) => void
   onClose: () => void
 }
-
-// const initialSettings = {
-//   database: '',
-//   table: '',
-//   connection: '',
-//   sourceSchema: '',
-//   sourceTable: '',
-//   importPhaseType: null,
-//   etlPhaseType: null,
-//   importTool: null,
-//   etlEngine: null
-// }
-
-// const newSettingsExample = {
-//   database: '',
-//   table: '',
-//   connection: '',
-//   sourceSchema: '',
-//   sourceTable: '',
-//   importPhaseType: ImportType.Full,
-//   etlPhaseType: EtlType.None,
-//   importTool: ImportTool.Spark,
-//   etlEngine: EtlEngine.Spark
-// }
 
 function initialCreateTableSeetings(
   database: string,
@@ -165,7 +141,7 @@ function CreateTableModal({
   onClose
 }: CreateTableModalProps) {
   const settings = initialCreateTableSeetings(database, prefilledConnection)
-  const { data: connectionsData } = useConnections()
+  const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
     () => connectionsData?.map((connection) => connection.name) ?? [],
     [connectionsData]
@@ -202,7 +178,10 @@ function CreateTableModal({
     setEditedSettings(updatedSettings)
   }
 
-  const handleSelect = (item: TableSettingsValueTypes, keyLabel?: string) => {
+  const handleSelect = (
+    item: TableSettingsValueTypes | null,
+    keyLabel?: string
+  ) => {
     const index = editedSettings.findIndex(
       (setting) => setting.label === keyLabel
     )

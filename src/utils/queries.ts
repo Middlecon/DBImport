@@ -2,6 +2,7 @@ import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import {
   Connection,
+  Connections,
   Database,
   DbTable,
   Table,
@@ -21,17 +22,40 @@ import {
   ValidationMethod
 } from './enums'
 
-// GET CONNECTIONS
+// GET ALL CONNECTIONS
 
-const getConnections = async () => {
-  const response = await axiosInstance.get('/connection')
+const getConnections = async (onlyNames?: boolean) => {
+  const path =
+    onlyNames === true ? '/connection?listOnlyName=true' : '/connection'
+  const response = await axiosInstance.get(path)
   return response.data
 }
 
-export const useConnections = (): UseQueryResult<Connection[], Error> => {
+export const useConnections = (
+  onlyNames?: boolean
+): UseQueryResult<Connections[], Error> => {
+  const queryKey =
+    onlyNames === true ? ['connections', 'names'] : ['connections']
   return useQuery({
-    queryKey: ['connections'],
-    queryFn: getConnections
+    queryKey: queryKey,
+    queryFn: () => getConnections(onlyNames)
+  })
+}
+
+// GET CONNECTION
+
+const getConnection = async (connection: string) => {
+  const response = await axiosInstance.get(`/connection/${connection}`)
+  return response.data
+}
+
+export const useConnection = (
+  connection?: string
+): UseQueryResult<Connection, Error> => {
+  return useQuery({
+    queryKey: ['connection', connection],
+    queryFn: () => getConnection(connection!), // We are sure that connection and table is not null here because of the enabled flag
+    enabled: !!connection
   })
 }
 

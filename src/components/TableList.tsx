@@ -10,9 +10,16 @@ interface TableProps<T> {
   data: T[]
   isLoading: boolean
   onEdit?: (row: T) => void
+  scrollbarMarginTop?: string
 }
 
-function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
+function TableList<T>({
+  columns,
+  data,
+  isLoading,
+  onEdit,
+  scrollbarMarginTop
+}: TableProps<T>) {
   const [visibleData, setVisibleData] = useState<T[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [allDataLoaded, setAllDataLoaded] = useState(false)
@@ -89,6 +96,9 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
       const handleTableClick = (db: string, table: string) => {
         navigate(`/import/${db}/${table}/settings`)
       }
+      const handleConnectionNameClick = (connection: string) => {
+        navigate(`/connection/${connection}`)
+      }
 
       const accessorKey = column.accessor as keyof T
       const displayKey = `${String(accessorKey)}Display` as keyof T
@@ -117,6 +127,19 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
                 String(row['database' as keyof T]),
                 String(row['table' as keyof T])
               )
+            }
+            className="clickable-table-name"
+          >
+            {String(cellValue)}
+          </p>
+        )
+      }
+      if (column.header === 'Connection Name') {
+        return (
+          <p
+            ref={(el) => (cellRefs.current[rowIndex] = el)}
+            onClick={() =>
+              handleConnectionNameClick(String(row['name' as keyof T]))
             }
             className="clickable-table-name"
           >
@@ -157,7 +180,14 @@ function TableList<T>({ columns, data, isLoading, onEdit }: TableProps<T>) {
           <p>Loading tables...</p>
         </div>
       ) : (
-        <div className="scrollable-container">
+        <div
+          className="scrollable-container"
+          style={
+            {
+              '--scrollbar-margin-top': scrollbarMarginTop
+            } as React.CSSProperties
+          }
+        >
           <table className="custom-table-root">
             <thead>
               <tr>

@@ -5,15 +5,17 @@ import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import ChevronRight from '../assets/icons/ChevronRight'
 import { TableSetting } from '../utils/interfaces'
+import CloseIcon from '../assets/icons/CloseIcon'
 
 interface DropdownProps<T> {
   items: T[]
-  onSelect: (item: T, keyLabel?: string) => void
+  onSelect: (item: T | null, keyLabel?: string) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
   searchFilter: boolean
   keyLabel?: string
   chevron?: boolean
+  cross?: boolean
   initialTitle?: string
   placeholder?: string
   leftwards?: boolean
@@ -37,6 +39,7 @@ function Dropdown<T>({
   searchFilter = true,
   keyLabel,
   chevron = false,
+  cross = false,
   initialTitle,
   placeholder = 'Search...',
   leftwards,
@@ -52,11 +55,12 @@ function Dropdown<T>({
   lightStyle
 }: DropdownProps<T>): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedItem, setSelectedItem] = useState<T | null>(null)
+  const [selectedItem, setSelectedItem] = useState<T | null>(
+    (initialTitle as T) || null
+  )
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -73,13 +77,6 @@ function Dropdown<T>({
     }
   }, [onToggle])
 
-  useEffect(() => {
-    // Reset the selected item if the initial title changes (e.g., selectedDatabase is reset)
-    if (initialTitle) {
-      setSelectedItem(null)
-    }
-  }, [initialTitle])
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
 
@@ -95,8 +92,9 @@ function Dropdown<T>({
     setSearchTerm(value)
   }
 
-  const handleSelect = (item: T) => {
+  const handleSelect = (item: T | null) => {
     setSelectedItem(item)
+
     if (keyLabel) {
       onSelect(item, keyLabel)
     } else {
@@ -113,18 +111,20 @@ function Dropdown<T>({
     return (item as TableSetting).label
   }
 
-  const filteredItems = items.filter((item) =>
-    getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredItems = items
+    .filter((item) =>
+      getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((item) => item !== selectedItem)
 
   const dropdownStyle: React.CSSProperties = {
-    backgroundColor: backgroundColor,
+    backgroundColor,
     color: textColor,
-    fontSize: fontSize,
-    border: border,
-    borderRadius: borderRadius,
-    height: height,
-    padding: padding
+    fontSize,
+    border,
+    borderRadius,
+    height,
+    padding
   }
 
   return (
@@ -135,16 +135,23 @@ function Dropdown<T>({
         onClick={() => onToggle(!isOpen)}
       >
         {selectedItem ? getItemLabel(selectedItem) : initialTitle}
+
         <div className="chevron-container">
-          {isOpen ? (
+          {cross && selectedItem && selectedItem !== 'Select...' && !isOpen ? (
+            <CloseIcon
+              onClick={() => {
+                handleSelect(null)
+              }}
+            />
+          ) : isOpen ? (
             <ChevronUp
-              width={chevronWidth ? chevronWidth : ''}
-              height={chevronHeight ? chevronHeight : ''}
+              width={chevronWidth || ''}
+              height={chevronHeight || ''}
             />
           ) : (
             <ChevronDown
-              width={chevronWidth ? chevronWidth : ''}
-              height={chevronHeight ? chevronHeight : ''}
+              width={chevronWidth || ''}
+              height={chevronHeight || ''}
             />
           )}
         </div>
@@ -183,11 +190,7 @@ function Dropdown<T>({
                 <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">
                     <span className="item-text">{getItemLabel(item)}</span>
-                    {chevron && !leftwards && (
-                      <span>
-                        <ChevronRight />
-                      </span>
-                    )}
+                    {chevron && !leftwards && <ChevronRight />}
                   </div>
                 </li>
               ))

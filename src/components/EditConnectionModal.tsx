@@ -14,7 +14,12 @@ interface EditModalProps {
   onClose: () => void
 }
 
-function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
+function EditConnectionModal({
+  title,
+  settings,
+  onSave,
+  onClose
+}: EditModalProps) {
   const editableSettings = settings.filter((setting) => {
     const isReadonly = setting.type === 'readonly'
     const isHidden = setting.isHidden
@@ -40,12 +45,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     validationMethodSetting?.value !== 'Custom Query'
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Database',
-      'Table',
-      'Source Schema',
-      'Source Table'
-    ]
+    const requiredLabels = ['Connection String']
     return editedSettings.some(
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
@@ -55,12 +55,14 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     index: number,
     newValue: string | number | boolean | null
   ) => {
+    console.log('index', index)
+    console.log('newValue', newValue)
     // Creates a new array, copying all elements of editedSettings
+
     const newSettings = [...editedSettings]
 
-    const currentValue = newSettings[index].value
+    const currentValue = index === -1 ? null : newSettings[index].value
 
-    // Only stores previous value if it's a whole number
     if (newValue === -1) {
       if (
         typeof currentValue === 'number' &&
@@ -81,10 +83,8 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
         setPrevValue(currentValue)
       }
     }
-
     // Creates a new object for the setting being updated
     const updatedSetting = { ...newSettings[index], value: newValue }
-
     // Replaces the old object in the array with the new object
     newSettings[index] = updatedSetting
     setEditedSettings(newSettings)
@@ -99,12 +99,12 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     )
     if (index !== -1) {
       handleInputChange(index, item)
+    } else {
+      handleInputChange(index, item)
     }
   }
 
   const handleSave = () => {
-    console.log('settings EditTableModal', settings)
-    console.log('editedSettings', editedSettings)
     // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
     const updatedSettings = settings.map((setting) => {
       const editedSetting = editedSettings.find(
@@ -114,7 +114,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
       return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
-    console.log('updatedSettings', updatedSettings)
     onSave(updatedSettings)
     onClose()
   }
@@ -134,10 +133,9 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   return (
-    <div className="table-modal-backdrop">
-      <div className="table-modal-content">
+    <div className="table-modal-backdrop-connection">
+      <div className="table-modal-content-connection">
         <h2 className="table-modal-h2">{title}</h2>
-        {/* <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} /> */}
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -182,4 +180,4 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   )
 }
 
-export default EditTableModal
+export default EditConnectionModal
