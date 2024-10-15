@@ -29,29 +29,29 @@ export interface Database {
 }
 
 export interface Connection {
-  name: string
+  name: string | null
   connectionString: string
-  privateKeyPath: string
-  publicKeyPath: string
-  credentials: string
-  source: string
+  privateKeyPath: string | null
+  publicKeyPath: string | null
+  credentials: string | null
+  source: string | null
   forceString: number
-  maxSessions: number
+  maxSessions: number | null
   createDatalakeImport: boolean
-  timeWindowStart: string
-  timeWindowStop: string
-  timeWindowTimezone: string
-  operatorNotes: string
-  contactInformation: string
-  description: string
-  owner: string
-  environment: string
-  seedFile: string
+  timeWindowStart: string | null
+  timeWindowStop: string | null
+  timeWindowTimezone: string | null
+  operatorNotes: string | null
+  contactInformation: string | null
+  description: string | null
+  owner: string | null
+  environment: string | null
+  seedFile: string | null
   createForeignKey: boolean
   atlasDiscovery: boolean
-  atlasIncludeFilter: string
-  atlasExcludeFilter: string
-  atlasLastDiscovery: string
+  atlasIncludeFilter: string | null
+  atlasExcludeFilter: string | null
+  atlasLastDiscovery: string | null
 }
 
 export interface DbTable {
@@ -72,12 +72,6 @@ export interface UiDbTable extends Table {
   etlPhaseTypeDisplay: string
   importToolDisplay: string
   etlEngineDisplay: string
-}
-
-export interface Column<T> {
-  header: string
-  accessor?: keyof T
-  isAction?: 'edit' | 'delete' | 'both'
 }
 
 export interface Table {
@@ -222,6 +216,82 @@ export interface UITable {
   invalidateImpala: 0
   customMaxQuery: string
   mergeCompactionMethod: MergeCompactionMethod
+  sourceTableType: string
+  importDatabase: string
+  importTable: string
+  historyDatabase: string
+  historyTable: string
+  columns: Columns[]
+}
+
+export interface UITableWithoutEnum {
+  [key: string]: string | boolean | number | Columns[]
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+  importPhaseType: string
+  etlPhaseType: string
+  importTool: string
+  etlEngine: string
+  lastUpdateFromSource: string
+  sqlWhereAddition: string
+  nomergeIngestionSqlAddition: string
+  includeInAirflow: boolean
+  airflowPriority: string
+  validateImport: boolean
+  validationMethod: string
+  validateSource: string
+  validateDiffAllowed: number
+  validationCustomQuerySourceSQL: string
+  validationCustomQueryHiveSQL: string
+  validationCustomQueryValidateImportTable: boolean // should stay true
+  truncateTable: boolean
+  mappers: number
+  softDeleteDuringMerge: boolean
+  sourceRowcount: number
+  sourceRowcountIncr: number
+  targetRowcount: number
+  validationCustomQuerySourceValue: string
+  validationCustomQueryHiveValue: string
+  incrMode: string
+  incrColumn: string
+  incrValidationMethod: string
+  incrMinvalue: string
+  incrMaxvalue: string
+  incrMinvaluePending: string
+  incrMaxvaluePending: string
+  pkColumnOverride: string
+  pkColumnOverrideMergeonly: string
+  mergeHeap: number
+  splitCount: number
+  sparkExecutorMemory: string
+  sparkExecutors: number
+  splitByColumn: string
+  customQuery: string
+  sqoopOptions: string
+  lastSize: number
+  lastRows: number
+  lastMappers: number
+  lastExecution: number
+  useGeneratedSql: boolean
+  allowTextSplitter: boolean
+  forceString: number
+  comment: string
+  generatedHiveColumnDefinition: string
+  generatedSqoopQuery: string
+  generatedSqoopOptions: string
+  generatedPkColumns: string
+  generatedForeignKeys: string
+  datalakeSource: string
+  operatorNotes: string
+  copyFinished: string
+  copySlave: boolean
+  createForeignKeys: number
+  invalidateImpala: number
+  customMaxQuery: string
+  mergeCompactionMethod: string
   sourceTableType: string
   importDatabase: string
   importTable: string
@@ -401,23 +471,29 @@ export type TableCreateMapped = {
   columns: Columns[]
 }
 
+export interface Column<T> {
+  header: string
+  accessor?: keyof T
+  isAction?: 'edit' | 'delete' | 'both'
+}
+
 export interface Columns {
   columnName: string
-  columnOrder: string
+  columnOrder: string | null
   sourceColumnName: string
   columnType: string
   sourceColumnType: string
-  sourceDatabaseType: string
-  columnNameOverride: string
-  columnTypeOverride: string
-  sqoopColumnType: string
-  sqoopColumnTypeOverride: string
+  sourceDatabaseType: string | null
+  columnNameOverride: string | null
+  columnTypeOverride: string | null
+  sqoopColumnType: string | null
+  sqoopColumnTypeOverride: string | null
   forceString: number
   includeInImport: string
-  sourcePrimaryKey: string
+  sourcePrimaryKey: string | null
   lastUpdateFromSource: string
-  comment: string
-  operatorNotes: string
+  comment: string | null
+  operatorNotes: string | null
   anonymizationFunction: string
 }
 

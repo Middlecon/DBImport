@@ -34,6 +34,8 @@ function Card({
   const handleSave = (updatedSettings: TableSetting[]) => {
     const tableDataCopy = { ...tableData }
     const editedTableData = updateTableData(tableDataCopy, updatedSettings)
+    console.log('updatedSettings', updatedSettings)
+    console.log('editedTableData', editedTableData)
 
     queryClient.setQueryData(['table', tableParam], editedTableData)
     updateTable(editedTableData, {

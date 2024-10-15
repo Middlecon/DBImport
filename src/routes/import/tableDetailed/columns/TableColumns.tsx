@@ -56,7 +56,11 @@ function TableColumns() {
       }
 
       const rowData: TableSetting[] = [
-        { label: 'Column Name', value: row.columnName, type: SettingType.Text }, // Free-text
+        {
+          label: 'Column Name',
+          value: row.columnName,
+          type: SettingType.Readonly
+        }, // Read-only, , free-text
         {
           label: 'Column Order',
           value: row.columnOrder,

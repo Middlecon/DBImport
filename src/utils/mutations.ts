@@ -1,6 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
-import { TableUpdate, TableCreateWithoutEnum, Connection } from './interfaces'
+import {
+  TableCreateWithoutEnum,
+  Connection,
+  UITableWithoutEnum
+} from './interfaces'
 
 // Connection
 
@@ -22,7 +26,7 @@ export const useUpdateConnection = () => {
 
 // Table
 
-const postUpdateTable = async (table: TableUpdate) => {
+const postUpdateTable = async (table: UITableWithoutEnum) => {
   console.log('postTable table', table)
   const response = await axiosInstance.post('/import/table', table)
   console.log('postTable response.data', response.data)
@@ -32,7 +36,7 @@ const postUpdateTable = async (table: TableUpdate) => {
 
 export const useUpdateTable = () => {
   return useMutation({
-    mutationFn: (tableUpdated: TableUpdate) => {
+    mutationFn: (tableUpdated: UITableWithoutEnum) => {
       return postUpdateTable(tableUpdated)
     }
   })

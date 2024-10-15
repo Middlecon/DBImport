@@ -34,7 +34,7 @@ function CardsRendererConnection() {
     }, // Free-text (varchar 128)
     {
       label: 'Credentials',
-      value: connection.credentials,
+      value: connection.credentials !== null ? connection.credentials : '',
       type: SettingType.Textarea
     }, // Free-text (64k)
 
