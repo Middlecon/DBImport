@@ -604,8 +604,8 @@ class dbCalls:
 		resultDict["credentials"] = row[4]
 		resultDict["source"] = row[5]
 		resultDict["forceString"] = row[6]
-		if resultDict["forceString"] != 0 and resultDict["forceString"] != 1:
-			resultDict["forceString"] = 0
+		if resultDict["forceString"] != 0 and resultDict["forceString"] != 1 and resultDict["forceString"] != -1:
+			resultDict["forceString"] = -1
 		resultDict["maxSessions"] = row[7]
 		resultDict["createDatalakeImport"] = row[8]
 		try:
@@ -938,6 +938,8 @@ class dbCalls:
 			resultDict['useGeneratedSql'] = row[49]
 		resultDict['allowTextSplitter'] = row[50]
 		resultDict['forceString'] = row[51]
+		if resultDict["forceString"] != 0 and resultDict["forceString"] != 1 and resultDict["forceString"] != -1:
+			resultDict["forceString"] = -1
 		resultDict['comment'] = row[52]
 		resultDict['generatedHiveColumnDefinition'] = row[53]
 		resultDict['generatedSqoopQuery'] = row[54]
@@ -1314,6 +1316,8 @@ class dbCalls:
 			resultDict['sqoopColumnType'] = row[10]
 			resultDict['sqoopColumnTypeOverride'] = row[11]
 			resultDict['forceString'] = row[12]
+			if resultDict["forceString"] != 0 and resultDict["forceString"] != 1 and resultDict["forceString"] != -1:
+				resultDict["forceString"] = -1
 			resultDict['includeInImport'] = row[13]
 			resultDict['sourcePrimaryKey'] = row[14]
 			try:

@@ -53,7 +53,7 @@ class connectionDetails(BaseModel):
 	publicKeyPath: Union[str, None] = None
 	credentials: Union[str, None] = None
 	source: Union[str, None] = None
-	forceString: Union[bool, None] = None
+	forceString: Union[int, None] = None
 	maxSessions: Union[int, None] = None
 	createDatalakeImport: Union[bool, None] = None
 	timeWindowStart: Union[str, None] = None

@@ -80,6 +80,7 @@ def main(argv):
 	loggingLevel = logging.INFO
 	displayVersion = False
 	daemonMode = False
+	action = ""
 
 	if argv != []:
 		try:
