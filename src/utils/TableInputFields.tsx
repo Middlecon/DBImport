@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAllTimezones } from 'countries-and-timezones'
 import Dropdown from '../components/Dropdown'
 import { TableSetting } from './interfaces'
@@ -19,6 +19,8 @@ interface TableInputFieldsProps {
   connectionNames?: string[]
   isCustomQueryDisabled?: boolean
 }
+
+// To do: Add label for and input id on all relevant places
 
 function TableInputFields({
   setting,
@@ -42,13 +44,15 @@ function TableInputFields({
 
   const showRequiredIndicator = isRequired && !setting.value
 
-  const autoResizeTextarea = () => {
+  const autoResizeTextarea = useCallback(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+      textareaRef.current.style.height =
+        setting.label === 'Connection String'
+          ? `${textareaRef.current.scrollHeight}px`
+          : '50px'
       textareaRef.current.style.maxHeight = `${textareaRef.current.scrollHeight}px`
     }
-  }
+  }, [setting.label])
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -62,7 +66,7 @@ function TableInputFields({
     if (setting.value) {
       autoResizeTextarea()
     }
-  }, [setting.value])
+  }, [setting.value, autoResizeTextarea])
 
   switch (setting.type) {
     case 'boolean':
@@ -206,8 +210,8 @@ function TableInputFields({
     case 'readonly':
       return (
         <>
-          <label>{setting.label}:</label>
-          <span>{setting.value}</span>
+          <label htmlFor={`text-input-${index}`}>{setting.label}:</label>
+          <span id={`text-input-${index}`}>{setting.value}</span>
         </>
       )
 
@@ -222,11 +226,13 @@ function TableInputFields({
               className={
                 isCustomQueryDisabled ? 'table-input-fields-label-disabled' : ''
               }
+              htmlFor={`text-input-${index}`}
             >
               {setting.label}:
             </label>
             <input
               className="table-input-fields-text-input"
+              id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
               onChange={(e) => handleInputChange(index, e.target.value)}
@@ -237,13 +243,14 @@ function TableInputFields({
       }
       return (
         <>
-          <label>
+          <label htmlFor={`text-input-${index}`}>
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <input
             className="table-input-fields-text-input"
+            id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(e) => handleInputChange(index, e.target.value)}
@@ -256,19 +263,18 @@ function TableInputFields({
     case 'textarea': {
       return (
         <>
-          <label>
+          <label htmlFor={`textarea-input-${index}`}>
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
           <textarea
+            id={`textarea-input-${index}`}
             ref={textareaRef}
             value={setting.value ? String(setting.value) : ''}
             style={{
               width: 'calc(100% - 217px)',
               maxWidth: 'calc(100% - 217px)',
               minWidth: 'calc(100% - 217px)'
-              // height:
-              //   setting.label === 'Connection String' ? '100%' : 'fit-content'
             }}
             onChange={(e) => {
               handleInputChange(index, e.target.value)

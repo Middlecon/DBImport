@@ -67,7 +67,12 @@ function CardConnection({
       </div>
       <dl className="card-dl">
         {settings.map((setting, index) => (
-          <Setting key={index} {...setting} valueFieldWidth="100%" />
+          <Setting
+            key={index}
+            {...setting}
+            valueFieldWidth="100%"
+            columnSetting={true}
+          />
         ))}
       </dl>
 

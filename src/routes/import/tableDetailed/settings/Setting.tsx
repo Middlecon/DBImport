@@ -15,6 +15,7 @@ interface SettingProps {
   enumOptions?: { [key: string]: string } // Maybe not needed here
   valueFieldWidth?: string
   isHidden?: boolean
+  columnSetting?: boolean
 }
 
 function Setting({
@@ -22,7 +23,8 @@ function Setting({
   value,
   type,
   isConditionsMet,
-  valueFieldWidth
+  valueFieldWidth,
+  columnSetting
 }: SettingProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [hasOverflow, setHasOverflow] = useState(false)
@@ -141,7 +143,10 @@ function Setting({
 
   return (
     <div className={isConditionsMet === false ? 'setting-disabled' : 'setting'}>
-      <dt className="setting-label">
+      <dt
+        className="setting-label"
+        style={columnSetting ? { width: '220px' } : {}}
+      >
         {label}
         {type !== 'groupingSpace' && ':'}
       </dt>
