@@ -66,14 +66,15 @@ function CardConnection({
         <Button title="Edit" onClick={handleOpenModal} />
       </div>
       <dl className="card-dl">
-        {settings.map((setting, index) => (
-          <Setting
-            key={index}
-            {...setting}
-            valueFieldWidth="100%"
-            columnSetting={true}
-          />
-        ))}
+        {Array.isArray(settings) &&
+          settings.map((setting, index) => (
+            <Setting
+              key={index}
+              {...setting}
+              valueFieldWidth="100%"
+              columnSetting={true}
+            />
+          ))}
       </dl>
 
       {isEditModalOpen && !isNotEditable && !isDisabled && (

@@ -20,17 +20,21 @@ function EditConnectionModal({
   onSave,
   onClose
 }: EditModalProps) {
-  const editableSettings = settings.filter((setting) => {
-    const isReadonly = setting.type === 'readonly'
-    const isHidden = setting.isHidden
-    const isDatabaseOrTable =
-      setting.label === 'Database' || setting.label === 'Table'
+  const editableSettings =
+    settings?.filter((setting) => {
+      const isReadonly = setting.type === 'readonly'
+      const isHidden = setting.isHidden
+      const isDatabaseOrTable =
+        setting.label === 'Database' || setting.label === 'Table'
 
-    return !isHidden && (!isReadonly || isDatabaseOrTable)
-  })
+      return !isHidden && (!isReadonly || isDatabaseOrTable)
+    }) ?? []
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
-    () => connectionsData?.map((connection) => connection.name) ?? [],
+    () =>
+      Array.isArray(connectionsData)
+        ? connectionsData?.map((connection) => connection.name)
+        : [],
     [connectionsData]
   )
   const [originalEditableSettings] = useState(editableSettings)
@@ -106,14 +110,17 @@ function EditConnectionModal({
 
   const handleSave = () => {
     // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
-    const updatedSettings = settings.map((setting) => {
-      const editedSetting = editedSettings.find(
-        (es) => es.label === setting.label
-      )
+    const updatedSettings = Array.isArray(settings)
+      ? settings.map((setting) => {
+          const editedSetting = editedSettings.find(
+            (es) => es.label === setting.label
+          )
 
-      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
-    })
-
+          return editedSetting
+            ? { ...setting, ...editedSetting }
+            : { ...setting }
+        })
+      : []
     onSave(updatedSettings)
     onClose()
   }
@@ -137,25 +144,26 @@ function EditConnectionModal({
       <div className="table-modal-content-connection">
         <h2 className="table-modal-h2">{title}</h2>
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
+          onSubmit={(event) => {
+            event.preventDefault()
             handleSave()
           }}
         >
           <div className="table-modal-body">
-            {editedSettings.map((setting, index) => (
-              <div key={index} className="table-modal-setting">
-                <TableInputFields
-                  index={index}
-                  setting={setting}
-                  handleInputChange={handleInputChange}
-                  handleSelect={handleSelect}
-                  prevValue={prevValue}
-                  isCustomQueryDisabled={isCustomQueryDisabled}
-                  connectionNames={connectionNames}
-                />
-              </div>
-            ))}
+            {Array.isArray(editedSettings) &&
+              editedSettings.map((setting, index) => (
+                <div key={index} className="table-modal-setting">
+                  <TableInputFields
+                    index={index}
+                    setting={setting}
+                    handleInputChange={handleInputChange}
+                    handleSelect={handleSelect}
+                    prevValue={prevValue}
+                    isCustomQueryDisabled={isCustomQueryDisabled}
+                    connectionNames={connectionNames}
+                  />
+                </div>
+              ))}
           </div>
           <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
 

@@ -151,7 +151,7 @@ function DbTables() {
   }, [])
 
   const filteredData = useMemo(() => {
-    if (!data) return []
+    if (!Array.isArray(data)) return []
     return data.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 

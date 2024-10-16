@@ -235,7 +235,7 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
-              onChange={(e) => handleInputChange(index, e.target.value)}
+              onChange={(event) => handleInputChange(index, event.target.value)}
               disabled={isCustomQueryDisabled}
             />
           </>
@@ -253,7 +253,7 @@ function TableInputFields({
             id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
-            onChange={(e) => handleInputChange(index, e.target.value)}
+            onChange={(event) => handleInputChange(index, event.target.value)}
             required={isRequired}
           />
         </>
@@ -276,8 +276,8 @@ function TableInputFields({
               maxWidth: 'calc(100% - 217px)',
               minWidth: 'calc(100% - 217px)'
             }}
-            onChange={(e) => {
-              handleInputChange(index, e.target.value)
+            onChange={(event) => {
+              handleInputChange(index, event.target.value)
               autoResizeTextarea()
             }}
             required={isRequired}
@@ -366,9 +366,9 @@ function TableInputFields({
                 ? Number(setting.value)
                 : ''
             }
-            onChange={(e) => {
+            onChange={(event) => {
               let value: string | number | null =
-                e.target.value === '' ? '' : Number(e.target.value)
+                event.target.value === '' ? '' : Number(event.target.value)
 
               if (
                 isNaN(Number(value)) &&
@@ -376,7 +376,7 @@ function TableInputFields({
                 value < 0
               ) {
                 value = null
-                e.target.value = ''
+                event.target.value = ''
               }
 
               handleInputChange(
@@ -384,20 +384,20 @@ function TableInputFields({
                 value === '' || isNaN(Number(value)) ? null : value
               )
             }}
-            onBlur={(e) => {
-              const value = e.target.value
+            onBlur={(event) => {
+              const value = event.target.value
               // If input is empty or not a valid number greater than 1, set to null
               if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
                 handleInputChange(index, null)
-                e.target.value = ''
+                event.target.value = ''
               }
             }}
-            onKeyDown={(e) => {
+            onKeyDown={(event) => {
               // Prevent invalid characters from being typed
               if (
-                ['0', 'e', 'E', '+', '-', '.', ',', 'Dead'].includes(e.key) // Dead is still working, fix so it is not
+                ['0', 'e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
               ) {
-                e.preventDefault()
+                event.preventDefault()
               }
             }}
             step="1"
@@ -417,9 +417,9 @@ function TableInputFields({
                 ? Number(setting.value)
                 : ''
             }
-            onChange={(e) => {
+            onChange={(event) => {
               let value: string | number | null =
-                e.target.value === '' ? '' : Number(e.target.value)
+                event.target.value === '' ? '' : Number(event.target.value)
 
               if (typeof value === 'number' && value < 0) {
                 value = null
@@ -427,12 +427,12 @@ function TableInputFields({
 
               handleInputChange(index, value === '' ? null : value)
             }}
-            onBlur={(e) => {
-              const value = e.target.value
+            onBlur={(event) => {
+              const value = event.target.value
               // If input is empty or not a valid number greater than 1, set to null
               if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
                 handleInputChange(index, null)
-                e.target.value = ''
+                event.target.value = ''
               }
             }}
             step="1"
@@ -456,9 +456,9 @@ function TableInputFields({
                   ? Number(setting.value)
                   : ''
               }
-              onChange={(e) => {
+              onChange={(event) => {
                 let value: string | number =
-                  e.target.value === '' ? '' : Number(e.target.value)
+                  event.target.value === '' ? '' : Number(event.target.value)
 
                 if (typeof value === 'number' && value < 0) {
                   value = -1
@@ -466,12 +466,12 @@ function TableInputFields({
 
                 handleInputChange(index, value === '' ? null : value)
               }}
-              onBlur={(e) => {
-                const value = e.target.value
+              onBlur={(event) => {
+                const value = event.target.value
                 // If input is empty or not a valid number greater than 1, set to Auto (-1)
                 if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
                   handleInputChange(index, -1)
-                  e.target.value = ''
+                  event.target.value = ''
                 }
               }}
               step="1"
@@ -481,8 +481,8 @@ function TableInputFields({
               <input
                 type="checkbox"
                 checked={setting.value === -1}
-                onChange={(e) => {
-                  if (e.target.checked) {
+                onChange={(event) => {
+                  if (event.target.checked) {
                     handleInputChange(index, -1) // Sets to -1 for Auto
                   } else {
                     handleInputChange(index, prevValue === '' ? 0 : prevValue) // Restores the previous value
@@ -511,9 +511,9 @@ function TableInputFields({
                   ? Number(setting.value)
                   : ''
               }
-              onChange={(e) => {
+              onChange={(event) => {
                 let value: string | number =
-                  e.target.value === '' ? '' : Number(e.target.value)
+                  event.target.value === '' ? '' : Number(event.target.value)
 
                 if (typeof value === 'number' && value < -1) {
                   value = -1
@@ -521,12 +521,12 @@ function TableInputFields({
 
                 handleInputChange(index, value === '' ? null : value)
               }}
-              onBlur={(e) => {
-                const value = e.target.value
+              onBlur={(event) => {
+                const value = event.target.value
                 // If input is empty or not a valid number greater than 1, set to Auto (-1)
                 if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
                   handleInputChange(index, -1)
-                  e.target.value = ''
+                  event.target.value = ''
                 }
               }}
               step="1"
@@ -536,8 +536,8 @@ function TableInputFields({
               <input
                 type="checkbox"
                 checked={setting.value === -1 || setting.value === 0}
-                onChange={(e) => {
-                  if (e.target.checked) {
+                onChange={(event) => {
+                  if (event.target.checked) {
                     handleInputChange(index, -1) // Sets to -1 for Auto
                   } else {
                     handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
@@ -566,9 +566,9 @@ function TableInputFields({
                   ? Number(setting.value)
                   : ''
               }
-              onChange={(e) => {
+              onChange={(event) => {
                 let value: string | number | null =
-                  e.target.value === '' ? '' : Number(e.target.value)
+                  event.target.value === '' ? '' : Number(event.target.value)
 
                 if (typeof value === 'number' && value < 1) {
                   value = null
@@ -576,12 +576,12 @@ function TableInputFields({
 
                 handleInputChange(index, value === '' ? null : value)
               }}
-              onBlur={(e) => {
-                const value = e.target.value
+              onBlur={(event) => {
+                const value = event.target.value
                 // If input is empty or not a valid number greater than 1, set to null
                 if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
                   handleInputChange(index, null)
-                  e.target.value = ''
+                  event.target.value = ''
                 }
               }}
               step="1"
@@ -591,8 +591,8 @@ function TableInputFields({
               <input
                 type="checkbox"
                 checked={setting.value === null}
-                onChange={(e) => {
-                  if (e.target.checked) {
+                onChange={(event) => {
+                  if (event.target.checked) {
                     handleInputChange(index, null) // Sets to null for Default from Config
                   } else {
                     handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
@@ -614,7 +614,7 @@ function TableInputFields({
             type="time"
             step="1"
             value={setting.value ? String(setting.value) : ''}
-            onChange={(e) => handleInputChange(index, e.target.value)}
+            onChange={(event) => handleInputChange(index, event.target.value)}
           />
         </>
       )

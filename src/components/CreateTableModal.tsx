@@ -143,7 +143,10 @@ function CreateTableModal({
   const settings = initialCreateTableSeetings(database, prefilledConnection)
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
-    () => connectionsData?.map((connection) => connection.name) ?? [],
+    () =>
+      Array.isArray(connectionsData)
+        ? connectionsData.map((connection) => connection.name)
+        : [],
     [connectionsData]
   )
 
@@ -171,7 +174,7 @@ function CreateTableModal({
       return
     }
 
-    const updatedSettings = editedSettings.map((setting, i) =>
+    const updatedSettings = editedSettings?.map((setting, i) =>
       i === index ? { ...setting, value: newValue } : setting
     )
 
@@ -221,8 +224,8 @@ function CreateTableModal({
       <div className="table-modal-content">
         <h2 className="table-modal-h2">Create table</h2>
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
+          onSubmit={(event) => {
+            event.preventDefault()
             handleSave()
           }}
         >

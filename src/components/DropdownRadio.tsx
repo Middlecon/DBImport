@@ -74,7 +74,7 @@ function DropdownRadio({
       {isOpen && (
         <div className="menu">
           <ul>
-            {items.length ? (
+            {Array.isArray(items) && items.length ? (
               items.map((item, index) => (
                 <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">

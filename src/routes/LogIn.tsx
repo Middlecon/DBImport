@@ -105,8 +105,8 @@ function LogIn() {
                 type="text"
                 autoComplete="username"
                 value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, username: event.target.value })
                 }
                 required
               />
@@ -118,8 +118,8 @@ function LogIn() {
                 type="password"
                 autoComplete="current-password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, password: event.target.value })
                 }
                 required
               />

@@ -7,13 +7,13 @@ interface ViewLayoutProps {
   children: ReactNode
 }
 
-function ViewLayout({ breadcrumbs, children }: ViewLayoutProps) {
+function ViewLayout({ breadcrumbs = [], children }: ViewLayoutProps) {
   return (
     <>
       <div className="view-layout-root">
         <div className="fake-breadcrumbs">
           Home
-          {breadcrumbs &&
+          {Array.isArray(breadcrumbs) &&
             breadcrumbs.map((breadcrumb, index) => (
               <span key={index}>
                 <ChevronRight />

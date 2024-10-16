@@ -52,9 +52,11 @@ function TableList<T>({
     if (isLoading) {
       setLoading(true)
     } else {
-      const isOverflowing = cellRefs.current.map((el) =>
-        el ? el.scrollWidth > el.clientWidth : false
-      )
+      const isOverflowing = Array.isArray(cellRefs.current)
+        ? cellRefs.current.map((el) =>
+            el ? el.scrollWidth > el.clientWidth : false
+          )
+        : []
       setOverflowState(isOverflowing)
       setLoading(false)
     }
@@ -191,32 +193,37 @@ function TableList<T>({
           <table className="custom-table-root">
             <thead>
               <tr>
-                {columns.map((column, index) => (
-                  <th
-                    key={index}
-                    className={
-                      column.accessor === 'sourceTable' ? 'fixed-width' : ''
-                    }
-                  >
-                    {column.header}
-                  </th>
-                ))}
+                {Array.isArray(columns) &&
+                  columns.map((column, index) => (
+                    <th
+                      key={index}
+                      className={
+                        column.accessor === 'sourceTable' ? 'fixed-width' : ''
+                      }
+                    >
+                      {column.header}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
               {visibleData &&
+                Array.isArray(visibleData) &&
                 visibleData.map((row, rowIndex) => (
                   <tr key={rowIndex} className="dbtables-row">
-                    {columns.map((column) => (
-                      <td
-                        key={`${rowIndex}-${String(column.accessor)}`}
-                        className={
-                          column.accessor === 'sourceTable' ? 'fixed-width' : ''
-                        }
-                      >
-                        {renderCellContent(row, column, rowIndex)}
-                      </td>
-                    ))}
+                    {Array.isArray(columns) &&
+                      columns.map((column) => (
+                        <td
+                          key={`${rowIndex}-${String(column.accessor)}`}
+                          className={
+                            column.accessor === 'sourceTable'
+                              ? 'fixed-width'
+                              : ''
+                          }
+                        >
+                          {renderCellContent(row, column, rowIndex)}
+                        </td>
+                      ))}
                   </tr>
                 ))}
               {data.length === 0 && !isLoading && (

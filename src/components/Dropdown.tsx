@@ -111,11 +111,11 @@ function Dropdown<T>({
     return (item as TableSetting).label
   }
 
-  const filteredItems = items
-    .filter((item) =>
+  const filteredItems = (
+    items?.filter((item) =>
       getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((item) => item !== selectedItem)
+    ) ?? []
+  ).filter((item) => item !== selectedItem)
 
   const dropdownStyle: React.CSSProperties = {
     backgroundColor,
@@ -185,7 +185,7 @@ function Dropdown<T>({
           )}
 
           <ul>
-            {filteredItems.length ? (
+            {Array.isArray(filteredItems) && filteredItems.length ? (
               filteredItems.map((item, index) => (
                 <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">

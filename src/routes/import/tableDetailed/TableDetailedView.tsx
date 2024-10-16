@@ -8,7 +8,12 @@ function TableDetailedView() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const pathSegments = location.pathname.split('/').filter(Boolean)
+  // const pathSegments = location.pathname.split('/').filter(Boolean)
+  const pathSegments =
+    typeof location.pathname === 'string'
+      ? location.pathname.split('/').filter(Boolean)
+      : []
+
   const tab = pathSegments[3] || 'settings'
 
   const validTabs = useMemo(() => ['settings', 'columns', 'statistics'], [])

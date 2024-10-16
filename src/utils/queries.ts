@@ -63,13 +63,15 @@ export const useConnection = (
 
 const getDatabases = async () => {
   const response = await axiosInstance.get('/import/db')
+  console.log('response.data', response.data)
   return response.data
 }
 
 export const useDatabases = (): UseQueryResult<Database[], Error> => {
   return useQuery({
     queryKey: ['databases'],
-    queryFn: getDatabases
+    queryFn: getDatabases,
+    initialData: []
   })
 }
 

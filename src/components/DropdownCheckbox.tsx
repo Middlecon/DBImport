@@ -23,7 +23,7 @@ function DropdownCheckbox({
 
   const handleSelect = (item: string) => {
     const newSelectedItems = selectedItems.includes(item)
-      ? selectedItems.filter((i) => i !== item)
+      ? selectedItems?.filter((i) => i !== item) ?? []
       : [...selectedItems, item]
 
     setSelectedItems(newSelectedItems)
@@ -67,7 +67,7 @@ function DropdownCheckbox({
       {isOpen && (
         <div className="menu">
           <ul>
-            {items.length ? (
+            {Array.isArray(items) && items.length ? (
               items.map((item, index) => (
                 <li key={index} onClick={() => handleSelect(item)}>
                   <div className="item-content">

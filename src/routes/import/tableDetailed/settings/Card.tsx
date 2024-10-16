@@ -59,9 +59,10 @@ function Card({
         {!isNotEditable && <Button title="Edit" onClick={handleOpenModal} />}
       </div>
       <dl className="card-dl">
-        {settings.map((setting, index) => (
-          <Setting key={index} {...setting} />
-        ))}
+        {Array.isArray(settings) &&
+          settings.map((setting, index) => (
+            <Setting key={index} {...setting} />
+          ))}
       </dl>
 
       {isEditModalOpen && !isNotEditable && !isDisabled && (

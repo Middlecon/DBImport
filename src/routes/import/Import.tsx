@@ -13,12 +13,16 @@ import { useQueryClient } from '@tanstack/react-query'
 
 function Import() {
   const { data, isLoading } = useDatabases()
-  // console.log('data DATABASES', data)
+  console.log('data DATABASES', data)
 
-  const databaseNames = useMemo(
-    () => data?.map((database) => database.name) ?? [],
-    [data]
-  )
+  // const databaseNames = useMemo(
+  //   () => data?.map((database) => database.name) ?? [],
+  //   [data]
+  // )
+
+  const databaseNames = useMemo(() => {
+    return Array.isArray(data) ? data.map((database) => database.name) : []
+  }, [data])
 
   const navigate = useNavigate()
   const { database } = useParams<{ database: string }>()

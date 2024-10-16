@@ -61,11 +61,12 @@ function Connection() {
   }
 
   const filteredData = useMemo(() => {
-    if (!connectionsData) return []
+    if (!Array.isArray(connectionsData)) return []
     return connectionsData.filter((row) => {
       return [...checkboxFilters].every((filter) => {
-        const selectedItems =
-          selectedFilters[filter.accessor]?.map((value) => value) || []
+        const selectedItems = Array.isArray(selectedFilters[filter.accessor])
+          ? selectedFilters[filter.accessor]?.map((value) => value)
+          : []
 
         if (selectedItems.length === 0) return true
 
@@ -86,18 +87,19 @@ function Connection() {
         </div>
 
         <div className="filters">
-          {checkboxFilters.map((filter, index) => (
-            <DropdownCheckbox
-              key={index}
-              items={filter.values}
-              title={filter.title}
-              onSelect={(items) => handleSelect(filter.accessor, items)}
-              isOpen={openDropdown === filter.accessor}
-              onToggle={(isOpen) =>
-                handleDropdownToggle(filter.accessor, isOpen)
-              }
-            />
-          ))}
+          {Array.isArray(checkboxFilters) &&
+            checkboxFilters.map((filter, index) => (
+              <DropdownCheckbox
+                key={index}
+                items={filter.values || []}
+                title={filter.title}
+                onSelect={(items) => handleSelect(filter.accessor, items)}
+                isOpen={openDropdown === filter.accessor}
+                onToggle={(isOpen) =>
+                  handleDropdownToggle(filter.accessor, isOpen)
+                }
+              />
+            ))}
         </div>
 
         {filteredData ? (
