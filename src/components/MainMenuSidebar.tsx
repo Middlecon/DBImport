@@ -24,14 +24,16 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
     <>
       <div className={`mainsidebar-root ${minimized ? 'minimized' : ''}`}>
         <div className="mainsidebar-logo-container">
-          <LogoWithText size="small" noText={minimized ? true : false} />
-          {/* {minimized ? (
+          <NavLink to="/" className="mainsidebar-logo-link">
+            <LogoWithText size="small" noText={minimized ? true : false} />
+            {/* {minimized ? (
             <DBImportIconLogo />
           ) : (
             <>
               <DBImportIconTextLogo size="small" />
             </>
           )} */}
+          </NavLink>
         </div>
         {/* <p style={{ fontSize: '5.5px', color: ' white', marginLeft: 88 }}> // To compare sharpness to logo svg text
           Powered by
@@ -43,7 +45,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               <NavLink
                 to="/import"
                 className={({ isActive }) =>
-                  `menu-link ${isActive ? 'active' : ''}`
+                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
               >
                 <ImportIcon />
@@ -54,7 +56,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {/* <NavLink
                 to="/export"
                 className={({ isActive }) =>
-                  `menu-link ${isActive ? 'active' : ''}`
+                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
               > */}
               <ExportIcon />
@@ -65,7 +67,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {/* <NavLink
                 to="/airflow"
                 className={({ isActive }) =>
-                  `menu-link ${isActive ? 'active' : ''}`
+                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
               > */}
               <ApacheAirflowIcon />
@@ -76,7 +78,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               <NavLink
                 to="/connection"
                 className={({ isActive }) =>
-                  `menu-link ${isActive ? 'active' : ''}`
+                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
               >
                 <ConnectionIcon />
@@ -87,7 +89,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {/* <NavLink
                 to="/configuration"
                 className={({ isActive }) =>
-                  `menu-link ${isActive ? 'active' : ''}`
+                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
               > */}
               <ConfigurationIcon />
