@@ -20,6 +20,7 @@ function TableList<T>({
   onEdit,
   scrollbarMarginTop
 }: TableProps<T>) {
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
   const [visibleData, setVisibleData] = useState<T[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [allDataLoaded, setAllDataLoaded] = useState(false)
@@ -92,6 +93,24 @@ function TableList<T>({
       return () => clearInterval(intervalId) // Cleans up interval on unmount or data changes
     }
   }, [visibleData, data, isLoadingMore, allDataLoaded])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        !event.target ||
+        !(event.target as HTMLElement).closest('.custom-table-root')
+      ) {
+        setSelectedRowIndex(null)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
+  const handleRowClick = (index: number) => {
+    setSelectedRowIndex((prevIndex) => (prevIndex === index ? null : index))
+  }
 
   const renderCellContent = useCallback(
     (row: T, column: Column<T>, rowIndex: number) => {
@@ -210,7 +229,13 @@ function TableList<T>({
               {visibleData &&
                 Array.isArray(visibleData) &&
                 visibleData.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="dbtables-row">
+                  <tr
+                    key={rowIndex}
+                    className={`dbtables-row ${
+                      rowIndex === selectedRowIndex ? 'selected' : ''
+                    }`}
+                    onClick={() => handleRowClick(rowIndex)}
+                  >
                     {Array.isArray(columns) &&
                       columns.map((column) => (
                         <td

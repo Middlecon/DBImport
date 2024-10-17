@@ -13,12 +13,6 @@ import { useQueryClient } from '@tanstack/react-query'
 
 function Import() {
   const { data, isLoading } = useDatabases()
-  console.log('data DATABASES', data)
-
-  // const databaseNames = useMemo(
-  //   () => data?.map((database) => database.name) ?? [],
-  //   [data]
-  // )
 
   const databaseNames = useMemo(() => {
     return Array.isArray(data) ? data.map((database) => database.name) : []
@@ -32,16 +26,22 @@ function Import() {
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+  const [isDropdownReady, setIsDropdownReady] = useState(false)
 
   useEffect(() => {
-    if (isLoading) return
+    if (isLoading || !databaseNames.length) return
 
-    if (!database || !databaseNames.includes(database)) {
-      setSelectedDatabase(null)
+    if (database && databaseNames.includes(database)) {
+      if (database !== selectedDatabase) {
+        setSelectedDatabase(database)
+      }
     } else {
-      setSelectedDatabase(database)
+      setSelectedDatabase(null)
+      navigate('/import', { replace: true })
     }
-  }, [database, databaseNames, isLoading, navigate])
+
+    setIsDropdownReady(true)
+  }, [database, databaseNames, isLoading, navigate, selectedDatabase])
 
   const handleSelect = (item: string | null) => {
     navigate(`/import/${item}`)
@@ -104,19 +104,21 @@ function Import() {
                 padding="4px 13px 7.5px 9px"
               />
             )}
-            <Dropdown
-              items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
-              onSelect={handleSelect}
-              isOpen={openDropdown === 'dbSearch'}
-              onToggle={(isOpen: boolean) =>
-                handleDropdownToggle('dbSearch', isOpen)
-              }
-              searchFilter={true}
-              initialTitle={selectedDatabase || 'Select DB'}
-              leftwards={true}
-              chevron={true}
-              placeholder="Search for db..."
-            />
+            {isDropdownReady && (
+              <Dropdown
+                items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
+                onSelect={handleSelect}
+                isOpen={openDropdown === 'dbSearch'}
+                onToggle={(isOpen: boolean) =>
+                  handleDropdownToggle('dbSearch', isOpen)
+                }
+                searchFilter={true}
+                initialTitle={selectedDatabase || 'Select DB'}
+                leftwards={true}
+                chevron={true}
+                placeholder="Search for db..."
+              />
+            )}
           </div>
         </div>
 

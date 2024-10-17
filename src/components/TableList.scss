@@ -67,6 +67,29 @@
     background-color: #eeeeee;
   }
 
+  .dbtables-row.selected {
+    // Some colors to choose from
+
+    // A nice light blue:
+    // background-color: #e0f7fa;
+
+    // Icon-green:
+    // background-color: #70ac47;
+
+    // background-color: #d9ebcd;
+    // background-color: #d5e3cc;
+    // background-color: #d3ecc2;
+    background-color: #ceeabc;
+    // background-color: #d1eec1;
+    // background-color: #d6edc8;
+
+    // Icon-yellow:
+    // background-color: #fec000;
+
+    // Icon-orangered:
+    // background-color: #ec7d31;
+  }
+
   .tooltip {
     width: max-content;
     height: min-content;
@@ -130,6 +153,7 @@
   .clickable-table-name {
     color: rgb(29, 29, 210);
     cursor: pointer;
+    width: fit-content;
   }
 }
 
