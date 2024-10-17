@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { TableSetting } from '../utils/interfaces'
+import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
@@ -34,6 +34,16 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   )
   const [originalEditableSettings] = useState(editableSettings)
   const [editedSettings, setEditedSettings] = useState(editableSettings)
+  const [changedSettings, setChangedSettings] = useState<
+    Map<
+      string,
+      {
+        original: TableSettingsValueTypes | null
+        new: string | number | boolean | null
+      }
+    >
+  >(new Map())
+
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
 
@@ -61,8 +71,9 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   ) => {
     // Creates a new array, copying all elements of editedSettings
     const newSettings = [...editedSettings]
-
+    const setting = newSettings[index]
     const currentValue = newSettings[index].value
+    const originalValue = originalEditableSettings[index]?.value
 
     // Only stores previous value if it's a whole number
     if (newValue === -1) {
@@ -91,6 +102,17 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
 
     // Replaces the old object in the array with the new object
     newSettings[index] = updatedSetting
+    const updatedChangedSettings = new Map(changedSettings)
+    if (newValue !== originalValue) {
+      updatedChangedSettings.set(setting.label, {
+        original: originalValue,
+        new: newValue
+      })
+    } else {
+      updatedChangedSettings.delete(setting.label)
+    }
+
+    setChangedSettings(updatedChangedSettings)
     setEditedSettings(newSettings)
   }
 
@@ -107,8 +129,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   }
 
   const handleSave = () => {
-    console.log('settings EditTableModal', settings)
-    console.log('editedSettings', editedSettings)
     // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
     const updatedSettings = Array.isArray(settings)
       ? settings.map((setting) => {
@@ -121,13 +141,16 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
             : { ...setting }
         })
       : []
-    console.log('updatedSettings', updatedSettings)
     onSave(updatedSettings)
     onClose()
   }
 
   const handleCancelClick = () => {
-    setShowConfirmation(true)
+    if (changedSettings.size > 0) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
   }
 
   const handleConfirmCancel = () => {
@@ -144,7 +167,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
     <div className="table-modal-backdrop">
       <div className="table-modal-content">
         <h2 className="table-modal-h2">{title}</h2>
-        {/* <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} /> */}
         <form
           onSubmit={(event) => {
             event.preventDefault()

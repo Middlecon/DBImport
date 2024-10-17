@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { TableSetting } from '../utils/interfaces'
+import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
@@ -39,6 +39,15 @@ function EditConnectionModal({
   )
   const [originalEditableSettings] = useState(editableSettings)
   const [editedSettings, setEditedSettings] = useState(editableSettings)
+  const [changedSettings, setChangedSettings] = useState<
+    Map<
+      string,
+      {
+        original: TableSettingsValueTypes | null
+        new: string | number | boolean | null
+      }
+    >
+  >(new Map())
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
 
@@ -64,8 +73,9 @@ function EditConnectionModal({
     // Creates a new array, copying all elements of editedSettings
 
     const newSettings = [...editedSettings]
-
+    const setting = newSettings[index]
     const currentValue = index === -1 ? null : newSettings[index].value
+    const originalValue = originalEditableSettings[index]?.value
 
     if (newValue === -1) {
       if (
@@ -91,6 +101,18 @@ function EditConnectionModal({
     const updatedSetting = { ...newSettings[index], value: newValue }
     // Replaces the old object in the array with the new object
     newSettings[index] = updatedSetting
+
+    const updatedChangedSettings = new Map(changedSettings)
+    if (newValue !== originalValue) {
+      updatedChangedSettings.set(setting.label, {
+        original: originalValue,
+        new: newValue
+      })
+    } else {
+      updatedChangedSettings.delete(setting.label)
+    }
+
+    setChangedSettings(updatedChangedSettings)
     setEditedSettings(newSettings)
   }
 
@@ -126,7 +148,11 @@ function EditConnectionModal({
   }
 
   const handleCancelClick = () => {
-    setShowConfirmation(true)
+    if (changedSettings.size > 0) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
   }
 
   const handleConfirmCancel = () => {
