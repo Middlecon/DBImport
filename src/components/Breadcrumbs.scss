@@ -1,0 +1,33 @@
+.breadcrumb {
+  display: flex;
+  justify-items: center;
+  list-style: none;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  padding-right: 2px;
+  display: flex;
+  align-items: center;
+  svg {
+    padding-right: 2px;
+  }
+
+  a {
+    text-decoration: none;
+    color: #2b66ca;
+    // color: inherit;
+    &:hover {
+      text-decoration: none;
+      color: #2b66ca;
+      // color: inherit;
+    }
+  }
+
+  .active {
+    font-weight: bold;
+    color: inherit;
+  }
+}

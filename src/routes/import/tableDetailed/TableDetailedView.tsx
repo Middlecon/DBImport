@@ -31,7 +31,7 @@ function TableDetailedView() {
 
   return (
     <>
-      <ViewBaseLayout breadcrumbs={['Import', `${database}`, `${table}`]}>
+      <ViewBaseLayout>
         <div className="table-header">
           <h1>{`${database}.${table}`}</h1>
         </div>

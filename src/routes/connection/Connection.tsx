@@ -81,7 +81,7 @@ function Connection() {
 
   return (
     <>
-      <ViewBaseLayout breadcrumbs={['Connection']}>
+      <ViewBaseLayout>
         <div className="import-header">
           <h1>Connection</h1>
         </div>

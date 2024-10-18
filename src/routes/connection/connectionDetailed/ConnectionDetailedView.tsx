@@ -11,7 +11,7 @@ function ConnectionDetailedView() {
 
   return (
     <>
-      <ViewBaseLayout breadcrumbs={['Connection']}>
+      <ViewBaseLayout>
         <div className="table-header">
           <h1>{`${connection}`}</h1>
         </div>

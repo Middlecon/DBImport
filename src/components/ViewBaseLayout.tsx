@@ -1,26 +1,16 @@
 import './ViewBaseLayout.scss'
-import ChevronRight from '../assets/icons/ChevronRight'
 import { ReactNode } from 'react'
+import Breadcrumbs from './Breadcrumbs'
 
 interface ViewLayoutProps {
-  breadcrumbs: string[]
   children: ReactNode
 }
 
-function ViewLayout({ breadcrumbs = [], children }: ViewLayoutProps) {
+function ViewBaseLayout({ children }: ViewLayoutProps) {
   return (
     <>
       <div className="view-layout-root">
-        <div className="fake-breadcrumbs">
-          Home
-          {Array.isArray(breadcrumbs) &&
-            breadcrumbs.map((breadcrumb, index) => (
-              <span key={index}>
-                <ChevronRight />
-                <span>{breadcrumb}</span>
-              </span>
-            ))}
-        </div>
+        <Breadcrumbs />
 
         {children}
       </div>
@@ -28,4 +18,4 @@ function ViewLayout({ breadcrumbs = [], children }: ViewLayoutProps) {
   )
 }
 
-export default ViewLayout
+export default ViewBaseLayout

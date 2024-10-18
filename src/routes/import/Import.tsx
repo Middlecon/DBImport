@@ -91,7 +91,7 @@ function Import() {
 
   return (
     <>
-      <ViewBaseLayout breadcrumbs={['Import']}>
+      <ViewBaseLayout>
         <div className="import-header">
           <h1>Import</h1>
           <div className="db-dropdown">
