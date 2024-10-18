@@ -1,8 +1,7 @@
 .mainsidebar-root {
   display: flex;
   flex-direction: column;
-  background-color: rgb(19, 19, 20);
-  color: rgb(217, 217, 217);
+  background-color: #131314;
   width: 250px;
   height: 100vh;
   max-height: 100vh;
@@ -42,7 +41,7 @@
 
 .mainsidebar-disabled {
   display: flex;
-  color: rgb(75, 75, 75);
+  color: rgb(46, 46, 46);
 }
 
 .chevron-double {
@@ -54,10 +53,12 @@
   button {
     cursor: pointer;
     border: none;
-    background-color: rgb(19, 19, 20);
-    color: rgb(211, 206, 206);
+    background-color: #131314;
+    color: #888888;
+
+    transition: color 0.2s ease;
     &:hover {
-      color: rgb(255, 255, 255);
+      color: #c2c2c2;
     }
   }
 }
@@ -68,19 +69,27 @@
   margin-top: 50px;
 }
 
+.mainsidebar-logo-link {
+  color: inherit;
+}
+
 .mainsidebar-logo-link,
 .mainsidebar-menu-link {
   cursor: pointer;
   text-decoration: none;
-  color: inherit;
+  transition: color 0.2s ease;
 }
 
 .mainsidebar-menu-link {
   padding: 2px;
   display: flex;
   width: 100%;
+
+  // color: #88a0cc;
+  color: #7e7e7e;
   &:hover {
-    color: rgb(255, 255, 255);
+    // color: #9db3d8;
+    color: #c2c2c2;
   }
 
   &.active {
@@ -88,10 +97,8 @@
 
     // color: #2b66ca; // Middlecon-blue
 
-    // based on Middlecon-blue:
-    // color: #2f78f4;
-    // color: #387bec;
-    color: #407bdf;
+    // color: #407bdf;
+    color: rgb(217, 217, 217);
   }
 }
 
