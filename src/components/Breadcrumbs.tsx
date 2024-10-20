@@ -1,10 +1,18 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import ChevronRight from '../assets/icons/ChevronRight'
+import { useAtom } from 'jotai'
+import {
+  isDbDropdownReadyAtom,
+  selectedImportDatabaseAtom
+} from '../atoms/selectedDatabaseAtoms'
 import './Breadcrumbs.scss'
 
 const Breadcrumbs = () => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const [, setSelectedDatabase] = useAtom(selectedImportDatabaseAtom)
+  const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1)
@@ -41,6 +49,14 @@ const Breadcrumbs = () => {
     return breadcrumbItems
   }, [location])
 
+  const handleBreadcrumbClick = (path: string) => {
+    if (path === '/import') {
+      setIsDbDropdownReady(false)
+      setSelectedDatabase(null)
+    }
+    navigate(path)
+  }
+
   return (
     <nav aria-label="breadcrumb">
       <ol className="breadcrumb">
@@ -56,7 +72,15 @@ const Breadcrumbs = () => {
             {idx === crumbs.length - 1 ? (
               <span>{crumb.label}</span> /* Current/last item is not a link */
             ) : (
-              <Link to={crumb.path}>{crumb.label}</Link>
+              <Link
+                to={crumb.path}
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleBreadcrumbClick(crumb.path)
+                }}
+              >
+                {crumb.label}
+              </Link>
             )}
           </li>
         ))}

@@ -10,6 +10,11 @@ import { TableSetting } from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
 import { useCreateTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAtom } from 'jotai'
+import {
+  isDbDropdownReadyAtom,
+  selectedImportDatabaseAtom
+} from '../../atoms/selectedDatabaseAtoms'
 
 function Import() {
   const { data, isLoading } = useDatabases()
@@ -23,10 +28,14 @@ function Import() {
   const { data: tables } = useDbTables(database ? database : null)
   const { mutate: createTable } = useCreateTable()
   const queryClient = useQueryClient()
-  const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
-  const [isDropdownReady, setIsDropdownReady] = useState(false)
+  const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
+    isDbDropdownReadyAtom
+  )
+  const [selectedDatabase, setSelectedDatabase] = useAtom(
+    selectedImportDatabaseAtom
+  )
 
   useEffect(() => {
     if (isLoading || !databaseNames.length) return
@@ -40,8 +49,16 @@ function Import() {
       navigate('/import', { replace: true })
     }
 
-    setIsDropdownReady(true)
-  }, [database, databaseNames, isLoading, navigate, selectedDatabase])
+    setIsDbDropdownReady(true)
+  }, [
+    database,
+    databaseNames,
+    isLoading,
+    navigate,
+    selectedDatabase,
+    setIsDbDropdownReady,
+    setSelectedDatabase
+  ])
 
   const handleSelect = (item: string | null) => {
     navigate(`/import/${item}`)
@@ -104,7 +121,7 @@ function Import() {
                 padding="4px 13px 7.5px 9px"
               />
             )}
-            {isDropdownReady && (
+            {isDbDropdownReady && (
               <Dropdown
                 items={databaseNames.length > 0 ? databaseNames : ['No DB yet']}
                 onSelect={handleSelect}

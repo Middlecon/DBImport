@@ -10,12 +10,15 @@ import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
 // import DBImportIconLogo from '../assets/icons/DBImportIconLogo' // For using the svgs instead of programmed text logo
 import './MainMenuSidebar.scss'
 import LogoWithText from './LogoWithText'
+import { useAtom } from 'jotai'
+import { selectedImportDatabaseAtom } from '../atoms/selectedDatabaseAtoms'
 
 interface MainSidebarProps {
   minimized: boolean
   setMinimized: React.Dispatch<React.SetStateAction<boolean>>
 }
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
+  const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
   const handleToggleMinimize = () => {
     setMinimized((prevMinimized) => !prevMinimized)
   }
@@ -43,7 +46,9 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
           <ul>
             <li>
               <NavLink
-                to="/import"
+                to={
+                  selectedDatabase ? `/import/${selectedDatabase}` : '/import'
+                }
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
