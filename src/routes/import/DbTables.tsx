@@ -18,6 +18,8 @@ import { SettingType } from '../../utils/enums'
 import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
+import { useAtom } from 'jotai'
+import { importDbListFiltersAtom } from '../../atoms/selectedDatabaseAtoms'
 
 const checkboxFilters = [
   {
@@ -101,9 +103,7 @@ function DbTables() {
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
 
-  const [selectedFilters, setSelectedFilters] = useState<{
-    [key: string]: string[]
-  }>({})
+  const [selectedFilters, setSelectedFilters] = useAtom(importDbListFiltersAtom)
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -264,6 +264,7 @@ function DbTables() {
             key={index}
             items={filter.values}
             title={filter.title}
+            selectedItems={selectedFilters[filter.accessor] || []}
             onSelect={(items) => handleSelect(filter.accessor, items)}
             isOpen={openDropdown === filter.accessor}
             onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
@@ -276,6 +277,7 @@ function DbTables() {
             title={filter.title}
             radioName={filter.radioName}
             badgeContent={filter.badgeContent}
+            selectedItem={selectedFilters[filter.accessor]?.[0] || null}
             onSelect={(items) => handleSelect(filter.accessor, items)}
             isOpen={openDropdown === filter.accessor}
             onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}

@@ -12,6 +12,7 @@ import { useCreateTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAtom } from 'jotai'
 import {
+  importDbListFiltersAtom,
   isDbDropdownReadyAtom,
   selectedImportDatabaseAtom
 } from '../../atoms/selectedDatabaseAtoms'
@@ -36,6 +37,7 @@ function Import() {
   const [selectedDatabase, setSelectedDatabase] = useAtom(
     selectedImportDatabaseAtom
   )
+  const [, setSelectedFilters] = useAtom(importDbListFiltersAtom)
 
   useEffect(() => {
     if (isLoading || !databaseNames.length) return
@@ -46,6 +48,8 @@ function Import() {
       }
     } else {
       setSelectedDatabase(null)
+      setSelectedFilters({})
+
       navigate('/import', { replace: true })
     }
 
@@ -57,10 +61,12 @@ function Import() {
     navigate,
     selectedDatabase,
     setIsDbDropdownReady,
-    setSelectedDatabase
+    setSelectedDatabase,
+    setSelectedFilters
   ])
 
   const handleSelect = (item: string | null) => {
+    setSelectedFilters({})
     navigate(`/import/${item}`)
   }
 

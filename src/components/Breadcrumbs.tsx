@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import ChevronRight from '../assets/icons/ChevronRight'
 import { useAtom } from 'jotai'
 import {
+  importDbListFiltersAtom,
   isDbDropdownReadyAtom,
   selectedImportDatabaseAtom
 } from '../atoms/selectedDatabaseAtoms'
@@ -13,6 +14,7 @@ const Breadcrumbs = () => {
   const navigate = useNavigate()
   const [, setSelectedDatabase] = useAtom(selectedImportDatabaseAtom)
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
+  const [, setSelectedFilters] = useAtom(importDbListFiltersAtom)
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1)
@@ -53,6 +55,7 @@ const Breadcrumbs = () => {
     if (path === '/import') {
       setIsDbDropdownReady(false)
       setSelectedDatabase(null)
+      setSelectedFilters({})
     }
     navigate(path)
   }

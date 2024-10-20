@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import './DropdownCheckbox.scss'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
@@ -6,6 +6,7 @@ import ChevronUp from '../assets/icons/ChevronUp'
 interface DropdownCheckboxProps {
   items: string[]
   title: string
+  selectedItems: string[]
   onSelect: (selectedItems: string[]) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
@@ -14,11 +15,11 @@ interface DropdownCheckboxProps {
 function DropdownCheckbox({
   items,
   title,
+  selectedItems,
   onSelect,
   isOpen,
   onToggle
 }: DropdownCheckboxProps) {
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
@@ -26,7 +27,6 @@ function DropdownCheckbox({
       ? selectedItems?.filter((i) => i !== item) ?? []
       : [...selectedItems, item]
 
-    setSelectedItems(newSelectedItems)
     onSelect(newSelectedItems)
   }
 
@@ -53,7 +53,7 @@ function DropdownCheckbox({
         onClick={() => onToggle(!isOpen)}
       >
         {title}
-        {selectedItems.length > 0 ? (
+        {Array.isArray(selectedItems) && selectedItems.length > 0 ? (
           <span className="count-badge">{selectedItems.length}</span>
         ) : (
           <span className="count-badge-placeholder" />

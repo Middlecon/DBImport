@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import './DropdownRadio.scss'
@@ -8,6 +8,7 @@ interface DropdownRadioProps {
   title: string
   radioName: string
   badgeContent?: string[]
+  selectedItem: string | null
   onSelect: (selectedItems: string[]) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
@@ -18,19 +19,17 @@ function DropdownRadio({
   title,
   radioName,
   badgeContent,
+  selectedItem,
   onSelect,
   isOpen,
   onToggle
 }: DropdownRadioProps) {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (item: string) => {
     if (selectedItem === item) {
-      setSelectedItem(null)
       onSelect([])
     } else {
-      setSelectedItem(item)
       onSelect([item])
     }
   }

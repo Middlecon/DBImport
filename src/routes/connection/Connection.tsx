@@ -5,6 +5,8 @@ import { useConnections } from '../../utils/queries'
 import { Column, Connections } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
+import { connectionFilterAtom } from '../../atoms/selectedDatabaseAtoms'
+import { useAtom } from 'jotai'
 
 const checkboxFilters = [
   {
@@ -32,9 +34,7 @@ function Connection() {
   const { data: connectionsData, isLoading } = useConnections()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
-  const [selectedFilters, setSelectedFilters] = useState<{
-    [key: string]: string[]
-  }>({})
+  const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
 
   const columns: Column<Connections>[] = useMemo(
     () => [
@@ -93,6 +93,7 @@ function Connection() {
                 key={index}
                 items={filter.values || []}
                 title={filter.title}
+                selectedItems={selectedFilters[filter.accessor] || []}
                 onSelect={(items) => handleSelect(filter.accessor, items)}
                 isOpen={openDropdown === filter.accessor}
                 onToggle={(isOpen) =>
