@@ -11,16 +11,25 @@ import TableColumns from './routes/import/tableDetailed/columns/TableColumns'
 import TableStatistics from './routes/import/tableDetailed/statistics/TableStatistics'
 import Connection from './routes/connection/Connection'
 import ConnectionDetailedView from './routes/connection/connectionDetailed/ConnectionDetailedView'
+import { AuthWrapper } from './authWrapper'
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LogIn />
+    element: (
+      <AuthWrapper>
+        <LogIn />
+      </AuthWrapper>
+    )
     // loader: rootLoader,
   },
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <AuthWrapper>
+        <MainLayout />
+      </AuthWrapper>
+    ),
 
     children: [
       {
