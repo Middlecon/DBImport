@@ -4,10 +4,6 @@ import {
   EtlType,
   ImportTool,
   ImportType,
-  // EtlEngine,
-  // EtlType,
-  // ImportTool,
-  // ImportType,
   SettingType
 } from '../utils/enums'
 import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
@@ -30,58 +26,6 @@ function initialCreateTableSeetings(
   database: string,
   prefilledConnection: string
 ) {
-  //   const settings: TableSetting[] = [
-  //     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
-  //     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
-  //     {
-  //       label: '',
-  //       value: '',
-  //       type: SettingType.GroupingSpace
-  //     }, // Layout space
-  //     {
-  //       label: 'Connection',
-  //       value: prefilledConnection,
-  //       type: SettingType.ConnectionReference
-  //     }, // Reference to /connection
-  //     {
-  //       label: 'Source Schema',
-  //       value: null,
-  //       type: SettingType.Text
-  //     }, // Free-text setting
-  //     { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
-  //     {
-  //       label: '',
-  //       value: '',
-  //       type: SettingType.GroupingSpace
-  //     }, // Layout space
-  //     {
-  //       label: 'Import Type',
-  //       value: 'Full',
-  //       type: SettingType.Enum,
-  //       enumOptions: getEnumOptions('importPhaseType')
-  //     }, // Enum mapping for 'Import Type'
-  //     {
-  //       label: 'ETL Type',
-  //       value: 'Truncate and Insert',
-  //       type: SettingType.Enum,
-  //       enumOptions: getEnumOptions('etlPhaseType')
-  //     }, // Enum mapping for 'ETL Type'
-  //     {
-  //       label: 'Import Tool',
-  //       value: 'Spark',
-  //       type: SettingType.Enum,
-  //       enumOptions: getEnumOptions('importTool')
-  //     }, // Enum mapping for 'Import Tool'
-  //     {
-  //       label: 'ETL Engine',
-  //       value: 'Spark',
-  //       type: SettingType.Enum,
-  //       enumOptions: getEnumOptions('etlEngine')
-  //     } // Enum mapping for 'ETL Engine'
-  //   ]
-  //   return settings
-  // }
-
   const settings: TableSetting[] = [
     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
@@ -151,6 +95,7 @@ function CreateTableModal({
   )
 
   const [editedSettings, setEditedSettings] = useState<TableSetting[]>(settings)
+  const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   const isRequiredFieldEmpty = useMemo(() => {
@@ -179,6 +124,7 @@ function CreateTableModal({
     )
 
     setEditedSettings(updatedSettings)
+    setHasChanges(true)
   }
 
   const handleSelect = (
@@ -207,7 +153,11 @@ function CreateTableModal({
   }
 
   const handleCancelClick = () => {
-    setShowConfirmation(true)
+    if (hasChanges) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
   }
 
   const handleConfirmCancel = () => {
