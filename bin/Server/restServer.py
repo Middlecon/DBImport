@@ -416,6 +416,15 @@ async def create_or_update_export_table(table: dataModels.exportTableDetailsWrit
 async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllAirflowDags()
 
+@app.get("/airflow/dags/import", response_model=List[dataModels.airflowImportDags])
+async def get_import_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowImportDags()
+
+@app.post("/airflow/dags/import")
+async def create_or_update_import_airflow_dag(airflowDag: dataModels.airflowImportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateImportAirflowDag(airflowDag, current_user["username"])
+	return returnMsg
+
 @app.get("/airflow/dags/import/{dagname}", response_model=dataModels.airflowImportDag)
 async def get_import_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowImportDag(dagname)
@@ -425,9 +434,13 @@ async def delete_import_airflow_dag(dagname: str, current_user: Annotated[dataMo
 	returnMsg, response.status_code =  dbCalls.deleteImportAirflowDag(dagname, current_user["username"])
 	return returnMsg
 
-@app.post("/airflow/dags/import")
-async def create_or_update_import_airflow_dag(airflowDag: dataModels.airflowImportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.updateImportAirflowDag(airflowDag, current_user["username"])
+@app.get("/airflow/dags/export", response_model=List[dataModels.airflowExportDags])
+async def get_export_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowExportDags()
+
+@app.post("/airflow/dags/export")
+async def create_or_update_export_airflow_dag(airflowDag: dataModels.airflowExportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateExportAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
 @app.get("/airflow/dags/export/{dagname}", response_model=dataModels.airflowExportDag)
@@ -439,9 +452,13 @@ async def delete_export_airflow_dag(dagname: str, current_user: Annotated[dataMo
 	returnMsg, response.status_code =  dbCalls.deleteExportAirflowDag(dagname, current_user["username"])
 	return returnMsg
 
-@app.post("/airflow/dags/export")
-async def create_or_update_export_airflow_dag(airflowDag: dataModels.airflowExportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.updateExportAirflowDag(airflowDag, current_user["username"])
+@app.get("/airflow/dags/custom", response_model=List[dataModels.airflowCustomDags])
+async def get_custom_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getAirflowCustomDags()
+
+@app.post("/airflow/dags/custom")
+async def create_or_update_custom_airflow_dag(airflowDag: dataModels.airflowCustomDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateCustomAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
 @app.get("/airflow/dags/custom/{dagname}", response_model=dataModels.airflowCustomDag)
@@ -451,11 +468,6 @@ async def get_custom_airflow_dag(dagname: str, current_user: Annotated[dataModel
 @app.delete("/airflow/dags/custom/{dagname}")
 async def delete_custom_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteCustomAirflowDag(dagname, current_user["username"])
-	return returnMsg
-
-@app.post("/airflow/dags/custom")
-async def create_or_update_custom_airflow_dag(airflowDag: dataModels.airflowCustomDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.updateCustomAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
 

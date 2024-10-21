@@ -516,8 +516,33 @@ class airflowAllDags(BaseModel):
 	type: str
 	scheduleInterval: Union[str, None] = None
 	autoRegenerateDag: bool
-	operatorNotes: Union[str, None] = None
-	applicationNotes: Union[str, None] = None
+#	operatorNotes: Union[str, None] = None
+#	applicationNotes: Union[str, None] = None
+
+class airflowImportDags(BaseModel):
+	name: str
+	filterTable: Union[str, None] = None
+	scheduleInterval: Union[str, None] = None
+	autoRegenerateDag: bool
+#	operatorNotes: Union[str, None] = None
+#	applicationNotes: Union[str, None] = None
+
+class airflowExportDags(BaseModel):
+	name: str
+	filterConnection: Union[str, None] = None
+	filterTargetSchema: Union[str, None] = None
+	filterTargetTable: Union[str, None] = None
+	scheduleInterval: Union[str, None] = None
+	autoRegenerateDag: bool
+#	operatorNotes: Union[str, None] = None
+#	applicationNotes: Union[str, None] = None
+
+class airflowCustomDags(BaseModel):
+	name: str
+	scheduleInterval: Union[str, None] = None
+	autoRegenerateDag: bool
+#	operatorNotes: Union[str, None] = None
+#	applicationNotes: Union[str, None] = None
 
 class airflowTask(BaseModel):
 	name: str
@@ -583,7 +608,7 @@ class airflowExportDag(BaseModel):
 class airflowImportDag(BaseModel):
 	name: str
 	scheduleInterval: Union[str, None] = None
-	filterHive: Union[str, None] = None
+	filterTable: Union[str, None] = None
 	finishAllStage1First: Union[int, None] = None
 	runImportAndEtlSeparate: Union[int, None] = None
 	retries: Union[int, None] = None

@@ -1912,8 +1912,132 @@ class dbCalls:
 			resultDict['type'] = row[1]
 			resultDict['scheduleInterval'] = row[2]
 			resultDict['autoRegenerateDag'] = row[3]
-			resultDict['operatorNotes'] = row[4]
-			resultDict['applicationNotes'] = row[5]
+#			resultDict['operatorNotes'] = row[4]
+#			resultDict['applicationNotes'] = row[5]
+			listOfDAGs.append(resultDict)
+
+
+		jsonResult = json.loads(json.dumps(listOfDAGs))
+		session.close()
+
+		return jsonResult
+
+
+	def getAirflowImportDags(self): 
+		""" Returns all Airflow Import DAGs """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		listOfDAGs = []
+
+		airflowDagsData = (session.query(
+					airflowImportDags.dag_name,
+					airflowImportDags.schedule_interval,
+					airflowImportDags.auto_regenerate_dag,
+					airflowImportDags.filter_hive
+				)
+				.select_from(airflowImportDags)
+				.all()
+			)
+
+		for row in airflowDagsData:
+			resultDict = {}
+
+			resultDict['name'] = row[0]
+			resultDict['scheduleInterval'] = row[1]
+			resultDict['autoRegenerateDag'] = row[2]
+			resultDict['filterTable'] = row[3]
+			listOfDAGs.append(resultDict)
+
+
+		jsonResult = json.loads(json.dumps(listOfDAGs))
+		session.close()
+
+		return jsonResult
+
+
+	def getAirflowExportDags(self): 
+		""" Returns all Airflow Export DAGs """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		listOfDAGs = []
+
+		airflowDagsData = (session.query(
+					airflowExportDags.dag_name,
+					airflowExportDags.schedule_interval,
+					airflowExportDags.auto_regenerate_dag,
+					airflowExportDags.filter_dbalias,
+					airflowExportDags.filter_target_schema,
+					airflowExportDags.filter_target_table 
+				)
+				.select_from(airflowExportDags)
+				.all()
+			)
+
+		for row in airflowDagsData:
+			resultDict = {}
+
+			resultDict['name'] = row[0]
+			resultDict['scheduleInterval'] = row[1]
+			resultDict['autoRegenerateDag'] = row[2]
+			resultDict['filterConnection'] = row[3]
+			resultDict['filterTargetSchema'] = row[4]
+			resultDict['filterTargetTable'] = row[5]
+
+			listOfDAGs.append(resultDict)
+
+
+		jsonResult = json.loads(json.dumps(listOfDAGs))
+		session.close()
+
+		return jsonResult
+
+
+	def getAirflowCustomDags(self): 
+		""" Returns all Airflow Custom DAGs """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+		listOfDAGs = []
+
+		airflowDagsData = (session.query(
+					airflowCustomDags.dag_name,
+					airflowCustomDags.schedule_interval,
+					airflowCustomDags.auto_regenerate_dag
+				)
+				.select_from(airflowCustomDags)
+				.all()
+			)
+
+
+		for row in airflowDagsData:
+			resultDict = {}
+
+			resultDict['name'] = row[0]
+			resultDict['scheduleInterval'] = row[1]
+			resultDict['autoRegenerateDag'] = row[2]
 			listOfDAGs.append(resultDict)
 
 
@@ -2292,7 +2416,7 @@ class dbCalls:
 		resultDict = {}
 		resultDict["name"] = row[0]
 		resultDict["scheduleInterval"] = row[1]
-		resultDict["filterHive"] = row[2]
+		resultDict["filterTable"] = row[2]
 		resultDict["finishAllStage1First"] = row[3]
 		resultDict["runImportAndEtlSeparate"] = row[4]
 		resultDict["retries"] = row[5]
@@ -2409,7 +2533,7 @@ class dbCalls:
 			query = insert(configSchema.airflowImportDags).values(
 				dag_name = getattr(airflowDag, "name"),
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
-				filter_hive = getattr(airflowDag, "filterHive"),
+				filter_hive = getattr(airflowDag, "filterTable"),
 				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
 				run_import_and_etl_separate = getattr(airflowDag, "runImportAndEtlSeparate"),
 				retries = getattr(airflowDag, "retries"),
@@ -2435,7 +2559,7 @@ class dbCalls:
 			query = query.on_duplicate_key_update(
 				dag_name = getattr(airflowDag, "name"),
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
-				filter_hive = getattr(airflowDag, "filterHive"),
+				filter_hive = getattr(airflowDag, "filterTable"),
 				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
 				run_import_and_etl_separate = getattr(airflowDag, "runImportAndEtlSeparate"),
 				retries = getattr(airflowDag, "retries"),
