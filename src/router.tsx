@@ -12,6 +12,9 @@ import TableStatistics from './routes/import/tableDetailed/statistics/TableStati
 import Connection from './routes/connection/Connection'
 import ConnectionDetailedView from './routes/connection/connectionDetailed/ConnectionDetailedView'
 import { AuthWrapper } from './authWrapper'
+import AirflowImport from './routes/airflowImport/AirflowImport'
+import AirflowExport from './routes/airflowExport/AirflowExport'
+import AirflowCustom from './routes/airflowCustom/AirflowCustom'
 
 export const router = createBrowserRouter([
   {
@@ -71,15 +74,15 @@ export const router = createBrowserRouter([
       },
       {
         path: '/airflow/import',
-        element: <div>Airflow Import</div>
+        element: <AirflowImport />
       },
       {
         path: '/airflow/export',
-        element: <div>Airflow Export</div>
+        element: <AirflowExport />
       },
       {
         path: '/airflow/custom',
-        element: <div>Airflow Custom</div>
+        element: <AirflowCustom />
       },
       {
         path: '/connection',

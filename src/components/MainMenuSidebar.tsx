@@ -11,7 +11,10 @@ import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
 import './MainMenuSidebar.scss'
 import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
-import { selectedImportDatabaseAtom } from '../atoms/atoms'
+import {
+  isAirflowMenuActiveAtom,
+  selectedImportDatabaseAtom
+} from '../atoms/atoms'
 import { useState } from 'react'
 import AirflowImportIcon from '../assets/icons/AirflowImportIcon'
 import AirflowExportIcon from '../assets/icons/AirflowExportIcon'
@@ -23,7 +26,7 @@ interface MainSidebarProps {
 }
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
-  const [isAirflowActive, setIsAirflowActive] = useState(false)
+  const [isAirflowActive, setIsAirflowActive] = useAtom(isAirflowMenuActiveAtom)
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
 
   const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useState(false)

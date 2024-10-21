@@ -4,6 +4,7 @@ import ChevronRight from '../assets/icons/ChevronRight'
 import { useAtom } from 'jotai'
 import {
   importDbListFiltersAtom,
+  isAirflowMenuActiveAtom,
   isDbDropdownReadyAtom,
   selectedImportDatabaseAtom
 } from '../atoms/atoms'
@@ -15,6 +16,7 @@ const Breadcrumbs = () => {
   const [, setSelectedDatabase] = useAtom(selectedImportDatabaseAtom)
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
   const [, setSelectedFilters] = useAtom(importDbListFiltersAtom)
+  const [, setIsAirflowActive] = useAtom(isAirflowMenuActiveAtom)
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1)
@@ -36,7 +38,10 @@ const Breadcrumbs = () => {
 
     if (pathnames[1]) {
       breadcrumbItems.push({
-        label: pathnames[1],
+        label:
+          pathnames[0] === 'airflow'
+            ? capitalizeFirstLetter(pathnames[1])
+            : pathnames[1],
         path: `/${pathnames[0]}/${pathnames[1]}`
       })
     }
@@ -56,6 +61,9 @@ const Breadcrumbs = () => {
       setIsDbDropdownReady(false)
       setSelectedDatabase(null)
       setSelectedFilters({})
+    }
+    if (path === '/airflow') {
+      setIsAirflowActive(false)
     }
     navigate(path)
   }

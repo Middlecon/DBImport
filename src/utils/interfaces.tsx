@@ -54,6 +54,8 @@ export interface Connection {
   atlasLastDiscovery: string | null
 }
 
+// Table
+
 export interface DbTable {
   connection: string
   database: string
@@ -532,4 +534,108 @@ export interface TableCreate {
   etlPhaseType: EtlType
   importTool: ImportTool
   etlEngine: EtlEngine
+}
+
+// Airflow
+
+export interface AirflowsData {
+  name: string
+  type: string
+  scheduleInterval: string
+  autoRegenerateDag: boolean
+  operatorNotes: string
+  applicationNotes: ImportType
+}
+
+export interface AirflowsImportData {
+  name: string
+  filterTable: string
+  scheduleInterval: string
+  autoRegenerateDag: boolean
+}
+
+export interface AirflowsExportData {
+  name: string
+  filterConnection: string
+  filterTargetSchema: string
+  filterTargetTable: boolean
+  scheduleInterval: string
+  autoRegenerateDag: ImportType
+}
+
+export interface AirflowsCustomData {
+  name: string
+  scheduleInterval: string
+  autoRegenerateDag: boolean
+}
+
+export interface ImportAirflowDAG {
+  name: string
+  scheduleInterval: string
+  filterTable: string
+  finishAllStage1First: number
+  runImportAndEtlSeparate: number
+  retries: number
+  retriesStage1: number
+  retriesStage2: number
+  poolStage1: string
+  poolStage2: string
+  operatorNotes: string
+  applicationNotes: string
+  autoRegenerateDag: number
+  airflowNotes: string
+  sudoUser: string
+  metadataImport: number
+  timezone: string
+  email: string
+  emailOnFailure: number
+  emailOnRetries: number
+  tags: string
+  slaWarningTime: string
+  retryExponentialBackoff: number
+  concurrency: number
+  tasks: []
+}
+
+export interface ExportAirflowDAG {
+  name: string
+  scheduleInterval: string
+  filterConnection: string
+  filterTargetSchema: string
+  filterTargetTable: string
+  retries: number
+  operatorNotes: string
+  applicationNotes: string
+  autoRegenerateDag: number
+  airflowNotes: string
+  sudoUser: string
+  timezone: string
+  email: string
+  emailOnFailure: number
+  emailOnRetries: number
+  tags: string
+  slaWarningTime: string
+  retryExponentialBackoff: number
+  concurrency: number
+  tasks: []
+}
+
+export interface CustomAirflowDAG {
+  name: string
+  scheduleInterval: string
+  retries: number
+  operatorNotes: string
+  applicationNotes: string
+  airflowNotes: string
+  autoRegenerateDag: number
+  sudoUser: string
+  timezone: string
+  email: string
+  emailOnFailure: number
+  emailOnRetries: number
+  tags: string
+  slaWarningTime: string
+  retryExponentialBackoff: number
+  concurrency: number
+  tasks: []
 }

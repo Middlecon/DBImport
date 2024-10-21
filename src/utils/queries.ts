@@ -1,10 +1,16 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import axiosInstance from './axiosInstance'
 import {
+  AirflowsCustomData,
+  AirflowsExportData,
+  AirflowsImportData,
   Connection,
   Connections,
+  CustomAirflowDAG,
   Database,
   DbTable,
+  ExportAirflowDAG,
+  ImportAirflowDAG,
   Table,
   UITable,
   UiDbTable
@@ -54,7 +60,7 @@ export const useConnection = (
 ): UseQueryResult<Connection, Error> => {
   return useQuery({
     queryKey: ['connection', connection],
-    queryFn: () => getConnection(connection!), // We are sure that connection and table is not null here because of the enabled flag
+    queryFn: () => getConnection(connection!), // We are sure that connection is not null here because of the enabled flag
     enabled: !!connection
   })
 }
@@ -175,5 +181,129 @@ export const useTable = (
     queryKey: ['table', table],
     queryFn: () => fetchTableData(database!, table!), // We are sure that database and table is not null here because of the enabled flag
     enabled: !!database && !!table
+  })
+}
+
+// GET ALL AIRFLOWS
+
+const getAirflows = async () => {
+  const response = await axiosInstance.get('/airflow/dags')
+  console.log('getAirflows response.data', response.data)
+  return response.data
+}
+
+export const useAirflows = (): UseQueryResult<[], Error> => {
+  return useQuery({
+    queryKey: ['airflows'],
+    queryFn: getAirflows,
+    initialData: []
+  })
+}
+
+// GET ALL IMPORT AIRFLOWS
+
+const getImportAirflows = async () => {
+  const response = await axiosInstance.get('/airflow/dags/import')
+  console.log('getImportAirflows response.data', response.data)
+  return response.data
+}
+
+export const useImportAirflows = (): UseQueryResult<
+  AirflowsImportData[],
+  Error
+> => {
+  return useQuery({
+    queryKey: ['airflows', 'import'],
+    queryFn: getImportAirflows,
+    initialData: []
+  })
+}
+
+// GET ALL EXPORT AIRFLOWS
+
+const getExportAirflows = async () => {
+  const response = await axiosInstance.get('/airflow/dags/export')
+  console.log('getExportAirflows response.data', response.data)
+  return response.data
+}
+
+export const useExportAirflows = (): UseQueryResult<
+  AirflowsExportData[],
+  Error
+> => {
+  return useQuery({
+    queryKey: ['airflows', 'export'],
+    queryFn: getExportAirflows,
+    initialData: []
+  })
+}
+
+// GET ALL CUSTOM AIRFLOWS
+
+const getCustomAirflows = async () => {
+  const response = await axiosInstance.get('/airflow/dags/custom')
+  console.log('getCustomAirflows response.data', response.data)
+  return response.data
+}
+
+export const useCustomAirflows = (): UseQueryResult<
+  AirflowsCustomData[],
+  Error
+> => {
+  return useQuery({
+    queryKey: ['airflows', 'custom'],
+    queryFn: getCustomAirflows,
+    initialData: []
+  })
+}
+
+// GET AN IMPORT AIRFLOW DAG
+
+const getImportAirflowDAG = async (dagName: string) => {
+  const response = await axiosInstance.get(`/airflow/dags/import/${dagName}`)
+  return response.data
+}
+
+export const useImportAirflowDAG = (
+  dagName?: string
+): UseQueryResult<ImportAirflowDAG, Error> => {
+  return useQuery({
+    queryKey: ['airflows', 'import', dagName],
+    queryFn: () => getImportAirflowDAG(dagName!), // We are sure that dagName is not null here because of the enabled flag
+    enabled: !!dagName
+  })
+}
+
+// GET AN EXPORT AIRFLOW DAG
+
+const getExportAirflowDAG = async (dagName: string) => {
+  const response = await axiosInstance.get(`/airflow/dags/export/${dagName}`)
+  return response.data
+}
+
+export const useExportAirflowDAG = (
+  dagName?: string
+): UseQueryResult<ExportAirflowDAG, Error> => {
+  return useQuery({
+    queryKey: ['airflows', 'export', dagName],
+    queryFn: () => getExportAirflowDAG(dagName!), // We are sure that dagName is not null here because of the enabled flag
+    enabled: !!dagName
+  })
+}
+
+// GET A CUSTOM AIRFLOW DAG
+
+const getCustomAirflowDAG = async (dagName: string) => {
+  const response = await axiosInstance.get(`/airflow/dags/custom/${dagName}`)
+  return response.data
+}
+
+export const useCustomAirflowDAG = (
+  dagName?: string
+): UseQueryResult<CustomAirflowDAG, Error> => {
+  return useQuery({
+    queryKey: ['airflows', 'custom', dagName],
+    queryFn: () => getCustomAirflowDAG(dagName!), // We are sure that dagName is not null here because of the enabled flag
+    enabled: !!dagName
   })
 }
