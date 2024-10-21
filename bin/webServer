@@ -1,0 +1,96 @@
+#!/bin/bash
+
+CONFDIR=${DBIMPORT_HOME}/conf
+RUNDIR=${DBIMPORT_HOME}/run
+#TEMPDIR=/tmp/$(basename $0).$$.tmp
+#LOGFILE=/tmp/$(basename $0).$$.log
+NOERROR=0
+ERROR=1
+OK=0
+TRUE=1
+FALSE=0
+UNKNOWN=2
+WEBSERVER_LOG=/var/log/dbimport/webServer_error.log
+WEBSERVER_CONFIG=${DBIMPORT_HOME}/conf/webserver.conf
+WEBSERVER_PIDFILE=${DBIMPORT_HOME}/run/dbimport_webserver.pid
+
+function log
+{
+	echo "$*" 
+}
+
+function cleanup
+{
+#	rm $LOGFILE > /dev/null 2>&1
+#	rm -r $TEMPDIR > /dev/null 2>&1
+	exit $1
+}
+
+function help
+{
+	echo "webServer <action>"
+	echo ""
+	echo "Action can be one of the following"
+	echo "   start"
+	echo "   stop"
+	echo "   status"
+	cleanup $NOERROR
+}
+
+function start_server
+{
+	if [ -e $WEBSERVER_PIDFILE ]; then
+		log "DBImport Webserver is already running"
+	else
+		echo "Starting DBImport Webserver"
+		nginx -e $WEBSERVER_LOG -c $WEBSERVER_CONFIG 
+	fi
+}
+
+function stop_server
+{
+	if [ -e $WEBSERVER_PIDFILE ]; then
+		echo "Stopping DBImport Webserver"
+		nginx -e $WEBSERVER_LOG -c $WEBSERVER_CONFIG -s stop 
+	else
+		log "DBImport Webserver is already stopped"
+	fi
+}
+
+function check_server
+{
+	if [ -e $WEBSERVER_PIDFILE ]; then
+		echo "DBImport Webserver is running"
+	else
+		echo "DBImport Webserver is stopped"
+	fi
+}
+
+trap "cleanup $ERROR" SIGINT SIGTERM
+
+# Check if system variable DBIMPORT_HOME is set
+if [ "${DBIMPORT_HOME}" == "" ]; then
+	log "ERROR: \$DBIMPORT_HOME environment variable not set"
+	cleanup $ERROR
+fi
+
+# Check if nginx webserver is installed
+type nginx >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+	log "ERROR: nginx cant be found in \$PATH. Is it installed?"
+	cleanup $ERROR
+fi
+
+# Create run dir if not exists
+mkdir -p $RUNDIR 2>/dev/null
+
+ACTION=$1
+
+case $ACTION in
+	start)	start_server;;
+	stop)	stop_server;;
+	status)	check_server;;
+	*)		help;;
+esac
+
+cleanup $NOERROR
