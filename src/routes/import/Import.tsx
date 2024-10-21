@@ -15,7 +15,7 @@ import {
   importDbListFiltersAtom,
   isDbDropdownReadyAtom,
   selectedImportDatabaseAtom
-} from '../../atoms/selectedDatabaseAtoms'
+} from '../../atoms/atoms'
 
 function Import() {
   const { data, isLoading } = useDatabases()

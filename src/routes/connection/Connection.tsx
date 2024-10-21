@@ -5,7 +5,7 @@ import { useConnections } from '../../utils/queries'
 import { Column, Connections } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
-import { connectionFilterAtom } from '../../atoms/selectedDatabaseAtoms'
+import { connectionFilterAtom } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 
 const checkboxFilters = [

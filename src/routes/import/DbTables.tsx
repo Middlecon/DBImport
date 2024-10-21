@@ -19,7 +19,7 @@ import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
-import { importDbListFiltersAtom } from '../../atoms/selectedDatabaseAtoms'
+import { importDbListFiltersAtom } from '../../atoms/atoms'
 
 const checkboxFilters = [
   {

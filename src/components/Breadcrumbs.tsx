@@ -6,7 +6,7 @@ import {
   importDbListFiltersAtom,
   isDbDropdownReadyAtom,
   selectedImportDatabaseAtom
-} from '../atoms/selectedDatabaseAtoms'
+} from '../atoms/atoms'
 import './Breadcrumbs.scss'
 
 const Breadcrumbs = () => {

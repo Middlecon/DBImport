@@ -11,7 +11,8 @@ import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
 import './MainMenuSidebar.scss'
 import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
-import { selectedImportDatabaseAtom } from '../atoms/selectedDatabaseAtoms'
+import { selectedImportDatabaseAtom } from '../atoms/atoms'
+import { useState } from 'react'
 
 interface MainSidebarProps {
   minimized: boolean
