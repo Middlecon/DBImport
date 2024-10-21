@@ -70,8 +70,16 @@ export const router = createBrowserRouter([
         // element: <Export />
       },
       {
-        path: '/airflow',
-        element: <div>Airflow</div>
+        path: '/airflow/import',
+        element: <div>Airflow Import</div>
+      },
+      {
+        path: '/airflow/export',
+        element: <div>Airflow Export</div>
+      },
+      {
+        path: '/airflow/custom',
+        element: <div>Airflow Custom</div>
       },
       {
         path: '/connection',

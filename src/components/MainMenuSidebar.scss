@@ -20,6 +20,13 @@
     margin: 4px 0 0 10px;
   }
 
+  h3 {
+    margin: 0;
+    padding: 0;
+    margin-left: 12px;
+    font-size: 12px;
+  }
+
   .menu-options {
     display: flex;
     align-items: center;
@@ -29,19 +36,21 @@
   ul {
     display: flex;
     flex-direction: column;
-    margin-top: 40px;
-    padding: 0;
-    list-style: none;
-
-    li {
-      margin-top: 20px;
-    }
   }
+}
+
+.mainsidebar-menu-li {
+  margin-top: 20px;
+}
+
+.airflow-submenu-option {
+  margin: 0 0 0 10px;
 }
 
 .mainsidebar-disabled {
   display: flex;
   color: rgb(46, 46, 46);
+  margin-top: 20px;
 }
 
 .chevron-double {
@@ -67,6 +76,7 @@
   display: flex;
   justify-content: center;
   margin-top: 50px;
+  margin-bottom: 40px;
 }
 
 .mainsidebar-logo-link {

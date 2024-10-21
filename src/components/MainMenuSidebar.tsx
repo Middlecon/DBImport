@@ -13,6 +13,9 @@ import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import { selectedImportDatabaseAtom } from '../atoms/atoms'
 import { useState } from 'react'
+import AirflowImportIcon from '../assets/icons/AirflowImportIcon'
+import AirflowExportIcon from '../assets/icons/AirflowExportIcon'
+import AirflowCustomIcon from '../assets/icons/AirflowCustomIcon'
 
 interface MainSidebarProps {
   minimized: boolean
@@ -20,6 +23,15 @@ interface MainSidebarProps {
 }
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
+  const [isAirflowActive, setIsAirflowActive] = useState(false)
+  const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
+
+  const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useState(false)
+
+  const handleAirflowClick = () => {
+    setToggleAirflowActive((prev) => !prev)
+  }
+
   const handleToggleMinimize = () => {
     setMinimized((prevMinimized) => !prevMinimized)
   }
@@ -45,7 +57,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
 
         <div className="menu-options">
           <ul>
-            <li>
+            <li className="mainsidebar-menu-li">
               <NavLink
                 to={
                   selectedDatabase ? `/import/${selectedDatabase}` : '/import'
@@ -53,6 +65,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
+                onClick={() => setIsAirflowActive(false)}
               >
                 <ImportIcon />
                 {!minimized && <h2>Import</h2>}
@@ -69,23 +82,75 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {!minimized && <h2>Export</h2>}
               {/* </NavLink> */}
             </li>
-            <li className="mainsidebar-disabled">
-              {/* <NavLink
-                to="/airflow"
-                className={({ isActive }) =>
-                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
-                }
-              > */}
-              <ApacheAirflowIcon />
-              {!minimized && <h2>Airflow</h2>}
-              {/* </NavLink> */}
+            <li className="mainsidebar-menu-li">
+              <div
+                className={`mainsidebar-menu-link ${
+                  isAirflowActive && isAirflowSubmenuActive ? 'active' : ''
+                }`}
+                onClick={handleAirflowClick}
+              >
+                <ApacheAirflowIcon />
+                {!minimized && <h2>Airflow</h2>}
+              </div>
+              {toggleAirflowActive && (
+                <ul>
+                  <li className="airflow-submenu-option">
+                    <NavLink
+                      to="/airflow/import"
+                      className={({ isActive }) =>
+                        `mainsidebar-menu-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={() => {
+                        setIsAirflowActive(true)
+                        setIsAirflowSubmenuActive(true)
+                      }}
+                    >
+                      <AirflowImportIcon />
+                      {!minimized && <h3>Import</h3>}
+                    </NavLink>
+                  </li>
+                  <li className="airflow-submenu-option">
+                    <NavLink
+                      to="/airflow/export"
+                      className={({ isActive }) =>
+                        `mainsidebar-menu-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={() => {
+                        setIsAirflowActive(true)
+                        setIsAirflowSubmenuActive(true)
+                      }}
+                    >
+                      <AirflowExportIcon />
+
+                      {!minimized && <h3>Export</h3>}
+                    </NavLink>
+                  </li>
+                  <li className="airflow-submenu-option">
+                    <NavLink
+                      to="/airflow/custom"
+                      className={({ isActive }) =>
+                        `mainsidebar-menu-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={() => {
+                        setIsAirflowActive(true)
+                        setIsAirflowSubmenuActive(true)
+                      }}
+                    >
+                      <AirflowCustomIcon />
+
+                      {!minimized && <h3>Custom</h3>}
+                    </NavLink>
+                  </li>
+                </ul>
+              )}
             </li>
-            <li>
+            <li className="mainsidebar-menu-li">
               <NavLink
                 to="/connection"
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
+                onClick={() => setIsAirflowActive(false)}
               >
                 <ConnectionIcon />
                 {!minimized && <h2>Connection</h2>}
