@@ -538,104 +538,77 @@ export interface TableCreate {
 
 // Airflow
 
-export interface AirflowsData {
+export interface BaseAirflowsData {
   name: string
+  scheduleInterval: string
+  autoRegenerateDag: boolean
+}
+
+export interface AirflowsData extends BaseAirflowsData {
   type: string
-  scheduleInterval: string
-  autoRegenerateDag: boolean
   operatorNotes: string
-  applicationNotes: ImportType
+  applicationNotes: string
 }
 
-export interface AirflowsImportData {
-  name: string
+export interface AirflowsImportData extends BaseAirflowsData {
   filterTable: string
-  scheduleInterval: string
-  autoRegenerateDag: boolean
 }
 
-export interface AirflowsExportData {
-  name: string
+export interface UiAirflowsImportData extends AirflowsImportData {
+  autoRegenerateDagDisplay: string
+}
+
+export interface AirflowsExportData extends BaseAirflowsData {
   filterConnection: string
   filterTargetSchema: string
-  filterTargetTable: boolean
-  scheduleInterval: string
-  autoRegenerateDag: ImportType
+  filterTargetTable: string
 }
 
-export interface AirflowsCustomData {
+export interface UiAirflowsExportData extends AirflowsExportData {
+  autoRegenerateDagDisplay: string
+}
+
+export type AirflowsCustomData = BaseAirflowsData
+
+export interface UiAirflowsCustomData extends AirflowsCustomData {
+  autoRegenerateDagDisplay: string
+}
+
+export interface BaseAirflowDAG {
   name: string
   scheduleInterval: string
+  retries: number
+  operatorNotes: string
+  applicationNotes: string
   autoRegenerateDag: boolean
+  airflowNotes: string
+  sudoUser: string
+  timezone: string
+  email: string
+  emailOnFailure: number
+  emailOnRetries: number
+  tags: string
+  slaWarningTime: string
+  retryExponentialBackoff: number
+  concurrency: number
+  tasks: []
 }
 
-export interface ImportAirflowDAG {
-  name: string
-  scheduleInterval: string
+export interface ImportAirflowDAG extends BaseAirflowDAG {
   filterTable: string
   finishAllStage1First: number
   runImportAndEtlSeparate: number
-  retries: number
   retriesStage1: number
   retriesStage2: number
   poolStage1: string
   poolStage2: string
-  operatorNotes: string
-  applicationNotes: string
-  autoRegenerateDag: number
-  airflowNotes: string
-  sudoUser: string
   metadataImport: number
-  timezone: string
-  email: string
-  emailOnFailure: number
-  emailOnRetries: number
-  tags: string
-  slaWarningTime: string
-  retryExponentialBackoff: number
-  concurrency: number
-  tasks: []
 }
 
-export interface ExportAirflowDAG {
-  name: string
-  scheduleInterval: string
+export interface ExportAirflowDAG extends BaseAirflowDAG {
   filterConnection: string
   filterTargetSchema: string
   filterTargetTable: string
-  retries: number
-  operatorNotes: string
-  applicationNotes: string
-  autoRegenerateDag: number
-  airflowNotes: string
-  sudoUser: string
-  timezone: string
-  email: string
-  emailOnFailure: number
-  emailOnRetries: number
-  tags: string
-  slaWarningTime: string
-  retryExponentialBackoff: number
-  concurrency: number
-  tasks: []
 }
 
-export interface CustomAirflowDAG {
-  name: string
-  scheduleInterval: string
-  retries: number
-  operatorNotes: string
-  applicationNotes: string
-  airflowNotes: string
-  autoRegenerateDag: number
-  sudoUser: string
-  timezone: string
-  email: string
-  emailOnFailure: number
-  emailOnRetries: number
-  tags: string
-  slaWarningTime: string
-  retryExponentialBackoff: number
-  concurrency: number
-  tasks: []
-}
+export type CustomAirflowDAG = BaseAirflowDAG

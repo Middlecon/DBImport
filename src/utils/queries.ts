@@ -13,6 +13,9 @@ import {
   ImportAirflowDAG,
   Table,
   UITable,
+  UiAirflowsCustomData,
+  UiAirflowsExportData,
+  UiAirflowsImportData,
   UiDbTable
 } from './interfaces'
 import { mapDisplayValue, mapEnumValue } from './nameMappings'
@@ -209,13 +212,21 @@ const getImportAirflows = async () => {
 }
 
 export const useImportAirflows = (): UseQueryResult<
-  AirflowsImportData[],
+  UiAirflowsImportData[],
   Error
 > => {
   return useQuery({
     queryKey: ['airflows', 'import'],
-    queryFn: getImportAirflows,
-    initialData: []
+    queryFn: async () => {
+      const data: AirflowsImportData[] = await getImportAirflows()
+      const mappedData = data.map((row: { autoRegenerateDag: boolean }) => ({
+        ...row,
+        autoRegenerateDagDisplay:
+          row.autoRegenerateDag === true ? 'True' : 'False'
+      }))
+
+      return mappedData
+    }
   })
 }
 
@@ -228,13 +239,23 @@ const getExportAirflows = async () => {
 }
 
 export const useExportAirflows = (): UseQueryResult<
-  AirflowsExportData[],
+  UiAirflowsExportData[],
   Error
 > => {
   return useQuery({
     queryKey: ['airflows', 'export'],
-    queryFn: getExportAirflows,
-    initialData: []
+    queryFn: async () => {
+      const data: AirflowsExportData[] = await getExportAirflows()
+      const mappedData = data.map((row: { autoRegenerateDag: boolean }) => ({
+        ...row,
+        autoRegenerateDagDisplay:
+          row.autoRegenerateDag === true ? 'True' : 'False'
+      }))
+
+      return mappedData
+    },
+    initialData: [],
+    refetchOnWindowFocus: false
   })
 }
 
@@ -247,13 +268,23 @@ const getCustomAirflows = async () => {
 }
 
 export const useCustomAirflows = (): UseQueryResult<
-  AirflowsCustomData[],
+  UiAirflowsCustomData[],
   Error
 > => {
   return useQuery({
     queryKey: ['airflows', 'custom'],
-    queryFn: getCustomAirflows,
-    initialData: []
+    queryFn: async () => {
+      const data: AirflowsCustomData[] = await getCustomAirflows()
+      const mappedData = data.map((row: { autoRegenerateDag: boolean }) => ({
+        ...row,
+        autoRegenerateDagDisplay:
+          row.autoRegenerateDag === true ? 'True' : 'False'
+      }))
+
+      return mappedData
+    },
+    initialData: [],
+    refetchOnWindowFocus: false
   })
 }
 
