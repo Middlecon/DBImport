@@ -82,6 +82,8 @@ const Breadcrumbs = () => {
             {/* Only shows chevron after the first item */}
             {idx === crumbs.length - 1 ? (
               <span>{crumb.label}</span> /* Current/last item is not a link */
+            ) : crumb.label === 'Airflow' ? (
+              <span>{crumb.label}</span>
             ) : (
               <Link
                 to={crumb.path}
