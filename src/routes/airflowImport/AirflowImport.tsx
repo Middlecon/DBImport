@@ -99,7 +99,7 @@ function AirflowImport() {
             columns={columns}
             data={filteredData}
             isLoading={isLoading}
-            scrollbarMarginTop="34px"
+            scrollbarMarginTop="64px"
           />
         ) : (
           <p
