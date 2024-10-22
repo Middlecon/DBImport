@@ -1,0 +1,25 @@
+# Python compiled files
+*.pyc
+
+# vim files
+*.swp
+*.swo
+.viminfo
+
+# Logfiles and pid's
+*.log
+*.pid
+
+# SSL
+*.cert
+*.crt
+*.key
+
+# Misc
+.attach*
+.bash*
+
+# Directories
+run/
+/html/
+bin/Server/html/dist/
