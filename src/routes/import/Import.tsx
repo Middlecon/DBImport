@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
 import CreateTableModal from '../../components/CreateTableModal'
-import { TableSetting } from '../../utils/interfaces'
+import { EditSetting } from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
 import { useCreateTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
@@ -93,7 +93,7 @@ function Import() {
     )
   }, [tables])
 
-  const handleSave = (newTableData: TableSetting[]) => {
+  const handleSave = (newTableData: EditSetting[]) => {
     console.log('newTableData', newTableData)
     const newTable = createTableData(newTableData)
     console.log('newTable', newTable)

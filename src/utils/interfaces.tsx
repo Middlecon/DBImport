@@ -511,11 +511,11 @@ export type EnumTypes =
   | MergeCompactionMethod
   | AnonymizationFunction
 
-export type TableSettingsValueTypes = string | number | boolean | EnumTypes
+export type EditSettingValueTypes = string | number | boolean | EnumTypes
 
-export interface TableSetting {
+export interface EditSetting {
   label: string
-  value: TableSettingsValueTypes | null
+  value: EditSettingValueTypes | null
   type: SettingType
   isConditionsMet?: boolean
   enumOptions?: {

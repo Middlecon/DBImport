@@ -6,7 +6,7 @@ import {
   ImportType,
   SettingType
 } from '../utils/enums'
-import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
+import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
@@ -18,15 +18,15 @@ import './Modals.scss'
 interface CreateTableModalProps {
   database: string
   prefilledConnection: string
-  onSave: (newTableData: TableSetting[]) => void
+  onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
-function initialCreateTableSeetings(
+function initialCreateTableSettings(
   database: string,
   prefilledConnection: string
 ) {
-  const settings: TableSetting[] = [
+  const settings: EditSetting[] = [
     { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
     {
@@ -84,7 +84,7 @@ function CreateTableModal({
   onSave,
   onClose
 }: CreateTableModalProps) {
-  const settings = initialCreateTableSeetings(database, prefilledConnection)
+  const settings = initialCreateTableSettings(database, prefilledConnection)
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
     () =>
@@ -94,7 +94,7 @@ function CreateTableModal({
     [connectionsData]
   )
 
-  const [editedSettings, setEditedSettings] = useState<TableSetting[]>(settings)
+  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
@@ -112,7 +112,7 @@ function CreateTableModal({
 
   const handleInputChange = (
     index: number,
-    newValue: TableSettingsValueTypes | null
+    newValue: EditSettingValueTypes | null
   ) => {
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
@@ -128,7 +128,7 @@ function CreateTableModal({
   }
 
   const handleSelect = (
-    item: TableSettingsValueTypes | null,
+    item: EditSettingValueTypes | null,
     keyLabel?: string
   ) => {
     const index = editedSettings.findIndex(

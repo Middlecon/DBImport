@@ -1,7 +1,7 @@
 import { EtlEngine, EtlType, ImportTool, ImportType } from './enums'
 import {
   UITable,
-  TableSetting,
+  EditSetting,
   TableCreateWithoutEnum,
   Connection,
   Columns,
@@ -18,7 +18,7 @@ import {
 
 export function updateConnectionData(
   originalData: Connection,
-  updatedSettings: TableSetting[]
+  updatedSettings: EditSetting[]
 ): Connection {
   // Part 1: Keys that will get values from updatedSettings
   const part1: {
@@ -169,7 +169,7 @@ const fieldsToRemove = [
 
 function updateColumnData(
   tableData: UITableWithoutEnum,
-  setting: TableSetting,
+  setting: EditSetting,
   indexInColumns: number
 ) {
   if (!tableData.columns) return
@@ -241,7 +241,7 @@ function updateColumnData(
 
 export function updateTableData(
   tableData: UITable,
-  updatedSettings: TableSetting[],
+  updatedSettings: EditSetting[],
   column?: boolean
 ): UITableWithoutEnum {
   const updatedTableData: UITableWithoutEnum = {
@@ -290,7 +290,7 @@ export function updateTableData(
 }
 
 export function createTableData(
-  newTableSettings: TableSetting[]
+  newTableSettings: EditSetting[]
 ): TableCreateWithoutEnum {
   // Part 1: Keys that will get values from newTableSettings
   const part1: {

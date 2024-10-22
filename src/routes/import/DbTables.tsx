@@ -5,7 +5,7 @@ import TableList from '../../components/TableList'
 import {
   Column,
   DbTable,
-  TableSetting,
+  EditSetting,
   UiDbTable,
   UITable
 } from '../../utils/interfaces'
@@ -95,7 +95,7 @@ function DbTables() {
 
   const { database } = useParams<{ database: string }>()
   const { data, isLoading } = useDbTables(database ? database : null)
-  const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
+  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
@@ -193,7 +193,7 @@ function DbTables() {
 
       setTableData(fetchedTableData)
 
-      const rowData: TableSetting[] = [
+      const rowData: EditSetting[] = [
         { label: 'Database', value: row.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
         { label: 'Table', value: row.table, type: SettingType.Readonly }, // Free-text, read-only
         {
@@ -234,7 +234,7 @@ function DbTables() {
     }
   }
 
-  const handleSave = (updatedSettings: TableSetting[]) => {
+  const handleSave = (updatedSettings: EditSetting[]) => {
     if (!tableData) {
       console.error('Table data is not available.')
       return

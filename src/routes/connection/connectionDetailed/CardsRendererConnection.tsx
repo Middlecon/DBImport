@@ -1,5 +1,5 @@
 import { SettingType } from '../../../utils/enums'
-import { TableSetting } from '../../../utils/interfaces'
+import { EditSetting } from '../../../utils/interfaces'
 import { useConnection } from '../../../utils/queries'
 import '../../import/tableDetailed/settings/CardsRenderer.scss'
 import { useParams } from 'react-router-dom'
@@ -15,7 +15,7 @@ function CardsRendererConnection() {
   if (!connection) return <div>No data found.</div>
   console.log('connection', connection)
 
-  const connectionSettings: TableSetting[] = [
+  const connectionSettings: EditSetting[] = [
     // { label: 'Name', value: connection.name, type: SettingType.Text }, //Free-text (varchar 256)
     {
       label: 'Connection String',
@@ -72,17 +72,17 @@ function CardsRendererConnection() {
       label: 'Time Window Start',
       value: connection.timeWindowStart,
       type: SettingType.Time
-    }, // Should be Time see document
+    }, // Time
     {
       label: 'Time Window Stop',
       value: connection.timeWindowStop,
       type: SettingType.Time
-    }, // Should be Time see document
+    }, // Time
     {
       label: 'Time Window Timezone',
       value: connection.timeWindowTimezone,
       type: SettingType.TimeZone
-    }, // Should be TimeZone see document
+    }, // TimeZone
     {
       label: 'Seed File',
       value: connection.seedFile,
@@ -98,7 +98,7 @@ function CardsRendererConnection() {
       label: 'Operator Notes',
       value: connection.operatorNotes,
       type: SettingType.Textarea
-    }, // Free-text (varchar 256)
+    }, // Free-text (64k)
     {
       label: 'Contact Information',
       value: connection.contactInformation,

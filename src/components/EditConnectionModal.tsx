@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { TableSetting, TableSettingsValueTypes } from '../utils/interfaces'
+import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
@@ -9,8 +9,8 @@ import './Modals.scss'
 
 interface EditModalProps {
   title: string
-  settings: TableSetting[]
-  onSave: (newSettings: TableSetting[]) => void
+  settings: EditSetting[]
+  onSave: (newSettings: EditSetting[]) => void
   onClose: () => void
 }
 
@@ -43,7 +43,7 @@ function EditConnectionModal({
     Map<
       string,
       {
-        original: TableSettingsValueTypes | null
+        original: EditSettingValueTypes | null
         new: string | number | boolean | null
       }
     >

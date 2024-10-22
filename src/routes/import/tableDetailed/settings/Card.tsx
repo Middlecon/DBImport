@@ -3,7 +3,7 @@ import './Card.scss'
 import Button from '../../../../components/Button'
 import EditTableModal from '../../../../components/EditTableModal'
 import Setting from './Setting'
-import { TableSetting, UITable } from '../../../../utils/interfaces'
+import { EditSetting, UITable } from '../../../../utils/interfaces'
 import { useUpdateTable } from '../../../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -11,7 +11,7 @@ import { updateTableData } from '../../../../utils/dataFunctions'
 
 interface CardProps {
   title: string
-  settings: TableSetting[]
+  settings: EditSetting[]
   tableData: UITable
   isNotEditable?: boolean
   isDisabled?: boolean
@@ -31,7 +31,7 @@ function Card({
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)
 
-  const handleSave = (updatedSettings: TableSetting[]) => {
+  const handleSave = (updatedSettings: EditSetting[]) => {
     const tableDataCopy = { ...tableData }
     const editedTableData = updateTableData(tableDataCopy, updatedSettings)
     console.log('updatedSettings', updatedSettings)

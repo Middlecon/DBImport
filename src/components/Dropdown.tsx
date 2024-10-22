@@ -4,7 +4,7 @@ import FilterFunnel from '../assets/icons/FilterFunnel'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import ChevronRight from '../assets/icons/ChevronRight'
-import { TableSetting } from '../utils/interfaces'
+import { EditSetting } from '../utils/interfaces'
 import CloseIcon from '../assets/icons/CloseIcon'
 
 interface DropdownProps<T> {
@@ -108,7 +108,7 @@ function Dropdown<T>({
     if (typeof item === 'string') {
       return item
     }
-    return (item as TableSetting).label
+    return (item as EditSetting).label
   }
 
   const filteredItems = (

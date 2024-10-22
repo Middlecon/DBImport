@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAllTimezones } from 'countries-and-timezones'
 import Dropdown from '../components/Dropdown'
-import { TableSetting } from './interfaces'
+import { EditSetting } from './interfaces'
 import './TableInputFields.scss'
 
 interface TableInputFieldsProps {
   index: number
-  setting: TableSetting
+  setting: EditSetting
   handleInputChange: (
     index: number,
     newValue: string | number | boolean | null

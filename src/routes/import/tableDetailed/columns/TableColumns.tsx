@@ -1,4 +1,4 @@
-import { Column, Columns, TableSetting } from '../../../../utils/interfaces'
+import { Column, Columns, EditSetting } from '../../../../utils/interfaces'
 import TableList from '../../../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
 import { useTable } from '../../../../utils/queries'
@@ -20,7 +20,7 @@ function TableColumns() {
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
   const [isModalOpen, setModalOpen] = useState(false)
-  const [currentRow, setCurrentRow] = useState<TableSetting[] | []>([])
+  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
 
   const columns: Column<Columns>[] = useMemo(
     () => [
@@ -55,7 +55,7 @@ function TableColumns() {
         return
       }
 
-      const rowData: TableSetting[] = [
+      const rowData: EditSetting[] = [
         {
           label: 'Column Name',
           value: row.columnName,
@@ -152,7 +152,7 @@ function TableColumns() {
 
   const columnsData = table.columns
 
-  const handleSave = (updatedSettings: TableSetting[]) => {
+  const handleSave = (updatedSettings: EditSetting[]) => {
     const editedTableData = updateTableData(table, updatedSettings, true)
     updateTable(editedTableData, {
       onSuccess: (response) => {

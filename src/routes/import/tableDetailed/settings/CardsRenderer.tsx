@@ -1,9 +1,6 @@
 import Card from './Card'
-import { TableSetting } from '../../../../utils/interfaces'
-import {
-  mapDisplayValue,
-  nameDisplayMappings
-} from '../../../../utils/nameMappings'
+import { EditSetting } from '../../../../utils/interfaces'
+import { getEnumOptions, mapDisplayValue } from '../../../../utils/nameMappings'
 import {
   EtlEngine,
   EtlType,
@@ -26,9 +23,7 @@ function CardsRenderer() {
   if (isFetching) return <div>Loading...</div>
   if (!table) return <div>No data found.</div>
 
-  const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
-
-  const mainSettings: TableSetting[] = [
+  const mainSettings: EditSetting[] = [
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
     { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
     {
@@ -114,7 +109,7 @@ function CardsRenderer() {
     } // Free-text setting
   ]
 
-  const importOptions: TableSetting[] = [
+  const importOptions: EditSetting[] = [
     // {
     //   label: 'Truncate Table',
     //   value: table.truncateTable,
@@ -217,7 +212,7 @@ function CardsRenderer() {
     } // Read-only
   ]
 
-  const incrementalImports: TableSetting[] = [
+  const incrementalImports: EditSetting[] = [
     {
       label: 'Incremental Min Value',
       value: table.incrMinvalue,
@@ -268,7 +263,7 @@ function CardsRenderer() {
     } // Enum list, active if importPhaseType=incr
   ]
 
-  const etlOptions: TableSetting[] = [
+  const etlOptions: EditSetting[] = [
     {
       label: 'Create Foreign Keys',
       value: table.createForeignKeys,
@@ -318,7 +313,7 @@ function CardsRenderer() {
     } // Free-text setting
   ]
 
-  const performance: TableSetting[] = [
+  const performance: EditSetting[] = [
     {
       label: 'Mappers',
       value: table.mappers,
@@ -363,7 +358,7 @@ function CardsRenderer() {
     } // Integer, active if etlEngine or importTool=spark
   ]
 
-  const validation: TableSetting[] = [
+  const validation: EditSetting[] = [
     {
       label: 'Validate Import',
       value: table.validateImport,
@@ -436,7 +431,7 @@ function CardsRenderer() {
     } // Read-only setting
   ]
 
-  const schedule: TableSetting[] = [
+  const schedule: EditSetting[] = [
     {
       label: 'Airflow Priority',
       value: table.airflowPriority,
@@ -454,7 +449,7 @@ function CardsRenderer() {
     } // Free-text setting
   ]
 
-  const siteToSiteCopy: TableSetting[] = [
+  const siteToSiteCopy: EditSetting[] = [
     {
       label: 'Copy Finished',
       value: table.copyFinished,
