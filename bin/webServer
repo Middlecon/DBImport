@@ -11,7 +11,7 @@ TRUE=1
 FALSE=0
 UNKNOWN=2
 WEBSERVER_LOG=/var/log/dbimport/webServer_error.log
-WEBSERVER_CONFIG=${DBIMPORT_HOME}/conf/webserver.conf
+WEBSERVER_CONFIG=${DBIMPORT_HOME}/conf/webserver.cfg
 WEBSERVER_PIDFILE=${DBIMPORT_HOME}/run/dbimport_webserver.pid
 
 function log
