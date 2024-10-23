@@ -569,7 +569,7 @@ class airflowCustomDag(BaseModel):
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
 	airflowNotes: Union[str, None] = None
-	autoRegenerateDag: Union[int, None] = None
+	autoRegenerateDag: bool
 	sudoUser: Union[str, None] = None
 	timezone: Union[str, None] = None
 	email: Union[str, None] = None
@@ -591,7 +591,7 @@ class airflowExportDag(BaseModel):
 	retries: Union[int, None] = None
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
-	autoRegenerateDag: Union[int, None] = None
+	autoRegenerateDag: bool
 	airflowNotes: Union[str, None] = None
 	sudoUser: Union[str, None] = None
 	timezone: Union[str, None] = None
@@ -618,7 +618,7 @@ class airflowImportDag(BaseModel):
 	poolStage2: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
-	autoRegenerateDag: Union[int, None] = None
+	autoRegenerateDag: bool
 	airflowNotes: Union[str, None] = None
 	sudoUser: Union[str, None] = None
 	metadataImport: Union[int, None] = None
