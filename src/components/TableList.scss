@@ -3,7 +3,7 @@
   overflow-x: auto;
   overflow-y: auto;
   width: 100%;
-  height: calc(100vh - 200px - var(--filters-height));
+  height: calc(100vh - 214px - var(--filters-height));
 }
 
 .custom-table-root {
@@ -52,7 +52,7 @@
   // }
 
   td {
-    padding: 8px 12px;
+    padding: 9px 12px;
     border: 1px solid #ddd;
     position: relative;
     white-space: nowrap;
@@ -151,6 +151,8 @@
     }
   }
   .clickable-table-name {
+    font-size: 12px;
+    margin: 0;
     color: #2b66ca;
     cursor: pointer;
     width: fit-content;

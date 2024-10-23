@@ -15,6 +15,9 @@ import { AuthWrapper } from './authWrapper'
 import AirflowImport from './routes/airflowImport/AirflowImport'
 import AirflowExport from './routes/airflowExport/AirflowExport'
 import AirflowCustom from './routes/airflowCustom/AirflowCustom'
+import AirflowTasks from './routes/_airflowShared/AirflowTasks'
+import AirflowDetailedView from './routes/_airflowShared/AirflowDetailedView'
+import AirflowSettings from './routes/_airflowShared/AirflowSettings'
 
 export const router = createBrowserRouter([
   {
@@ -77,12 +80,54 @@ export const router = createBrowserRouter([
         element: <AirflowImport />
       },
       {
+        path: '/airflow/import/:dagName',
+        element: <AirflowDetailedView type="import" />,
+        children: [
+          {
+            path: 'settings',
+            element: <AirflowSettings type="import" />
+          },
+          {
+            path: 'tasks',
+            element: <AirflowTasks type="import" />
+          }
+        ]
+      },
+      {
         path: '/airflow/export',
         element: <AirflowExport />
       },
       {
+        path: '/airflow/export/:dagName',
+        element: <AirflowDetailedView type="export" />,
+        children: [
+          {
+            path: 'settings',
+            element: <AirflowSettings type="export" />
+          },
+          {
+            path: 'tasks',
+            element: <AirflowTasks type="export" />
+          }
+        ]
+      },
+      {
         path: '/airflow/custom',
         element: <AirflowCustom />
+      },
+      {
+        path: '/airflow/custom/:dagName',
+        element: <AirflowDetailedView type="custom" />,
+        children: [
+          {
+            path: 'settings',
+            element: <AirflowSettings type="custom" />
+          },
+          {
+            path: 'tasks',
+            element: <AirflowTasks type="custom" />
+          }
+        ]
       },
       {
         path: '/connection',

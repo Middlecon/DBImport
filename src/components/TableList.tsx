@@ -11,6 +11,7 @@ interface TableProps<T> {
   isLoading: boolean
   onEdit?: (row: T) => void
   scrollbarMarginTop?: string
+  airflowType?: string
 }
 
 function TableList<T>({
@@ -18,7 +19,8 @@ function TableList<T>({
   data,
   isLoading,
   onEdit,
-  scrollbarMarginTop
+  scrollbarMarginTop,
+  airflowType
 }: TableProps<T>) {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
   const [visibleData, setVisibleData] = useState<T[]>([])
@@ -120,6 +122,9 @@ function TableList<T>({
       const handleConnectionNameClick = (connection: string) => {
         navigate(`/connection/${connection}`)
       }
+      const handleAirflowNameClick = (type: string, dagName: string) => {
+        navigate(`/airflow/${type}/${dagName}/settings`)
+      }
 
       const accessorKey = column.accessor as keyof T
       const displayKey = `${String(accessorKey)}Display` as keyof T
@@ -169,6 +174,23 @@ function TableList<T>({
         )
       }
 
+      if (airflowType && column.header === 'DAG Name') {
+        return (
+          <p
+            ref={(el) => (cellRefs.current[rowIndex] = el)}
+            onClick={() =>
+              handleAirflowNameClick(
+                airflowType,
+                String(row['name' as keyof T])
+              )
+            }
+            className="clickable-table-name"
+          >
+            {String(cellValue)}
+          </p>
+        )
+      }
+
       if (column.isAction) {
         return (
           <div className="actions-row">
@@ -191,7 +213,7 @@ function TableList<T>({
 
       return String(cellValue)
     },
-    [overflowState, onEdit, navigate]
+    [airflowType, navigate, overflowState, onEdit]
   )
 
   return (

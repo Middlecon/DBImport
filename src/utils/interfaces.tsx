@@ -585,24 +585,24 @@ export interface BaseAirflowDAG {
   sudoUser: string
   timezone: string
   email: string
-  emailOnFailure: number
-  emailOnRetries: number
+  emailOnFailure: boolean
+  emailOnRetries: boolean
   tags: string
   slaWarningTime: string
-  retryExponentialBackoff: number
+  retryExponentialBackoff: boolean
   concurrency: number
-  tasks: []
+  tasks: AirflowTask[]
 }
 
 export interface ImportAirflowDAG extends BaseAirflowDAG {
   filterTable: string
-  finishAllStage1First: number
-  runImportAndEtlSeparate: number
+  finishAllStage1First: boolean
+  runImportAndEtlSeparate: boolean
   retriesStage1: number
   retriesStage2: number
   poolStage1: string
   poolStage2: string
-  metadataImport: number
+  metadataImport: boolean
 }
 
 export interface ExportAirflowDAG extends BaseAirflowDAG {
@@ -612,3 +612,21 @@ export interface ExportAirflowDAG extends BaseAirflowDAG {
 }
 
 export type CustomAirflowDAG = BaseAirflowDAG
+
+export interface AirflowTask {
+  name: string
+  type: string
+  placement: string
+  connection: string | null
+  airflowPool: string | null
+  airflowPriority: number | null
+  includeInAirflow: boolean
+  taskDependencyDownstream: string | null
+  taskDependencyUpstream: string | null
+  taskConfig: string | null
+  sensorPokeInterval: number | null
+  sensorTimeoutMinutes: number | null
+  sensorConnection: string | null
+  sensorSoftFail: number | null
+  sudoUser: string | null
+}

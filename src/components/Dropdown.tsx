@@ -29,6 +29,7 @@ interface DropdownProps<T> {
   chevronWidth?: string
   chevronHeight?: string
   lightStyle?: boolean
+  disabled?: boolean
 }
 
 function Dropdown<T>({
@@ -52,7 +53,8 @@ function Dropdown<T>({
   padding,
   chevronWidth,
   chevronHeight,
-  lightStyle
+  lightStyle,
+  disabled = false
 }: DropdownProps<T>): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedItem, setSelectedItem] = useState<T | null>(
@@ -62,6 +64,8 @@ function Dropdown<T>({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    if (disabled) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -75,9 +79,11 @@ function Dropdown<T>({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [onToggle])
+  }, [disabled, onToggle])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return
+
     const value = e.target.value
 
     if (menuRef.current) {
@@ -93,6 +99,8 @@ function Dropdown<T>({
   }
 
   const handleSelect = (item: T | null) => {
+    if (disabled) return
+
     setSelectedItem(item)
 
     if (keyLabel) {
@@ -124,7 +132,9 @@ function Dropdown<T>({
     border,
     borderRadius,
     height,
-    padding
+    padding,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1
   }
 
   return (
@@ -132,7 +142,7 @@ function Dropdown<T>({
       <div
         className="dropdown-selected-item"
         style={dropdownStyle}
-        onClick={() => onToggle(!isOpen)}
+        onClick={() => !disabled && onToggle(!isOpen)}
       >
         {selectedItem ? getItemLabel(selectedItem) : initialTitle}
 
@@ -157,7 +167,7 @@ function Dropdown<T>({
         </div>
       </div>
 
-      {isOpen && (
+      {!disabled && isOpen && (
         <div
           ref={menuRef}
           className={

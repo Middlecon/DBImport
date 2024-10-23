@@ -18,6 +18,7 @@ interface TableInputFieldsProps {
   prevValue?: string | number | boolean
   connectionNames?: string[]
   isCustomQueryDisabled?: boolean
+  disabled?: boolean
 }
 
 // To do: Add label for and input id on all relevant places
@@ -29,7 +30,8 @@ function TableInputFields({
   handleSelect,
   prevValue = '',
   isCustomQueryDisabled = true,
-  connectionNames
+  connectionNames,
+  disabled = false
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -40,7 +42,8 @@ function TableInputFields({
     setting.label === 'Table' ||
     setting.label === 'Source Schema' ||
     setting.label === 'Source Table' ||
-    setting.label === 'Connection String'
+    setting.label === 'Connection String' ||
+    setting.label === 'DAG Name'
 
   const showRequiredIndicator = isRequired && !setting.value
 
@@ -320,6 +323,43 @@ function TableInputFields({
     }
 
     case 'connectionReference':
+      return (
+        <>
+          <label style={disabled ? { color: '#aeaeae' } : {}}>
+            {setting.label}:
+          </label>
+
+          <Dropdown
+            keyLabel={setting.label}
+            items={
+              connectionNames && connectionNames.length > 0
+                ? connectionNames
+                : ['Loading...']
+            }
+            onSelect={handleSelect}
+            isOpen={openDropdown === dropdownId}
+            onToggle={(isOpen: boolean) =>
+              handleDropdownToggle(dropdownId, isOpen)
+            }
+            searchFilter={true}
+            initialTitle={setting.value ? String(setting.value) : 'Select...'}
+            cross={true}
+            backgroundColor="inherit"
+            textColor="black"
+            fontSize="14px"
+            border="0.5px solid rgb(42, 42, 42)"
+            borderRadius="3px"
+            height="21.5px"
+            padding="8px 3px"
+            chevronWidth="11"
+            chevronHeight="7"
+            lightStyle={true}
+            disabled={disabled}
+          />
+        </>
+      )
+
+    case 'connectionReferenceRequired':
       return (
         <>
           <label>{setting.label}:</label>

@@ -15,21 +15,3 @@
   gap: 40px;
   width: 100%;
 }
-
-.table-details-block {
-  background-color: rgb(255, 255, 255);
-  width: 100%;
-  height: fit-content;
-  padding: 20px;
-  h3 {
-    margin: 0;
-  }
-  dl {
-    display: flex;
-    gap: 30px;
-    flex-direction: column;
-    .dl-item-div {
-      display: flex;
-    }
-  }
-}

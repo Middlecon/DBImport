@@ -111,8 +111,8 @@ function TableColumns() {
         {
           label: 'Include In Import',
           value: row.includeInImport,
-          type: SettingType.BooleanNumber
-        }, // Boolean from number 1 or 0
+          type: SettingType.Boolean
+        }, // Boolean, true or false
         {
           label: 'Source Primary Key',
           value: row.sourcePrimaryKey,

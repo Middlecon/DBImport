@@ -51,11 +51,7 @@ function AirflowCustom() {
     return data.filter((row) => {
       return [...checkboxFilters].every((filter) => {
         const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-          ? selectedFilters[filter.accessor]?.map((value) => {
-              if (value === 'True') return true
-              if (value === 'False') return false
-              return value
-            })
+          ? selectedFilters[filter.accessor]?.map((value) => value)
           : []
 
         if (selectedItems.length === 0) return true
@@ -99,6 +95,7 @@ function AirflowCustom() {
             data={filteredData}
             isLoading={isLoading}
             scrollbarMarginTop="34px"
+            airflowType="custom"
           />
         ) : (
           <p

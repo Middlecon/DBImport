@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import '../../import/tableDetailed/settings/Card.scss'
 import { useParams } from 'react-router-dom'
-import { Connection, TableSetting } from '../../../utils/interfaces'
+import { Connection, EditSetting } from '../../../utils/interfaces'
 import Button from '../../../components/Button'
 import Setting from '../../import/tableDetailed/settings/Setting'
 import EditConnectionModal from '../../../components/EditConnectionModal'
@@ -11,7 +11,7 @@ import { useUpdateConnection } from '../../../utils/mutations'
 
 interface CardProps {
   title: string
-  settings: TableSetting[]
+  settings: EditSetting[]
   originalData: Connection
   isNotEditable?: boolean
   isDisabled?: boolean
@@ -32,7 +32,7 @@ function CardConnection({
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)
 
-  const handleSave = (updatedSettings: TableSetting[]) => {
+  const handleSave = (updatedSettings: EditSetting[]) => {
     const originalDataCopy: Connection = { ...originalData }
     const editedConnectionData = updateConnectionData(
       originalDataCopy,

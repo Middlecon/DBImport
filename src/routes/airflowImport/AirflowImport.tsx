@@ -2,11 +2,13 @@ import '../import/Import.scss'
 import { useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useImportAirflows } from '../../utils/queries'
-import { AirflowsImportData, Column } from '../../utils/interfaces'
+import { AirflowsImportData, Column, EditSetting } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import { useAtom } from 'jotai'
 import { airflowImportFilterAtom } from '../../atoms/atoms'
+import Button from '../../components/Button'
+import CreateAirflowModal from '../../components/CreateAirflowModal'
 
 const checkboxFilters = [
   {
@@ -19,6 +21,7 @@ const checkboxFilters = [
 function AirflowImport() {
   const { data, isLoading } = useImportAirflows()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [selectedFilters, setSelectedFilters] = useAtom(airflowImportFilterAtom)
 
@@ -46,17 +49,16 @@ function AirflowImport() {
       setOpenDropdown(null)
     }
   }
+  const handleSave = (newAirflowData: EditSetting[]) => {
+    console.log('newAirflowData', newAirflowData)
+  }
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     return data.filter((row) => {
       return [...checkboxFilters].every((filter) => {
         const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-          ? selectedFilters[filter.accessor]?.map((value) => {
-              if (value === 'True') return true
-              if (value === 'False') return false
-              return value
-            })
+          ? selectedFilters[filter.accessor]?.map((value) => value)
           : []
 
         if (selectedItems.length === 0) return true
@@ -75,6 +77,15 @@ function AirflowImport() {
       <ViewBaseLayout>
         <div className="import-header">
           <h1>Airflow Import</h1>
+          <div className="db-dropdown">
+            <Button
+              title="+ Create"
+              onClick={() => setCreateModalOpen(true)}
+              fontFamily={`'Work Sans Variable', sans-serif`}
+              fontSize="14px"
+              padding="4px 13px 7.5px 9px"
+            />
+          </div>
         </div>
 
         <div className="filters">
@@ -100,18 +111,17 @@ function AirflowImport() {
             data={filteredData}
             isLoading={isLoading}
             scrollbarMarginTop="64px"
+            airflowType="import"
           />
         ) : (
-          <p
-            style={{
-              padding: ' 40px 50px 44px 50px',
-              backgroundColor: 'white',
-              borderRadius: 7,
-              textAlign: 'center'
-            }}
-          >
-            No columns yet in this table.
-          </p>
+          <div>Loading....</div>
+        )}
+        {isCreateModalOpen && (
+          <CreateAirflowModal
+            type="import"
+            onSave={handleSave}
+            onClose={() => setCreateModalOpen(false)}
+          />
         )}
       </ViewBaseLayout>
     </>

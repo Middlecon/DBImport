@@ -1,4 +1,6 @@
 import {
+  AirflowDAGTaskPlacement,
+  AirflowDAGTaskType,
   AnonymizationFunction,
   EtlEngine,
   EtlType,
@@ -71,6 +73,23 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
     [AnonymizationFunction.Hash]: 'Hash',
     [AnonymizationFunction.ReplaceWithStar]: 'Replace with star',
     [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
+  },
+  // Airflow DAG task type:
+  type: {
+    [AirflowDAGTaskType.ShellScript]: 'Shell Script',
+    [AirflowDAGTaskType.HiveSQL]: 'Hive SQL',
+    [AirflowDAGTaskType.HiveSQLScript]: 'Hive SQL Script',
+    [AirflowDAGTaskType.JDBCSQL]: 'JDBC SQL',
+    [AirflowDAGTaskType.TriggerDAG]: 'Trigger DAG',
+    [AirflowDAGTaskType.DAGSensor]: 'DAG Sensor',
+    [AirflowDAGTaskType.SQLSensor]: 'SQL Sensor',
+    [AirflowDAGTaskType.DBImportCommand]: 'DBImport command'
+  },
+  // Airflow DAG task placement:
+  placement: {
+    [AirflowDAGTaskPlacement.BeforeMain]: 'Before Main',
+    [AirflowDAGTaskPlacement.AfterMain]: 'After Main',
+    [AirflowDAGTaskPlacement.InMain]: 'In Main'
   }
 }
 

@@ -15,6 +15,7 @@ interface EditModalProps {
 }
 
 function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
+  console.log('settings', settings)
   const editableSettings =
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
@@ -52,6 +53,10 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   )
   const isCustomQueryDisabled =
     validationMethodSetting?.value !== 'Custom Query'
+
+  const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
+  const isAirflowTasksConnectionDisabled =
+    airflowTypeValue?.value !== 'JDBC SQL'
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = [
@@ -176,7 +181,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
           <div className="table-modal-body">
             {Array.isArray(editedSettings) &&
               editedSettings.map((setting, index) => (
-                <div key={index} className="table-modal-setting">
+                <div key={index} className={'table-modal-setting'}>
                   <TableInputFields
                     index={index}
                     setting={setting}
@@ -185,6 +190,7 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
                     prevValue={prevValue}
                     isCustomQueryDisabled={isCustomQueryDisabled}
                     connectionNames={connectionNames}
+                    disabled={isAirflowTasksConnectionDisabled}
                   />
                 </div>
               ))}

@@ -10,6 +10,7 @@ export enum SettingType {
   Textarea = 'textarea',
   Enum = 'enum',
   ConnectionReference = 'connectionReference',
+  ConnectionReferenceRequired = 'connectionReferenceRequired',
   Hidden = 'hidden', // Needed here or handled in other way?
   IntegerFromZeroOrNull = 'integerFromZeroOrNull',
   IntegerFromOneOrNull = 'integerFromOneOrNull',
@@ -83,4 +84,21 @@ export enum AnonymizationFunction {
   Hash = 'Hash',
   ReplaceWithStar = 'Replace with star',
   ShowFirst4Chars = 'Show first 4 chars'
+}
+
+export enum AirflowDAGTaskType {
+  ShellScript = 'shell script',
+  HiveSQL = 'Hive SQL',
+  HiveSQLScript = 'Hive SQL Script',
+  JDBCSQL = 'JDBC SQL',
+  TriggerDAG = 'Trigger DAG',
+  DAGSensor = 'DAG Sensor',
+  SQLSensor = 'SQL Sensor',
+  DBImportCommand = 'DBImport command'
+}
+
+export enum AirflowDAGTaskPlacement {
+  BeforeMain = 'before main',
+  AfterMain = 'after main',
+  InMain = 'in main'
 }

@@ -12,7 +12,7 @@ interface SettingProps {
   value: string | number | boolean | null
   type: SettingType
   isConditionsMet?: boolean
-  enumOptions?: { [key: string]: string } // Maybe not needed here
+  // enumOptions?: { [key: string]: string } // Maybe not needed here
   valueFieldWidth?: string
   isHidden?: boolean
   columnSetting?: boolean
