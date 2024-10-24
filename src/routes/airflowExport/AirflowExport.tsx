@@ -2,11 +2,13 @@ import '../import/Import.scss'
 import { useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useExportAirflows } from '../../utils/queries'
-import { AirflowsExportData, Column } from '../../utils/interfaces'
+import { AirflowsExportData, Column, EditSetting } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import { useAtom } from 'jotai'
 import { airflowExportFilterAtom } from '../../atoms/atoms'
+import Button from '../../components/Button'
+import CreateAirflowModal from '../../components/CreateAirflowModal'
 
 const checkboxFilters = [
   {
@@ -19,6 +21,7 @@ const checkboxFilters = [
 function AirflowExport() {
   const { data, isLoading } = useExportAirflows()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
 
@@ -49,6 +52,10 @@ function AirflowExport() {
     }
   }
 
+  const handleSave = (newAirflowData: EditSetting[]) => {
+    console.log('newAirflowData', newAirflowData)
+  }
+
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     return data.filter((row) => {
@@ -73,6 +80,15 @@ function AirflowExport() {
       <ViewBaseLayout>
         <div className="import-header">
           <h1>Airflow Export</h1>
+          <div className="db-dropdown">
+            <Button
+              title="+ Create"
+              onClick={() => setCreateModalOpen(true)}
+              fontFamily={`'Work Sans Variable', sans-serif`}
+              fontSize="14px"
+              padding="4px 13px 7.5px 9px"
+            />
+          </div>
         </div>
 
         <div className="filters">
@@ -111,6 +127,13 @@ function AirflowExport() {
           >
             No columns yet in this table.
           </p>
+        )}
+        {isCreateModalOpen && (
+          <CreateAirflowModal
+            type="export"
+            onSave={handleSave}
+            onClose={() => setCreateModalOpen(false)}
+          />
         )}
       </ViewBaseLayout>
     </>

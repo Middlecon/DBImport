@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom'
 import { useAirflowDAG } from '../../utils/queries'
 import '../import/tableDetailed/TableDetailedView.scss'
 import CardAirflow from './CardAirflow'
-import { airflowCardRenderFormatting } from '../../utils/cardRenderFormatting'
+import { airflowCardRenderSettings } from '../../utils/cardRenderFormatting'
 
 function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
@@ -15,14 +15,14 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   console.log('dagName', dagName)
 
   if (!dagData) {
-    console.error('Table data is not available.')
+    console.error('DAG data is not available.')
     return
   }
   console.log('dagData', dagData)
-  const airflowImportDagSettings = airflowCardRenderFormatting(type, dagData)
+  const airflowImportDagSettings = airflowCardRenderSettings(type, dagData)
 
   if (!airflowImportDagSettings) {
-    console.error('Table data is not available.')
+    console.error('DAG data is not available.')
     return
   }
 

@@ -1,21 +1,38 @@
 import './RequiredFieldsInfo.scss'
 
 function RequiredFieldsInfo({
-  isRequiredFieldEmpty
+  isRequiredFieldEmpty,
+  validation,
+  isValidationSad,
+  validationText
 }: {
   isRequiredFieldEmpty: boolean
+  validation?: boolean
+  isValidationSad?: boolean
+  validationText?: string
 }) {
   return (
-    <p
-      className={
-        isRequiredFieldEmpty ? 'required-info' : 'disabled-required-info'
-      }
-    >
-      *
-      <span style={{ fontSize: 11, marginLeft: 2 }}>
-        = required field, needs to be filled before save
-      </span>
-    </p>
+    <>
+      {validation && (
+        <p
+          className={
+            isValidationSad ? 'required-info' : 'disabled-required-info'
+          }
+        >
+          {validationText}
+        </p>
+      )}
+      <p
+        className={
+          isRequiredFieldEmpty ? 'required-info' : 'disabled-required-info'
+        }
+      >
+        *
+        <span style={{ marginLeft: 2 }}>
+          = required field, needs to be filled before save
+        </span>
+      </p>
+    </>
   )
 }
 

@@ -23,7 +23,7 @@ function AirflowTasks({ type }: { type: string }) {
 
   const columns: Column<AirflowTask>[] = useMemo(
     () => [
-      { header: 'DAG Name', accessor: 'name' },
+      { header: 'Task Name', accessor: 'name' },
       { header: 'Type', accessor: 'type' },
       { header: 'Placement', accessor: 'placement' },
       { header: 'Connection', accessor: 'connection' },
@@ -72,7 +72,7 @@ function AirflowTasks({ type }: { type: string }) {
 
       const rowData: EditSetting[] = [
         {
-          label: 'DAG Name',
+          label: 'Task Name',
           value: row.name,
           type: SettingType.Readonly,
           isHidden: true
