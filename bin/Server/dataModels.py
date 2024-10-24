@@ -177,7 +177,7 @@ class importTableColumnsRead(BaseModel):
 	sqoopColumnType: Union[str, None] = None
 	sqoopColumnTypeOverride: Union[str, None] = None
 	forceString: int
-	includeInImport: int
+	includeInImport: bool
 	sourcePrimaryKey: Union[int, None] = None
 	lastUpdateFromSource: str
 	comment: Union[str, None] = None
@@ -198,7 +198,7 @@ class importTableColumnsWrite(BaseModel):
 	sqoopColumnType: Union[str, None] = None
 	sqoopColumnTypeOverride: Union[str, None] = None
 	forceString: int
-	includeInImport: int
+	includeInImport: bool
 	sourcePrimaryKey: Union[int, None] = None
 	lastUpdateFromSource: str
 	comment: Union[str, None] = None
@@ -441,7 +441,7 @@ class exportTableDetailsRead(BaseModel):
 	table:str
 	lastUpdateFromHive: Union[str, None] = None
 	sqlWhereAddition: Union[str, None] = None
-	includeInAirflow: Union[int, None] = None
+	includeInAirflow: Union[bool, None] = None
 	airflowPriority: Union[int, None] = None
 	forceCreateTempTable: Union[bool, None] = None
 	validateExport: Union[bool, None] = None
@@ -481,7 +481,7 @@ class exportTableDetailsWrite(BaseModel):
 	table:str
 	lastUpdateFromHive: Union[str, None] = None
 	sqlWhereAddition: Union[str, None] = None
-	includeInAirflow: Union[int, None] = None
+	includeInAirflow: Union[bool, None] = None
 	airflowPriority: Union[int, None] = None
 	forceCreateTempTable: Union[bool, None] = None
 	validateExport: Union[bool, None] = None
@@ -551,7 +551,7 @@ class airflowTask(BaseModel):
 	connection: Union[str, None] = None
 	airflowPool: Union[str, None] = None
 	airflowPriority: Union[int, None] = None
-	includeInAirflow: Union[int, None] = None
+	includeInAirflow: bool
 	taskDependencyDownstream: Union[str, None] = None
 	taskDependencyUpstream: Union[str, None] = None
 	taskConfig: Union[str, None] = None
@@ -569,12 +569,12 @@ class airflowCustomDag(BaseModel):
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
 	airflowNotes: Union[str, None] = None
-	autoRegenerateDag: bool
+	autoRegenerateDag: Union[bool, None] = None
 	sudoUser: Union[str, None] = None
 	timezone: Union[str, None] = None
 	email: Union[str, None] = None
-	emailOnFailure: Union[int, None] = None
-	emailOnRetries: Union[int, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
 	tags: Union[str, None] = None
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
@@ -591,13 +591,13 @@ class airflowExportDag(BaseModel):
 	retries: Union[int, None] = None
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
-	autoRegenerateDag: bool
+	autoRegenerateDag: Union[bool, None] = None
 	airflowNotes: Union[str, None] = None
 	sudoUser: Union[str, None] = None
 	timezone: Union[str, None] = None
 	email: Union[str, None] = None
-	emailOnFailure: Union[int, None] = None
-	emailOnRetries: Union[int, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
 	tags: Union[str, None] = None
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
@@ -609,8 +609,8 @@ class airflowImportDag(BaseModel):
 	name: str
 	scheduleInterval: Union[str, None] = None
 	filterTable: Union[str, None] = None
-	finishAllStage1First: Union[int, None] = None
-	runImportAndEtlSeparate: Union[int, None] = None
+	finishAllStage1First: Union[bool, None] = None
+	runImportAndEtlSeparate: Union[bool, None] = None
 	retries: Union[int, None] = None
 	retriesStage1: Union[int, None] = None
 	retriesStage2: Union[int, None] = None
@@ -618,17 +618,17 @@ class airflowImportDag(BaseModel):
 	poolStage2: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	applicationNotes: Union[str, None] = None
-	autoRegenerateDag: bool
+	autoRegenerateDag: Union[bool, None] = None
 	airflowNotes: Union[str, None] = None
 	sudoUser: Union[str, None] = None
-	metadataImport: Union[int, None] = None
+	metadataImport: Union[bool, None] = None
 	timezone: Union[str, None] = None
 	email: Union[str, None] = None
-	emailOnFailure: Union[int, None] = None
-	emailOnRetries: Union[int, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
 	tags: Union[str, None] = None
 	slaWarningTime: Union[str, None] = None
-	retryExponentialBackoff: Union[int, None] = None
+	retryExponentialBackoff: Union[bool, None] = None
 	concurrency: Union[int, None] = None
 	tasks: List[airflowTask] = []
 
