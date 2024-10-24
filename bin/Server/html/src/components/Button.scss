@@ -1,0 +1,26 @@
+.dark-button,
+.light-button {
+  min-width: 54px;
+  padding: 4px 12px 9px 12px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.light-button {
+  background-color: rgb(228, 228, 228);
+  color: rgb(40, 39, 39);
+  border: 0.3px solid rgb(201, 201, 201);
+}
+
+.dark-button {
+  background-color: rgb(43, 62, 111);
+  color: rgb(255, 255, 255);
+  border: none;
+}
+
+.button-title {
+  height: 14px;
+}

@@ -1,0 +1,30 @@
+.card,
+.card-disabled {
+  background-color: #faf8f8;
+  height: min-content;
+  // max-width: fit-content;
+  // width: 195px;
+  padding: 40px 45px 45px 40px;
+  margin-bottom: 40px;
+  margin-right: 40px;
+  border-radius: 5px;
+}
+
+.card-disabled {
+  color: rgb(174, 174, 174);
+}
+
+.card-h3 {
+  margin: 0;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.card-dl {
+  margin-bottom: 0;
+}

@@ -1,0 +1,119 @@
+.mainsidebar-root {
+  display: flex;
+  flex-direction: column;
+  background-color: #131314;
+  width: 250px;
+  height: 100vh;
+  max-height: 100vh;
+  margin-top: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 18;
+
+  &.minimized {
+    width: 85px;
+  }
+
+  h2 {
+    font-size: 16px;
+    margin: 4px 0 0 10px;
+  }
+
+  h3 {
+    margin: 0;
+    padding: 0;
+    margin-left: 12px;
+    font-size: 12px;
+  }
+
+  .menu-options {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.mainsidebar-menu-li {
+  margin-top: 20px;
+}
+
+.airflow-submenu-option {
+  margin: 0 0 0 10px;
+}
+
+.mainsidebar-disabled {
+  display: flex;
+  color: rgb(46, 46, 46);
+  margin-top: 20px;
+}
+
+.chevron-double {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding: 20px;
+
+  button {
+    cursor: pointer;
+    border: none;
+    background-color: #131314;
+    color: #888888;
+
+    transition: color 0.2s ease;
+    &:hover {
+      color: #c2c2c2;
+    }
+  }
+}
+
+.mainsidebar-logo-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+  margin-bottom: 40px;
+}
+
+.mainsidebar-logo-link {
+  color: inherit;
+}
+
+.mainsidebar-logo-link,
+.mainsidebar-menu-link {
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mainsidebar-menu-link {
+  padding: 2px;
+  display: flex;
+  width: 100%;
+
+  // color: #88a0cc;
+  color: #7e7e7e;
+  &:hover {
+    // color: #9db3d8;
+    color: #c2c2c2;
+  }
+
+  &.active {
+    // color: #548bea; // Based on the blue in the DBImport-logo
+
+    // color: #2b66ca; // Middlecon-blue
+
+    // color: #407bdf;
+    color: rgb(217, 217, 217);
+  }
+}
+
+@media screen and (max-height: 464px) {
+  .mainsidebar-root {
+    overflow-y: scroll;
+  }
+}

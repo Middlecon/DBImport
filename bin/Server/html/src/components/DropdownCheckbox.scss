@@ -1,0 +1,116 @@
+.checkbox-dropdown {
+  position: relative;
+  width: min-content;
+  // max-height: 14px;
+  .checkbox {
+    margin-right: 8px;
+    cursor: pointer;
+  }
+
+  .checkbox-dropdown-selected-item {
+    width: 100%;
+    padding: 6px 12px;
+    background-color: rgb(99, 104, 118);
+    color: rgb(255, 255, 255);
+    font-size: 14px;
+
+    // background-color: rgb(43, 62, 111);
+    // color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .count-badge {
+    background-color: #d9d9d9;
+    color: black;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    margin-left: 10px;
+    padding: 2px 2px 3px 2px;
+  }
+
+  .count-badge-placeholder {
+    width: 13px;
+    height: 13px;
+    margin-left: 10px;
+    padding: 2px 2px 3px 2px;
+  }
+
+  .chevron-container {
+    margin-left: 10px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .menu {
+    position: absolute;
+    top: 32px;
+    width: min-content;
+    min-width: 95%;
+
+    max-height: 230px;
+    margin-left: 3px;
+    background-color: rgb(239, 239, 239);
+    border-radius: 8px;
+    border: 1px solid rgb(205, 204, 204, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: auto;
+    z-index: 22;
+    li:nth-child(odd) {
+      background-color: rgb(211, 209, 209);
+      &:hover {
+        background-color: rgb(231, 231, 231);
+      }
+    }
+  }
+
+  li {
+    width: 100%;
+    // max-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background-color: rgb(217, 217, 217);
+    border-bottom: 1px solid rgb(221, 221, 221);
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
+
+    &:hover {
+      background-color: rgb(231, 231, 231);
+    }
+  }
+
+  .item-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px 7px 6px 12px;
+    box-sizing: border-box;
+  }
+
+  .item-text {
+    flex-grow: 1;
+    white-space: nowrap;
+    margin-right: 10px;
+  }
+
+  .no-results {
+    font-size: 15px;
+    width: 100%;
+    text-align: center;
+    padding: 8px 12px;
+    color: rgb(136, 136, 136);
+    box-sizing: border-box;
+  }
+}

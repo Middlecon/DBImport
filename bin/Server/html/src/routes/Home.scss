@@ -1,0 +1,20 @@
+.home-root {
+  display: flex;
+  height: 100vh;
+  // background-color: rgb(184, 188, 196);
+  background-color: #cdcfd3;
+}
+
+.home-text-block {
+  color: rgb(21, 27, 39);
+  background-color: rgb(250, 248, 248);
+  height: fit-content;
+  width: 100%;
+  margin-top: 120px;
+  padding: 40px 50px 44px 50px;
+  border-radius: 7px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

@@ -1,0 +1,103 @@
+.table-modal-backdrop,
+.table-modal-backdrop-connection {
+  z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-modal-backdrop-connection {
+  align-items: normal;
+}
+
+.table-modal-content,
+.table-modal-content-connection {
+  background: white;
+  margin-left: 50px;
+  padding: 40px 45px 45px 40px;
+  border-radius: 8px;
+  width: 584px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.table-modal-content-connection {
+  overflow-y: scroll;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.table-modal-h2 {
+  margin-bottom: 40px;
+  margin-top: 0;
+}
+
+.table-modal-body {
+  margin-bottom: 20px;
+  font-size: 14px;
+  height: fit-content;
+  label {
+    width: 200px;
+  }
+}
+
+.table-modal-setting {
+  display: flex;
+  // align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.setting-grouping-space {
+  height: 20px;
+  width: 100%;
+}
+
+.radio-edit {
+  label {
+    margin-right: 40px;
+  }
+  .label-default-from-config {
+    margin-right: 0;
+  }
+}
+
+.table-modal-label-disabled {
+  color: rgb(174, 174, 174);
+}
+
+.table-modal-text-input {
+  border: 0.5px solid rgb(42, 42, 42);
+  width: calc(100% - 217px);
+}
+
+.table-modal-number-input {
+  max-width: 120px;
+  margin-right: 5px;
+}
+
+.table-modal-changed {
+  background-color: blue;
+  width: 20px;
+  color: crimson;
+}
+
+.table-modal-footer {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 0px;
+}
+
+.error-message {
+  font-size: 12px;
+  color: red;
+  display: flex;
+  justify-content: end;
+  visibility: visible;
+  margin: 25px 0 11px 0;
+}

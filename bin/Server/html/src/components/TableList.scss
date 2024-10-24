@@ -1,0 +1,170 @@
+.scrollable-container {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  width: 100%;
+  height: calc(100vh - 214px - var(--filters-height));
+}
+
+.custom-table-root {
+  width: calc(100% - 2px);
+  max-height: 70vh;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 12px;
+  text-align: left;
+  border-radius: 20px;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 14;
+  }
+
+  th {
+    margin: 0;
+    padding: 10px 16px 8px 12px;
+    background-color: rgb(171, 171, 172);
+    font-weight: bold;
+    outline: 0.3px solid #abaeb8;
+    z-index: 14;
+  }
+
+  // To make table header borders stay filled with the right color when scroll across browsers, for Chrome (update: does not seem to be needed anymore, keep it here for a while longer if turns out to be needed again):
+  // th:after,
+  // th:before {
+  //   content: '';
+  //   position: absolute;
+  //   left: 0;
+  //   width: 100%;
+  // }
+  // th:before {
+  //   top: 0;
+  //   border: 1px solid #abaeb8;
+  // }
+  // th:after {
+  //   bottom: 0;
+  //   border: 1px solid #abaeb8;
+  // }
+  // th:last-child {
+  //   left: 0;
+  //   border-right: 3px solid #abaeb8;
+  // }
+
+  td {
+    padding: 9px 12px;
+    border: 1px solid #ddd;
+    position: relative;
+    white-space: nowrap;
+    z-index: 13;
+  }
+
+  .dbtables-row {
+    background-color: rgb(250, 248, 248);
+  }
+
+  .dbtables-row:nth-child(even) {
+    background-color: #eeeeee;
+  }
+
+  .dbtables-row.selected {
+    // Some colors to choose from
+
+    // A nice light blue:
+    // background-color: #e0f7fa;
+
+    // Icon-green:
+    // background-color: #70ac47;
+
+    // background-color: #d9ebcd;
+    // background-color: #d5e3cc;
+    // background-color: #d3ecc2;
+    background-color: #ceeabc;
+    // background-color: #d1eec1;
+    // background-color: #d6edc8;
+
+    // Icon-yellow:
+    // background-color: #fec000;
+
+    // Icon-orangered:
+    // background-color: #ec7d31;
+  }
+
+  .tooltip {
+    width: max-content;
+    height: min-content;
+    overflow: visible;
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateY(6px) translateX(2px);
+    background-color: #6e6e8c;
+    color: #fcfcfc;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 15;
+    transition: opacity 0.3s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #6f6f89 transparent transparent transparent;
+    }
+  }
+
+  .fixed-width {
+    max-width: 80px;
+    white-space: nowrap;
+    p {
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      margin: 0;
+    }
+    &:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+      overflow: visible;
+    }
+  }
+
+  .actions-row {
+    display: flex;
+    justify-content: center;
+    button {
+      border: none;
+      background-color: inherit;
+      padding: 0;
+    }
+    .actions-delete-button {
+      padding-left: 15px;
+      color: #e2cece;
+      cursor: initial;
+    }
+  }
+  .clickable-table-name {
+    font-size: 12px;
+    margin: 0;
+    color: #2b66ca;
+    cursor: pointer;
+    width: fit-content;
+  }
+}
+
+.columns-container {
+  padding-bottom: 20px;
+}
+
+@media screen and (max-width: 600px) {
+  .scrollable-container {
+    height: calc(100vh - 259px - var(--filters-height));
+  }
+}

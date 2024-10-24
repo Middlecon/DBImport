@@ -1,0 +1,58 @@
+.import-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: auto;
+  padding: 0 40px;
+
+  background-color: #cdcfd3;
+
+  overflow-x: hidden;
+  overflow-y: hidden;
+  .fake-breadcrumbs {
+    margin-top: 15px;
+    font-size: 14px;
+
+    span {
+      margin-left: 1px;
+      padding-bottom: 3px;
+    }
+    svg {
+      margin-bottom: -1px;
+      width: 9px;
+      height: 11px;
+    }
+  }
+}
+
+.import-header {
+  display: flex;
+  padding: 30px 0px 40px 0;
+  justify-content: space-between;
+  z-index: 16;
+}
+
+.db-dropdown {
+  display: flex;
+  gap: 25px;
+  margin-top: 15px;
+  margin-right: 10px;
+  max-height: 30px;
+}
+
+.import-text-block {
+  color: rgb(21, 27, 39);
+  background-color: #ffffff;
+  height: fit-content;
+  text-align: center;
+  margin-top: 50px;
+  padding: 40px 50px 44px 50px;
+  border-radius: 7px;
+}
+
+@media screen and (max-width: 600px) {
+  .import-header {
+    display: flex;
+    flex-direction: column;
+  }
+}

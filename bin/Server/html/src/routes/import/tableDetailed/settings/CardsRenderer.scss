@@ -1,0 +1,21 @@
+.cards {
+  display: flex;
+}
+
+.cards-narrow {
+  display: none;
+}
+
+.cards-container {
+  display: flex;
+  flex-direction: column;
+}
+
+@media screen and (max-width: 1380px) {
+  .cards {
+    display: none;
+  }
+  .cards-narrow {
+    display: block;
+  }
+}

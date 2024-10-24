@@ -1,0 +1,17 @@
+.block-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+  overflow-y: auto;
+  margin: 40px 0 0 0;
+}
+
+.block-container-2 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+}
