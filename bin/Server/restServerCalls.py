@@ -31,6 +31,7 @@ import Crypto
 import binascii
 import json
 import bcrypt
+from urllib.parse import quote
 from fastapi.encoders import jsonable_encoder
 from fastapi import HTTPException, status
 from ConfigReader import configuration
@@ -48,7 +49,7 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func, update, delete
 from sqlalchemy.dialects.mysql import insert
-from sqlalchemy.orm import aliased, sessionmaker, Query
+from sqlalchemy.orm import aliased, sessionmaker, scoped_session, Query
 import sqlalchemy.orm.exc
 
 class dbCalls:
@@ -84,32 +85,80 @@ class dbCalls:
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
 		log = logging.getLogger(self.logger)
-		self.common_config.disconnectSQLAlchemy(logger=self.logger)
-		self.common_config.configDBSession = None
+#		self.common_config.disconnectSQLAlchemy(logger=self.logger)
+#		self.common_config.configDBSession = None
+
+		if self.configDB != None:
+			log.info("Disconnecting from DBImport database")
+			self.configDB.dispose()
+			self.configDB = None
+
+		self.configDBSession = None
+
 
 
 	def getDBImportSession(self):
+		""" Connects to the configuration database with SQLAlchemy and return a session """
 		log = logging.getLogger(self.logger)
-		if self.common_config.configDBSession == None:
-			if self.common_config.connectSQLAlchemy(exitIfFailure=False, logger=self.logger) == False:
-				raise SQLerror("Can't connect to DBImport database")
+#		if self.common_config.configDBSession == None:
+#			if self.common_config.connectSQLAlchemy(exitIfFailure=False, logger=self.logger) == False:
+#				raise SQLerror("Can't connect to DBImport database")
+#
+#		return self.common_config.configDBSession()
+#	def connectSQLAlchemy(self, exitIfFailure=True, logger=""):
+#		log = logging.getLogger(logger)
 
-		return self.common_config.configDBSession()
+		if self.configDBSession != None:
+			# If we already have a connection, we just return the session
+			# return self.configDBSession()
+			return scoped_session(self.configDBSession)
 
+		mysqlCredentials = self.common_config.getMysqlCredentials()
 
-	def disconnectRemoteSession(self, instance):
-		""" Disconnects from the remote database and removes all sessions and engine """
-		log = logging.getLogger(self.logger)
+		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+			mysqlCredentials["mysql_username"], 
+			quote(mysqlCredentials["mysql_password"], safe=" +"),
+			mysqlCredentials["mysql_hostname"], 
+			mysqlCredentials["mysql_port"], 
+			mysqlCredentials["mysql_database"]) 
 
 		try:
-			engine = self.remoteDBImportEngines.get(instance)
-			if engine != None:
-				log.info("Disconnecting from remote DBImport database for '%s'"%(instance))
-				engine.dispose()
-			self.remoteDBImportEngines.pop(instance)
-			self.remoteDBImportSessions.pop(instance)
-		except KeyError:
-			log.debug("Cant remove DBImport session or engine. Key does not exist")
+			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel, pool_pre_ping=True)
+			self.configDB.connect()
+			self.configDBSession = sessionmaker(bind=self.configDB)
+
+		except sa.exc.OperationalError as err:
+			logging.error("%s"%err)
+			self.configDBSession = None
+			self.configDB = None
+			raise SQLerror("Can't connect to DBImport database")
+
+		except:
+			print("Unexpected error: ")
+			print(sys.exc_info())
+			self.configDBSession = None
+			self.configDB = None
+			raise SQLerror("Can't connect to DBImport database")
+
+		else:
+			# return self.configDBSession()
+			return scoped_session(self.configDBSession)
+
+
+
+#	def disconnectRemoteSession(self, instance):
+#		""" Disconnects from the remote database and removes all sessions and engine """
+#		log = logging.getLogger(self.logger)
+#
+#		try:
+#			engine = self.remoteDBImportEngines.get(instance)
+#			if engine != None:
+#				log.info("Disconnecting from remote DBImport database for '%s'"%(instance))
+#				engine.dispose()
+#			self.remoteDBImportEngines.pop(instance)
+#			self.remoteDBImportSessions.pop(instance)
+#		except KeyError:
+#			log.debug("Cant remove DBImport session or engine. Key does not exist")
 
 	def createDefaultAdminUser(self):
 		""" Creates the default admin user in the auth_users table if it doesnt exist """
@@ -137,7 +186,8 @@ class dbCalls:
 			session.execute(query)
 			session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 
 
 	def createUser(self, user):
@@ -162,7 +212,8 @@ class dbCalls:
 		session.execute(query)
 		session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 
 
 	def getUser(self, username):
@@ -189,7 +240,9 @@ class dbCalls:
 				.first()
 			)
 
-		session.close()
+		# session.close()
+		session.remove()
+
 		user = None
 
 		if authUser != None:
@@ -233,7 +286,8 @@ class dbCalls:
 			)
 		session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 
 	def deleteUser(self, username):
 		""" Delete a user """
@@ -252,7 +306,8 @@ class dbCalls:
 			.delete())
 		session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 
 
 	def getJDBCdrivers(self):
@@ -288,7 +343,9 @@ class dbCalls:
 			listOfJDBCdrivers.append(jdbcDriver)
 
 		jsonResult = json.loads(json.dumps(listOfJDBCdrivers))
-		session.close()
+
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -333,7 +390,8 @@ class dbCalls:
 					
 		resultDict = {}
 		resultDict["status"] = result
-		session.close()
+		# session.close()
+		session.remove()
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		# return (jsonResult, returnCode)
@@ -411,7 +469,8 @@ class dbCalls:
 		returnCode = 200
 		resultDict = {}
 		resultDict["status"] = "ok"
-		session.close()
+		# session.close()
+		session.remove()
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		# return jsonResult
@@ -466,7 +525,8 @@ class dbCalls:
 			listOfConnections.append(resultDict)
 
 		jsonResult = json.loads(json.dumps(listOfConnections))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -547,7 +607,8 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 	def getConnection(self, connection):
@@ -633,7 +694,8 @@ class dbCalls:
 			resultDict["atlasLastDiscovery"] = None
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -669,7 +731,8 @@ class dbCalls:
 				.delete())
 			session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -719,7 +782,8 @@ class dbCalls:
 			listOfDBs.append(resultDict)
 
 		jsonResult = json.loads(json.dumps(listOfDBs))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 	
@@ -775,7 +839,8 @@ class dbCalls:
 
 
 		jsonResult = json.loads(json.dumps(listOfTables))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 	
@@ -966,7 +1031,8 @@ class dbCalls:
 		resultDict["columns"] = self.getImportTableColumns(database, table)
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -1006,7 +1072,8 @@ class dbCalls:
 				.delete())
 			session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 	def updateImportTable(self, table, currentUser):
@@ -1159,7 +1226,8 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-			session.close()
+			# session.close()
+			session.remove()
 			return (result, returnCode)
 
 
@@ -1252,12 +1320,15 @@ class dbCalls:
 				result = str(err)
 				returnCode = 500
 
-				session.close()
+				# session.close()
+				session.remove()
+
 				return (result, returnCode)
 
 			log.debug(column)
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 	def getImportTableColumns(self, database, table):
@@ -1331,7 +1402,8 @@ class dbCalls:
 			listOfColumns.append(resultDict)
 	
 #		jsonResult = json.loads(json.dumps(listOfColumns))
-		session.close()
+		# session.close()
+		session.remove()
 
 #		return jsonResult
 		return listOfColumns
@@ -1378,7 +1450,8 @@ class dbCalls:
 			listOfConnections.append(connection)
 
 		jsonResult = json.loads(json.dumps(listOfConnections))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 	
@@ -1443,7 +1516,8 @@ class dbCalls:
 			listOfExports.append(exportTable)
 
 		jsonResult = json.loads(json.dumps(listOfExports))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 	
@@ -1554,7 +1628,8 @@ class dbCalls:
 		resultDict["columns"] = self.getExportTableColumns(connection, schema, table)
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -1617,7 +1692,8 @@ class dbCalls:
 			listOfColumns.append(resultDict)
 	
 		# jsonResult = json.loads(json.dumps(listOfColumns))
-		session.close()
+		# session.close()
+		session.remove()
 
 		# return jsonResult
 		return listOfColumns
@@ -1663,7 +1739,8 @@ class dbCalls:
 				.delete())
 			session.commit()
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -1753,7 +1830,8 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-			session.close()
+			# session.close()
+			session.remove()
 			return (result, returnCode)
 
 
@@ -1835,12 +1913,14 @@ class dbCalls:
 				result = str(err)
 				returnCode = 500
 
-				session.close()
+				# session.close()
+				session.remove()
 				return (result, returnCode)
 
 			log.debug(column)
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -1918,7 +1998,8 @@ class dbCalls:
 
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -1958,7 +2039,8 @@ class dbCalls:
 
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2003,7 +2085,8 @@ class dbCalls:
 
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2042,7 +2125,8 @@ class dbCalls:
 
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2170,7 +2254,8 @@ class dbCalls:
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 		
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2281,7 +2366,8 @@ class dbCalls:
 			log.error(str(err))
 			log.error(column)
 
-			session.close()
+			# session.close()
+			session.remove()
 			return False
 
 		return True
@@ -2359,7 +2445,8 @@ class dbCalls:
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2445,7 +2532,8 @@ class dbCalls:
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 
 		jsonResult = json.loads(json.dumps(resultDict))
-		session.close()
+		# session.close()
+		session.remove()
 
 		return jsonResult
 
@@ -2464,7 +2552,8 @@ class dbCalls:
 			.filter(configSchema.airflowTasks.dag_name == dagname)
 			.delete())
 		session.commit()
-		session.close()
+		# session.close()
+		session.remove()
 
 
 	def deleteImportAirflowDag(self, dagname, currentUser):
@@ -2502,7 +2591,8 @@ class dbCalls:
 
 			self.deleteAirflowTasks(dagname)
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -2528,6 +2618,10 @@ class dbCalls:
 
 		log.debug(airflowDag)
 		log.info("User '%s' updated/created Airflow import DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		# Set default values
+		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
+		if getattr(airflowDag, "filterTable") == None:								setattr(airflowDag, "filterTable", "")
 
 		try:
 			query = insert(configSchema.airflowImportDags).values(
@@ -2591,10 +2685,12 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-			session.close()
+			# session.close()
+			session.remove()
 			return (result, returnCode)
 
-		session.close()
+		# session.close()
+		session.remove()
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
@@ -2640,7 +2736,8 @@ class dbCalls:
 
 			self.deleteAirflowTasks(dagname)
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -2666,6 +2763,10 @@ class dbCalls:
 
 		log.debug(airflowDag)
 		log.info("User '%s' updated/created Airflow export DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		# Set default values
+		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
+		if getattr(airflowDag, "filterConnection") == None:							setattr(airflowDag, "filterConnection", "")
 
 		try:
 			query = insert(configSchema.airflowExportDags).values(
@@ -2719,10 +2820,12 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-			session.close()
+			# session.close()
+			session.remove()
 			return (result, returnCode)
 
-		session.close()
+		# session.close()
+		session.remove()
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
@@ -2768,7 +2871,8 @@ class dbCalls:
 
 			self.deleteAirflowTasks(dagname)
 
-		session.close()
+		# session.close()
+		session.remove()
 		return (result, returnCode)
 
 
@@ -2794,6 +2898,9 @@ class dbCalls:
 
 		log.debug(airflowDag)
 		log.info("User '%s' updated/created Airflow custom DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+
+		# Set default values
+		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 
 		try:
 			query = insert(configSchema.airflowCustomDags).values(
@@ -2841,10 +2948,12 @@ class dbCalls:
 			result = str(err)
 			returnCode = 500
 
-			session.close()
+			# session.close()
+			session.remove()
 			return (result, returnCode)
 
-		session.close()
+		# session.close()
+		session.remove()
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
@@ -2854,4 +2963,5 @@ class dbCalls:
 				return (result, returnCode)
 	
 		return (result, returnCode)
+
 
