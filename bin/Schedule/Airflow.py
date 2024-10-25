@@ -875,7 +875,7 @@ class initialize(object):
 		usedPools.append(defaultPool)
 
 		if DAG['retries'] == None or DAG['retries'] == '':
-			retries = 5
+			retries = 0
 		else:
 			retries = int(DAG['retries'])
 

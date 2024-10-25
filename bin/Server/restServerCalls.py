@@ -2234,6 +2234,8 @@ class dbCalls:
 		resultDict["name"] = row[0]
 		resultDict["scheduleInterval"] = row[1]
 		resultDict["retries"] = row[2]
+		if resultDict["retries"] == None or resultDict["retries"] == '':
+			resultDict["retries"] = 0 
 		resultDict["operatorNotes"] = row[3]
 		resultDict["applicationNotes"] = row[4]
 		resultDict["airflowNotes"] = row[5]
@@ -2425,6 +2427,8 @@ class dbCalls:
 		resultDict["filterTargetSchema"] = row[3]
 		resultDict["filterTargetTable"] = row[4]
 		resultDict["retries"] = row[5]
+		if resultDict["retries"] == None or resultDict["retries"] == '':
+			resultDict["retries"] = 5 
 		resultDict["operatorNotes"] = row[6]
 		resultDict["applicationNotes"] = row[7]
 		resultDict["autoRegenerateDag"] = row[8]
@@ -2507,6 +2511,8 @@ class dbCalls:
 		resultDict["finishAllStage1First"] = row[3]
 		resultDict["runImportAndEtlSeparate"] = row[4]
 		resultDict["retries"] = row[5]
+		if resultDict["retries"] == None or resultDict["retries"] == '':
+			resultDict["retries"] = 5 
 		resultDict["retriesStage1"] = row[6]
 		resultDict["retriesStage2"] = row[7]
 		resultDict["poolStage1"] = row[8]
@@ -2622,6 +2628,7 @@ class dbCalls:
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 		if getattr(airflowDag, "filterTable") == None:								setattr(airflowDag, "filterTable", "")
+		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "5")
 
 		try:
 			query = insert(configSchema.airflowImportDags).values(
@@ -2767,6 +2774,7 @@ class dbCalls:
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 		if getattr(airflowDag, "filterConnection") == None:							setattr(airflowDag, "filterConnection", "")
+		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "5")
 
 		try:
 			query = insert(configSchema.airflowExportDags).values(
@@ -2901,6 +2909,7 @@ class dbCalls:
 
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
+		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "0")
 
 		try:
 			query = insert(configSchema.airflowCustomDags).values(
