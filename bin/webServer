@@ -57,12 +57,21 @@ function stop_server
 	fi
 }
 
+function restart_server
+{
+	stop_server
+	sleep 1
+	start_server
+}
+
 function check_server
 {
 	if [ -e $WEBSERVER_PIDFILE ]; then
 		echo "DBImport Webserver is running"
+		cleanup $NOERROR
 	else
 		echo "DBImport Webserver is stopped"
+		cleanup $ERROR
 	fi
 }
 
@@ -87,9 +96,10 @@ mkdir -p $RUNDIR 2>/dev/null
 ACTION=$1
 
 case $ACTION in
-	start)	start_server;;
-	stop)	stop_server;;
-	status)	check_server;;
+	start)		start_server;;
+	stop)		stop_server;;
+	restart)	restart_server;;
+	status)		check_server;;
 	*)		help;;
 esac
 
