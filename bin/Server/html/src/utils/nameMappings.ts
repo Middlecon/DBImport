@@ -15,8 +15,12 @@ import {
 import {
   Columns,
   Connection,
+  CustomAirflowDAG,
+  ExportAirflowDAG,
+  ImportAirflowDAG,
   TableCreateMapped,
-  UITableWithoutEnum
+  UITableWithoutEnum,
+  WithDynamicKeys
 } from './interfaces'
 
 export type FilterMapping = { [key: string]: string }
@@ -440,4 +444,100 @@ export function getKeyFromConnectionLabel(
   label: string
 ): keyof Connection | undefined {
   return labelToConnectionKey[label]
+}
+
+// Airflow
+
+export const labelToImportAirflowKey: {
+  [label: string]: keyof ImportAirflowDAG
+} = {
+  'DAG Name': 'name',
+  'Schedule Interval': 'scheduleInterval',
+  Retries: 'retries',
+  'Operator Notes': 'operatorNotes',
+  'Application Notes': 'applicationNotes',
+  'Auto Regenerate DAG': 'autoRegenerateDag',
+  'Airflow Notes': 'airflowNotes',
+  'Sudo User': 'sudoUser',
+  Timezone: 'timezone',
+  Email: 'email',
+  'Email On Failure': 'emailOnFailure',
+  'Email On Retries': 'emailOnRetries',
+  Tags: 'tags',
+  'Sla Warning Time': 'slaWarningTime',
+  'Retry Exponential Backoff': 'retryExponentialBackoff',
+  Concurrency: 'concurrency',
+
+  'Filter Table': 'filterTable',
+  'Finish all Stage 1 first': 'finishAllStage1First',
+  'Run Import and Etl separate': 'runImportAndEtlSeparate',
+  'Retries Stage 1': 'retriesStage1',
+  'Retries Stage 2': 'retriesStage2',
+  'Pool Stage 1': 'poolStage1',
+  'Pool Stage 2': 'poolStage2',
+  'Run Only Metadata Import': 'metadataImport'
+}
+
+export const labelToExportAirflowKey: {
+  [label: string]: keyof ExportAirflowDAG
+} = {
+  'DAG Name': 'name',
+  'Schedule Interval': 'scheduleInterval',
+  Retries: 'retries',
+  'Operator Notes': 'operatorNotes',
+  'Application Notes': 'applicationNotes',
+  'Auto Regenerate DAG': 'autoRegenerateDag',
+  'Airflow Notes': 'airflowNotes',
+  'Sudo User': 'sudoUser',
+  Timezone: 'timezone',
+  Email: 'email',
+  'Email On Failure': 'emailOnFailure',
+  'Email On Retries': 'emailOnRetries',
+  Tags: 'tags',
+  'Sla Warning Time': 'slaWarningTime',
+  'Retry Exponential Backoff': 'retryExponentialBackoff',
+  Concurrency: 'concurrency',
+
+  'Filter Connection': 'filterConnection',
+  'Filter Target Schema': 'filterTargetSchema',
+  'Filter Target Table': 'filterTargetTable'
+}
+
+export const labelToCustomAirflowKey: {
+  [label: string]: keyof CustomAirflowDAG
+} = {
+  'DAG Name': 'name',
+  'Schedule Interval': 'scheduleInterval',
+  Retries: 'retries',
+  'Operator Notes': 'operatorNotes',
+  'Application Notes': 'applicationNotes',
+  'Auto Regenerate DAG': 'autoRegenerateDag',
+  'Airflow Notes': 'airflowNotes',
+  'Sudo User': 'sudoUser',
+  Timezone: 'timezone',
+  Email: 'email',
+  'Email On Failure': 'emailOnFailure',
+  'Email On Retries': 'emailOnRetries',
+  Tags: 'tags',
+  'Sla Warning Time': 'slaWarningTime',
+  'Retry Exponential Backoff': 'retryExponentialBackoff',
+  Concurrency: 'concurrency'
+}
+
+export function getKeyFromImportAirflowLabel(
+  label: string
+): keyof WithDynamicKeys<ImportAirflowDAG> | undefined {
+  return labelToImportAirflowKey[label]
+}
+
+export function getKeyFromExportAirflowLabel(
+  label: string
+): keyof WithDynamicKeys<ExportAirflowDAG> | undefined {
+  return labelToExportAirflowKey[label]
+}
+
+export function getKeyFromCustomAirflowLabel(
+  label: string
+): keyof WithDynamicKeys<CustomAirflowDAG> | undefined {
+  return labelToCustomAirflowKey[label]
 }

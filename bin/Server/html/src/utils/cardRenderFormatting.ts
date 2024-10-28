@@ -25,8 +25,8 @@ export function airflowCardRenderSettings(
     {
       label: 'Retries',
       value: dagData.retries,
-      type: SettingType.IntegerFromZeroOrNull
-    }, // Integer, tinyint(4), if not set pre-set default value: 5, How many retries should be Task do in Airflow before it failes,  required
+      type: SettingType.IntegerFromZero
+    }, // Integer, tinyint(4), default value: 5 for import & export and 0 for custom, How many retries should be Task do in Airflow before it failes,  required
     {
       label: 'Operator Notes',
       value: dagData.operatorNotes,
@@ -60,18 +60,18 @@ export function airflowCardRenderSettings(
     {
       label: 'Email',
       value: dagData.email,
-      type: SettingType.Text,
+      type: SettingType.Email,
       isConditionsMet:
         dagData.emailOnRetries === true || dagData.emailOnFailure === true
     }, // Free-text, varchar(256), Email to send message to in case email_on_retry or email_on_failure is set to True
     {
       label: 'Email On Failure',
-      value: dagData.emailOnFailure,
+      value: dagData.emailOnFailure ? dagData.emailOnFailure : false,
       type: SettingType.Boolean
     }, // Boolean, if not set pre-set default value: false, Send email on failures, required
     {
       label: 'Email On Retries',
-      value: dagData.emailOnRetries,
+      value: dagData.emailOnRetries ? dagData.emailOnRetries : false,
       type: SettingType.Boolean
     }, // Boolean, if not set pre-set default value: false, Send email on retries, required
     {
@@ -86,13 +86,15 @@ export function airflowCardRenderSettings(
     }, // Time, Maximum time this DAG should run before Airflow triggers a SLA miss
     {
       label: 'Retry Exponential Backoff',
-      value: dagData.retryExponentialBackoff,
+      value: dagData.retryExponentialBackoff
+        ? dagData.retryExponentialBackoff
+        : false,
       type: SettingType.Boolean
     }, // Boolean, if not set pre-set default value: false, true=Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, false=Run with a fixed time of 5 min between the task retries, required
     {
       label: 'Concurrency',
       value: dagData.concurrency,
-      type: SettingType.IntegerFromOneOrNull
+      type: SettingType.IntegerFromOneOrNull //has to be at least one, or null
     } // Integer, tinyint(4), Set the max Integer of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration
   ]
 
@@ -102,7 +104,7 @@ export function airflowCardRenderSettings(
           {
             label: 'Filter Table',
             value: dagData.filterTable, // column filter_hive in db
-            type: SettingType.Text
+            type: SettingType.Textarea
           }, // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE, required
           {
             label: 'Finish all Stage 1 first',
@@ -110,19 +112,24 @@ export function airflowCardRenderSettings(
             type: SettingType.Boolean
           }, // Boolean, if not set pre-set default value: false, true=All Import phase jobs will be completed first, and when all is successfull, the ETL phase start, required
           {
-            label: 'Retries Stage 1',
+            label: 'Retries Import Stage',
             value: dagData.retriesStage1,
             type: SettingType.IntegerFromOneOrNull
           }, // Integer, tinyint(4), Specific retries Integer for Import Phase
           {
-            label: 'Pool Stage 1',
+            label: 'Retries ETL Stage',
             value: dagData.retriesStage2,
             type: SettingType.IntegerFromOneOrNull
+          }, // Integer, tinyint(4), Specific retries Integer for Import Phase
+          {
+            label: 'Pool Import Stage',
+            value: dagData.poolStage1,
+            type: SettingType.Text
           }, // Free-text, varchar(256), Airflow pool used for stage1 tasks. NULL for the default Hostname pool
           {
-            label: 'Pool Stage 2',
-            value: dagData.retriesStage2,
-            type: SettingType.IntegerFromOneOrNull
+            label: 'Pool ETL Stage',
+            value: dagData.poolStage2,
+            type: SettingType.Text
           }, // Free-text, varchar(256), Airflow pool used for stage2 tasks. NULL for the default DAG pool
           {
             label: 'Run Only Metadata Import',

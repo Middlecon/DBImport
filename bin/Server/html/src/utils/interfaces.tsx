@@ -574,6 +574,10 @@ export interface UiAirflowsCustomData extends AirflowsCustomData {
   autoRegenerateDagDisplay: string
 }
 
+export type WithDynamicKeys<T> = T & {
+  [key: string]: string | boolean | number | AirflowTask[]
+}
+
 export interface BaseAirflowDAG {
   name: string
   scheduleInterval: string

@@ -55,8 +55,7 @@ function AirflowTasks({ type }: { type: string }) {
         accessor: 'sensorConnection'
       },
       { header: 'Sensor Soft Fail', accessor: 'sensorSoftFail' },
-      { header: 'Sudo User', accessor: 'sudoUser' },
-      { header: 'Edit', isAction: 'edit' }
+      { header: 'Sudo User', accessor: 'sudoUser' }
     ],
     []
   )
@@ -101,7 +100,7 @@ function AirflowTasks({ type }: { type: string }) {
           label: 'Airflow Pool',
           value: row.airflowPool,
           type: SettingType.Readonly
-        }, // Free-text, varchar(64)
+        }, // Readonly, varchar(64)
         {
           label: 'Airflow Priority',
           value: row.airflowPriority,
@@ -109,7 +108,7 @@ function AirflowTasks({ type }: { type: string }) {
         }, // Free-text, varchar(64)
         {
           label: 'Include In Airflow',
-          value: row.includeInAirflow,
+          value: row.includeInAirflow ? row.includeInAirflow : true,
           type: SettingType.Boolean
         }, // Boolean true or false, required (default value: true)
         {
@@ -136,7 +135,7 @@ function AirflowTasks({ type }: { type: string }) {
           label: 'Sensor Timeout Minutes',
           value: row.sensorTimeoutMinutes,
           type: SettingType.Readonly
-        }, // Number, Timeout for sensors in minutes, int(11)
+        }, // Readonly, Timeout for sensors in minutes, int(11)
         {
           label: 'Sensor Connection',
           value: row.sensorConnection,

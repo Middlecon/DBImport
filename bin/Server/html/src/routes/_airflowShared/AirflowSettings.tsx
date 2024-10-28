@@ -19,9 +19,9 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
     return
   }
   console.log('dagData', dagData)
-  const airflowImportDagSettings = airflowCardRenderSettings(type, dagData)
+  const airflowDagSettings = airflowCardRenderSettings(type, dagData)
 
-  if (!airflowImportDagSettings) {
+  if (!airflowDagSettings) {
     console.error('DAG data is not available.')
     return
   }
@@ -33,8 +33,9 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
           <div>
             <div className="cards-container">
               <CardAirflow
+                type={type}
                 title="Settings"
-                settings={airflowImportDagSettings}
+                settings={airflowDagSettings}
                 originalData={dagData}
               />
             </div>

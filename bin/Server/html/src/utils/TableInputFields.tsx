@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAllTimezones } from 'countries-and-timezones'
 import Dropdown from '../components/Dropdown'
 import { EditSetting } from './interfaces'
 import './TableInputFields.scss'
+import { useAtom } from 'jotai'
+import { airflowTypeAtom } from '../atoms/atoms'
+import { validateEmails } from './functions'
 
 interface TableInputFieldsProps {
   index: number
@@ -35,6 +38,17 @@ function TableInputFields({
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [airflowType] = useAtom(airflowTypeAtom)
+  const integerFromZeroDefaultValue = useMemo(() => {
+    if (
+      (setting.label === 'Retries' && airflowType === 'import') ||
+      (setting.label === 'Retries' && airflowType === 'export')
+    ) {
+      return 5
+    } else {
+      return 0
+    }
+  }, [setting.label, airflowType])
 
   const dropdownId = `dropdown-${index}`
   const isRequired =
@@ -289,6 +303,30 @@ function TableInputFields({
       )
     }
 
+    case 'email':
+      return (
+        <>
+          <label htmlFor={`email-input-${index}`}>
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+
+          <input
+            className="table-input-fields-text-input"
+            id={`email-input-${index}`}
+            type="email"
+            pattern="^([\w.%+\-]+@[\-a-zA-Z0-9.\-]+\.[\-a-zA-Z]{2,})(, *[\w.%+\-]+@[\-a-zA-Z0-9.\-]+\.[\-a-zA-Z]{2,})*$"
+            multiple={true}
+            value={setting.value ? String(setting.value) : ''}
+            onChange={(event) => handleInputChange(index, event.target.value)}
+            onInput={(event) =>
+              validateEmails(event.target as HTMLInputElement)
+            }
+            required={isRequired}
+          />
+        </>
+      )
+
     case 'enum': {
       const dropdownOptions = setting.enumOptions
         ? Object.values(setting.enumOptions)
@@ -394,6 +432,50 @@ function TableInputFields({
     case 'hidden':
       return null
 
+    case 'integerFromZero':
+      return (
+        <>
+          <label>{setting.label}:</label>
+          <input
+            className="table-input-fields-number-input"
+            type="number"
+            value={
+              setting.value !== null && setting.value !== undefined
+                ? Number(setting.value)
+                : integerFromZeroDefaultValue
+            }
+            onChange={(event) => {
+              let value: string | number | null =
+                event.target.value === '' ? '' : Number(event.target.value)
+              console.log('airflowType', airflowType)
+              console.log('setting.label', setting.label)
+              if (typeof value === 'number' && value < 0) {
+                value = integerFromZeroDefaultValue
+              }
+
+              handleInputChange(index, value === '' ? null : value)
+            }}
+            onBlur={(event) => {
+              const value = event.target.value
+              // If input is empty or not a valid number greater than 1, set to default 5
+              if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
+                handleInputChange(index, integerFromZeroDefaultValue)
+                event.target.value = ''
+              }
+            }}
+            onKeyDown={(event) => {
+              // Prevent invalid characters from being typed
+              if (
+                ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
+              ) {
+                event.preventDefault()
+              }
+            }}
+            step="1"
+          />
+        </>
+      )
+
     case 'integerFromOneOrNull':
       return (
         <>
@@ -435,7 +517,7 @@ function TableInputFields({
             onKeyDown={(event) => {
               // Prevent invalid characters from being typed
               if (
-                ['0', 'e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
+                ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
               ) {
                 event.preventDefault()
               }

@@ -3,7 +3,10 @@ import axiosInstance from './axiosInstance'
 import {
   TableCreateWithoutEnum,
   Connection,
-  UITableWithoutEnum
+  UITableWithoutEnum,
+  CustomAirflowDAG,
+  ExportAirflowDAG,
+  ImportAirflowDAG
 } from './interfaces'
 
 // Connection
@@ -55,5 +58,28 @@ export const useCreateTable = () => {
     mutationFn: (tableUpdated: TableCreateWithoutEnum) => {
       return postCreateTable(tableUpdated)
     }
+  })
+}
+
+// Airflow
+
+const updateAirflowDag = async (
+  type: string,
+  dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
+) => {
+  const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
+  return response.data
+}
+
+export const useUpdateAirflowDag = () => {
+  return useMutation<
+    ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG,
+    Error,
+    {
+      type: string
+      dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
+    }
+  >({
+    mutationFn: ({ type, dagData }) => updateAirflowDag(type, dagData)
   })
 }

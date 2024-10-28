@@ -12,6 +12,7 @@ export enum SettingType {
   ConnectionReference = 'connectionReference',
   ConnectionReferenceRequired = 'connectionReferenceRequired',
   Hidden = 'hidden', // Needed here or handled in other way?
+  IntegerFromZero = 'integerFromZero',
   IntegerFromZeroOrNull = 'integerFromZeroOrNull',
   IntegerFromOneOrNull = 'integerFromOneOrNull',
   IntegerFromZeroOrAuto = 'integerFromZeroOrAuto(-1)',
@@ -19,6 +20,7 @@ export enum SettingType {
   IntegerFromOneOrDefaultFromConfig = 'integerFromOneOrDefaultFromConfig(null)',
   Time = 'time',
   TimeZone = 'timezone',
+  Email = 'email',
   GroupingSpace = 'groupingSpace'
 }
 

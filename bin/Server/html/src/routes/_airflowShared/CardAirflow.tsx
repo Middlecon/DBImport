@@ -2,56 +2,99 @@ import { useState } from 'react'
 import '../import/tableDetailed/settings/Card.scss'
 import Button from '../../components/Button'
 import Setting from '../import/tableDetailed/settings/Setting'
-import { EditSetting, ImportAirflowDAG } from '../../utils/interfaces'
+import {
+  BaseAirflowDAG,
+  CustomAirflowDAG,
+  EditSetting,
+  ExportAirflowDAG,
+  ImportAirflowDAG,
+  WithDynamicKeys
+} from '../../utils/interfaces'
 import EditConnectionModal from '../../components/EditConnectionModal'
-// import { useUpdateTable } from '../../../../utils/mutations'
-// import { useQueryClient } from '@tanstack/react-query'
-// import { useParams } from 'react-router-dom'
-// import { updateTableData } from '../../../../utils/dataFunctions'
+import { useParams } from 'react-router-dom'
+import {
+  updateCustomDagData,
+  updateExportDagData,
+  updateImportDagData
+} from '../../utils/dataFunctions'
+import { useUpdateAirflowDag } from '../../utils/mutations'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAtom } from 'jotai'
+import { airflowTypeAtom } from '../../atoms/atoms'
 
 interface CardAirflowProps {
+  type: 'import' | 'export' | 'custom'
   title: string
   settings: EditSetting[]
-  originalData: ImportAirflowDAG
+  originalData: ImportAirflowDAG | BaseAirflowDAG | ExportAirflowDAG
   isNotEditable?: boolean
   isDisabled?: boolean
 }
 
 function CardAirflow({
+  type,
   title,
   settings,
   originalData,
   isNotEditable,
   isDisabled
 }: CardAirflowProps) {
-  // const { table: tableParam } = useParams<{ table: string }>()
+  const { dagName } = useParams<{
+    dagName: string
+  }>()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  // const queryClient = useQueryClient()
-  // const { mutate: updateTable } = useUpdateTable()
+  const queryClient = useQueryClient()
+  const { mutate: updateDag } = useUpdateAirflowDag()
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)
+  const [, setAirflowType] = useAtom(airflowTypeAtom)
+  setAirflowType(type)
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    const tableDataCopy = { ...originalData }
-    console.log('tableDataCopy', tableDataCopy)
-    console.log('updatedSettings', updatedSettings)
-    // const editedTableData = updateTableData(tableDataCopy, updatedSettings)
-    // console.log('updatedSettings', updatedSettings)
-    // console.log('editedTableData', editedTableData)
+    const dagDataCopy = { ...originalData }
 
-    // queryClient.setQueryData(['table', tableParam], editedTableData)
-    // updateTable(editedTableData, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({ queryKey: ['table', tableParam] }) // For getting fresh data from database to the cache
-    //     console.log('Update successful', response)
-    //     setIsEditModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    //     queryClient.setQueryData(['table', tableParam], tableData)
+    let editedDagData:
+      | ImportAirflowDAG
+      | BaseAirflowDAG
+      | ExportAirflowDAG
+      | null = null
+    if (type === 'import') {
+      editedDagData = updateImportDagData(
+        dagDataCopy as WithDynamicKeys<ImportAirflowDAG>,
+        updatedSettings
+      )
+    } else if (type === 'export') {
+      editedDagData = updateExportDagData(
+        dagDataCopy as WithDynamicKeys<ExportAirflowDAG>,
+        updatedSettings
+      )
+    } else if (type === 'custom') {
+      editedDagData = updateCustomDagData(
+        dagDataCopy as WithDynamicKeys<CustomAirflowDAG>,
+        updatedSettings
+      )
+    }
 
-    //     console.error('Error updating table', error)
-    //   }
-    // })
+    if (editedDagData && type) {
+      queryClient.setQueryData(['airflows', type, dagName], editedDagData)
+      updateDag(
+        { type, dagData: editedDagData },
+        {
+          onSuccess: (response) => {
+            queryClient.invalidateQueries({
+              queryKey: ['airflows', type, dagName]
+            }) // For getting fresh data from database to the cache
+            console.log('Update successful', response)
+            setIsEditModalOpen(false)
+          },
+          onError: (error) => {
+            queryClient.setQueryData(['airflows', type, dagName], originalData)
+
+            console.error('Error updating table', error)
+          }
+        }
+      )
+    }
   }
 
   return (

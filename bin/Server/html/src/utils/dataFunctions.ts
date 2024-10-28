@@ -5,9 +5,18 @@ import {
   TableCreateWithoutEnum,
   Connection,
   Columns,
-  UITableWithoutEnum
+  UITableWithoutEnum,
+  BaseAirflowDAG,
+  ExportAirflowDAG,
+  ImportAirflowDAG,
+  AirflowTask,
+  CustomAirflowDAG,
+  WithDynamicKeys
 } from './interfaces'
 import {
+  getKeyFromCustomAirflowLabel,
+  getKeyFromExportAirflowLabel,
+  getKeyFromImportAirflowLabel,
   // getKeyFromColumnLabel,
   // getKeyFromConnectionLabel,
   getKeyFromLabel,
@@ -269,11 +278,6 @@ export function updateTableData(
       const key = getKeyFromLabel(setting.label)
 
       if (key) {
-        console.log('updatedTableData[key]', updatedTableData[key])
-        console.log(
-          'typeof updatedTableData[key]',
-          typeof updatedTableData[key]
-        )
         updatedTableData[key] = value
       }
     }
@@ -402,3 +406,372 @@ export function createTableData(
 
   return finalCreateTableData
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Airflow
+
+// const fieldsToRemove = [
+//   'sourceRowcount',
+//   'sourceRowcountIncr',
+//   'targetRowcount',
+//   'validationCustomQueryHiveValue',
+//   'validationCustomQuerySourceValue',
+//   'incrMinvalue',
+//   'incrMaxvalue',
+//   'incrMinvaluePending',
+//   'incrMaxvaluePending',
+//   'lastSize',
+//   'lastRows',
+//   'lastMappers',
+//   'lastExecution',
+//   'generatedHiveColumnDefinition',
+//   'generatedSqoopQuery',
+//   'generatedSqoopOptions',
+//   'generatedPkColumns',
+//   'generatedForeignKeys',
+//   'copyFinished',
+//   'copySlave'
+// ]
+
+function updateTasksData(
+  dagData: ImportAirflowDAG | BaseAirflowDAG | ExportAirflowDAG,
+  setting: EditSetting,
+  indexInTasks: number
+) {
+  if (!dagData.tasks) return
+
+  const currentTask = dagData.tasks[indexInTasks]
+
+  const part1: {
+    type: string
+    placement: string
+    connection: string | null
+    airflowPriority: number | null
+    includeInAirflow: boolean
+    taskDependencyDownstream: string | null
+    taskDependencyUpstream: string | null
+    taskConfig: string | null
+    sensorPokeInterval: number | null
+    sensorConnection: string | null
+    sensorSoftFail: number | null
+    sudoUser: string | null
+  } = {
+    type: currentTask.type,
+    placement: currentTask.placement,
+    connection: currentTask.connection,
+    airflowPriority: currentTask.airflowPriority,
+    includeInAirflow: currentTask.includeInAirflow,
+    taskDependencyDownstream: currentTask.taskDependencyDownstream,
+    taskDependencyUpstream: currentTask.taskDependencyUpstream,
+    taskConfig: currentTask.taskConfig,
+    sensorPokeInterval: currentTask.sensorPokeInterval,
+    sensorConnection: currentTask.sensorConnection,
+    sensorSoftFail: currentTask.sensorSoftFail,
+    sudoUser: currentTask.sudoUser
+  }
+
+  // Part 2: Keys that will retain default values
+  const part2: Omit<AirflowTask, keyof typeof part1> = {
+    name: currentTask.name,
+    airflowPool: currentTask.airflowPool,
+    sensorTimeoutMinutes: currentTask.sensorTimeoutMinutes
+  }
+
+  const labelToColumnMap: Record<string, keyof typeof part1> = {
+    Type: 'type',
+    Placement: 'placement',
+    Connection: 'connection',
+    'Airflow Priority': 'airflowPriority',
+    'Include In Airflow': 'includeInAirflow',
+    'Task Dependency Downstream': 'taskDependencyDownstream',
+    'Task Dependency Upstream': 'taskDependencyUpstream',
+    'Task Config': 'taskConfig',
+    'Sensor Poke Interval': 'sensorPokeInterval',
+    'Sensor Connection': 'sensorConnection',
+    'Sensor Soft Fail': 'sensorSoftFail',
+    'Sudo User': 'sudoUser'
+  }
+
+  const key = labelToColumnMap[setting.label]
+
+  const settingValue = setting.value
+
+  if (key) {
+    if (
+      typeof settingValue === 'string' ||
+      typeof settingValue === 'number' ||
+      settingValue === null
+    ) {
+      ;(part1[key] as (typeof part1)[typeof key]) = settingValue
+    }
+  }
+
+  const finalTasksData: AirflowTask = { ...part2, ...part1 }
+  console.log('finalColumnData', finalTasksData)
+  dagData.tasks[indexInTasks] = finalTasksData
+}
+/////////////////////////////////////////////////////////////////
+
+export function updateImportDagData(
+  dagData: WithDynamicKeys<ImportAirflowDAG>,
+  updatedSettings: EditSetting[],
+  column?: boolean
+): ImportAirflowDAG {
+  const updatedDagData: WithDynamicKeys<ImportAirflowDAG> = {
+    ...dagData
+  }
+  console.log('typeof updatedTableData', typeof updatedDagData)
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    if (column === true) {
+      const indexInColumnsSetting = updatedSettings.find(
+        (setting) => setting.label === 'Column Order'
+      )
+      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+      updateTasksData(updatedDagData, setting, indexInColumns)
+    } else {
+      let value = setting.value as string
+
+      if (setting.type === 'enum' && setting.enumOptions) {
+        value = reverseMapEnumValue(setting.label, value as string)
+      }
+
+      const key = getKeyFromImportAirflowLabel(setting.label)
+
+      if (key) {
+        console.log('updatedTableData[key]', updatedDagData[key])
+        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
+        updatedDagData[key] = value
+      }
+    }
+  })
+
+  const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
+    if (!fieldsToRemove.includes(key)) {
+      acc[key] = updatedDagData[key]
+    }
+    return acc
+  }, {} as WithDynamicKeys<ImportAirflowDAG>)
+
+  const finalDagData = reducedDagData as ImportAirflowDAG
+
+  return finalDagData
+}
+
+/////////////////////////////////////////////////////////////////
+
+export function updateExportDagData(
+  dagData: WithDynamicKeys<ExportAirflowDAG>,
+  updatedSettings: EditSetting[],
+  task?: boolean
+): ExportAirflowDAG {
+  const updatedDagData: WithDynamicKeys<ExportAirflowDAG> = {
+    ...dagData
+  }
+  console.log('typeof updatedTableData', typeof updatedDagData)
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    if (task === true) {
+      const indexInColumnsSetting = updatedSettings.find(
+        (setting) => setting.label === 'Column Order'
+      )
+      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+      updateTasksData(updatedDagData, setting, indexInColumns)
+    } else {
+      let value = setting.value as string
+
+      if (setting.type === 'enum' && setting.enumOptions) {
+        value = reverseMapEnumValue(setting.label, value as string)
+      }
+
+      const key = getKeyFromExportAirflowLabel(setting.label)
+
+      if (key) {
+        console.log('updatedTableData[key]', updatedDagData[key])
+        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
+        updatedDagData[key] = value
+      }
+    }
+  })
+
+  const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
+    if (!fieldsToRemove.includes(key)) {
+      acc[key] = updatedDagData[key]
+    }
+    return acc
+  }, {} as WithDynamicKeys<ExportAirflowDAG>)
+
+  const finalDagData = reducedDagData as ExportAirflowDAG
+
+  return finalDagData
+}
+
+export function updateCustomDagData(
+  dagData: WithDynamicKeys<CustomAirflowDAG>,
+  updatedSettings: EditSetting[],
+  task?: boolean
+): CustomAirflowDAG {
+  const updatedDagData: WithDynamicKeys<CustomAirflowDAG> = {
+    ...dagData
+  }
+  console.log('typeof updatedTableData', typeof updatedDagData)
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    if (task === true) {
+      const indexInColumnsSetting = updatedSettings.find(
+        (setting) => setting.label === 'Column Order'
+      )
+      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+      updateTasksData(updatedDagData, setting, indexInColumns)
+    } else {
+      let value = setting.value as string
+
+      if (setting.type === 'enum' && setting.enumOptions) {
+        value = reverseMapEnumValue(setting.label, value as string)
+      }
+
+      const key = getKeyFromCustomAirflowLabel(setting.label)
+
+      if (key) {
+        console.log('updatedTableData[key]', updatedDagData[key])
+        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
+        updatedDagData[key] = value
+      }
+    }
+  })
+
+  const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
+    if (!fieldsToRemove.includes(key)) {
+      acc[key] = updatedDagData[key]
+    }
+    return acc
+  }, {} as WithDynamicKeys<CustomAirflowDAG>)
+
+  const finalDagData = reducedDagData as CustomAirflowDAG
+
+  return finalDagData
+}
+
+/////////////////////////////////////////////////////////////////
+// export function createTableData(
+//   newTableSettings: EditSetting[]
+// ): TableCreateWithoutEnum {
+//   // Part 1: Keys that will get values from newTableSettings
+//   const part1: {
+//     database: string
+//     table: string
+//     connection: string
+//     sourceSchema: string
+//     sourceTable: string
+//     importPhaseType: string
+//     etlPhaseType: string
+//     importTool: string
+//     etlEngine: string
+//   } = {
+//     database: '',
+//     table: '',
+//     connection: '',
+//     sourceSchema: '',
+//     sourceTable: '',
+//     importPhaseType: ImportType.Full,
+//     etlPhaseType: EtlType.TruncateAndInsert,
+//     importTool: ImportTool.Spark,
+//     etlEngine: EtlEngine.Spark
+//   }
+
+//   // Part 2: Keys that will retain default values
+//   const part2: Omit<TableCreateWithoutEnum, keyof typeof part1> = {
+//     lastUpdateFromSource: null,
+//     sqlWhereAddition: null,
+//     nomergeIngestionSqlAddition: null,
+//     includeInAirflow: null,
+//     airflowPriority: null,
+//     validateImport: null,
+//     validationMethod: null,
+//     validateSource: null,
+//     validateDiffAllowed: null,
+//     validationCustomQuerySourceSQL: null,
+//     validationCustomQueryHiveSQL: null,
+//     validationCustomQueryValidateImportTable: null,
+//     truncateTable: null,
+//     mappers: null,
+//     softDeleteDuringMerge: null,
+//     incrMode: null,
+//     incrColumn: null,
+//     incrValidationMethod: null,
+//     pkColumnOverride: null,
+//     pkColumnOverrideMergeonly: null,
+//     mergeHeap: null,
+//     splitCount: null,
+//     sparkExecutorMemory: null,
+//     sparkExecutors: null,
+//     splitByColumn: null,
+//     customQuery: null,
+//     sqoopOptions: null,
+//     useGeneratedSql: null,
+//     allowTextSplitter: null,
+//     forceString: null,
+//     comment: null,
+//     datalakeSource: null,
+//     operatorNotes: null,
+//     createForeignKeys: null,
+//     invalidateImpala: null,
+//     customMaxQuery: null,
+//     mergeCompactionMethod: null,
+//     sourceTableType: null,
+//     importDatabase: null,
+//     importTable: null,
+//     historyDatabase: null,
+//     historyTable: null,
+//     columns: [] // Initialize columns explicitly as an empty array
+//   }
+
+//   const labelToKeyMap: Record<string, keyof typeof part1> = {
+//     Database: 'database',
+//     Table: 'table',
+//     Connection: 'connection',
+//     'Source Schema': 'sourceSchema',
+//     'Source Table': 'sourceTable',
+//     'Import Type': 'importPhaseType',
+//     'ETL Type': 'etlPhaseType',
+//     'Import Tool': 'importTool',
+//     'ETL Engine': 'etlEngine'
+//   }
+
+//   const filteredSettings = newTableSettings.filter(
+//     (setting) => setting.type !== 'groupingSpace'
+//   )
+
+//   filteredSettings.forEach((setting) => {
+//     let value = setting.value
+
+//     if (setting.type === 'enum' && setting.enumOptions) {
+//       value = reverseMapEnumValue(setting.label, value as string)
+//     }
+//     const key = labelToKeyMap[setting.label]
+
+//     if (key) {
+//       if (
+//         typeof value === 'string' ||
+//         typeof value === 'number' ||
+//         typeof value === 'boolean'
+//       ) {
+//         part1[key] = value as (typeof part1)[typeof key]
+//       }
+//     }
+//   })
+
+//   const finalCreateDagData: TableCreateWithoutEnum = { ...part2, ...part1 }
+//   // const finalCreateTableData: Omit<TableCreateMapped, 'includeInAirflow'> = { ...part2, ...part1 };
+
+//   return finalCreateDagData
+// }

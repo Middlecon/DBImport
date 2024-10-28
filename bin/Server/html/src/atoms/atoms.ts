@@ -32,3 +32,5 @@ export const isAirflowMenuActiveAtom = atomWithSessionStorage<boolean>(
   'isAirflowMenuActive',
   false
 )
+
+export const airflowTypeAtom = atom('')
