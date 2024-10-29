@@ -29,7 +29,7 @@
 
   .menu-options {
     display: flex;
-    align-items: center;
+    flex-grow: 1;
     justify-content: center;
   }
 
@@ -53,13 +53,36 @@
   margin-top: 20px;
 }
 
+.mainsidebar-usermenu {
+  display: flex;
+  align-items: baseline;
+  color: #7e7e7e;
+  margin-bottom: 10px;
+  &:hover {
+    color: #c2c2c2;
+  }
+}
+
+.mainsidebar-usermenu-li {
+  margin-top: auto;
+}
+
+.mainsidebar-usermenu-logout {
+  margin-left: 11px;
+  margin-bottom: 4px;
+}
+
+.mainsidebar-usermenu-username {
+  margin-bottom: 16px;
+}
+
 .chevron-double {
   display: flex;
   justify-content: flex-end;
-  margin-top: auto;
-  padding: 20px;
+  padding: 0 20px;
 
   button {
+    display: flex;
     cursor: pointer;
     border: none;
     background-color: #131314;
@@ -70,6 +93,13 @@
       color: #c2c2c2;
     }
   }
+}
+
+.dbimport-version {
+  color: #7e7e7e;
+  padding-left: 14px;
+  margin-top: 0;
+  font-size: 12px;
 }
 
 .mainsidebar-logo-container {

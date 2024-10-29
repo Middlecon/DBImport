@@ -1,4 +1,15 @@
-import { atomWithStorage } from 'jotai/utils'
+import { getDefaultStore } from 'jotai'
+import { atomWithStorage, RESET } from 'jotai/utils'
+import {
+  selectedImportDatabaseAtom,
+  importDbListFiltersAtom,
+  connectionFilterAtom,
+  airflowImportFilterAtom,
+  airflowExportFilterAtom,
+  airflowCustomFilterAtom,
+  isAirflowSubmenuActiveAtom,
+  usernameAtom
+} from './atoms'
 
 export function atomWithSessionStorage<T>(key: string, initialValue: T) {
   return atomWithStorage<T>(key, initialValue, {
@@ -16,4 +27,29 @@ export function atomWithSessionStorage<T>(key: string, initialValue: T) {
       sessionStorage.removeItem(key)
     }
   })
+}
+
+export const clearSessionStorageAtoms = () => {
+  const store = getDefaultStore()
+
+  store.set(selectedImportDatabaseAtom, RESET)
+  store.set(importDbListFiltersAtom, RESET)
+  store.set(connectionFilterAtom, RESET)
+  store.set(airflowImportFilterAtom, RESET)
+  store.set(airflowExportFilterAtom, RESET)
+  store.set(airflowCustomFilterAtom, RESET)
+  store.set(isAirflowSubmenuActiveAtom, RESET)
+  store.set(usernameAtom, RESET)
+
+  const sessionKeys = [
+    'selectedImportDatabase',
+    'importDbListFilters',
+    'connectionFilters',
+    'airflowImportFilter',
+    'airflowExportFilter',
+    'airflowCustomFilter',
+    'isAirflowSubmenuActive',
+    'username'
+  ]
+  sessionKeys.forEach((key) => sessionStorage.removeItem(key))
 }

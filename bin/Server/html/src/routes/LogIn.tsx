@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './Login.scss'
 import { errorHandling } from '../utils/errorHandling'
 import { useNavigate } from 'react-router-dom'
 // import DBImportIconTextLogo from '../assets/icons/DBImportIconTextLogo'
 import LogoWithText from '../components/LogoWithText'
-// import { getCookie } from '../utils/cookies'
+import { useAtom } from 'jotai'
+import { usernameAtom } from '../atoms/atoms'
+import { getCookie, setCookie } from '../utils/cookies'
 
 interface LogInResponse {
   access_token?: string
@@ -19,6 +21,8 @@ interface LogInResponse {
 }
 
 function LogIn() {
+  const [, setUsername] = useAtom(usernameAtom)
+
   const [formData, setFormData] = useState({
       username: '',
       password: ''
@@ -27,12 +31,12 @@ function LogIn() {
   const navigate = useNavigate()
 
   // For redirecting from login to / if there alredy are a tooken
-  // const authToken = getCookie('DBI_auth_token')
-  // useEffect(() => {
-  //   if (authToken) {
-  //     navigate('/')
-  //   }
-  // }, [authToken, navigate])
+  const authToken = getCookie('DBI_auth_token')
+  useEffect(() => {
+    if (authToken) {
+      navigate('/')
+    }
+  }, [authToken, navigate])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -79,9 +83,8 @@ function LogIn() {
       }
 
       if (responseData.access_token && responseData.token_type) {
-        // console.log('auth_tokenDBI', responseData.access_token)
-
-        document.cookie = `DBI_auth_token=${responseData.access_token}; path=/; secure; samesite=strict;`
+        setCookie('DBI_auth_token', responseData.access_token, 7)
+        setUsername(username)
       }
     } catch (error) {
       errorHandling('POST', 'on Log in', error)

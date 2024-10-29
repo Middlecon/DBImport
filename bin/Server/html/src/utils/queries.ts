@@ -32,7 +32,9 @@ import {
   ValidationMethod
 } from './enums'
 
-// GET ALL CONNECTIONS
+// CONNECTION
+
+// Get all connections
 
 const getConnections = async (onlyNames?: boolean) => {
   const path =
@@ -52,7 +54,7 @@ export const useConnections = (
   })
 }
 
-// GET CONNECTION
+// Get connection
 
 const getConnection = async (connection: string) => {
   const response = await axiosInstance.get(`/connection/${connection}`)
@@ -69,7 +71,9 @@ export const useConnection = (
   })
 }
 
-// GET DATABASES
+// DATABASE AND TABLE
+
+// Get databases
 
 const getDatabases = async () => {
   const response = await axiosInstance.get('/import/db')
@@ -85,7 +89,7 @@ export const useDatabases = (): UseQueryResult<Database[], Error> => {
   })
 }
 
-// GET DATABASE TABLES
+// Get database tables
 
 const getDbTables = async (database: string) => {
   const response = await axiosInstance.get(`/import/table/${database}`)
@@ -127,7 +131,7 @@ export const useDbTables = (
   })
 }
 
-// GET TABLE
+// Get table
 
 const getTable = async (database: string, table: string) => {
   const response = await axiosInstance.get(`/import/table/${database}/${table}`)
@@ -188,7 +192,9 @@ export const useTable = (
   })
 }
 
-// GET ALL AIRFLOWS
+// AIRFLOW
+
+// Get all airflows
 
 const getAllAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags')
@@ -204,7 +210,7 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
   })
 }
 
-// // GET ALL TYPE AIRFLOWS
+// // Get all type airflows
 
 // const getAirflows = async (type: string) => {
 //   const response = await axiosInstance.get(`/airflow/dags/${type}`)
@@ -237,7 +243,7 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
 //   })
 // }
 
-// GET ALL IMPORT AIRFLOWS
+// Get all import airflows
 
 const getImportAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/import')
@@ -264,7 +270,7 @@ export const useImportAirflows = (): UseQueryResult<
   })
 }
 
-// GET ALL EXPORT AIRFLOWS
+// Get all export airflows
 
 const getExportAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/export')
@@ -293,7 +299,7 @@ export const useExportAirflows = (): UseQueryResult<
   })
 }
 
-// GET ALL CUSTOM AIRFLOWS
+// Get all custom airflows
 
 const getCustomAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/custom')
@@ -322,7 +328,7 @@ export const useCustomAirflows = (): UseQueryResult<
   })
 }
 
-// GET AN AIRFLOW DAG
+// Get an airlow DAG
 
 const getAirflowDAG = async (type: string, dagName: string) => {
   const response = await axiosInstance.get(`/airflow/dags/${type}/${dagName}`)
@@ -340,5 +346,24 @@ export const useAirflowDAG = (
     queryKey: ['airflows', type, dagName],
     queryFn: () => getAirflowDAG(type!, dagName!), // We are sure that type and dagName is not null here because of the enabled flag
     enabled: !!type && !!dagName
+  })
+}
+
+// VERSION
+
+// Get server status and version
+
+const getStatusAndVersion = async () => {
+  const response = await axiosInstance.get('/status')
+  return response.data
+}
+
+export const useGetStatusAndVersion = (): UseQueryResult<
+  { status: string; version: string },
+  Error
+> => {
+  return useQuery({
+    queryKey: ['status'],
+    queryFn: () => getStatusAndVersion()
   })
 }

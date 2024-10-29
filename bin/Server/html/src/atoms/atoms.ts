@@ -34,3 +34,8 @@ export const isAirflowSubmenuActiveAtom = atomWithSessionStorage<boolean>(
 )
 
 export const airflowTypeAtom = atom('')
+
+export const usernameAtom = atomWithSessionStorage<string | null>(
+  'username',
+  null
+)

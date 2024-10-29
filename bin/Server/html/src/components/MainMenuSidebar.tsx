@@ -2,7 +2,7 @@ import ChevronDoubleLeft from '../assets/icons/ChevronDoubleLeft'
 import ImportIcon from '../assets/icons/ImportIcon'
 import ExportIcon from '../assets/icons/ExportIcon'
 import ChevronDoubleRight from '../assets/icons/ChevronDoubleRight'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import ApacheAirflowIcon from '../assets/icons/ApacheAirflowIcon'
 import ConnectionIcon from '../assets/icons/ConnectionIcon'
 import ConfigurationIcon from '../assets/icons/ConfigurationIcon'
@@ -13,29 +13,36 @@ import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
   isAirflowSubmenuActiveAtom,
-  selectedImportDatabaseAtom
+  selectedImportDatabaseAtom,
+  usernameAtom
 } from '../atoms/atoms'
 import { useState } from 'react'
 import AirflowImportIcon from '../assets/icons/AirflowImportIcon'
 import AirflowExportIcon from '../assets/icons/AirflowExportIcon'
 import AirflowCustomIcon from '../assets/icons/AirflowCustomIcon'
+import UserIcon from '../assets/icons/UserIcon'
+import LogoutIcon from '../assets/icons/LogoutIcon'
+import { useGetStatusAndVersion } from '../utils/queries'
+import { deleteCookie } from '../utils/cookies'
+import { clearSessionStorageAtoms } from '../atoms/utils'
 
 interface MainSidebarProps {
   minimized: boolean
   setMinimized: React.Dispatch<React.SetStateAction<boolean>>
 }
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
+  const { data: statusData } = useGetStatusAndVersion()
+  const navigate = useNavigate()
   const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
+  const [toggleUsernameMenu, setToggleUsernameMenu] = useState(false)
 
   const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useAtom(
     isAirflowSubmenuActiveAtom
   )
+  const [userName] = useAtom(usernameAtom)
 
-  console.log('isAirflowSubmenuActive', isAirflowSubmenuActive)
-  console.log('toggleAirflowActive', toggleAirflowActive)
-
-  const handleAirflowClick = () => {
+  const handleToggleAirflowMenu = () => {
     setToggleAirflowActive((prev) => !prev)
   }
 
@@ -43,6 +50,15 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
     setMinimized((prevMinimized) => !prevMinimized)
   }
 
+  const handleToggleUsenameMenu = () => {
+    setToggleUsernameMenu((prev) => !prev)
+  }
+
+  const handleLogout = () => {
+    deleteCookie('DBI_auth_token')
+    navigate('/login')
+    clearSessionStorageAtoms()
+  }
   return (
     <>
       <div className={`mainsidebar-root ${minimized ? 'minimized' : ''}`}>
@@ -102,7 +118,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 className={`mainsidebar-menu-link ${
                   isAirflowSubmenuActive ? 'active' : ''
                 }`}
-                onClick={handleAirflowClick}
+                onClick={handleToggleAirflowMenu}
               >
                 <ApacheAirflowIcon />
                 {!minimized && <h2>Airflow</h2>}
@@ -181,14 +197,40 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
               {!minimized && <h2>Configuration</h2>}
               {/* </NavLink> */}
             </li>
+            <li className="mainsidebar-usermenu-li">
+              {toggleUsernameMenu && (
+                <ul>
+                  <li
+                    className="mainsidebar-usermenu mainsidebar-usermenu-logout"
+                    onClick={handleLogout}
+                  >
+                    <LogoutIcon />
+                    {!minimized && <h3>Logout</h3>}
+                  </li>
+                </ul>
+              )}
+              <div
+                className="mainsidebar-usermenu mainsidebar-usermenu-username"
+                onClick={handleToggleUsenameMenu}
+              >
+                <UserIcon />
+                {!minimized && <h2>{userName ? userName : null}</h2>}
+              </div>
+            </li>
           </ul>
         </div>
 
-        <div className="chevron-double">
+        <div
+          className="chevron-double"
+          style={minimized ? { marginBottom: '26px' } : {}}
+        >
           <button onClick={handleToggleMinimize}>
             {minimized ? <ChevronDoubleRight /> : <ChevronDoubleLeft />}
           </button>
         </div>
+        {!minimized && statusData && (
+          <p className="dbimport-version">V{statusData.version}</p>
+        )}
       </div>
     </>
   )

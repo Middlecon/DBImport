@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getCookie } from './cookies'
+import { deleteCookie, getCookie } from './cookies'
 
 const axiosInstance = axios.create({
   baseURL: '/api',
@@ -31,8 +31,7 @@ axiosInstance.interceptors.response.use(
     console.log('error.response AXIOS', error.response)
 
     if (error.response && error.response.status === 401) {
-      document.cookie =
-        'DBI_auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      deleteCookie('DBI_auth_token')
 
       window.location.href = '/login'
     }
