@@ -54,7 +54,6 @@
   td {
     padding: 9px 12px;
     border: 1px solid #ddd;
-    position: relative;
     white-space: nowrap;
     z-index: 13;
   }
@@ -101,26 +100,18 @@
     left: 0;
     transform: translateY(6px) translateX(2px);
     background-color: #6e6e8c;
+
     color: #fcfcfc;
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 12px;
     white-space: nowrap;
     z-index: 15;
-    transition: opacity 0.3s;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      border-width: 5px;
-      border-style: solid;
-      border-color: #6f6f89 transparent transparent transparent;
-    }
+    transition: opacity 0.1s;
   }
 
   .fixed-width {
+    position: relative;
     max-width: 80px;
     white-space: nowrap;
     p {

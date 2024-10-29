@@ -26,7 +26,7 @@ function TableList<T>({
   const [visibleData, setVisibleData] = useState<T[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [allDataLoaded, setAllDataLoaded] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   const [overflowState, setOverflowState] = useState<boolean[]>([])
 
@@ -49,21 +49,6 @@ function TableList<T>({
 
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
-
-  // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
-  useEffect(() => {
-    if (isLoading) {
-      setLoading(true)
-    } else {
-      const isOverflowing = Array.isArray(cellRefs.current)
-        ? cellRefs.current.map((el) =>
-            el ? el.scrollWidth > el.clientWidth : false
-          )
-        : []
-      setOverflowState(isOverflowing)
-      setLoading(false)
-    }
-  }, [data, columns, isLoading])
 
   useEffect(() => {
     setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
@@ -90,7 +75,7 @@ function TableList<T>({
     if (visibleData.length < data.length && !isLoadingMore) {
       const intervalId = setInterval(() => {
         loadMoreRowsAsync()
-      }, 100) // Loads rows every 200ms asynchronously without blocking the UI
+      }, 200) // Loads rows every 200ms asynchronously without blocking the UI
 
       return () => clearInterval(intervalId) // Cleans up interval on unmount or data changes
     }
@@ -109,6 +94,23 @@ function TableList<T>({
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
+  useEffect(() => {
+    if (isLoading) {
+      setLoading(true)
+    } else {
+      setLoading(false)
+      setTimeout(() => {
+        const isOverflowing = Array.isArray(cellRefs.current)
+          ? cellRefs.current.map((el) =>
+              el ? el.scrollWidth > el.clientWidth : false
+            )
+          : []
+        setOverflowState(isOverflowing)
+      }, 0)
+    }
+  }, [visibleData, columns, isLoading])
 
   const handleRowClick = (index: number) => {
     setSelectedRowIndex((prevIndex) => (prevIndex === index ? null : index))

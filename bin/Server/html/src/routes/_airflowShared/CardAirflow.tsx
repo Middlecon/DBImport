@@ -98,7 +98,10 @@ function CardAirflow({
   }
 
   return (
-    <div className={isDisabled ? 'card-disabled' : 'card'}>
+    <div
+      className={isDisabled ? 'card-disabled' : 'card'}
+      style={{ width: 1000 }}
+    >
       <div className="card-head">
         <h3 className="card-h3">{title}</h3>
         {!isNotEditable && <Button title="Edit" onClick={handleOpenModal} />}
@@ -106,7 +109,7 @@ function CardAirflow({
       <dl className="card-dl">
         {Array.isArray(settings) &&
           settings.map((setting, index) => (
-            <Setting key={index} {...setting} />
+            <Setting key={index} {...setting} valueFieldWidth="100%" />
           ))}
       </dl>
 

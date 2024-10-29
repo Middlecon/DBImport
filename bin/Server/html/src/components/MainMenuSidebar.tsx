@@ -12,7 +12,7 @@ import './MainMenuSidebar.scss'
 import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
-  isAirflowMenuActiveAtom,
+  isAirflowSubmenuActiveAtom,
   selectedImportDatabaseAtom
 } from '../atoms/atoms'
 import { useState } from 'react'
@@ -26,10 +26,14 @@ interface MainSidebarProps {
 }
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
-  const [isAirflowActive, setIsAirflowActive] = useAtom(isAirflowMenuActiveAtom)
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
 
-  const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useState(false)
+  const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useAtom(
+    isAirflowSubmenuActiveAtom
+  )
+
+  console.log('isAirflowSubmenuActive', isAirflowSubmenuActive)
+  console.log('toggleAirflowActive', toggleAirflowActive)
 
   const handleAirflowClick = () => {
     setToggleAirflowActive((prev) => !prev)
@@ -43,7 +47,13 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
     <>
       <div className={`mainsidebar-root ${minimized ? 'minimized' : ''}`}>
         <div className="mainsidebar-logo-container">
-          <NavLink to="/" className="mainsidebar-logo-link">
+          <NavLink
+            to="/"
+            className="mainsidebar-logo-link"
+            onClick={() => {
+              setIsAirflowSubmenuActive(false)
+            }}
+          >
             <LogoWithText size="small" noText={minimized ? true : false} />
             {/* {minimized ? (
             <DBImportIconLogo />
@@ -68,7 +78,9 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
-                onClick={() => setIsAirflowActive(false)}
+                onClick={() => {
+                  setIsAirflowSubmenuActive(false)
+                }}
               >
                 <ImportIcon />
                 {!minimized && <h2>Import</h2>}
@@ -88,7 +100,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
             <li className="mainsidebar-menu-li">
               <div
                 className={`mainsidebar-menu-link ${
-                  isAirflowActive && isAirflowSubmenuActive ? 'active' : ''
+                  isAirflowSubmenuActive ? 'active' : ''
                 }`}
                 onClick={handleAirflowClick}
               >
@@ -104,7 +116,6 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                         `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                       }
                       onClick={() => {
-                        setIsAirflowActive(true)
                         setIsAirflowSubmenuActive(true)
                       }}
                     >
@@ -119,7 +130,6 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                         `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                       }
                       onClick={() => {
-                        setIsAirflowActive(true)
                         setIsAirflowSubmenuActive(true)
                       }}
                     >
@@ -135,7 +145,6 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                         `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                       }
                       onClick={() => {
-                        setIsAirflowActive(true)
                         setIsAirflowSubmenuActive(true)
                       }}
                     >
@@ -153,7 +162,9 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
-                onClick={() => setIsAirflowActive(false)}
+                onClick={() => {
+                  setIsAirflowSubmenuActive(false)
+                }}
               >
                 <ConnectionIcon />
                 {!minimized && <h2>Connection</h2>}

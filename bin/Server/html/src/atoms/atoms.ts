@@ -28,8 +28,8 @@ export const airflowCustomFilterAtom = atomWithSessionStorage<{
   [key: string]: string[]
 }>('airflowCustomFilter', {})
 
-export const isAirflowMenuActiveAtom = atomWithSessionStorage<boolean>(
-  'isAirflowMenuActive',
+export const isAirflowSubmenuActiveAtom = atomWithSessionStorage<boolean>(
+  'isAirflowSubmenuActive',
   false
 )
 
