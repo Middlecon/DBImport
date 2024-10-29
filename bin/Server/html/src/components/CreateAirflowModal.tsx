@@ -29,7 +29,6 @@ function CreateAirflowModal({
         : [],
     [airflowsData]
   )
-  console.log('airflowNames', airflowNames)
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
     settings ? settings : []

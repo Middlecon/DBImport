@@ -11,7 +11,10 @@ import {
   ImportAirflowDAG,
   AirflowTask,
   CustomAirflowDAG,
-  WithDynamicKeys
+  WithDynamicKeys,
+  ImportCreateAirflowDAG,
+  CustomCreateAirflowDAG,
+  ExportCreateAirflowDAG
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
@@ -410,29 +413,6 @@ export function createTableData(
 /////////////////////////////////////////////////////////////////////////////////////////
 // Airflow
 
-// const fieldsToRemove = [
-//   'sourceRowcount',
-//   'sourceRowcountIncr',
-//   'targetRowcount',
-//   'validationCustomQueryHiveValue',
-//   'validationCustomQuerySourceValue',
-//   'incrMinvalue',
-//   'incrMaxvalue',
-//   'incrMinvaluePending',
-//   'incrMaxvaluePending',
-//   'lastSize',
-//   'lastRows',
-//   'lastMappers',
-//   'lastExecution',
-//   'generatedHiveColumnDefinition',
-//   'generatedSqoopQuery',
-//   'generatedSqoopOptions',
-//   'generatedPkColumns',
-//   'generatedForeignKeys',
-//   'copyFinished',
-//   'copySlave'
-// ]
-
 function updateTasksData(
   dagData: ImportAirflowDAG | BaseAirflowDAG | ExportAirflowDAG,
   setting: EditSetting,
@@ -470,7 +450,7 @@ function updateTasksData(
     sudoUser: currentTask.sudoUser
   }
 
-  // Part 2: Keys that will retain default values
+  // Part 2: Readonly keys
   const part2: Omit<AirflowTask, keyof typeof part1> = {
     name: currentTask.name,
     airflowPool: currentTask.airflowPool,
@@ -510,7 +490,6 @@ function updateTasksData(
   console.log('finalColumnData', finalTasksData)
   dagData.tasks[indexInTasks] = finalTasksData
 }
-/////////////////////////////////////////////////////////////////
 
 export function updateImportDagData(
   dagData: WithDynamicKeys<ImportAirflowDAG>,
@@ -661,117 +640,231 @@ export function updateCustomDagData(
   return finalDagData
 }
 
-/////////////////////////////////////////////////////////////////
-// export function createTableData(
-//   newTableSettings: EditSetting[]
-// ): TableCreateWithoutEnum {
-//   // Part 1: Keys that will get values from newTableSettings
-//   const part1: {
-//     database: string
-//     table: string
-//     connection: string
-//     sourceSchema: string
-//     sourceTable: string
-//     importPhaseType: string
-//     etlPhaseType: string
-//     importTool: string
-//     etlEngine: string
-//   } = {
-//     database: '',
-//     table: '',
-//     connection: '',
-//     sourceSchema: '',
-//     sourceTable: '',
-//     importPhaseType: ImportType.Full,
-//     etlPhaseType: EtlType.TruncateAndInsert,
-//     importTool: ImportTool.Spark,
-//     etlEngine: EtlEngine.Spark
-//   }
+export function createImportDagData(
+  newImportAirflowData: EditSetting[]
+): ImportCreateAirflowDAG {
+  // Part 1: Keys that will get values from newImportAirflowData
+  const part1: {
+    name: string
+    scheduleInterval: string | null
+    autoRegenerateDag: boolean
+    filterTable: string | null
+  } = {
+    name: '',
+    scheduleInterval: null,
+    autoRegenerateDag: true,
+    filterTable: null
+  }
 
-//   // Part 2: Keys that will retain default values
-//   const part2: Omit<TableCreateWithoutEnum, keyof typeof part1> = {
-//     lastUpdateFromSource: null,
-//     sqlWhereAddition: null,
-//     nomergeIngestionSqlAddition: null,
-//     includeInAirflow: null,
-//     airflowPriority: null,
-//     validateImport: null,
-//     validationMethod: null,
-//     validateSource: null,
-//     validateDiffAllowed: null,
-//     validationCustomQuerySourceSQL: null,
-//     validationCustomQueryHiveSQL: null,
-//     validationCustomQueryValidateImportTable: null,
-//     truncateTable: null,
-//     mappers: null,
-//     softDeleteDuringMerge: null,
-//     incrMode: null,
-//     incrColumn: null,
-//     incrValidationMethod: null,
-//     pkColumnOverride: null,
-//     pkColumnOverrideMergeonly: null,
-//     mergeHeap: null,
-//     splitCount: null,
-//     sparkExecutorMemory: null,
-//     sparkExecutors: null,
-//     splitByColumn: null,
-//     customQuery: null,
-//     sqoopOptions: null,
-//     useGeneratedSql: null,
-//     allowTextSplitter: null,
-//     forceString: null,
-//     comment: null,
-//     datalakeSource: null,
-//     operatorNotes: null,
-//     createForeignKeys: null,
-//     invalidateImpala: null,
-//     customMaxQuery: null,
-//     mergeCompactionMethod: null,
-//     sourceTableType: null,
-//     importDatabase: null,
-//     importTable: null,
-//     historyDatabase: null,
-//     historyTable: null,
-//     columns: [] // Initialize columns explicitly as an empty array
-//   }
+  // Part 2: Rest of the keys required by the API
+  const part2: Omit<ImportCreateAirflowDAG, keyof typeof part1> = {
+    retries: 5,
+    operatorNotes: null,
+    applicationNotes: null,
+    airflowNotes: null,
+    sudoUser: null,
+    timezone: null,
+    email: null,
+    emailOnFailure: false,
+    emailOnRetries: false,
+    tags: null,
+    slaWarningTime: null,
+    retryExponentialBackoff: false,
+    concurrency: null,
+    finishAllStage1First: false,
+    runImportAndEtlSeparate: false,
+    retriesStage1: null,
+    retriesStage2: null,
+    poolStage1: null,
+    poolStage2: null,
+    metadataImport: false,
+    tasks: []
+  }
 
-//   const labelToKeyMap: Record<string, keyof typeof part1> = {
-//     Database: 'database',
-//     Table: 'table',
-//     Connection: 'connection',
-//     'Source Schema': 'sourceSchema',
-//     'Source Table': 'sourceTable',
-//     'Import Type': 'importPhaseType',
-//     'ETL Type': 'etlPhaseType',
-//     'Import Tool': 'importTool',
-//     'ETL Engine': 'etlEngine'
-//   }
+  const labelToKeyMap: Record<string, keyof typeof part1> = {
+    'DAG Name': 'name',
+    'Schedule Interval': 'scheduleInterval',
+    'Auto Regenerate DAG': 'autoRegenerateDag',
+    'Filter Table': 'filterTable'
+  }
 
-//   const filteredSettings = newTableSettings.filter(
-//     (setting) => setting.type !== 'groupingSpace'
-//   )
+  const filteredSettings = newImportAirflowData.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
 
-//   filteredSettings.forEach((setting) => {
-//     let value = setting.value
+  filteredSettings.forEach((setting) => {
+    const value = setting.value
 
-//     if (setting.type === 'enum' && setting.enumOptions) {
-//       value = reverseMapEnumValue(setting.label, value as string)
-//     }
-//     const key = labelToKeyMap[setting.label]
+    const key = labelToKeyMap[setting.label]
 
-//     if (key) {
-//       if (
-//         typeof value === 'string' ||
-//         typeof value === 'number' ||
-//         typeof value === 'boolean'
-//       ) {
-//         part1[key] = value as (typeof part1)[typeof key]
-//       }
-//     }
-//   })
+    if (key) {
+      console.log('key', key)
+      if (key === 'name' && typeof value === 'string') {
+        part1[key] = value
+        console.log('part1[key]', part1[key])
+      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+        part1[key] = value
+      } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
+        part1[key] = value
+      } else if (
+        key === 'filterTable' &&
+        (typeof value === 'string' || value === null)
+      ) {
+        part1[key] = value
+      }
+    }
+  })
 
-//   const finalCreateDagData: TableCreateWithoutEnum = { ...part2, ...part1 }
-//   // const finalCreateTableData: Omit<TableCreateMapped, 'includeInAirflow'> = { ...part2, ...part1 };
+  const finalCreateData: ImportCreateAirflowDAG = { ...part2, ...part1 }
 
-//   return finalCreateDagData
-// }
+  return finalCreateData
+}
+
+export function createExportDagData(
+  newExportAirflowData: EditSetting[]
+): ExportCreateAirflowDAG {
+  // Part 1: Keys that will get values from newExportAirflowData
+  const part1: {
+    name: string
+    scheduleInterval: string
+    autoRegenerateDag: boolean
+    filterConnection: string
+    filterTargetSchema: string | null
+    filterTargetTable: string | null
+  } = {
+    name: '',
+    scheduleInterval: '',
+    autoRegenerateDag: true,
+    filterConnection: '',
+    filterTargetSchema: null,
+    filterTargetTable: null
+  }
+
+  // Part 2: Rest of the keys required by the API
+  const part2: Omit<ExportCreateAirflowDAG, keyof typeof part1> = {
+    retries: 5,
+    operatorNotes: null,
+    applicationNotes: null,
+    airflowNotes: null,
+    sudoUser: null,
+    timezone: null,
+    email: null,
+    emailOnFailure: false,
+    emailOnRetries: false,
+    tags: null,
+    slaWarningTime: null,
+    retryExponentialBackoff: false,
+    concurrency: null,
+    tasks: []
+  }
+
+  const labelToKeyMap: Record<string, keyof typeof part1> = {
+    'DAG Name': 'name',
+    'Schedule Interval': 'scheduleInterval',
+    'Auto Regenerate DAG': 'autoRegenerateDag',
+    'Filter Connection': 'filterConnection',
+    'Filter Target Schema': 'filterTargetSchema',
+    'Filter Target Table': 'filterTargetTable'
+  }
+
+  const filteredSettings = newExportAirflowData.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    const value = setting.value
+
+    const key = labelToKeyMap[setting.label]
+
+    if (key) {
+      if (key === 'name' && typeof value === 'string') {
+        part1[key] = value
+      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+        part1[key] = value
+      } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
+        part1[key] = value
+      } else if (key === 'filterConnection' && typeof value === 'string') {
+        part1[key] = value
+      } else if (
+        key === 'filterTargetSchema' &&
+        (typeof value === 'string' || value === null)
+      ) {
+        part1[key] = value
+      } else if (
+        key === 'filterTargetTable' &&
+        (typeof value === 'string' || value === null)
+      ) {
+        part1[key] = value
+      }
+    }
+  })
+
+  const finalCreateData: ExportCreateAirflowDAG = { ...part2, ...part1 }
+
+  return finalCreateData
+}
+
+export function createCustomDagData(
+  newCustomAirflowData: EditSetting[]
+): CustomCreateAirflowDAG {
+  // Part 1: Keys that will get values from newCustomAirflowData
+  const part1: {
+    name: string
+    scheduleInterval: string
+    autoRegenerateDag: boolean
+    filterTable: string | null
+  } = {
+    name: '',
+    scheduleInterval: 'None',
+    autoRegenerateDag: true,
+    filterTable: null
+  }
+
+  // Part 2: Rest of the keys required by the API
+  const part2: Omit<CustomCreateAirflowDAG, keyof typeof part1> = {
+    retries: 5,
+    operatorNotes: null,
+    applicationNotes: null,
+    airflowNotes: null,
+    sudoUser: null,
+    timezone: null,
+    email: null,
+    emailOnFailure: false,
+    emailOnRetries: false,
+    tags: null,
+    slaWarningTime: null,
+    retryExponentialBackoff: false,
+    concurrency: null,
+    tasks: []
+  }
+
+  const labelToKeyMap: Record<string, keyof typeof part1> = {
+    'DAG Name': 'name',
+    'Schedule Interval': 'scheduleInterval',
+    'Auto Regenerate DAG': 'autoRegenerateDag'
+  }
+
+  const filteredSettings = newCustomAirflowData.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    const value = setting.value
+
+    const key = labelToKeyMap[setting.label]
+
+    if (key) {
+      if (key === 'name' && typeof value === 'string') {
+        part1[key] = value
+      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+        part1[key] = value
+      } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
+        part1[key] = value
+      }
+    }
+  })
+
+  const finalCreateData: CustomCreateAirflowDAG = { ...part2, ...part1 }
+
+  return finalCreateData
+}

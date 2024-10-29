@@ -9,6 +9,9 @@ import { useAtom } from 'jotai'
 import { airflowImportFilterAtom } from '../../atoms/atoms'
 import Button from '../../components/Button'
 import CreateAirflowModal from '../../components/CreateAirflowModal'
+import { createImportDagData } from '../../utils/dataFunctions'
+import { useCreateAirflowDag } from '../../utils/mutations'
+import { useQueryClient } from '@tanstack/react-query'
 
 const checkboxFilters = [
   {
@@ -20,6 +23,9 @@ const checkboxFilters = [
 
 function AirflowImport() {
   const { data, isLoading } = useImportAirflows()
+  const { mutate: createDAG } = useCreateAirflowDag()
+  const queryClient = useQueryClient()
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
@@ -50,8 +56,24 @@ function AirflowImport() {
     }
   }
 
-  const handleSave = (newAirflowData: EditSetting[]) => {
-    console.log('newAirflowData', newAirflowData)
+  const handleSave = (newImportAirflowSettings: EditSetting[]) => {
+    const newImportAirflowData = createImportDagData(newImportAirflowSettings)
+
+    createDAG(
+      { type: 'import', dagData: newImportAirflowData },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', 'import']
+          })
+          console.log('Update successful', response)
+          setCreateModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error updating table', error)
+        }
+      }
+    )
   }
 
   const filteredData = useMemo(() => {

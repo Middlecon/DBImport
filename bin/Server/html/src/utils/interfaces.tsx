@@ -634,3 +634,42 @@ export interface AirflowTask {
   sensorSoftFail: number | null
   sudoUser: string | null
 }
+
+export interface BaseCreateAirflowDAG {
+  name: string
+  scheduleInterval: string | null
+  retries: number
+  operatorNotes: string | null
+  applicationNotes: string | null
+  autoRegenerateDag: boolean
+  airflowNotes: string | null
+  sudoUser: string | null
+  timezone: string | null
+  email: string | null
+  emailOnFailure: boolean
+  emailOnRetries: boolean
+  tags: string | null
+  slaWarningTime: string | null
+  retryExponentialBackoff: boolean
+  concurrency: number | null
+  tasks: AirflowTask[]
+}
+
+export interface ImportCreateAirflowDAG extends BaseCreateAirflowDAG {
+  filterTable: string | null
+  finishAllStage1First: boolean | null
+  runImportAndEtlSeparate: boolean
+  retriesStage1: number | null
+  retriesStage2: number | null
+  poolStage1: string | null
+  poolStage2: string | null
+  metadataImport: boolean
+}
+
+export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
+  filterConnection: string
+  filterTargetSchema: string | null
+  filterTargetTable: string | null
+}
+
+export type CustomCreateAirflowDAG = BaseCreateAirflowDAG

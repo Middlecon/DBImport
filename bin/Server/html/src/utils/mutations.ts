@@ -6,7 +6,10 @@ import {
   UITableWithoutEnum,
   CustomAirflowDAG,
   ExportAirflowDAG,
-  ImportAirflowDAG
+  ImportAirflowDAG,
+  CustomCreateAirflowDAG,
+  ExportCreateAirflowDAG,
+  ImportCreateAirflowDAG
 } from './interfaces'
 
 // Connection
@@ -81,5 +84,32 @@ export const useUpdateAirflowDag = () => {
     }
   >({
     mutationFn: ({ type, dagData }) => updateAirflowDag(type, dagData)
+  })
+}
+
+const postCreateAirflowDag = async (
+  type: string,
+  dagData:
+    | ImportCreateAirflowDAG
+    | ExportCreateAirflowDAG
+    | CustomCreateAirflowDAG
+) => {
+  const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
+  return response.data
+}
+
+export const useCreateAirflowDag = () => {
+  return useMutation<
+    ImportCreateAirflowDAG | ExportCreateAirflowDAG | CustomCreateAirflowDAG,
+    Error,
+    {
+      type: string
+      dagData:
+        | ImportCreateAirflowDAG
+        | ExportCreateAirflowDAG
+        | CustomCreateAirflowDAG
+    }
+  >({
+    mutationFn: ({ type, dagData }) => postCreateAirflowDag(type, dagData)
   })
 }
