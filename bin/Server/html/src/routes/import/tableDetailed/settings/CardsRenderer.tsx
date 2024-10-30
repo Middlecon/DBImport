@@ -12,6 +12,7 @@ import {
 import './CardsRenderer.scss'
 import { useTable } from '../../../../utils/queries'
 import { useParams } from 'react-router-dom'
+import infoTexts from '../../../../infoTexts.json'
 
 function CardsRenderer() {
   const { database, table: tableParam } = useParams<{
@@ -34,7 +35,8 @@ function CardsRenderer() {
     {
       label: 'Connection',
       value: table.connection,
-      type: SettingType.ConnectionReferenceRequired
+      type: SettingType.ConnectionReferenceRequired,
+      infoText: infoTexts.table.import.connection
     }, // Reference to /connection
     {
       label: 'Source Database Type',
@@ -44,9 +46,15 @@ function CardsRenderer() {
     {
       label: 'Source Schema',
       value: table.sourceSchema,
-      type: SettingType.Text
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceSchema
     }, // Free-text setting
-    { label: 'Source Table', value: table.sourceTable, type: SettingType.Text }, // Free-text setting
+    {
+      label: 'Source Table',
+      value: table.sourceTable,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceTable
+    }, // Free-text setting
     {
       label: '',
       value: '',
@@ -209,7 +217,7 @@ function CardsRenderer() {
       label: 'Generated Foreign Keys',
       value: table.generatedForeignKeys,
       type: SettingType.Readonly
-    } // Read-only
+    } // Read-only, commented as <NOT USED> in the database
   ]
 
   const incrementalImports: EditSetting[] = [

@@ -5,6 +5,7 @@ import {
   ExportAirflowDAG,
   ImportAirflowDAG
 } from './interfaces'
+import infoTexts from '../infoTexts.json'
 
 export function airflowCardRenderSettings(
   airflowType: 'import' | 'export' | 'custom',
@@ -19,13 +20,15 @@ export function airflowCardRenderSettings(
     {
       label: 'Schedule Interval',
       value: dagData.scheduleInterval,
-      type: SettingType.Text
+      type: SettingType.Text,
+      infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required
 
     {
       label: 'Retries',
       value: dagData.retries,
-      type: SettingType.IntegerFromZero
+      type: SettingType.IntegerFromZero,
+      infoText: infoTexts.airflow[airflowType].retries
     }, // Integer, tinyint(4), default value: 5 for import & export and 0 for custom, How many retries should be Task do in Airflow before it failes,  required
     {
       label: 'Operator Notes',
@@ -89,7 +92,8 @@ export function airflowCardRenderSettings(
       value: dagData.retryExponentialBackoff
         ? dagData.retryExponentialBackoff
         : false,
-      type: SettingType.Boolean
+      type: SettingType.Boolean,
+      infoText: infoTexts.airflow.import.retryExponentialBackoff
     }, // Boolean, if not set pre-set default value: false, true=Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, false=Run with a fixed time of 5 min between the task retries, required
     {
       label: 'Concurrency',
@@ -104,7 +108,8 @@ export function airflowCardRenderSettings(
           {
             label: 'Filter Table',
             value: dagData.filterTable, // column filter_hive in db
-            type: SettingType.Textarea
+            type: SettingType.Textarea,
+            infoText: infoTexts.airflow.import.filterTable
           }, // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE, required
           {
             label: 'Finish all Stage 1 first',

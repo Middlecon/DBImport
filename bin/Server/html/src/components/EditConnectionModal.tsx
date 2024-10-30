@@ -6,6 +6,7 @@ import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
+import InfoText from './InfoText'
 
 interface EditModalProps {
   title: string
@@ -188,6 +189,12 @@ function EditConnectionModal({
                     isCustomQueryDisabled={isCustomQueryDisabled}
                     connectionNames={connectionNames}
                   />
+                  {setting.infoText && (
+                    <InfoText
+                      label={setting.label}
+                      infoText={setting.infoText}
+                    />
+                  )}
                 </div>
               ))}
           </div>

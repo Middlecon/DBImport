@@ -71,7 +71,7 @@ function CardConnection({
             <Setting
               key={index}
               {...setting}
-              valueFieldWidth="100%"
+              valueFieldWidth="739px"
               columnSetting={true}
             />
           ))}

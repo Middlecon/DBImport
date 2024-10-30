@@ -4,6 +4,7 @@ import { useConnection } from '../../../utils/queries'
 import '../../import/tableDetailed/settings/CardsRenderer.scss'
 import { useParams } from 'react-router-dom'
 import CardConnection from './CardConnection'
+import infoTexts from '../../../infoTexts.json'
 
 function CardsRendererConnection() {
   const { connection: connectionParam } = useParams<{
@@ -20,7 +21,8 @@ function CardsRendererConnection() {
     {
       label: 'Connection String',
       value: connection.connectionString,
-      type: SettingType.Textarea
+      type: SettingType.Textarea,
+      infoText: infoTexts.connection.connectionString
     }, // Free-text (64k)
     {
       label: 'Private Key Path',
@@ -35,7 +37,8 @@ function CardsRendererConnection() {
     {
       label: 'Credentials',
       value: connection.credentials !== null ? connection.credentials : '',
-      type: SettingType.Textarea
+      type: SettingType.Textarea,
+      infoText: infoTexts.connection.credentials
     }, // Free-text (64k)
 
     {
@@ -46,7 +49,8 @@ function CardsRendererConnection() {
     {
       label: 'Source',
       value: connection.source,
-      type: SettingType.Text
+      type: SettingType.Text,
+      infoText: infoTexts.connection.source
     }, // Free-text (varchar 256)
     {
       label: 'Force String',

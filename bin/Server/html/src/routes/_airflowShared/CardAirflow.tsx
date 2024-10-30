@@ -109,7 +109,7 @@ function CardAirflow({
       <dl className="card-dl">
         {Array.isArray(settings) &&
           settings.map((setting, index) => (
-            <Setting key={index} {...setting} valueFieldWidth="100%" />
+            <Setting key={index} {...setting} valueFieldWidth="739px" />
           ))}
       </dl>
 

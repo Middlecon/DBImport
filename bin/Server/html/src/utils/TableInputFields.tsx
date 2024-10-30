@@ -113,7 +113,7 @@ function TableInputFields({
             </label>
           </div>
           {/* {isChanged && (
-            <span className="table-input-fields-changed">Changed</span>
+            <span className="input-fields-changed">Changed</span>
           )} */}
         </>
       )
@@ -241,14 +241,14 @@ function TableInputFields({
           <>
             <label
               className={
-                isCustomQueryDisabled ? 'table-input-fields-label-disabled' : ''
+                isCustomQueryDisabled ? 'input-fields-label-disabled' : ''
               }
               htmlFor={`text-input-${index}`}
             >
               {setting.label}:
             </label>
             <input
-              className="table-input-fields-text-input"
+              className="input-fields-text-input"
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
@@ -266,7 +266,7 @@ function TableInputFields({
           </label>
 
           <input
-            className="table-input-fields-text-input"
+            className="input-fields-text-input"
             id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
@@ -288,11 +288,7 @@ function TableInputFields({
             id={`textarea-input-${index}`}
             ref={textareaRef}
             value={setting.value ? String(setting.value) : ''}
-            style={{
-              width: 'calc(100% - 217px)',
-              maxWidth: 'calc(100% - 217px)',
-              minWidth: 'calc(100% - 217px)'
-            }}
+            className="input-fields-textarea"
             onChange={(event) => {
               handleInputChange(index, event.target.value)
               autoResizeTextarea()
@@ -312,7 +308,7 @@ function TableInputFields({
           </label>
 
           <input
-            className="table-input-fields-text-input"
+            className="input-fields-text-input"
             id={`email-input-${index}`}
             type="email"
             pattern="^([\w.%+\-]+@[\-a-zA-Z0-9.\-]+\.[\-a-zA-Z]{2,})(, *[\w.%+\-]+@[\-a-zA-Z0-9.\-]+\.[\-a-zA-Z]{2,})*$"
@@ -437,7 +433,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="table-input-fields-number-input"
+            className="input-fields-number-input"
             type="number"
             value={
               setting.value !== null && setting.value !== undefined
@@ -481,7 +477,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="table-input-fields-number-input"
+            className="input-fields-number-input"
             type="number"
             value={
               setting.value !== null && setting.value !== undefined
@@ -532,7 +528,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="table-input-fields-number-input"
+            className="input-fields-number-input"
             type="number"
             value={
               setting.value !== null && setting.value !== undefined
@@ -569,7 +565,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="table-input-fields-number-input"
+              className="input-fields-number-input"
               type="number"
               value={
                 setting.value === -1
@@ -624,7 +620,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="table-input-fields-number-input"
+              className="input-fields-number-input"
               type="number"
               value={
                 setting.value === -1 || setting.value === 0
@@ -679,7 +675,7 @@ function TableInputFields({
 
           <div>
             <input
-              className="table-input-fields-number-input"
+              className="input-fields-number-input"
               type="number"
               value={
                 setting.value === null
@@ -732,7 +728,7 @@ function TableInputFields({
         <>
           <label>{setting.label}:</label>
           <input
-            className="table-input-fields-text-input"
+            className="input-fields-text-input"
             type="time"
             step="1"
             value={setting.value ? String(setting.value) : ''}

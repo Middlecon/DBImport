@@ -6,11 +6,13 @@ import ChevronDown from '../../../../assets/icons/ChevronDown'
 import ChevronUp from '../../../../assets/icons/ChevronUp'
 import { SettingType } from '../../../../utils/enums'
 import { useCustomSelection } from '../../../../utils/hooks'
+import InfoText from '../../../../components/InfoText'
 
 interface SettingProps {
   label: string
   value: string | number | boolean | null
   type: SettingType
+  infoText?: string
   isConditionsMet?: boolean
   // enumOptions?: { [key: string]: string } // Maybe not needed here
   valueFieldWidth?: string
@@ -22,6 +24,7 @@ function Setting({
   label,
   value,
   type,
+  infoText,
   isConditionsMet,
   valueFieldWidth,
   columnSetting
@@ -185,12 +188,13 @@ function Setting({
           </div>
         )}
       </dd>
-
       {hasOverflow && openDropdown && (
         <div ref={dropdownRef} className="expanded-content">
           {renderSetting()}
         </div>
       )}
+
+      {infoText && <InfoText label={label} infoText={infoText} />}
     </div>
   )
 }

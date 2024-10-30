@@ -12,21 +12,34 @@
   }
 }
 
-.table-input-fields-label-disabled {
+.input-fields-label-disabled {
   color: rgb(174, 174, 174);
 }
 
-.table-input-fields-text-input {
-  border: 0.5px solid rgb(42, 42, 42);
-  width: calc(100% - 217px);
+.input-fields-text-input,
+.input-fields-textarea {
+  width: calc(100% - 233px);
+  box-sizing: border-box;
 }
 
-.table-input-fields-number-input {
+.input-fields-textarea {
+  max-width: calc(100% - 233px);
+  min-width: calc(100% - 233px);
+  padding: 3px;
+}
+
+.input-fields-number-input {
   max-width: 120px;
   margin-right: 5px;
 }
 
-// .table-input-fields-changed {
+.input-fields-number-input,
+.input-fields-textarea,
+.input-fields-text-input {
+  border: 0.5px solid rgb(42, 42, 42);
+}
+
+// .input-fields-changed {
 //   background-color: blue;
 //   width: 20px;
 //   color: crimson;

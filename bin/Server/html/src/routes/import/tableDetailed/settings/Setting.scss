@@ -44,15 +44,15 @@
 }
 
 .setting-disabled {
-  color: rgb(174, 174, 174);
+  color: #aeaeae;
   .setting-container {
     background-color: #f0f0f0;
   }
 }
 
 .setting-label {
+  padding-top: 2px;
   display: flex;
-  align-items: center;
   width: 200px;
 }
 

@@ -479,6 +479,7 @@ export interface Column<T> {
   isAction?: 'edit' | 'delete' | 'both'
 }
 
+// Import table Columns, it is different on Export
 export interface Columns {
   columnName: string
   columnOrder: string | null
@@ -517,10 +518,11 @@ export interface EditSetting {
   label: string
   value: EditSettingValueTypes | null
   type: SettingType
-  isConditionsMet?: boolean
   enumOptions?: {
     [key: string]: string
   }
+  infoText?: string
+  isConditionsMet?: boolean
   isHidden?: boolean
 }
 
