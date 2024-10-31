@@ -1,11 +1,24 @@
-import { SettingType } from './enums'
 import {
+  AirflowDAGTaskType,
+  EtlEngine,
+  EtlType,
+  ImportTool,
+  ImportType,
+  SettingType,
+  ValidationMethod
+} from './enums'
+import {
+  AirflowTask,
+  Columns,
+  Connection,
   CustomAirflowDAG,
   EditSetting,
   ExportAirflowDAG,
-  ImportAirflowDAG
+  ImportAirflowDAG,
+  UITable
 } from './interfaces'
 import infoTexts from '../infoTexts.json'
+import { getEnumOptions, mapDisplayValue } from './nameMappings'
 
 export function airflowCardRenderSettings(
   airflowType: 'import' | 'export' | 'custom',
@@ -251,4 +264,831 @@ export function createAirflowSettings(
   }
 
   return combinedAirflowDagSettings
+}
+
+export function airflowTaskRowDataEdit(row: AirflowTask) {
+  const rowData: EditSetting[] = [
+    {
+      label: 'Task Name',
+      value: row.name,
+      type: SettingType.Readonly,
+      isHidden: true
+    }, // Hidden Readonly, have to be unique across import, export and custom, varchar(64), required
+    {
+      label: 'Type',
+      value: mapDisplayValue('type', row.type),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('type')
+    }, // Enum, 'shell script','Hive SQL','Hive SQL Script','JDBC SQL','Trigger DAG','DAG Sensor','SQL Sensor','DBImport command', required (default value: 'Hive SQL Script')
+
+    {
+      label: 'Placement',
+      value: mapDisplayValue('placement', row.placement),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('placement')
+    }, // Enum, 'before main','after main','in main', required (default value: 'after main')
+
+    {
+      label: 'Connection',
+      value: row.connection,
+      type: SettingType.ConnectionReference,
+      isConditionsMet: row.type === AirflowDAGTaskType.JDBCSQL
+    }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
+    {
+      label: 'Airflow Pool',
+      value: row.airflowPool,
+      type: SettingType.Readonly
+    }, // Readonly, varchar(64)
+    {
+      label: 'Airflow Priority',
+      value: row.airflowPriority,
+      type: SettingType.Text
+    }, // Free-text, varchar(64)
+    {
+      label: 'Include In Airflow',
+      value: row.includeInAirflow ? row.includeInAirflow : true,
+      type: SettingType.Boolean
+    }, // Boolean true or false, required (default value: true)
+    {
+      label: 'Task Dependency Downstream',
+      value: row.taskDependencyDownstream,
+      type: SettingType.Text
+    }, // Free-text, Defines the downstream dependency for the Task. Comma separated list, varchar(256)
+    {
+      label: 'Task Dependency Upstream',
+      value: row.taskDependencyUpstream,
+      type: SettingType.Text
+    }, // Free-text, Defines the upstream dependency for the Task. Comma separated list, varchar(256)
+    {
+      label: 'Task Config',
+      value: row.taskConfig,
+      type: SettingType.Text
+    }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
+    {
+      label: 'Sensor Poke Interval',
+      value: row.sensorPokeInterval,
+      type: SettingType.IntegerFromZeroOrNull
+    }, // Number, Poke interval for sensors in seconds, int(11)
+    {
+      label: 'Sensor Timeout Minutes',
+      value: row.sensorTimeoutMinutes,
+      type: SettingType.Readonly
+    }, // Readonly, Timeout for sensors in minutes, int(11)
+    {
+      label: 'Sensor Connection',
+      value: row.sensorConnection,
+      type: SettingType.Text
+    }, // Free-text, Name of Connection in Airflow, varchar(64)
+    {
+      label: 'Sensor Soft Fail',
+      value: row.sensorSoftFail === 1 ? 1 : 0,
+      type: SettingType.BooleanNumber
+    }, // Boolean number, Setting this to 1 will add soft_fail=True on sensor (1=true, all else = false), int(11)
+    {
+      label: 'Sudo User',
+      value: row.sudoUser,
+      type: SettingType.Text
+    } // Free-text, The task will use this user for sudo instead of default, varchar(64)
+  ]
+  return rowData
+}
+
+export function connectionCardRenderSettings(connection: Connection) {
+  const connectionSettings: EditSetting[] = [
+    // { label: 'Name', value: connection.name, type: SettingType.Text }, //Free-text (varchar 256)
+    {
+      label: 'Connection String',
+      value: connection.connectionString,
+      type: SettingType.Textarea,
+      infoText: infoTexts.connection.connectionString
+    }, // Free-text (64k)
+    {
+      label: 'Private Key Path',
+      value: connection.privateKeyPath,
+      type: SettingType.Text
+    }, // Free-text (varchar 128)
+    {
+      label: 'Public Key Path',
+      value: connection.publicKeyPath,
+      type: SettingType.Text
+    }, // Free-text (varchar 128)
+    {
+      label: 'Credentials',
+      value: connection.credentials !== null ? connection.credentials : '',
+      type: SettingType.Textarea,
+      infoText: infoTexts.connection.credentials
+    }, // Free-text (64k)
+
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Source',
+      value: connection.source,
+      type: SettingType.Text,
+      infoText: infoTexts.connection.source
+    }, // Free-text (varchar 256)
+    {
+      label: 'Force String',
+      value: connection.forceString,
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, // Boolean, (1, 0) or Default from Config (-1)
+    {
+      label: 'Max Sessions',
+      value: connection.maxSessions,
+      type: SettingType.IntegerFromOneOrNull
+    }, // Integer
+    {
+      label: 'Create Foreign Key',
+      value: connection.createForeignKey,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Create Datalake Import',
+      value: connection.createDatalakeImport,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Time Window Start',
+      value: connection.timeWindowStart,
+      type: SettingType.Time
+    }, // Time
+    {
+      label: 'Time Window Stop',
+      value: connection.timeWindowStop,
+      type: SettingType.Time
+    }, // Time
+    {
+      label: 'Time Window Timezone',
+      value: connection.timeWindowTimezone,
+      type: SettingType.TimeZone
+    }, // TimeZone
+    {
+      label: 'Seed File',
+      value: connection.seedFile,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Operator Notes',
+      value: connection.operatorNotes,
+      type: SettingType.Textarea
+    }, // Free-text (64k)
+    {
+      label: 'Contact Information',
+      value: connection.contactInformation,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+    {
+      label: 'Description',
+      value: connection.description,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+    {
+      label: 'Owner',
+      value: connection.owner,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+    // {
+    //   label: 'Environment',
+    //   value: connection.environment,
+    //   type: SettingType.Text
+    // }, // Free-text (varchar 256), skip this because functionality for it is not yet implemented in the system
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Atlas Discovery',
+      value: connection.atlasDiscovery,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Atlas Include Filter',
+      value: connection.atlasIncludeFilter,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+    {
+      label: 'Atlas Exclude Filter',
+      value: connection.atlasExcludeFilter,
+      type: SettingType.Text
+    }, // Free-text (varchar 256)
+    {
+      label: 'Atlas Last Discovery',
+      value: connection.atlasLastDiscovery,
+      type: SettingType.Readonly
+    } // Readonly (varchar 256)
+  ]
+  return connectionSettings
+}
+
+export function importCardRenderSettings(table: UITable) {
+  const mainSettings: EditSetting[] = [
+    { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
+    { label: 'Table', value: table.table, type: SettingType.Readonly }, // Free-text, read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Connection',
+      value: table.connection,
+      type: SettingType.ConnectionReferenceRequired,
+      infoText: infoTexts.table.import.connection
+    }, // Reference to /connection
+    {
+      label: 'Source Database Type',
+      value: table.columns?.[0]?.sourceDatabaseType ?? '',
+      type: SettingType.Readonly
+    }, // Read-only, free-text, should be displayed, from inside table.columns[]
+    {
+      label: 'Source Schema',
+      value: table.sourceSchema,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceSchema
+    }, // Free-text setting
+    {
+      label: 'Source Table',
+      value: table.sourceTable,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceTable
+    }, // Free-text setting
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Import Type',
+      value: mapDisplayValue('importPhaseType', table.importPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType')
+    }, // Enum mapping for 'Import Type'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', table.etlPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType')
+    }, // Enum mapping for 'ETL Type'
+    {
+      label: 'Import Tool',
+      value: mapDisplayValue('importTool', table.importTool),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool')
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Engine',
+      value: mapDisplayValue('etlEngine', table.etlEngine),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine')
+    }, // Enum mapping for 'ETL Engine'
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Last Update From Source',
+      value: table.lastUpdateFromSource,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Source Table Type',
+      value: table.sourceTableType,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Import Database',
+      value: table.importDatabase,
+      type: SettingType.Text
+    }, // Free-text setting
+    { label: 'Import Table', value: table.importTable, type: SettingType.Text }, // Free-text setting
+    {
+      label: 'History Database',
+      value: table.historyDatabase,
+      type: SettingType.Text
+    }, // Free-text setting
+    {
+      label: 'History Table',
+      value: table.historyTable,
+      type: SettingType.Text
+    } // Free-text setting
+  ]
+
+  const importOptions: EditSetting[] = [
+    // {
+    //   label: 'Truncate Table',
+    //   value: table.truncateTable,
+    //   type: SettingType.Boolean
+    // }, // Boolean, true or false, should not be displayed/visible in UI
+    {
+      label: 'Allow Text Splitter',
+      value: table.allowTextSplitter,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Force String',
+      value: table.forceString,
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, //  Boolean, (1, 0) or Default from Config (-1)
+    {
+      label: 'Split By Column',
+      value: table.splitByColumn,
+      type: SettingType.Text
+    }, // Free-text setting
+    {
+      label: 'Sqoop Options',
+      value: table.sqoopOptions,
+      type: SettingType.Text,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
+    }, // Free-text, active only if importTool=sqoop
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'SQL WHERE Addition',
+      value: table.sqlWhereAddition,
+      type: SettingType.Text
+    }, // Free-text setting
+    {
+      label: 'Custom Query',
+      value: table.customQuery,
+      type: SettingType.Text,
+      isConditionsMet: table.useGeneratedSql === false
+    }, // Active only if useGeneratedSql=false
+    {
+      label: 'Custom Max Query',
+      value: table.customMaxQuery,
+      type: SettingType.Text,
+      isConditionsMet: table.useGeneratedSql === false
+    }, // Active only if useGeneratedSql=false
+    {
+      label: 'Use Generated SQL',
+      value: table.useGeneratedSql,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'No Merge Ingestion SQL Addition',
+      value: table.nomergeIngestionSqlAddition,
+      type: SettingType.Text
+    }, // Free-text setting (nmore information might come about this one)
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
+    { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
+    {
+      label: 'Last Mappers',
+      value: table.lastMappers,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Generated Hive Column Definition',
+      value: table.generatedHiveColumnDefinition,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Generated Sqoop Query',
+      value: table.generatedSqoopQuery,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Generated Sqoop Options',
+      value: table.generatedSqoopOptions,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Generated Primary Key Columns',
+      value: table.generatedPkColumns,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Generated Foreign Keys',
+      value: table.generatedForeignKeys,
+      type: SettingType.Readonly
+    } // Read-only, commented as <NOT USED> in the database
+  ]
+
+  const incrementalImports: EditSetting[] = [
+    {
+      label: 'Incremental Min Value',
+      value: table.incrMinvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Incremental Max Value',
+      value: table.incrMaxvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Min Value',
+      value: table.incrMinvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Max Value',
+      value: table.incrMaxvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Incremental Mode',
+      value: mapDisplayValue('incrMode', table.incrMode),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('incrMode'),
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
+    }, // Enum list, active if importPhaseType=incr
+    {
+      label: 'Incremental Column',
+      value: table.incrColumn,
+      type: SettingType.Text,
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
+    }, // Free-text, active if importPhaseType=incr
+    {
+      label: 'Incremental Validation Method',
+      value: mapDisplayValue(
+        'incrValidationMethod',
+        table.incrValidationMethod
+      ),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('incrValidationMethod'),
+      isConditionsMet: table.importPhaseType === ImportType.Incremental
+    } // Enum list, active if importPhaseType=incr
+  ]
+
+  const etlOptions: EditSetting[] = [
+    {
+      label: 'Create Foreign Keys',
+      value: table.createForeignKeys,
+      type: SettingType.BooleanOrDefaultFromConnection
+    }, // Boolean (1, 0) or Default from Connection (-1)
+    {
+      label: 'Primary Key Override',
+      value: table.pkColumnOverride,
+      type: SettingType.Text
+    }, // Comma-separated list with columns from "columns":{}
+    {
+      label: 'Primary Key Override (Merge only)',
+      value: table.pkColumnOverrideMergeonly,
+      type: SettingType.Text
+    }, // Comma-separated list with columns from "columns":{}
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Invalidate Impala',
+      value: table.invalidateImpala,
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, // Boolean, (1, 0) or Default from Config (-1)
+    {
+      label: 'Soft Delete During Merge',
+      value: table.softDeleteDuringMerge,
+      type: SettingType.Boolean,
+      isConditionsMet:
+        table.etlPhaseType === EtlType.Merge ||
+        table.etlPhaseType === EtlType.MergeHistoryAudit
+    }, // Boolean, true or false, active only if etlPhaseType=merge or etlPhaseType=merge_history_audit
+    {
+      label: 'Merge Compaction Method',
+      value: mapDisplayValue(
+        'mergeCompactionMethod',
+        table.mergeCompactionMethod
+      ),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('mergeCompactionMethod')
+    }, // Enum mapping for 'Merge Compaction Method'
+    {
+      label: 'Datalake Source',
+      value: table.datalakeSource,
+      type: SettingType.Text
+    } // Free-text setting
+  ]
+
+  const performance: EditSetting[] = [
+    {
+      label: 'Mappers',
+      value: table.mappers,
+      type: SettingType.IntegerFromOneOrAuto
+    }, // Integer, -1 = Auto
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Hive Split Count',
+      value: table.splitCount,
+      type: SettingType.IntegerFromOneOrNull,
+      isConditionsMet: table.etlEngine === EtlEngine.Hive
+    }, // Integer, active if etlEngine=hive
+    {
+      label: 'Hive Java Heap (MB)',
+      value: table.mergeHeap,
+      type: SettingType.IntegerFromZeroOrNull
+    }, // Integer, value is MB
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Spark Executor Memory',
+      value: table.sparkExecutorMemory,
+      type: SettingType.Text,
+      isConditionsMet:
+        table.etlEngine === EtlEngine.Spark ||
+        table.importTool === ImportTool.Spark
+    }, // Free-text, active if etlEngine or importTool=spark
+    {
+      label: 'Spark Executors',
+      value: table.sparkExecutors,
+      type: SettingType.IntegerFromOneOrDefaultFromConfig,
+      isConditionsMet:
+        table.etlEngine === EtlEngine.Spark ||
+        table.importTool === ImportTool.Spark
+    } // Integer, active if etlEngine or importTool=spark
+  ]
+
+  const validation: EditSetting[] = [
+    {
+      label: 'Validate Import',
+      value: table.validateImport,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Validation Method',
+      value: mapDisplayValue('validationMethod', table.validationMethod),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('validationMethod')
+    }, // Enum mapping for 'Validation Method'
+    {
+      label: 'Validate Source',
+      value: mapDisplayValue('validateSource', table.validateSource),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('validateSource')
+    }, // Enum mapping for 'Validate Source'
+    {
+      label: 'Allowed Validation Difference',
+      value: table.validateDiffAllowed,
+      type: SettingType.IntegerFromZeroOrAuto
+    }, // Integer
+    {
+      label: 'Custom Query Source SQL',
+      value: table.validationCustomQuerySourceSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // free-text, active if validationMethod=customQuery
+    {
+      label: 'Custom Query Hive SQL',
+      value: table.validationCustomQueryHiveSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // free-text, active if validationMethod=customQuery
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Source Row Count',
+      value: table.sourceRowcount,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Source Row Count Incremental',
+      value: table.sourceRowcountIncr,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Target Row Count',
+      value: table.targetRowcount,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    // {
+    //   label: 'Validate Import Table',
+    //   value: true,
+    //   type: SettingType.Boolean,
+    //   isHidden: true
+    // }, // Always true and always hidden, should not be displayed/visible in UI
+    {
+      label: 'Custom Query Source Value',
+      value: table.validationCustomQuerySourceValue,
+      type: SettingType.Readonly
+    }, // Read-only setting
+    {
+      label: 'Custom Query Hive Value',
+      value: table.validationCustomQueryHiveValue,
+      type: SettingType.Readonly
+    } // Read-only setting
+  ]
+
+  const schedule: EditSetting[] = [
+    {
+      label: 'Airflow Priority',
+      value: table.airflowPriority,
+      type: SettingType.IntegerFromOneOrNull
+    }, // Integer (should not be string in API)
+    {
+      label: 'Include in Airflow',
+      value: table.includeInAirflow,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Operator Notes',
+      value: table.operatorNotes,
+      type: SettingType.Text
+    } // Free-text setting
+  ]
+
+  const siteToSiteCopy: EditSetting[] = [
+    {
+      label: 'Copy Finished',
+      value: table.copyFinished,
+      type: SettingType.Readonly
+    }, // Read-only, timestamp
+    { label: 'Copy Slave', value: table.copySlave, type: SettingType.Readonly } // Read-only, Boolean
+  ]
+
+  const importCards = {
+    mainSettings,
+    importOptions,
+    incrementalImports,
+    etlOptions,
+    performance,
+    validation,
+    schedule,
+    siteToSiteCopy
+  }
+
+  return importCards
+}
+
+export function importColumnRowDataEdit(row: Columns, table: UITable) {
+  const rowData: EditSetting[] = [
+    {
+      label: 'Column Name',
+      value: row.columnName,
+      type: SettingType.Readonly
+    }, // Read-only, , free-text
+    {
+      label: 'Column Order',
+      value: row.columnOrder,
+      type: SettingType.Readonly
+    }, // Number for order in columns, preliminary readonly
+    {
+      label: 'Source Column Name',
+      value: row.sourceColumnName,
+      type: SettingType.Readonly
+    }, // Read-only, free-text
+    {
+      label: 'Column Type',
+      value: row.columnType,
+      type: SettingType.Readonly
+    }, // Read-only, free-text
+    {
+      label: 'Source Column Type',
+      value: row.sourceColumnType,
+      type: SettingType.Readonly
+    }, // Read-only, free-text
+    {
+      label: 'Column Name Override',
+      value: row.columnNameOverride,
+      type: SettingType.Text
+    }, // Free-text
+    {
+      label: 'Column Type Override',
+      value: row.columnTypeOverride,
+      type: SettingType.Text
+    }, // Free-text
+    {
+      label: 'Sqoop Column Type',
+      value: row.sqoopColumnType,
+      type: SettingType.Readonly,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
+    }, // Read-only, free-text, only active if importTool=sqoop
+    {
+      label: 'Sqoop Column Type Override',
+      value: row.sqoopColumnTypeOverride,
+      type: SettingType.Text,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
+    }, // Free-text, only active if importTool=sqoop
+    {
+      label: 'Force String',
+      value: row.forceString,
+      type: SettingType.BooleanOrDefaultFromConfig
+    }, // Boolean or Auto (-1)
+    {
+      label: 'Include In Import',
+      value: row.includeInImport,
+      type: SettingType.Boolean
+    }, // Boolean, true or false
+    {
+      label: 'Source Primary Key',
+      value: row.sourcePrimaryKey,
+      type: SettingType.Readonly
+    }, // Read-only, Boolean
+    {
+      label: 'Last Update From Source',
+      value: row.lastUpdateFromSource,
+      type: SettingType.Readonly
+    }, // Read-only, Timestamp
+    {
+      label: 'Comment',
+      value: row.comment,
+      type: SettingType.Text
+    }, // Free-text
+    {
+      label: 'Operator Notes',
+      value: row.operatorNotes,
+      type: SettingType.Text
+    }, // Free-text
+    {
+      label: 'Anonymization Function',
+      value: row.anonymizationFunction,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('anonymizationFunction')
+    } // Enum mapping for 'Anonymization Function'
+  ]
+
+  return rowData
+}
+
+export function initialCreateImportTableSettings(
+  database: string,
+  prefilledConnection: string
+) {
+  const settings: EditSetting[] = [
+    { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
+    { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Connection',
+      value: prefilledConnection,
+      type: SettingType.ConnectionReferenceRequired
+    }, // Reference to /connection
+    {
+      label: 'Source Schema',
+      value: null,
+      type: SettingType.Text
+    }, // Free-text setting
+    { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Import Type',
+      value: mapDisplayValue('importPhaseType', ImportType.Full),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType')
+    }, // Enum mapping for 'Import Type'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType')
+    }, // Enum mapping for 'ETL Type'
+    {
+      label: 'Import Tool',
+      value: mapDisplayValue('importTool', ImportTool.Spark),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool')
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Engine',
+      value: mapDisplayValue('etlEngine', EtlEngine.Spark),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine')
+    } // Enum mapping for 'ETL Engine'
+  ]
+  return settings
 }

@@ -49,8 +49,9 @@ function TableDetailedView() {
             Columns
           </h2>
           <h2
-            className={selectedTab === 'statistics' ? 'active-tab' : ''}
-            onClick={() => handleTabClick('statistics')}
+            style={{ color: '#a4a4a4', cursor: 'default' }}
+            // className={selectedTab === 'statistics' ? 'active-tab' : ''}
+            // onClick={() => handleTabClick('statistics')}
           >
             Statistics
           </h2>

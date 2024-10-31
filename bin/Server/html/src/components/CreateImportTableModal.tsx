@@ -1,19 +1,12 @@
 import { useMemo, useState } from 'react'
-import {
-  EtlEngine,
-  EtlType,
-  ImportTool,
-  ImportType,
-  SettingType
-} from '../utils/enums'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
 import { useConnections } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
-import { getEnumOptions, mapDisplayValue } from '../utils/nameMappings'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
+import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
 
 interface CreateTableModalProps {
   database: string
@@ -22,69 +15,16 @@ interface CreateTableModalProps {
   onClose: () => void
 }
 
-function initialCreateTableSettings(
-  database: string,
-  prefilledConnection: string
-) {
-  const settings: EditSetting[] = [
-    { label: 'Database', value: database, type: SettingType.Text }, //Free-text, read-only, default selected db, potentially copyable?
-    { label: 'Table', value: null, type: SettingType.Text }, // Free-text, read-only
-    {
-      label: '',
-      value: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
-      label: 'Connection',
-      value: prefilledConnection,
-      type: SettingType.ConnectionReferenceRequired
-    }, // Reference to /connection
-    {
-      label: 'Source Schema',
-      value: null,
-      type: SettingType.Text
-    }, // Free-text setting
-    { label: 'Source Table', value: '', type: SettingType.Text }, // Free-text setting
-    {
-      label: '',
-      value: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
-      label: 'Import Type',
-      value: mapDisplayValue('importPhaseType', ImportType.Full),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('importPhaseType')
-    }, // Enum mapping for 'Import Type'
-    {
-      label: 'ETL Type',
-      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlPhaseType')
-    }, // Enum mapping for 'ETL Type'
-    {
-      label: 'Import Tool',
-      value: mapDisplayValue('importTool', ImportTool.Spark),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('importTool')
-    }, // Enum mapping for 'Import Tool'
-    {
-      label: 'ETL Engine',
-      value: mapDisplayValue('etlEngine', EtlEngine.Spark),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlEngine')
-    } // Enum mapping for 'ETL Engine'
-  ]
-  return settings
-}
-
 function CreateTableModal({
   database,
   prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
-  const settings = initialCreateTableSettings(database, prefilledConnection)
+  const settings = initialCreateImportTableSettings(
+    database,
+    prefilledConnection
+  )
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
     () =>

@@ -3,12 +3,12 @@ import TableList from '../../../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
 import { useTable } from '../../../../utils/queries'
 import EditTableModal from '../../../../components/EditTableModal'
-import { ImportTool, SettingType } from '../../../../utils/enums'
 import { updateTableData } from '../../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../../../utils/mutations'
 import { useParams } from 'react-router-dom'
-import { getEnumOptions } from '../../../../utils/nameMappings'
+import '../../../../components/Loading.scss'
+import { importColumnRowDataEdit } from '../../../../utils/cardRenderFormatting'
 
 function TableColumns() {
   const { database, table: tableParam } = useParams<{
@@ -55,91 +55,7 @@ function TableColumns() {
         return
       }
 
-      const rowData: EditSetting[] = [
-        {
-          label: 'Column Name',
-          value: row.columnName,
-          type: SettingType.Readonly
-        }, // Read-only, , free-text
-        {
-          label: 'Column Order',
-          value: row.columnOrder,
-          type: SettingType.Readonly
-        }, // Number for order in columns, preliminary readonly
-        {
-          label: 'Source Column Name',
-          value: row.sourceColumnName,
-          type: SettingType.Readonly
-        }, // Read-only, free-text
-        {
-          label: 'Column Type',
-          value: row.columnType,
-          type: SettingType.Readonly
-        }, // Read-only, free-text
-        {
-          label: 'Source Column Type',
-          value: row.sourceColumnType,
-          type: SettingType.Readonly
-        }, // Read-only, free-text
-        {
-          label: 'Column Name Override',
-          value: row.columnNameOverride,
-          type: SettingType.Text
-        }, // Free-text
-        {
-          label: 'Column Type Override',
-          value: row.columnTypeOverride,
-          type: SettingType.Text
-        }, // Free-text
-        {
-          label: 'Sqoop Column Type',
-          value: row.sqoopColumnType,
-          type: SettingType.Readonly,
-          isConditionsMet: table.importTool === ImportTool.Sqoop
-        }, // Read-only, free-text, only active if importTool=sqoop
-        {
-          label: 'Sqoop Column Type Override',
-          value: row.sqoopColumnTypeOverride,
-          type: SettingType.Text,
-          isConditionsMet: table.importTool === ImportTool.Sqoop
-        }, // Free-text, only active if importTool=sqoop
-        {
-          label: 'Force String',
-          value: row.forceString,
-          type: SettingType.BooleanOrDefaultFromConfig
-        }, // Boolean or Auto (-1)
-        {
-          label: 'Include In Import',
-          value: row.includeInImport,
-          type: SettingType.Boolean
-        }, // Boolean, true or false
-        {
-          label: 'Source Primary Key',
-          value: row.sourcePrimaryKey,
-          type: SettingType.Readonly
-        }, // Read-only, Boolean
-        {
-          label: 'Last Update From Source',
-          value: row.lastUpdateFromSource,
-          type: SettingType.Readonly
-        }, // Read-only, Timestamp
-        {
-          label: 'Comment',
-          value: row.comment,
-          type: SettingType.Text
-        }, // Free-text
-        {
-          label: 'Operator Notes',
-          value: row.operatorNotes,
-          type: SettingType.Text
-        }, // Free-text
-        {
-          label: 'Anonymization Function',
-          value: row.anonymizationFunction,
-          type: SettingType.Enum,
-          enumOptions: getEnumOptions('anonymizationFunction')
-        } // Enum mapping for 'Anonymization Function'
-      ]
+      const rowData: EditSetting[] = importColumnRowDataEdit(row, table)
 
       setCurrentRow(rowData)
       setModalOpen(true)
@@ -147,7 +63,7 @@ function TableColumns() {
     [table]
   )
 
-  if (isFetching) return <div>Loading...</div>
+  if (isFetching) return <div className="loading">Loading...</div>
   if (!table) return <div>No data found.</div>
 
   const columnsData = table.columns

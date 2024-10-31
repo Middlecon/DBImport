@@ -262,63 +262,6 @@ export function getKeyFromColumnLabel(
   return labelToColumnKey[label]
 }
 
-export const reverseNameMappings: { [key: string]: FilterMapping } = {
-  importPhaseType: {
-    Full: ImportType.Full,
-    Incremental: ImportType.Incremental,
-    'Oracle Flashback': ImportType.OracleFlashback,
-    'MSSQL Change Tracking': ImportType.MSSQLChangeTracking
-  },
-  etlPhaseType: {
-    'Truncate and Insert': EtlType.TruncateAndInsert,
-    'Insert only': EtlType.InsertOnly,
-    Merge: EtlType.Merge,
-    'Merge with History Audit': EtlType.MergeHistoryAudit,
-    'Only create external table': EtlType.External,
-    None: EtlType.None
-  },
-  importTool: {
-    Spark: ImportTool.Spark,
-    Sqoop: ImportTool.Sqoop
-  },
-  etlEngine: {
-    Hive: EtlEngine.Hive,
-    Spark: EtlEngine.Spark
-  },
-  validationMethod: {
-    'Custom Query': ValidationMethod.CustomQuery,
-    'Row Count': ValidationMethod.RowCount
-  },
-  validateSource: {
-    'Query before import': ValidateSource.Query,
-    'Imported rows': ValidateSource.Sqoop
-  },
-  incrMode: {
-    Append: IncrMode.Append,
-    'Last modified': IncrMode.LastModified
-  },
-  incrValidationMethod: {
-    Full: IncrValidationMethod.Full,
-    Incremental: IncrValidationMethod.Incremental
-  },
-  mergeCompactionMethod: {
-    Default: MergeCompactionMethod.Default,
-    None: MergeCompactionMethod.None,
-    'Minor Compaction': MergeCompactionMethod.Minor,
-    'Minor Compaction and Wait': MergeCompactionMethod.MinorAndWait,
-    'Major Compaction': MergeCompactionMethod.Major,
-    'Major Compaction and Wait': MergeCompactionMethod.MajorAndWait
-  }
-}
-
-export const reverseMapDisplayValue = (
-  filterKey: string,
-  filterValue: string
-): string => {
-  const mapping = reverseNameMappings[filterKey]
-  return mapping?.[filterValue] || filterValue
-}
-
 export const nameReverseMappings: {
   [category: string]: { [key: string]: string }
 } = {

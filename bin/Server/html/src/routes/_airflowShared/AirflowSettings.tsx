@@ -3,6 +3,7 @@ import { useAirflowDAG } from '../../utils/queries'
 import '../import/tableDetailed/TableDetailedView.scss'
 import CardAirflow from './CardAirflow'
 import { airflowCardRenderSettings } from '../../utils/cardRenderFormatting'
+import '../../components/Loading.scss'
 
 function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
@@ -10,7 +11,7 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   }>()
   const { data: dagData, isFetching } = useAirflowDAG(type, dagName)
 
-  if (isFetching) return <div>Loading...</div>
+  if (isFetching) return <div className="loading">Loading...</div>
   if (!dagName) return <div>No data found.</div>
   console.log('dagName', dagName)
 

@@ -5,7 +5,7 @@ import './Import.scss'
 import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
-import CreateTableModal from '../../components/CreateTableModal'
+import CreateImportTableModal from '../../components/CreateImportTableModal'
 import { EditSetting } from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
 import { useCreateTable } from '../../utils/mutations'
@@ -156,7 +156,7 @@ function Import() {
           <>
             <Outlet />
             {isCreateModalOpen && mostCommonConnection && (
-              <CreateTableModal
+              <CreateImportTableModal
                 database={database}
                 prefilledConnection={mostCommonConnection}
                 onSave={handleSave}
