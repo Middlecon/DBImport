@@ -18,9 +18,10 @@
 
 .table-modal-content,
 .table-modal-content-connection {
-  background: white;
+  background: #ffff;
+  position: relative;
   margin-left: 50px;
-  padding: 40px 45px 45px 40px;
+  padding: 40px 45px 45px 45px;
   border-radius: 8px;
   width: 584px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -30,6 +31,22 @@
   overflow-y: scroll;
   margin-top: 40px;
   margin-bottom: 40px;
+}
+
+.table-modal-resize-handle {
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.table-modal-resize-handle.left {
+  left: -5px;
+}
+
+.table-modal-resize-handle.right {
+  right: -5px;
 }
 
 .table-modal-h2 {
@@ -48,7 +65,6 @@
 
 .table-modal-setting {
   display: flex;
-  // align-items: center;
   gap: 7px;
   margin-top: 10px;
 }
@@ -79,12 +95,6 @@
 .table-modal-number-input {
   max-width: 120px;
   margin-right: 5px;
-}
-
-.table-modal-changed {
-  background-color: blue;
-  width: 20px;
-  color: crimson;
 }
 
 .table-modal-footer {

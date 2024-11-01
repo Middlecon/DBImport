@@ -285,14 +285,16 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Placement',
       value: mapDisplayValue('placement', row.placement),
       type: SettingType.Enum,
-      enumOptions: getEnumOptions('placement')
+      enumOptions: getEnumOptions('placement'),
+      infoText: infoTexts.airflow.tasks.placement
     }, // Enum, 'before main','after main','in main', required (default value: 'after main')
 
     {
       label: 'Connection',
       value: row.connection,
       type: SettingType.ConnectionReference,
-      isConditionsMet: row.type === AirflowDAGTaskType.JDBCSQL
+      isConditionsMet: row.type === AirflowDAGTaskType.JDBCSQL,
+      infoText: infoTexts.airflow.tasks.connection
     }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
     {
       label: 'Airflow Pool',
@@ -322,7 +324,8 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
     {
       label: 'Task Config',
       value: row.taskConfig,
-      type: SettingType.Text
+      type: SettingType.Textarea,
+      infoText: infoTexts.airflow.tasks.taskConfig
     }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
     {
       label: 'Sensor Poke Interval',

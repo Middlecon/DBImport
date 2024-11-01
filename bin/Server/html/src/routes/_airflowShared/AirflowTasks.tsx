@@ -18,7 +18,7 @@ function AirflowTasks({ type }: { type: string }) {
 
   // const queryClient = useQueryClient()
   // const { mutate: updateTable } = useUpdateTable()
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
 
   const columns: Column<AirflowTask>[] = useMemo(
@@ -70,7 +70,7 @@ function AirflowTasks({ type }: { type: string }) {
       const rowData: EditSetting[] = airflowTaskRowDataEdit(row)
 
       setCurrentRow(rowData)
-      setModalOpen(true)
+      setIsEditModalOpen(true)
     },
     [dagData]
   )
@@ -81,19 +81,8 @@ function AirflowTasks({ type }: { type: string }) {
   const tasksData: AirflowTask[] = dagData.tasks
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    console.log('updatedSettings', updatedSettings)
-    // const editedTableData = updateTableData(dagData, updatedSettings, true)
-    // updateTable(editedTableData, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({ queryKey: ['table', dagName] })
-    //     console.log('Update successful', response)
-    //     setModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    //     queryClient.invalidateQueries({ queryKey: ['table', dagName] })
-    //     console.error('Error updating table', error)
-    //   }
-    // })
+            setIsEditModalOpen(false)
+          },
   }
 
   return (
@@ -119,11 +108,11 @@ function AirflowTasks({ type }: { type: string }) {
         </p>
       )}
 
-      {isModalOpen && currentRow && (
+      {isEditModalOpen && currentRow && (
         <EditTableModal
           title={`Edit DAG ${currentRow[0].value}`}
           settings={currentRow}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}
