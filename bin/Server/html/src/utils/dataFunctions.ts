@@ -494,7 +494,7 @@ function updateTasksData(
 export function updateImportDagData(
   dagData: WithDynamicKeys<ImportAirflowDAG>,
   updatedSettings: EditSetting[],
-  column?: boolean
+  task?: boolean
 ): ImportAirflowDAG {
   const updatedDagData: WithDynamicKeys<ImportAirflowDAG> = {
     ...dagData
@@ -505,12 +505,16 @@ export function updateImportDagData(
   )
 
   filteredSettings.forEach((setting) => {
-    if (column === true) {
-      const indexInColumnsSetting = updatedSettings.find(
-        (setting) => setting.label === 'Column Order'
+    if (task === true) {
+      const taskNameSetting = updatedSettings.find(
+        (setting) => setting.label === 'Task Name'
       )
-      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-      updateTasksData(updatedDagData, setting, indexInColumns)
+      const taskName = taskNameSetting ? taskNameSetting.value : ''
+
+      const indexInTasks = updatedDagData.tasks.findIndex(
+        (task) => task.name === taskName
+      )
+      updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
       let value = setting.value as string
 
@@ -557,11 +561,15 @@ export function updateExportDagData(
 
   filteredSettings.forEach((setting) => {
     if (task === true) {
-      const indexInColumnsSetting = updatedSettings.find(
-        (setting) => setting.label === 'Column Order'
+      const taskNameSetting = updatedSettings.find(
+        (setting) => setting.label === 'Task Name'
       )
-      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-      updateTasksData(updatedDagData, setting, indexInColumns)
+      const taskName = taskNameSetting ? taskNameSetting.value : ''
+
+      const indexInTasks = updatedDagData.tasks.findIndex(
+        (task) => task.name === taskName
+      )
+      updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
       let value = setting.value as string
 
@@ -606,11 +614,15 @@ export function updateCustomDagData(
 
   filteredSettings.forEach((setting) => {
     if (task === true) {
-      const indexInColumnsSetting = updatedSettings.find(
-        (setting) => setting.label === 'Column Order'
+      const taskNameSetting = updatedSettings.find(
+        (setting) => setting.label === 'Task Name'
       )
-      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-      updateTasksData(updatedDagData, setting, indexInColumns)
+      const taskName = taskNameSetting ? taskNameSetting.value : ''
+
+      const indexInTasks = updatedDagData.tasks.findIndex(
+        (task) => task.name === taskName
+      )
+      updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
       let value = setting.value as string
 

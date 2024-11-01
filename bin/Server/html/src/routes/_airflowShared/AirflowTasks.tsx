@@ -1,4 +1,13 @@
-import { AirflowTask, Column, EditSetting } from '../../utils/interfaces'
+import {
+  AirflowTask,
+  BaseAirflowDAG,
+  Column,
+  CustomAirflowDAG,
+  EditSetting,
+  ExportAirflowDAG,
+  ImportAirflowDAG,
+  WithDynamicKeys
+} from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
 import { useAirflowDAG } from '../../utils/queries'
@@ -8,13 +17,26 @@ import EditTableModal from '../../components/EditTableModal'
 import { useParams } from 'react-router-dom'
 import '../../components/Loading.scss'
 import { airflowTaskRowDataEdit } from '../../utils/cardRenderFormatting'
+import {
+  updateCustomDagData,
+  updateExportDagData,
+  updateImportDagData
+} from '../../utils/dataFunctions'
+import { useQueryClient } from '@tanstack/react-query'
+import { useUpdateAirflowDag } from '../../utils/mutations'
 
 function AirflowTasks({ type }: { type: string }) {
   const { dagName } = useParams<{
     dagName: string
   }>()
 
-  const { data: dagData, isFetching, isLoading } = useAirflowDAG(type, dagName)
+  const {
+    data: originalDagData,
+    isFetching,
+    isLoading
+  } = useAirflowDAG(type, dagName)
+  const queryClient = useQueryClient()
+  const { mutate: updateDag } = useUpdateAirflowDag()
 
   // const queryClient = useQueryClient()
   // const { mutate: updateTable } = useUpdateTable()
@@ -62,7 +84,7 @@ function AirflowTasks({ type }: { type: string }) {
 
   const handleEditClick = useCallback(
     (row: AirflowTask) => {
-      if (!dagData) {
+      if (!originalDagData) {
         console.error('Table data is not available.')
         return
       }
@@ -72,17 +94,65 @@ function AirflowTasks({ type }: { type: string }) {
       setCurrentRow(rowData)
       setIsEditModalOpen(true)
     },
-    [dagData]
+    [originalDagData]
   )
 
   if (isFetching) return <div className="loading">Loading...</div>
-  if (!dagData) return <div>No data found.</div>
+  if (!originalDagData) return <div>No data found.</div>
 
-  const tasksData: AirflowTask[] = dagData.tasks
+  const tasksData: AirflowTask[] = originalDagData.tasks
 
   const handleSave = (updatedSettings: EditSetting[]) => {
+    const dagDataCopy = { ...originalDagData }
+
+    let editedDagData:
+      | ImportAirflowDAG
+      | BaseAirflowDAG
+      | ExportAirflowDAG
+      | null = null
+    if (type === 'import') {
+      editedDagData = updateImportDagData(
+        dagDataCopy as WithDynamicKeys<ImportAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    } else if (type === 'export') {
+      editedDagData = updateExportDagData(
+        dagDataCopy as WithDynamicKeys<ExportAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    } else if (type === 'custom') {
+      editedDagData = updateCustomDagData(
+        dagDataCopy as WithDynamicKeys<CustomAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    }
+
+    if (editedDagData && type) {
+      queryClient.setQueryData(['airflows', type, dagName], editedDagData)
+      updateDag(
+        { type, dagData: editedDagData },
+        {
+          onSuccess: (response) => {
+            queryClient.invalidateQueries({
+              queryKey: ['airflows', type, dagName]
+            }) // For getting fresh data from database to the cache
+            console.log('Update successful', response)
             setIsEditModalOpen(false)
           },
+          onError: (error) => {
+            queryClient.setQueryData(
+              ['airflows', type, dagName],
+              originalDagData
+            )
+
+            console.error('Error updating table', error)
+          }
+        }
+      )
+    }
   }
 
   return (
