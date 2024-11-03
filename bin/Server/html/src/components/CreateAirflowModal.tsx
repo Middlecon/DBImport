@@ -1,4 +1,10 @@
-import { useMemo, useState } from 'react'
+import {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
 import { useAllAirflows } from '../utils/queries'
 import Button from './Button'
@@ -35,7 +41,11 @@ function CreateAirflowModal({
   )
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [duplicateDagName, setDuplicateDagName] = useState(false) // State to track duplicate DAG Name
+  const [duplicateDagName, setDuplicateDagName] = useState(false)
+  const [modalWidth, setModalWidth] = useState(700)
+  const [isResizing, setIsResizing] = useState(false)
+  const [initialMouseX, setInitialMouseX] = useState(0)
+  const [initialWidth, setInitialWidth] = useState(700)
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = ['DAG Name']
@@ -43,6 +53,42 @@ function CreateAirflowModal({
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
   }, [editedSettings])
+
+  const MIN_WIDTH = 584
+
+  const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
+    setIsResizing(true)
+    setInitialMouseX(e.clientX)
+    setInitialWidth(modalWidth)
+  }
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const handleMouseMove = useCallback(
+    (e: { clientX: number }) => {
+      if (isResizing) {
+        const deltaX = e.clientX - initialMouseX
+        setModalWidth(Math.max(initialWidth + deltaX, MIN_WIDTH))
+      }
+    },
+    [isResizing, initialMouseX, initialWidth]
+  )
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp])
 
   if (!settings) {
     console.error('DAG data is not available.')
@@ -124,7 +170,15 @@ function CreateAirflowModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content">
+      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+        <div
+          className="table-modal-resize-handle left"
+          onMouseDown={handleMouseDown}
+        ></div>
+        <div
+          className="table-modal-resize-handle right"
+          onMouseDown={handleMouseDown}
+        ></div>
         <h2 className="table-modal-h2">Create DAG</h2>
         <form
           onSubmit={(event) => {

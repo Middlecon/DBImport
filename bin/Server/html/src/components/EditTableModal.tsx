@@ -19,9 +19,16 @@ interface EditModalProps {
   settings: EditSetting[]
   onSave: (newSettings: EditSetting[]) => void
   onClose: () => void
+  initWidth?: number
 }
 
-function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
+function EditTableModal({
+  title,
+  settings,
+  onSave,
+  onClose,
+  initWidth
+}: EditModalProps) {
   console.log('settings', settings)
   const editableSettings =
     settings?.filter((setting) => {
@@ -54,10 +61,11 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
 
   const [prevValue, setPrevValue] = useState<string | number | boolean>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [modalWidth, setModalWidth] = useState(700)
+  const [modalWidth, setModalWidth] = useState(initWidth ? initWidth : 584)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
-  const [initialWidth, setInitialWidth] = useState(700)
+  const [initialWidth, setInitialWidth] = useState(initWidth ? initWidth : 584)
+  const MIN_WIDTH = 584
 
   const validationMethodSetting = editedSettings.find(
     (s) => s.label === 'Validation Method'
@@ -178,8 +186,6 @@ function EditTableModal({ title, settings, onSave, onClose }: EditModalProps) {
   const handleCloseConfirmation = () => {
     setShowConfirmation(false)
   }
-
-  const MIN_WIDTH = 584
 
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)
