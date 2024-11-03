@@ -12,6 +12,7 @@ interface TableProps<T> {
   onEdit?: (row: T) => void
   scrollbarMarginTop?: string
   airflowType?: string
+  isExport?: boolean
 }
 
 function TableList<T>({
@@ -20,7 +21,8 @@ function TableList<T>({
   isLoading,
   onEdit,
   scrollbarMarginTop,
-  airflowType
+  airflowType,
+  isExport = false
 }: TableProps<T>) {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
   const [visibleData, setVisibleData] = useState<T[]>([])
@@ -51,6 +53,8 @@ function TableList<T>({
   }, [])
 
   useEffect(() => {
+    setVisibleData([])
+    setAllDataLoaded(false)
     setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
   }, [data])
 
@@ -127,6 +131,13 @@ function TableList<T>({
       const handleAirflowNameClick = (type: string, dagName: string) => {
         navigate(`/airflow/${type}/${dagName}/settings`)
       }
+      const handleExportConnectionClick = (
+        connection: string,
+        schema: string,
+        targetTable: string
+      ) => {
+        navigate(`/export/${connection}/${schema}/${targetTable}/settings`)
+      }
 
       const accessorKey = column.accessor as keyof T
       const displayKey = `${String(accessorKey)}Display` as keyof T
@@ -146,7 +157,7 @@ function TableList<T>({
         )
       }
 
-      if (column.accessor === 'table') {
+      if (!isExport && column.accessor === 'table') {
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
@@ -162,6 +173,25 @@ function TableList<T>({
           </p>
         )
       }
+
+      if (column.accessor === 'targetTable') {
+        return (
+          <p
+            ref={(el) => (cellRefs.current[rowIndex] = el)}
+            onClick={() =>
+              handleExportConnectionClick(
+                String(row['connection' as keyof T]),
+                String(row['targetSchema' as keyof T]),
+                String(row['targetTable' as keyof T])
+              )
+            }
+            className="clickable-table-name"
+          >
+            {String(cellValue)}
+          </p>
+        )
+      }
+
       if (column.header === 'Connection Name') {
         return (
           <p
@@ -227,7 +257,7 @@ function TableList<T>({
 
       return String(cellValue)
     },
-    [airflowType, navigate, overflowState, onEdit]
+    [isExport, airflowType, navigate, overflowState, onEdit]
   )
 
   return (

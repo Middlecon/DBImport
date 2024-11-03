@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useEffect, useMemo } from 'react'
-import '../import/tableDetailed/TableDetailedView.scss'
+import '../_shared/TableDetailedView.scss'
 
 function AirflowDetailedView({ type }: { type: string }) {
   const { dagName } = useParams()

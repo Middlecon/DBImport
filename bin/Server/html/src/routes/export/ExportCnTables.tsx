@@ -4,56 +4,39 @@ import DropdownRadio from '../../components/DropdownRadio'
 import TableList from '../../components/TableList'
 import {
   Column,
-  DbTable,
   EditSetting,
-  UiDbTable,
-  UITable
+  ExportCnTablesWithoutEnum,
+  UIExportCnTables,
+  UIExportTable
 } from '../../utils/interfaces'
-import { fetchTableData, useDbTables } from '../../utils/queries'
-import './DbTables.scss'
+import { fetchExportTableData, useExportTables } from '../../utils/queries'
+import '../import/DbTables.scss'
 import { useParams } from 'react-router-dom'
 import EditTableModal from '../../components/EditTableModal'
-import { updateTableData } from '../../utils/dataFunctions'
+// import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateTable } from '../../utils/mutations'
+// import { useUpdateTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
-import { importDbListFiltersAtom } from '../../atoms/atoms'
-import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
+import { exportDbListFiltersAtom } from '../../atoms/atoms'
+import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
 
 const checkboxFilters = [
   {
-    title: 'Import Type',
-    accessor: 'importPhaseType',
-    values: ['Full', 'Incremental', 'Oracle Flashback', 'MSSQL Change Tracking']
+    title: 'Export Type',
+    accessor: 'exportType',
+    values: ['Full', 'Incremental']
   },
   {
-    title: 'ETL Type',
-    accessor: 'etlPhaseType',
-    values: [
-      'Truncate and Insert',
-      'Insert only',
-      'Merge',
-      'Merge with History Audit',
-      'Only create external table',
-      'None'
-    ]
-  },
-  {
-    title: 'Import Tool',
-    accessor: 'importTool',
+    title: 'Export Tool',
+    accessor: 'exportTool',
     values: ['Spark', 'Sqoop']
-  },
-  {
-    title: 'ETL Engine',
-    accessor: 'etlEngine',
-    values: ['Hive', 'Spark']
   }
 ]
 
 const radioFilters = [
   {
-    title: 'Last update from source',
-    accessor: 'lastUpdateFromSource',
+    title: 'Last Update From Hive',
+    accessor: 'lastUpdateFromHive  ',
     radioName: 'timestamp',
     badgeContent: ['D', 'W', 'M', 'Y'],
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
@@ -75,34 +58,35 @@ const radioFilters = [
 //   }
 // ]
 
-function DbTables() {
-  const columns: Column<DbTable>[] = useMemo(
+function ExportCnTables() {
+  const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
+      { header: 'Target Table', accessor: 'targetTable' },
+      { header: 'Target Schema', accessor: 'targetSchema' },
+      { header: 'Database', accessor: 'database' },
       { header: 'Table', accessor: 'table' },
-      { header: 'Connection', accessor: 'connection' },
-      { header: 'Source Schema', accessor: 'sourceSchema' },
-      { header: 'Source Table', accessor: 'sourceTable' },
-      { header: 'Import Type', accessor: 'importPhaseType' },
-      { header: 'ETL Type', accessor: 'etlPhaseType' },
-      { header: 'Import Tool', accessor: 'importTool' },
-      { header: 'ETL Engine', accessor: 'etlEngine' },
-      { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
+      { header: 'Export Type', accessor: 'exportType' },
+      { header: 'Export Tool', accessor: 'exportTool' },
+      {
+        header: 'Last Update From Hive',
+        accessor: 'lastUpdateFromHive'
+      },
       { header: 'Actions', isAction: 'both' }
     ],
     []
   )
 
-  const { database } = useParams<{ database: string }>()
-  const { data, isLoading } = useDbTables(database ? database : null)
+  const { connection } = useParams<{ connection: string }>()
+  const { data, isLoading } = useExportTables(connection ? connection : null)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
-  const [tableData, setTableData] = useState<UITable | null>(null)
+  const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const queryClient = useQueryClient()
-  const { mutate: updateTable } = useUpdateTable()
+  // const { mutate: updateTable } = useUpdateTable()
 
-  const [selectedFilters, setSelectedFilters] = useAtom(importDbListFiltersAtom)
+  const [selectedFilters, setSelectedFilters] = useAtom(exportDbListFiltersAtom)
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -152,7 +136,7 @@ function DbTables() {
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     return data.filter((row) => {
-      const rowDate = parseTimestamp(row.lastUpdateFromSource)
+      const rowDate = parseTimestamp(row.lastUpdateFromHive)
 
       return [...checkboxFilters, ...radioFilters].every((filter) => {
         const selectedItems =
@@ -161,7 +145,7 @@ function DbTables() {
         if (selectedItems.length === 0) return true
 
         // Handling the date filter separately
-        if (filter.accessor === 'lastUpdateFromSource') {
+        if (filter.accessor === 'lastUpdateFromHive  ') {
           const selectedRange = selectedItems[0]
           const startDate = getDateRange(selectedRange)
 
@@ -178,21 +162,26 @@ function DbTables() {
     })
   }, [data, selectedFilters, getDateRange])
 
-  const handleEditClick = async (row: UiDbTable) => {
-    const { database, table } = row
-    setTableName(table)
+  const handleEditClick = async (row: UIExportCnTables) => {
+    const { connection, targetSchema, targetTable } = row
+    setTableName(targetTable)
+
+    console.log('connection', connection)
+    console.log('targetSchema', targetSchema)
+    console.log('table', targetTable)
 
     try {
       const fetchedTableData = await queryClient.fetchQuery({
-        queryKey: ['import', database, table],
-        queryFn: () => fetchTableData(database, table)
+        queryKey: ['export', 'table', targetTable],
+        queryFn: () =>
+          fetchExportTableData(connection, targetSchema, targetTable)
       })
 
       console.log('fetchedTableData', fetchedTableData)
 
       setTableData(fetchedTableData)
 
-      const rowData: EditSetting[] = importDbTablesEditSettings(row)
+      const rowData: EditSetting[] = exportCnTablesEditSettings(row)
 
       setCurrentRow(rowData)
       setModalOpen(true)
@@ -207,23 +196,21 @@ function DbTables() {
       return
     }
     console.log('tableData', tableData)
+    console.log('updatedSettings', updatedSettings)
 
-    const editedTableData = updateTableData(tableData, updatedSettings)
-    updateTable(
-      { type: 'import', table: editedTableData },
-      {
-        onSuccess: (response) => {
-          queryClient.invalidateQueries({
-            queryKey: ['tables', tableData.database]
-          })
-          console.log('Update successful', response)
-          setModalOpen(false)
-        },
-        onError: (error) => {
-          console.error('Error updating table', error)
-        }
-      }
-    )
+    // const editedTableData = updateTableData(tableData, updatedSettings)
+    // updateTable(editedTableData, {
+    //   onSuccess: (response) => {
+    //     queryClient.invalidateQueries({
+    //       queryKey: ['tables', tableData.database]
+    //     })
+    //     console.log('Update successful', response)
+    //     setModalOpen(false)
+    //   },
+    //   onError: (error) => {
+    //     console.error('Error updating table', error)
+    //   }
+    // })
   }
 
   return (
@@ -262,6 +249,7 @@ function DbTables() {
           onEdit={handleEditClick}
           isLoading={isLoading}
           scrollbarMarginTop="50px"
+          isExport={true}
         />
       ) : (
         <div>Loading....</div>
@@ -278,4 +266,4 @@ function DbTables() {
   )
 }
 
-export default DbTables
+export default ExportCnTables

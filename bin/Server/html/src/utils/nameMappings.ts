@@ -4,6 +4,8 @@ import {
   AnonymizationFunction,
   EtlEngine,
   EtlType,
+  ExportTool,
+  ExportType,
   ImportTool,
   ImportType,
   IncrMode,
@@ -13,14 +15,15 @@ import {
   ValidationMethod
 } from './enums'
 import {
+  AirflowWithDynamicKeys,
   Columns,
   Connection,
   CustomAirflowDAG,
   ExportAirflowDAG,
   ImportAirflowDAG,
-  TableCreateMapped,
-  UITableWithoutEnum,
-  WithDynamicKeys
+  UIExportTable,
+  UIExportTableWithoutEnum,
+  UITableWithoutEnum
 } from './interfaces'
 
 export type FilterMapping = { [key: string]: string }
@@ -78,6 +81,17 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
     [AnonymizationFunction.ReplaceWithStar]: 'Replace with star',
     [AnonymizationFunction.ShowFirst4Chars]: 'Show first 4 chars'
   },
+
+  // Export
+  exportType: {
+    [ExportType.Full]: 'Full',
+    [ExportType.Incremental]: 'Incremental'
+  },
+
+  exportTool: {
+    [ImportTool.Spark]: 'Spark',
+    [ImportTool.Sqoop]: 'Sqoop'
+  },
   // Airflow DAG task type:
   type: {
     [AirflowDAGTaskType.ShellScript]: 'Shell Script',
@@ -98,64 +112,6 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
 }
 
 export const getEnumOptions = (key: string) => nameDisplayMappings[key] || {}
-
-export const labelToKeyMap: Record<
-  string,
-  keyof Omit<TableCreateMapped, 'columns'>
-> = {
-  Database: 'database',
-  Table: 'table',
-  Connection: 'connection',
-  'Source Schema': 'sourceSchema',
-  'Source Table': 'sourceTable',
-  'Import Type': 'importPhaseType',
-  'ETL Type': 'etlPhaseType',
-  'Import Tool': 'importTool',
-  'ETL Engine': 'etlEngine',
-  'Last Update From Source': 'lastUpdateFromSource',
-  'SQL Where Addition': 'sqlWhereAddition',
-  'No Merge Ingestion SQL Addition': 'nomergeIngestionSqlAddition',
-  'Include in Airflow': 'includeInAirflow',
-  'Airflow Priority': 'airflowPriority',
-  'Validate Import': 'validateImport',
-  'Validation Method': 'validationMethod',
-  'Validate Source': 'validateSource',
-  'Validate Diff Allowed': 'validateDiffAllowed',
-  'Validation Custom Query Source SQL': 'validationCustomQuerySourceSQL',
-  'Validation Custom Query Hive SQL': 'validationCustomQueryHiveSQL',
-  'Validation Custom Query Validate Import Table':
-    'validationCustomQueryValidateImportTable',
-  'Truncate Table': 'truncateTable',
-  Mappers: 'mappers',
-  'Soft Delete During Merge': 'softDeleteDuringMerge',
-  'Incremental Mode': 'incrMode',
-  'Incremental Column': 'incrColumn',
-  'Incremental Validation Method': 'incrValidationMethod',
-  'Primary Key Column Override': 'pkColumnOverride',
-  'Primary Key Column Override Merge Only': 'pkColumnOverrideMergeonly',
-  'Merge Heap': 'mergeHeap',
-  'Split Count': 'splitCount',
-  'Spark Executor Memory': 'sparkExecutorMemory',
-  'Spark Executors': 'sparkExecutors',
-  'Split By Column': 'splitByColumn',
-  'Custom Query': 'customQuery',
-  'Sqoop Options': 'sqoopOptions',
-  'Use Generated SQL': 'useGeneratedSql',
-  'Allow Text Splitter': 'allowTextSplitter',
-  'Force String': 'forceString',
-  Comment: 'comment',
-  'Datalake Source': 'datalakeSource',
-  'Operator Notes': 'operatorNotes',
-  'Create Foreign Keys': 'createForeignKeys',
-  'Invalidate Impala': 'invalidateImpala',
-  'Custom Max Query': 'customMaxQuery',
-  'Merge Compaction Method': 'mergeCompactionMethod',
-  'Source Table Type': 'sourceTableType',
-  'Import Database': 'importDatabase',
-  'Import Table': 'importTable',
-  'History Database': 'historyDatabase',
-  'History Table': 'historyTable'
-}
 
 export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
   {
@@ -234,6 +190,53 @@ export function getKeyFromLabel(
   label: string
 ): keyof UITableWithoutEnum | undefined {
   return labelToUITableKey[label]
+}
+
+export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
+  {
+    Connection: 'connection',
+    'Target Schema': 'targetSchema',
+    'Target Table': 'targetTable',
+    'Export Type': 'exportType',
+    'Export Tool': 'exportTool',
+    Database: 'database',
+    Table: 'table',
+    'Last Update From Hive': 'lastUpdateFromHive',
+    'SQL WHERE Addition': 'sqlWhereAddition',
+    'Include in Airflow': 'includeInAirflow',
+    'Airflow Priority': 'airflowPriority',
+    'Force Create Temp Table': 'forceCreateTempTable',
+    'Validate Export': 'validateExport',
+    'Validation Method': 'validationMethod',
+    'Custom Query Hive SQL': 'validationCustomQueryHiveSQL',
+    'Validation Custom Query Target SQL': 'validationCustomQueryTargetSQL',
+    'Uppercase Columns': 'uppercaseColumns',
+    'Truncate Target': 'truncateTarget',
+    Mappers: 'mappers',
+    'Table Row Count': 'tableRowcount',
+    'Target Row Count': 'targetRowcount',
+    'Custom Query Hive Value': 'validationCustomQueryHiveValue',
+    'Validation Custom Query Target Value': 'validationCustomQueryTargetValue',
+    'Incremental Column': 'incrColumn',
+    'Incremental Validation Method': 'incrValidationMethod',
+    'Incremental Min Value': 'incrMinvalue',
+    'Incremental Max Value': 'incrMaxvalue',
+    'Pending Min Value': 'incrMinvaluePending',
+    'Pending Max Value': 'incrMaxvaluePending',
+    'Sqoop Options': 'sqoopOptions',
+    'Last Size': 'lastSize',
+    'Last Rows': 'lastRows',
+    'Last Mappers': 'lastMappers',
+    'Last Execution': 'lastExecution',
+    'Java Heap': 'javaHeap',
+    'Create Target Table Sql': 'createTargetTableSql',
+    'Operator Notes': 'operatorNotes'
+  }
+
+export function getKeyFromExportLabel(
+  label: string
+): keyof UIExportTableWithoutEnum | undefined {
+  return labelToUIExportTableKey[label]
 }
 
 export const labelToColumnKey: { [label: string]: keyof Columns } = {
@@ -316,6 +319,14 @@ export const nameReverseMappings: {
     Hash: AnonymizationFunction.Hash,
     'Replace with star': AnonymizationFunction.ReplaceWithStar,
     'Show first 4 chars': AnonymizationFunction.ShowFirst4Chars
+  },
+  'Export Type': {
+    Full: ExportType.Full,
+    Incremental: ExportType.Incremental
+  },
+  'Export Tool': {
+    Spark: ExportTool.Spark,
+    Sqoop: ExportTool.Sqoop
   }
 }
 
@@ -353,7 +364,7 @@ export const reverseMapEnumValue = (
       `No backend value found for display value: '${displayValue}' in category: '${category}'`
     )
   }
-
+  console.log('backendValue', backendValue)
   return backendValue
 }
 
@@ -469,18 +480,18 @@ export const labelToCustomAirflowKey: {
 
 export function getKeyFromImportAirflowLabel(
   label: string
-): keyof WithDynamicKeys<ImportAirflowDAG> | undefined {
+): keyof AirflowWithDynamicKeys<ImportAirflowDAG> | undefined {
   return labelToImportAirflowKey[label]
 }
 
 export function getKeyFromExportAirflowLabel(
   label: string
-): keyof WithDynamicKeys<ExportAirflowDAG> | undefined {
+): keyof AirflowWithDynamicKeys<ExportAirflowDAG> | undefined {
   return labelToExportAirflowKey[label]
 }
 
 export function getKeyFromCustomAirflowLabel(
   label: string
-): keyof WithDynamicKeys<CustomAirflowDAG> | undefined {
+): keyof AirflowWithDynamicKeys<CustomAirflowDAG> | undefined {
   return labelToCustomAirflowKey[label]
 }

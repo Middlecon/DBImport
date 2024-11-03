@@ -13,6 +13,7 @@ function TableSettings() {
   const { data: table } = useTable(database, tableParam)
 
   if (!table) return <div className="loading">No data found yet.</div>
+
   const importCards = importCardRenderSettings(table)
 
   return (
@@ -22,26 +23,31 @@ function TableSettings() {
           <div className="cards">
             <div className="cards-container">
               <Card
+                type="import"
                 title="Main Settings"
                 settings={importCards.mainSettings}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Performance"
                 settings={importCards.performance}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Validation"
                 settings={importCards.validation}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Schedule"
                 settings={importCards.schedule}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Site-to-site Copy"
                 settings={importCards.siteToSiteCopy}
                 tableData={table}
@@ -49,16 +55,19 @@ function TableSettings() {
             </div>
             <div className="cards-container">
               <Card
+                type="import"
                 title="Import Options"
                 settings={importCards.importOptions}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="ETL Options"
                 settings={importCards.etlOptions}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Incremental Imports"
                 settings={importCards.incrementalImports}
                 tableData={table}
@@ -68,21 +77,25 @@ function TableSettings() {
           <div className="cards-narrow">
             <div className="cards-container">
               <Card
+                type="import"
                 title="Main Settings"
                 settings={importCards.mainSettings}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Import Options"
                 settings={importCards.importOptions}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="ETL Options"
                 settings={importCards.etlOptions}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Incremental Imports"
                 settings={importCards.incrementalImports}
                 tableData={table}
@@ -90,21 +103,25 @@ function TableSettings() {
                 isDisabled={table.importPhaseType !== 'incr'}
               />
               <Card
+                type="import"
                 title="Performance"
                 settings={importCards.performance}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Validation"
                 settings={importCards.validation}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Schedule"
                 settings={importCards.schedule}
                 tableData={table}
               />
               <Card
+                type="import"
                 title="Site-to-site Copy"
                 settings={importCards.siteToSiteCopy}
                 tableData={table}

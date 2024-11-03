@@ -8,7 +8,7 @@ import Button from '../../components/Button'
 import CreateImportTableModal from '../../components/CreateImportTableModal'
 import { EditSetting } from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
-import { useCreateTable } from '../../utils/mutations'
+import { useCreateImportTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAtom } from 'jotai'
 import {
@@ -27,7 +27,7 @@ function Import() {
   const navigate = useNavigate()
   const { database } = useParams<{ database: string }>()
   const { data: tables } = useDbTables(database ? database : null)
-  const { mutate: createTable } = useCreateTable()
+  const { mutate: createTable } = useCreateImportTable()
   const queryClient = useQueryClient()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)

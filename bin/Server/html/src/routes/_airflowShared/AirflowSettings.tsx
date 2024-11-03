@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useAirflowDAG } from '../../utils/queries'
-import '../import/tableDetailed/TableDetailedView.scss'
+import '../_shared/TableDetailedView.scss'
 import CardAirflow from './CardAirflow'
 import { airflowCardRenderSettings } from '../../utils/cardRenderFormatting'
 import '../../components/Loading.scss'
@@ -11,11 +11,11 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   }>()
   const { data: dagData } = useAirflowDAG(type, dagName)
 
-  if (!dagName) return <div className="loading">No data found yet.</div>
+  if (!dagName && !dagData)
+    return <div className="loading">No data found yet.</div>
   console.log('dagName', dagName)
 
   if (!dagData) {
-    console.error('DAG data is not available.')
     return
   }
   console.log('dagData', dagData)

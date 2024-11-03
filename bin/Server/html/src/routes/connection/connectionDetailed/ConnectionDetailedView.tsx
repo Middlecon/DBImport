@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
-import '../../import/tableDetailed/TableDetailedView.scss'
+import '../../_shared/TableDetailedView.scss'
 import '../../import/tableDetailed/settings/TableSettings.scss'
 import { useConnection } from '../../../utils/queries'
 import { connectionCardRenderSettings } from '../../../utils/cardRenderFormatting'

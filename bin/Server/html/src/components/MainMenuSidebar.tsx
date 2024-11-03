@@ -13,6 +13,7 @@ import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
   isAirflowSubmenuActiveAtom,
+  selectedExportConnectionAtom,
   selectedImportDatabaseAtom,
   usernameAtom
 } from '../atoms/atoms'
@@ -34,9 +35,10 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const { data: statusData } = useGetStatusAndVersion()
   const navigate = useNavigate()
   const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
+  const [selectedExportConnection] = useAtom(selectedExportConnectionAtom)
+
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
   const [toggleUsernameMenu, setToggleUsernameMenu] = useState(false)
-
   const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useAtom(
     isAirflowSubmenuActiveAtom
   )
@@ -102,16 +104,20 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 {!minimized && <h2>Import</h2>}
               </NavLink>
             </li>
-            <li className="mainsidebar-disabled">
-              {/* <NavLink
-                to="/export"
+            <li className="mainsidebar-menu-li">
+              <NavLink
+                to={
+                  selectedExportConnection
+                    ? `/export/${selectedExportConnection}`
+                    : '/export'
+                }
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
-              > */}
-              <ExportIcon />
-              {!minimized && <h2>Export</h2>}
-              {/* </NavLink> */}
+              >
+                <ExportIcon />
+                {!minimized && <h2>Export</h2>}
+              </NavLink>
             </li>
             <li className="mainsidebar-menu-li">
               <div

@@ -9,7 +9,8 @@ import {
   ImportAirflowDAG,
   CustomCreateAirflowDAG,
   ExportCreateAirflowDAG,
-  ImportCreateAirflowDAG
+  ImportCreateAirflowDAG,
+  UIExportTableWithoutEnum
 } from './interfaces'
 
 // Connection
@@ -32,23 +33,38 @@ export const useUpdateConnection = () => {
 
 // Table
 
-const postUpdateTable = async (table: UITableWithoutEnum) => {
+const postUpdateTable = async (
+  type: 'import' | 'export',
+  table: UITableWithoutEnum | UIExportTableWithoutEnum
+) => {
+  console.log('postTable type', type)
   console.log('postTable table', table)
-  const response = await axiosInstance.post('/import/table', table)
+  const response = await axiosInstance.post(`/${type}/table`, table)
   console.log('postTable response.data', response.data)
 
   return response.data
 }
 
+interface PostTableProps {
+  type: 'import' | 'export'
+  table: UITableWithoutEnum | UIExportTableWithoutEnum
+}
+
 export const useUpdateTable = () => {
-  return useMutation({
-    mutationFn: (tableUpdated: UITableWithoutEnum) => {
-      return postUpdateTable(tableUpdated)
+  return useMutation<
+    unknown, // Return type of mutation function (you can specify it if known)
+    Error, // Type of error
+    PostTableProps // Variables passed to mutationFn
+  >({
+    mutationFn: ({ type, table }) => {
+      return postUpdateTable(type, table)
     }
   })
 }
 
-const postCreateTable = async (table: TableCreateWithoutEnum) => {
+// Import table
+
+const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
   console.log('postTable table', table)
   const response = await axiosInstance.post('/import/table', table)
   console.log('postTable response.data', response.data)
@@ -56,10 +72,28 @@ const postCreateTable = async (table: TableCreateWithoutEnum) => {
   return response.data
 }
 
-export const useCreateTable = () => {
+export const useCreateImportTable = () => {
   return useMutation({
     mutationFn: (tableUpdated: TableCreateWithoutEnum) => {
-      return postCreateTable(tableUpdated)
+      return postCreateImportTable(tableUpdated)
+    }
+  })
+}
+
+// Export Table
+
+const postCreateExportTable = async (table: TableCreateWithoutEnum) => {
+  console.log('postTable table', table)
+  const response = await axiosInstance.post('/import/table', table)
+  console.log('postTable response.data', response.data)
+
+  return response.data
+}
+
+export const useCreateExportTable = () => {
+  return useMutation({
+    mutationFn: (tableUpdated: TableCreateWithoutEnum) => {
+      return postCreateExportTable(tableUpdated)
     }
   })
 }

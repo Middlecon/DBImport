@@ -1,21 +1,30 @@
-import { Column, Columns, EditSetting } from '../../../../utils/interfaces'
-import TableList from '../../../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
-import { useTable } from '../../../../utils/queries'
-import EditTableModal from '../../../../components/EditTableModal'
-import { updateTableData } from '../../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateTable } from '../../../../utils/mutations'
 import { useParams } from 'react-router-dom'
-import '../../../../components/Loading.scss'
-import { importColumnRowDataEdit } from '../../../../utils/cardRenderFormatting'
+import '../../../components/Loading.scss'
+import { Column, EditSetting, ExportColumns } from '../../../utils/interfaces'
+import { useUpdateTable } from '../../../utils/mutations'
+import { useExportTable } from '../../../utils/queries'
+import TableList from '../../../components/TableList'
+import EditTableModal from '../../../components/EditTableModal'
+import { updateExportTableData } from '../../../utils/dataFunctions'
+import { exportColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 
-function TableColumns() {
-  const { database, table: tableParam } = useParams<{
-    database: string
+function ExportTableColumns() {
+  const {
+    connection,
+    schema,
+    table: tableParam
+  } = useParams<{
+    connection: string
+    schema: string
     table: string
   }>()
-  const { data: tableData, isLoading } = useTable(database, tableParam)
+  const { data: tableData, isLoading } = useExportTable(
+    connection,
+    schema,
+    tableParam
+  )
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -28,40 +37,30 @@ function TableColumns() {
     [tableData, dataRefreshTrigger]
   )
 
-  const columns: Column<Columns>[] = useMemo(
+  const columns: Column<ExportColumns>[] = useMemo(
     () => [
       { header: 'Column Name', accessor: 'columnName' },
       { header: 'Column Order', accessor: 'columnOrder' },
-      { header: 'Source Column Name', accessor: 'sourceColumnName' },
+      { header: 'Target Column Name', accessor: 'targetColumnName' },
       { header: 'Column Type', accessor: 'columnType' },
-      { header: 'Source Column Type', accessor: 'sourceColumnType' },
-      { header: 'Column Name Override', accessor: 'columnNameOverride' },
-      { header: 'Column Type Override', accessor: 'columnTypeOverride' },
-      { header: 'Sqoop Column Type', accessor: 'sqoopColumnType' },
-      {
-        header: 'Sqoop Column Type Override',
-        accessor: 'sqoopColumnTypeOverride'
-      },
-      { header: 'Force String', accessor: 'forceString' },
-      { header: 'Include In Import', accessor: 'includeInImport' },
-      { header: 'Source Primary Key', accessor: 'sourcePrimaryKey' },
-      { header: 'Last Update From Source', accessor: 'lastUpdateFromSource' },
+      { header: 'Target Column Type', accessor: 'targetColumnType' },
+      { header: 'Last Update From Hive', accessor: 'lastUpdateFromHive' },
+      { header: 'Include In Export', accessor: 'includeInExport' },
       { header: 'Comment', accessor: 'comment' },
       { header: 'Operator Notes', accessor: 'operatorNotes' },
-      { header: 'Anonymization Function', accessor: 'anonymizationFunction' },
       { header: 'Edit', isAction: 'edit' }
     ],
     []
   )
 
   const handleEditClick = useCallback(
-    (row: Columns) => {
+    (row: ExportColumns) => {
       if (!tableData) {
         console.error('Table data is not available.')
         return
       }
 
-      const rowData: EditSetting[] = importColumnRowDataEdit(row, tableData)
+      const rowData: EditSetting[] = exportColumnRowDataEdit(row)
 
       setCurrentRow(rowData)
       setModalOpen(true)
@@ -72,14 +71,18 @@ function TableColumns() {
   if (!tableData) return <div className="loading">No data found yet.</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    const editedTableData = updateTableData(tableData, updatedSettings, true)
-
+    console.log('updatedSettings export', updatedSettings)
+    const editedTableData = updateExportTableData(
+      tableData,
+      updatedSettings,
+      true
+    )
     updateTable(
-      { type: 'import', table: editedTableData },
+      { type: 'export', table: editedTableData },
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['import', database, tableParam]
+            queryKey: ['export', connection, tableParam]
           })
           setDataRefreshTrigger((prev) => prev + 1)
           console.log('Update successful', response)
@@ -87,7 +90,7 @@ function TableColumns() {
         },
         onError: (error) => {
           queryClient.invalidateQueries({
-            queryKey: ['import', database, tableParam]
+            queryKey: ['export', connection, tableParam]
           })
           console.error('Error updating table', error)
         }
@@ -130,4 +133,4 @@ function TableColumns() {
   )
 }
 
-export default TableColumns
+export default ExportTableColumns

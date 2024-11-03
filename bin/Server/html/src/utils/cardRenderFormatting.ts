@@ -2,6 +2,8 @@ import {
   AirflowDAGTaskType,
   EtlEngine,
   EtlType,
+  ExportTool,
+  ExportType,
   ImportTool,
   ImportType,
   SettingType,
@@ -14,7 +16,11 @@ import {
   CustomAirflowDAG,
   EditSetting,
   ExportAirflowDAG,
+  ExportColumns,
   ImportAirflowDAG,
+  UiDbTable,
+  UIExportCnTables,
+  UIExportTable,
   UITable
 } from './interfaces'
 import infoTexts from '../infoTexts.json'
@@ -493,6 +499,45 @@ export function connectionCardRenderSettings(connection: Connection) {
   return connectionSettings
 }
 
+// Import
+
+export function importDbTablesEditSettings(row: UiDbTable) {
+  const rowData: EditSetting[] = [
+    { label: 'Database', value: row.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
+    { label: 'Table', value: row.table, type: SettingType.Readonly }, // Free-text, read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Import Type',
+      value: mapDisplayValue('importPhaseType', row.importPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType')
+    }, // Enum mapping for 'Import Type'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', row.etlPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType')
+    }, // Enum mapping for 'ETL Type'
+    {
+      label: 'Import Tool',
+      value: mapDisplayValue('importTool', row.importTool),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool')
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Engine',
+      value: mapDisplayValue('etlEngine', row.etlEngine),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine')
+    } // Enum mapping for 'ETL Engine'
+  ]
+  return rowData
+}
+
 export function importCardRenderSettings(table: UITable) {
   const mainSettings: EditSetting[] = [
     { label: 'Database', value: table.database, type: SettingType.Readonly }, //Free-text, read-only, default selected db, potentially copyable?
@@ -563,28 +608,28 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Last Update From Source',
       value: table.lastUpdateFromSource,
       type: SettingType.Readonly
-    }, // Read-only setting
+    }, // Read-only
     {
       label: 'Source Table Type',
       value: table.sourceTableType,
       type: SettingType.Readonly
-    }, // Read-only setting
+    }, // Read-only
     {
       label: 'Import Database',
       value: table.importDatabase,
       type: SettingType.Text
-    }, // Free-text setting
+    }, // Free-text
     { label: 'Import Table', value: table.importTable, type: SettingType.Text }, // Free-text setting
     {
       label: 'History Database',
       value: table.historyDatabase,
       type: SettingType.Text
-    }, // Free-text setting
+    }, // Free-text
     {
       label: 'History Table',
       value: table.historyTable,
       type: SettingType.Text
-    } // Free-text setting
+    } // Free-text
   ]
 
   const importOptions: EditSetting[] = [
@@ -607,7 +652,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Split By Column',
       value: table.splitByColumn,
       type: SettingType.Text
-    }, // Free-text setting
+    }, // Free-text
     {
       label: 'Sqoop Options',
       value: table.sqoopOptions,
@@ -623,7 +668,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'SQL WHERE Addition',
       value: table.sqlWhereAddition,
       type: SettingType.Text
-    }, // Free-text setting
+    }, // Free-text
     {
       label: 'Custom Query',
       value: table.customQuery,
@@ -1094,4 +1139,343 @@ export function initialCreateImportTableSettings(
     } // Enum mapping for 'ETL Engine'
   ]
   return settings
+}
+
+// Export
+
+export function exportCnTablesEditSettings(row: UIExportCnTables) {
+  const rowData: EditSetting[] = [
+    { label: 'Database', value: row.database, type: SettingType.Readonly }, //Free-text or read-only?, default selected db, required
+    { label: 'Table', value: row.table, type: SettingType.Readonly }, // Free-text or read-only?, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Export Type',
+      value: mapDisplayValue('exportType', row.exportType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportType')
+    }, // Enum mapping for 'Export Type', required
+    {
+      label: 'Export Tool',
+      value: mapDisplayValue('exportTool', row.exportTool),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportTool')
+    } // Enum mapping for 'Export Tool', required
+  ]
+
+  return rowData
+}
+
+export function exportCardRenderSettings(table: UIExportTable) {
+  const mainSettings: EditSetting[] = [
+    {
+      label: 'Connection',
+      value: table.connection,
+      type: SettingType.Readonly
+    }, // Read-only, required
+    {
+      label: 'Target Table',
+      value: table.targetTable,
+      type: SettingType.Readonly
+    }, // Read-only, required
+    {
+      label: 'Target Schemna',
+      value: table.targetSchema,
+      type: SettingType.Readonly
+    }, // Read-only, required
+
+    { label: 'Database', value: table.database, type: SettingType.Readonly }, // Read-only, required
+    { label: 'Table', value: table.table, type: SettingType.Readonly }, // Read-only, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Export Type',
+      value: mapDisplayValue('exportType', table.exportType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportType')
+    }, // Enum mapping for 'Export Type', required
+    {
+      label: 'Export Tool',
+      value: mapDisplayValue('exportTool', table.exportTool),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportTool')
+    }, // Enum mapping for 'Export Tool', required
+    {
+      label: 'Last Update From Hive',
+      value: table.lastUpdateFromHive,
+      type: SettingType.Readonly
+    } // Read-only setting
+  ]
+
+  const exportOptions: EditSetting[] = [
+    {
+      label: 'Sqoop Options',
+      value: table.sqoopOptions,
+      type: SettingType.Text,
+      isConditionsMet: table.exportTool === ExportTool.Sqoop
+    }, // Free-text, varchar(1024), active only if exportTool=sqoop
+    {
+      label: 'Truncate Target',
+      value: table.truncateTarget,
+      type: SettingType.Boolean,
+      isConditionsMet: table.exportType === ExportType.Full
+    }, // Boolean, true or false, active only if exportType=full, required
+
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'SQL Where Addition',
+      value: table.sqlWhereAddition,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.sqlWhereAddition
+    }, // Free-text, varchar(1024)
+    {
+      label: 'Uppercase Columns',
+      value: table.uppercaseColumns,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.export.uppercaseColumns
+    }, // Read-only (meanwhile) or maybe IntegerFromOneOrAuto, required
+    {
+      label: 'Create Target Table Sql',
+      value: table.createTargetTableSql,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Force Create Temp Table',
+      value: table.forceCreateTempTable,
+      type: SettingType.Boolean,
+      infoText: infoTexts.table.export.forceCreateTempTable
+    }, // Boolean, true or false, required
+
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    { label: 'Last Size', value: table.lastSize, type: SettingType.Readonly }, // Read-only
+    { label: 'Last Rows', value: table.lastRows, type: SettingType.Readonly }, // Read-only
+    {
+      label: 'Last Mappers',
+      value: table.lastMappers,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Last Execution',
+      value: table.lastExecution,
+      type: SettingType.Readonly
+    } // Read-only
+  ]
+
+  const incrementalExports: EditSetting[] = [
+    {
+      label: 'Incremental Min Value',
+      value: table.incrMinvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Incremental Max Value',
+      value: table.incrMaxvalue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Min Value',
+      value: table.incrMinvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Pending Max Value',
+      value: table.incrMaxvaluePending,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+
+    {
+      label: 'Incremental Column',
+      value: table.incrColumn,
+      type: SettingType.Text,
+      isConditionsMet: table.exportType === ExportType.Incremental
+    }, // Free-text, varchar(256), active if exportType=incr
+    {
+      label: 'Incremental Validation Method',
+      value: mapDisplayValue(
+        'incrValidationMethod',
+        table.incrValidationMethod as string
+      ),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('incrValidationMethod'),
+      isConditionsMet: table.exportType === ExportType.Incremental
+    } // Enum list, active if exportType=incr
+  ]
+
+  const performance: EditSetting[] = [
+    {
+      label: 'Mappers',
+      value: table.mappers,
+      type: SettingType.IntegerFromOneOrAuto,
+      infoText: infoTexts.table.export.mappers
+    }, // Integer, tinyint(4) -1 = Auto, required
+    {
+      label: 'Java Heap',
+      value: table.javaHeap,
+      type: SettingType.IntegerFromOneOrNull,
+      infoText: infoTexts.table.export.javaHeap
+    } // Interger, bigint(20), heap size for Hive
+  ]
+
+  const validation: EditSetting[] = [
+    {
+      label: 'Validate Export',
+      value: table.validateExport,
+      type: SettingType.Boolean
+    }, // Boolean, true or false, required
+    {
+      label: 'Validation Method',
+      value: mapDisplayValue(
+        'validationMethod',
+        table.validationMethod as string
+      ),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('validationMethod')
+    }, // Enum mapping for 'Validation Method', required
+    {
+      label: 'Custom Query Target SQL',
+      value: table.validationCustomQueryTargetSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // Free-text, 64k, active if validationMethod=customQuery
+    {
+      label: 'Custom Query Hive SQL',
+      value: table.validationCustomQueryHiveSQL,
+      type: SettingType.Text,
+      isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
+    }, // Free-text, 64k, active if validationMethod=customQuery
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Table Row Count',
+      value: table.tableRowcount,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Target Row Count',
+      value: table.targetRowcount,
+      type: SettingType.Readonly
+    }, // Read-only
+
+    {
+      label: 'Custom Query Target Value',
+      value: table.validationCustomQueryTargetValue,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Custom Query Hive Value',
+      value: table.validationCustomQueryHiveValue,
+      type: SettingType.Readonly
+    } // Read-only
+  ]
+
+  const schedule: EditSetting[] = [
+    {
+      label: 'Airflow Priority',
+      value: table.airflowPriority,
+      type: SettingType.IntegerFromOneOrNull,
+      infoText: infoTexts.table.export.airflowPriority
+    }, // Integer, tinyint(4) (should not be string in API)
+    {
+      label: 'Include in Airflow',
+      value: table.includeInAirflow,
+      type: SettingType.Boolean
+    }, // Boolean, true or false, required
+    {
+      label: 'Operator Notes',
+      value: table.operatorNotes,
+      type: SettingType.Text
+    } // Free-text, 64k
+  ]
+
+  const exportCards = {
+    mainSettings,
+    exportOptions,
+    incrementalExports,
+    performance,
+    validation,
+    schedule
+  }
+
+  return exportCards
+}
+
+export function exportColumnRowDataEdit(row: ExportColumns) {
+  const rowData: EditSetting[] = [
+    {
+      label: 'Column Name',
+      value: row.columnName,
+      type: SettingType.Readonly
+    }, // Read-only, required
+    {
+      label: 'Column Order',
+      value: row.columnOrder,
+      type: SettingType.Readonly
+    }, // Number for order in columns, preliminary readonly
+    {
+      label: 'Target Column Name',
+      value: row.targetColumnName,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.columns.targetColumnName
+    }, // Free-text, varchar(256)
+    {
+      label: 'Column Type',
+      value: row.columnType,
+      type: SettingType.Readonly
+    }, // Read-only
+    {
+      label: 'Target Column Type',
+      value: row.targetColumnType,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.columns.targetColumnType
+    }, // Free-text, varchar(256)
+    {
+      label: 'Last Update From Hive',
+      value: row.lastUpdateFromHive,
+      type: SettingType.Readonly
+    }, // Read-only, Timestamp, required
+    {
+      label: 'Include In Export',
+      value: row.includeInExport,
+      type: SettingType.BooleanNumber
+    }, // Boolean, 1=true or 0=false (probably will get changed to a true or false boolean), required
+    // {
+    //   label: 'Include In Export',
+    //   value: row.includeInExport,
+    //   type: SettingType.Boolean
+    // }, // Boolean, true or false, required
+    {
+      label: 'Comment',
+      value: row.comment,
+      type: SettingType.Text
+    }, // Free-text, 64k
+    {
+      label: 'Operator Notes',
+      value: row.operatorNotes,
+      type: SettingType.Text
+    } // Free-text, 64k
+  ]
+
+  return rowData
 }

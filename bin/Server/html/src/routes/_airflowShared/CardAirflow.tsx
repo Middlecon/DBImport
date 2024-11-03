@@ -8,7 +8,7 @@ import {
   EditSetting,
   ExportAirflowDAG,
   ImportAirflowDAG,
-  WithDynamicKeys
+  AirflowWithDynamicKeys
 } from '../../utils/interfaces'
 import EditConnectionModal from '../../components/EditConnectionModal'
 import { useParams } from 'react-router-dom'
@@ -60,17 +60,17 @@ function CardAirflow({
       | null = null
     if (type === 'import') {
       editedDagData = updateImportDagData(
-        dagDataCopy as WithDynamicKeys<ImportAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings
       )
     } else if (type === 'export') {
       editedDagData = updateExportDagData(
-        dagDataCopy as WithDynamicKeys<ExportAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
         updatedSettings
       )
     } else if (type === 'custom') {
       editedDagData = updateCustomDagData(
-        dagDataCopy as WithDynamicKeys<CustomAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
         updatedSettings
       )
     }

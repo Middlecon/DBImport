@@ -3,9 +3,11 @@ import { useMemo } from 'react'
 import ChevronRight from '../assets/icons/ChevronRight'
 import { useAtom } from 'jotai'
 import {
+  exportDbListFiltersAtom,
   importDbListFiltersAtom,
   isAirflowSubmenuActiveAtom,
   isDbDropdownReadyAtom,
+  selectedExportConnectionAtom,
   selectedImportDatabaseAtom
 } from '../atoms/atoms'
 import './Breadcrumbs.scss'
@@ -15,7 +17,11 @@ const Breadcrumbs = () => {
   const navigate = useNavigate()
   const [, setSelectedDatabase] = useAtom(selectedImportDatabaseAtom)
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
-  const [, setSelectedFilters] = useAtom(importDbListFiltersAtom)
+  const [, setSelectedImportFilters] = useAtom(importDbListFiltersAtom)
+
+  const [, setSelectedConnection] = useAtom(selectedExportConnectionAtom)
+  const [, setSelectedExportFilters] = useAtom(exportDbListFiltersAtom)
+
   const [, setIsAirflowSubmenuActive] = useAtom(isAirflowSubmenuActiveAtom)
 
   const capitalizeFirstLetter = (string: string) => {
@@ -24,34 +30,22 @@ const Breadcrumbs = () => {
 
   const crumbs = useMemo(() => {
     const pathnames = location.pathname.split('/').filter((x) => x)
+    const breadcrumbItems = [{ label: 'Home', path: '/' }]
 
-    const breadcrumbItems = []
+    pathnames.forEach((pathname, index) => {
+      const path = `/${pathnames.slice(0, index + 1).join('/')}`
+      const label =
+        index === 0
+          ? capitalizeFirstLetter(pathname)
+          : pathnames[0] === 'airflow' && index === 1
+          ? capitalizeFirstLetter(pathname)
+          : pathname
 
-    breadcrumbItems.push({ label: 'Home', path: '/' })
-
-    if (pathnames[0]) {
       breadcrumbItems.push({
-        label: capitalizeFirstLetter(pathnames[0]),
-        path: `/${pathnames[0]}`
+        label,
+        path
       })
-    }
-
-    if (pathnames[1]) {
-      breadcrumbItems.push({
-        label:
-          pathnames[0] === 'airflow'
-            ? capitalizeFirstLetter(pathnames[1])
-            : pathnames[1],
-        path: `/${pathnames[0]}/${pathnames[1]}`
-      })
-    }
-
-    if (pathnames[2]) {
-      breadcrumbItems.push({
-        label: pathnames[2],
-        path: `/${pathnames[0]}/${pathnames[1]}/${pathnames[2]}`
-      })
-    }
+    })
 
     return breadcrumbItems
   }, [location])
@@ -60,10 +54,16 @@ const Breadcrumbs = () => {
     if (path === '/import') {
       setIsDbDropdownReady(false)
       setSelectedDatabase(null)
-      setSelectedFilters({})
+      setSelectedImportFilters({})
     }
     if (path === '/') {
       setIsAirflowSubmenuActive(false)
+    }
+
+    if (path === '/export') {
+      setIsDbDropdownReady(false)
+      setSelectedConnection(null)
+      setSelectedExportFilters({})
     }
     navigate(path)
   }
@@ -80,7 +80,7 @@ const Breadcrumbs = () => {
           >
             {idx > 0 && <ChevronRight />}
             {/* Only shows chevron after the first item */}
-            {idx === crumbs.length - 1 ? (
+            {idx === crumbs.length - 1 || idx >= 3 ? (
               <span>{crumb.label}</span> /* Current/last item is not a link */
             ) : crumb.label === 'Airflow' ? (
               <span>{crumb.label}</span>

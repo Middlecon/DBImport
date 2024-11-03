@@ -11,14 +11,18 @@ import {
   ImportAirflowDAG,
   AirflowTask,
   CustomAirflowDAG,
-  WithDynamicKeys,
+  AirflowWithDynamicKeys,
   ImportCreateAirflowDAG,
   CustomCreateAirflowDAG,
-  ExportCreateAirflowDAG
+  ExportCreateAirflowDAG,
+  UIExportTable,
+  ExportColumns,
+  UIExportTableWithoutEnum
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
   getKeyFromExportAirflowLabel,
+  getKeyFromExportLabel,
   getKeyFromImportAirflowLabel,
   // getKeyFromColumnLabel,
   // getKeyFromConnectionLabel,
@@ -266,6 +270,8 @@ export function updateTableData(
 
   filteredSettings.forEach((setting) => {
     if (column === true) {
+      console.log('updatedSettings', updatedSettings)
+
       const indexInColumnsSetting = updatedSettings.find(
         (setting) => setting.label === 'Column Order'
       )
@@ -411,6 +417,116 @@ export function createTableData(
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
+// Export
+
+function updateExportColumnData(
+  tableData: UIExportTableWithoutEnum,
+  setting: EditSetting,
+  indexInColumns: number
+) {
+  if (!tableData.columns) return
+  console.log('tableData', tableData)
+  console.log('indexInColumns', indexInColumns)
+  const currentColumn = tableData.columns[indexInColumns]
+  console.log('currentColumn', currentColumn)
+
+  const part1: {
+    targetColumnName: string | null
+    targetColumnType: string | null
+    includeInExport: number
+    operatorNotes: string | null
+  } = {
+    targetColumnName: currentColumn.targetColumnName,
+    targetColumnType: currentColumn.targetColumnType,
+    includeInExport: currentColumn.includeInExport,
+    operatorNotes: currentColumn.operatorNotes
+  }
+
+  // Part 2: Keys that will retain default values
+  const part2: Omit<ExportColumns, keyof typeof part1> = {
+    columnName: currentColumn.columnName,
+    columnType: currentColumn.columnType,
+    columnOrder: currentColumn.columnOrder,
+    lastUpdateFromHive: currentColumn.lastUpdateFromHive,
+    comment: currentColumn.comment
+  }
+
+  const labelToColumnMap: Record<string, keyof typeof part1> = {
+    'Target Column Name Override': 'targetColumnName',
+    'Target Column Type Override': 'targetColumnType',
+    'Include In Export': 'includeInExport',
+    'Operator Notes': 'operatorNotes'
+  }
+
+  const key = labelToColumnMap[setting.label]
+
+  const settingValue = setting.value
+
+  if (key) {
+    if (
+      typeof settingValue === 'string' ||
+      typeof settingValue === 'number' ||
+      settingValue === null
+    ) {
+      ;(part1[key] as (typeof part1)[typeof key]) = settingValue
+    }
+  }
+
+  const finalColumnData: ExportColumns = { ...part2, ...part1 }
+  console.log('finalColumnData', finalColumnData)
+  tableData.columns[indexInColumns] = finalColumnData
+}
+
+export function updateExportTableData(
+  tableData: UIExportTable,
+  updatedSettings: EditSetting[],
+  column?: boolean
+): UIExportTableWithoutEnum {
+  const updatedTableData: UIExportTableWithoutEnum = {
+    ...tableData
+  } as UIExportTableWithoutEnum
+  console.log('typeof updatedTableData', typeof updatedTableData)
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    if (column === true) {
+      const indexInColumnsSetting = updatedSettings.find(
+        (setting) => setting.label === 'Column Order'
+      )
+      console.log('updatedSettings', updatedSettings)
+      console.log('indexInColumnsSetting', indexInColumnsSetting)
+      // const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+      const indexInColumns = indexInColumnsSetting?.value as number // Temporary until columnOrder is starting at 1 instead of 0
+
+      updateExportColumnData(updatedTableData, setting, indexInColumns)
+    } else {
+      let value = setting.value as string
+
+      if (setting.type === 'enum' && setting.enumOptions) {
+        value = reverseMapEnumValue(setting.label, value as string)
+      }
+
+      const key = getKeyFromExportLabel(setting.label)
+
+      if (key) {
+        updatedTableData[key] = value
+      }
+    }
+  })
+
+  const finalTableData = Object.keys(updatedTableData).reduce((acc, key) => {
+    if (!fieldsToRemove.includes(key)) {
+      acc[key] = updatedTableData[key]
+    }
+    return acc
+  }, {} as UIExportTableWithoutEnum)
+
+  return finalTableData
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 // Airflow
 
 function updateTasksData(
@@ -492,11 +608,11 @@ function updateTasksData(
 }
 
 export function updateImportDagData(
-  dagData: WithDynamicKeys<ImportAirflowDAG>,
+  dagData: AirflowWithDynamicKeys<ImportAirflowDAG>,
   updatedSettings: EditSetting[],
   task?: boolean
 ): ImportAirflowDAG {
-  const updatedDagData: WithDynamicKeys<ImportAirflowDAG> = {
+  const updatedDagData: AirflowWithDynamicKeys<ImportAirflowDAG> = {
     ...dagData
   }
   console.log('typeof updatedTableData', typeof updatedDagData)
@@ -537,7 +653,7 @@ export function updateImportDagData(
       acc[key] = updatedDagData[key]
     }
     return acc
-  }, {} as WithDynamicKeys<ImportAirflowDAG>)
+  }, {} as AirflowWithDynamicKeys<ImportAirflowDAG>)
 
   const finalDagData = reducedDagData as ImportAirflowDAG
 
@@ -547,11 +663,11 @@ export function updateImportDagData(
 /////////////////////////////////////////////////////////////////
 
 export function updateExportDagData(
-  dagData: WithDynamicKeys<ExportAirflowDAG>,
+  dagData: AirflowWithDynamicKeys<ExportAirflowDAG>,
   updatedSettings: EditSetting[],
   task?: boolean
 ): ExportAirflowDAG {
-  const updatedDagData: WithDynamicKeys<ExportAirflowDAG> = {
+  const updatedDagData: AirflowWithDynamicKeys<ExportAirflowDAG> = {
     ...dagData
   }
   console.log('typeof updatedTableData', typeof updatedDagData)
@@ -592,7 +708,7 @@ export function updateExportDagData(
       acc[key] = updatedDagData[key]
     }
     return acc
-  }, {} as WithDynamicKeys<ExportAirflowDAG>)
+  }, {} as AirflowWithDynamicKeys<ExportAirflowDAG>)
 
   const finalDagData = reducedDagData as ExportAirflowDAG
 
@@ -600,11 +716,11 @@ export function updateExportDagData(
 }
 
 export function updateCustomDagData(
-  dagData: WithDynamicKeys<CustomAirflowDAG>,
+  dagData: AirflowWithDynamicKeys<CustomAirflowDAG>,
   updatedSettings: EditSetting[],
   task?: boolean
 ): CustomAirflowDAG {
-  const updatedDagData: WithDynamicKeys<CustomAirflowDAG> = {
+  const updatedDagData: AirflowWithDynamicKeys<CustomAirflowDAG> = {
     ...dagData
   }
   console.log('typeof updatedTableData', typeof updatedDagData)
@@ -645,7 +761,7 @@ export function updateCustomDagData(
       acc[key] = updatedDagData[key]
     }
     return acc
-  }, {} as WithDynamicKeys<CustomAirflowDAG>)
+  }, {} as AirflowWithDynamicKeys<CustomAirflowDAG>)
 
   const finalDagData = reducedDagData as CustomAirflowDAG
 

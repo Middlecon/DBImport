@@ -1,7 +1,11 @@
 import {
+  AirflowDAGTaskPlacement,
+  AirflowDAGTaskType,
   AnonymizationFunction,
   EtlEngine,
   EtlType,
+  ExportTool,
+  ExportType,
   ImportTool,
   ImportType,
   IncrMode,
@@ -511,6 +515,10 @@ export type EnumTypes =
   | IncrValidationMethod
   | MergeCompactionMethod
   | AnonymizationFunction
+  | AirflowDAGTaskType
+  | AirflowDAGTaskPlacement
+  | ExportType
+  | ExportTool
 
 export type EditSettingValueTypes = string | number | boolean | EnumTypes
 
@@ -536,6 +544,191 @@ export interface TableCreate {
   etlPhaseType: EtlType
   importTool: ImportTool
   etlEngine: EtlEngine
+}
+
+// Export
+
+export interface ExportConnections {
+  name: string
+  tables: number
+  lastExport: string | null
+  lastRows: number | null
+}
+
+export interface ExportCnTablesWithoutEnum {
+  connection: string
+  targetSchema: string
+  targetTable: string
+  database: string
+  table: string
+  exportType: string
+  exportTool: string
+  lastUpdateFromHive: string | null
+}
+
+export interface ExportCnTables {
+  connection: string
+  targetSchema: string
+  targetTable: string
+  database: string
+  table: string
+  exportType: ExportType
+  exportTool: ExportTool
+  lastUpdateFromHive: string | null
+}
+export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
+  exportTypeDisplay: string
+  exportToolDisplay: string
+}
+
+// export interface UIExportCnTables {
+//   connection: string
+//   targetSchema: string
+//   targetTable: string
+//   database: string
+//   table: string
+//   exportType: ExportType
+//   exportTool: ExportTool
+//   exportTypeDisplay: string
+//   exportToolDisplay: string
+// }
+
+export interface ExportTable {
+  connection: string
+  targetSchema: string
+  targetTable: string
+  // exportType: string
+  // exportTool: string
+  exportType: ExportType
+  exportTool: ExportTool
+  database: string
+  table: string
+  lastUpdateFromHive: string | null
+  sqlWhereAddition: string | null
+  includeInAirflow: boolean | null
+  airflowPriority: number | null
+  forceCreateTempTable: boolean | null
+  validateExport: boolean | null
+  validationMethod: string | null
+  validationCustomQueryHiveSQL: string | null
+  validationCustomQueryTargetSQL: string | null
+  uppercaseColumns: number | null
+  truncateTarget: boolean | null
+  mappers: number | null
+  tableRowcount: number | null
+  targetRowcount: number | null
+  validationCustomQueryHiveValue: string | null
+  validationCustomQueryTargetValue: string | null
+  incrColumn: string | null
+  incrValidationMethod: string | null
+  incrMinvalue: string | null
+  incrMaxvalue: string | null
+  incrMinvaluePending: string | null
+  incrMaxvaluePending: string | null
+  sqoopOptions: string | null
+  lastSize: number | null
+  lastRows: number | null
+  lastMappers: number | null
+  lastExecution: number | null
+  javaHeap: number | null
+  createTargetTableSql: string | null
+  operatorNotes: string | null
+  columns: ExportColumns[]
+}
+
+export interface ExportColumns {
+  columnName: string
+  columnType: string
+  columnOrder: number | null
+  targetColumnName: string | null
+  targetColumnType: string | null
+  lastUpdateFromHive: string | null
+  includeInExport: number
+  comment: string | null
+  operatorNotes: string | null
+}
+
+export interface UIExportTable {
+  connection: string
+  targetSchema: string
+  targetTable: string
+  exportType: ExportType
+  exportTool: ExportTool
+  database: string
+  table: string
+  lastUpdateFromHive: string | null
+  sqlWhereAddition: string | null
+  includeInAirflow: boolean | null
+  airflowPriority: number | null
+  forceCreateTempTable: boolean | null
+  validateExport: boolean | null
+  validationMethod: ValidationMethod | null
+  validationCustomQueryHiveSQL: string | null
+  validationCustomQueryTargetSQL: string | null
+  uppercaseColumns: number | null
+  truncateTarget: boolean | null
+  mappers: number | null
+  tableRowcount: number | null
+  targetRowcount: number | null
+  validationCustomQueryHiveValue: string | null
+  validationCustomQueryTargetValue: string | null
+  incrColumn: string | null
+  incrValidationMethod: IncrValidationMethod | null
+  incrMinvalue: string | null
+  incrMaxvalue: string | null
+  incrMinvaluePending: string | null
+  incrMaxvaluePending: string | null
+  sqoopOptions: string | null
+  lastSize: number | null
+  lastRows: number | null
+  lastMappers: number | null
+  lastExecution: number | null
+  javaHeap: number | null
+  createTargetTableSql: string | null
+  operatorNotes: string | null
+  columns: ExportColumns[]
+}
+
+export interface UIExportTableWithoutEnum {
+  [key: string]: string | boolean | number | null | ExportColumns[]
+  connection: string
+  targetSchema: string
+  targetTable: string
+  exportType: string
+  exportTool: string
+  database: string
+  table: string
+  lastUpdateFromHive: string | null
+  sqlWhereAddition: string | null
+  includeInAirflow: boolean | null
+  airflowPriority: number | null
+  forceCreateTempTable: boolean | null
+  validateExport: boolean | null
+  validationMethod: string | null
+  validationCustomQueryHiveSQL: string | null
+  validationCustomQueryTargetSQL: string | null
+  uppercaseColumns: number | null
+  truncateTarget: boolean | null
+  mappers: number | null
+  tableRowcount: number | null
+  targetRowcount: number | null
+  validationCustomQueryHiveValue: string | null
+  validationCustomQueryTargetValue: string | null
+  incrColumn: string | null
+  incrValidationMethod: string | null
+  incrMinvalue: string | null
+  incrMaxvalue: string | null
+  incrMinvaluePending: string | null
+  incrMaxvaluePending: string | null
+  sqoopOptions: string | null
+  lastSize: number | null
+  lastRows: number | null
+  lastMappers: number | null
+  lastExecution: number | null
+  javaHeap: number | null
+  createTargetTableSql: string | null
+  operatorNotes: string | null
+  columns: ExportColumns[]
 }
 
 // Airflow
@@ -576,7 +769,7 @@ export interface UiAirflowsCustomData extends AirflowsCustomData {
   autoRegenerateDagDisplay: string
 }
 
-export type WithDynamicKeys<T> = T & {
+export type AirflowWithDynamicKeys<T> = T & {
   [key: string]: string | boolean | number | AirflowTask[]
 }
 

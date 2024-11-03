@@ -6,7 +6,7 @@ import {
   EditSetting,
   ExportAirflowDAG,
   ImportAirflowDAG,
-  WithDynamicKeys
+  AirflowWithDynamicKeys
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
@@ -107,19 +107,19 @@ function AirflowTasks({ type }: { type: string }) {
       | null = null
     if (type === 'import') {
       editedDagData = updateImportDagData(
-        dagDataCopy as WithDynamicKeys<ImportAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings,
         true
       )
     } else if (type === 'export') {
       editedDagData = updateExportDagData(
-        dagDataCopy as WithDynamicKeys<ExportAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
         updatedSettings,
         true
       )
     } else if (type === 'custom') {
       editedDagData = updateCustomDagData(
-        dagDataCopy as WithDynamicKeys<CustomAirflowDAG>,
+        dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
         updatedSettings,
         true
       )

@@ -11,8 +11,13 @@ import {
   Database,
   DbTable,
   ExportAirflowDAG,
+  ExportCnTables,
+  ExportConnections,
+  ExportTable,
   ImportAirflowDAG,
   Table,
+  UIExportCnTables,
+  UIExportTable,
   UITable,
   UiAirflowsCustomData,
   UiAirflowsExportData,
@@ -23,6 +28,8 @@ import { mapDisplayValue, mapEnumValue } from './nameMappings'
 import {
   EtlEngine,
   EtlType,
+  ExportTool,
+  ExportType,
   ImportTool,
   ImportType,
   IncrMode,
@@ -71,7 +78,7 @@ export const useConnection = (
   })
 }
 
-// DATABASE AND TABLE
+// IMPORT
 
 // Get databases
 
@@ -147,7 +154,6 @@ export const fetchTableData = async (
       'Cannot fetch table because database or/and table params are not defined'
     )
   }
-
   const data: Table = await getTable(database, table)
 
   const dataWithEnumTypes: UITable = {
@@ -186,9 +192,115 @@ export const useTable = (
   table?: string
 ): UseQueryResult<UITable, Error> => {
   return useQuery({
-    queryKey: ['table', table],
+    queryKey: ['import', database, table],
     queryFn: () => fetchTableData(database!, table!), // We are sure that database and table is not null here because of the enabled flag
     enabled: !!database && !!table
+  })
+}
+
+// EXPORT
+
+// Get connections with exports
+
+const getExportConnections = async () => {
+  const response = await axiosInstance.get('/export/connection')
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useExportConnections = (): UseQueryResult<
+  ExportConnections[],
+  Error
+> => {
+  return useQuery({
+    queryKey: ['export', 'connections'],
+    queryFn: getExportConnections,
+    initialData: []
+  })
+}
+
+// Get export tables of a connection
+
+const getExportTables = async (connection: string) => {
+  const response = await axiosInstance.get(`/export/table/${connection}`)
+  return response.data
+}
+
+export const useExportTables = (
+  connection?: string | null
+): UseQueryResult<UIExportCnTables[], Error> => {
+  return useQuery({
+    queryKey: ['export', connection],
+    queryFn: async () => {
+      const data: ExportCnTables[] = await getExportTables(connection!) // We are sure that database is not null here because of the enabled flag
+      const enumMappedData = data.map((row) => ({
+        ...row,
+        exportTypeDisplay: mapDisplayValue(
+          'exportType',
+          row.exportType as string
+        ),
+        exportToolDisplay: mapDisplayValue(
+          'exportTool',
+          row.exportTool as string
+        )
+      }))
+
+      return enumMappedData
+    },
+    enabled: !!connection,
+    refetchOnWindowFocus: false
+  })
+}
+
+// Get export table
+
+const getExportTable = async (
+  connection: string,
+  schema: string,
+  table: string
+) => {
+  const response = await axiosInstance.get(
+    `/export/table/${connection}/${schema}/${table}`
+  )
+  return response.data
+}
+
+export const fetchExportTableData = async (
+  connection: string,
+  schema: string,
+  table: string
+): Promise<UIExportTable> => {
+  const data: ExportTable = await getExportTable(connection, schema, table)
+
+  const dataWithEnumTypes: UIExportTable = {
+    ...data,
+    exportType: mapEnumValue(data.exportType, Object.values(ExportType)),
+    exportTool: mapEnumValue(data.exportTool, Object.values(ExportTool)),
+    validationMethod:
+      typeof data.validationMethod === 'string'
+        ? mapEnumValue(data.validationMethod, Object.values(ValidationMethod))
+        : null,
+    incrValidationMethod:
+      typeof data.incrValidationMethod === 'string'
+        ? mapEnumValue(
+            data.incrValidationMethod,
+            Object.values(IncrValidationMethod)
+          )
+        : null
+  }
+
+  return dataWithEnumTypes
+}
+
+export const useExportTable = (
+  connection?: string,
+  schema?: string,
+  table?: string
+): UseQueryResult<UIExportTable, Error> => {
+  return useQuery({
+    queryKey: ['export', connection, table],
+    queryFn: () => fetchExportTableData(connection!, schema!, table!), // We are sure that database and table is not null here because of the enabled flag
+    enabled: !!connection && !!schema && !!table
   })
 }
 

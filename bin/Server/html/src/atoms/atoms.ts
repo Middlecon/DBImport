@@ -6,9 +6,17 @@ export const selectedImportDatabaseAtom = atomWithSessionStorage<string | null>(
   null
 )
 
+export const selectedExportConnectionAtom = atomWithSessionStorage<
+  string | null
+>('selectedExportConnection', null)
+
 export const isDbDropdownReadyAtom = atom(false)
 
 export const importDbListFiltersAtom = atomWithSessionStorage<{
+  [key: string]: string[]
+}>('importDbListFilters', {})
+
+export const exportDbListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
 }>('importDbListFilters', {})
 

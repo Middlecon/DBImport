@@ -1,11 +1,11 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import LogIn from './routes/LogIn'
 import MainLayout from './components/MainLayout'
-// import Export from './routes/Export'
+import Export from './routes/export/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
 import DbTables from './routes/import/DbTables'
-import TableDetailedView from './routes/import/tableDetailed/TableDetailedView'
+import TableDetailedView from './routes/_shared/TableDetailedView'
 import TableSettings from './routes/import/tableDetailed/settings/TableSettings'
 import TableColumns from './routes/import/tableDetailed/columns/TableColumns'
 import TableStatistics from './routes/import/tableDetailed/statistics/TableStatistics'
@@ -18,6 +18,9 @@ import AirflowCustom from './routes/airflowCustom/AirflowCustom'
 import AirflowTasks from './routes/_airflowShared/AirflowTasks'
 import AirflowDetailedView from './routes/_airflowShared/AirflowDetailedView'
 import AirflowSettings from './routes/_airflowShared/AirflowSettings'
+import ExportCnTables from './routes/export/ExportCnTables'
+import ExportTableSettings from './routes/export/settings/ExportTableSettings'
+import ExportTableColumns from './routes/export/columns/ExportTableColumns'
 
 export const router = createBrowserRouter([
   {
@@ -54,7 +57,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/import/:database/:table',
-        element: <TableDetailedView />,
+        element: <TableDetailedView type="import" />,
         children: [
           {
             path: 'settings',
@@ -72,8 +75,31 @@ export const router = createBrowserRouter([
       },
       {
         path: '/export',
-        element: <div>Export</div>
-        // element: <Export />
+        element: <Export />,
+        children: [
+          {
+            path: ':connection',
+            element: <ExportCnTables />
+          }
+        ]
+      },
+      {
+        path: '/export/:connection/:schema/:table',
+        element: <TableDetailedView type="export" />,
+        children: [
+          {
+            path: 'settings',
+            element: <ExportTableSettings />
+          },
+          {
+            path: 'columns',
+            element: <ExportTableColumns />
+          },
+          {
+            path: 'statistics',
+            element: <TableStatistics />
+          }
+        ]
       },
       {
         path: '/airflow/import',

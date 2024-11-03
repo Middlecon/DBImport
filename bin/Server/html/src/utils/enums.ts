@@ -24,7 +24,7 @@ export enum SettingType {
   GroupingSpace = 'groupingSpace'
 }
 
-// Table
+// Import Table
 
 export enum ImportType {
   Full = 'full',
@@ -103,4 +103,16 @@ export enum AirflowDAGTaskPlacement {
   BeforeMain = 'before main',
   AfterMain = 'after main',
   InMain = 'in main'
+}
+
+// Export Table
+
+export enum ExportType {
+  Full = 'full',
+  Incremental = 'incr'
+}
+
+export enum ExportTool {
+  Spark = 'spark',
+  Sqoop = 'sqoop'
 }
