@@ -9,10 +9,9 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
     dagName: string
   }>()
-  const { data: dagData, isFetching } = useAirflowDAG(type, dagName)
+  const { data: dagData } = useAirflowDAG(type, dagName)
 
-  if (isFetching) return <div className="loading">Loading...</div>
-  if (!dagName) return <div>No data found.</div>
+  if (!dagName) return <div className="loading">No data found yet.</div>
   console.log('dagName', dagName)
 
   if (!dagData) {

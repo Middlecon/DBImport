@@ -11,11 +11,9 @@ function ConnectionDetailedView() {
   const { connection: connectionParam } = useParams<{
     connection: string
   }>()
-  const { data: connection, isFetching } = useConnection(connectionParam)
+  const { data: connection } = useConnection(connectionParam)
 
-  if (isFetching) return <div className="loading">Loading...</div>
-  if (!connection) return <div>No data found.</div>
-  console.log('connection', connection)
+  if (!connection) return <div className="loading">Loading...</div>
 
   const connectionSettings = connectionCardRenderSettings(connection)
 

@@ -10,10 +10,9 @@ function TableSettings() {
     database: string
     table: string
   }>()
-  const { data: table, isFetching } = useTable(database, tableParam)
+  const { data: table } = useTable(database, tableParam)
 
-  if (isFetching) return <div className="loading">Loading...</div>
-  if (!table) return <div>No data found.</div>
+  if (!table) return <div className="loading">No data found yet.</div>
   const importCards = importCardRenderSettings(table)
 
   return (

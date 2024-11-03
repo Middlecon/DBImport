@@ -30,11 +30,7 @@ function AirflowTasks({ type }: { type: string }) {
     dagName: string
   }>()
 
-  const {
-    data: originalDagData,
-    isFetching,
-    isLoading
-  } = useAirflowDAG(type, dagName)
+  const { data: originalDagData, isLoading } = useAirflowDAG(type, dagName)
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
 
@@ -97,8 +93,7 @@ function AirflowTasks({ type }: { type: string }) {
     [originalDagData]
   )
 
-  if (isFetching) return <div className="loading">Loading...</div>
-  if (!originalDagData) return <div>No data found.</div>
+  if (!originalDagData) return <div className="loading">No data found yet.</div>
 
   const tasksData: AirflowTask[] = originalDagData.tasks
 
