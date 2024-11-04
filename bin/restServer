@@ -188,8 +188,11 @@ def main(argv):
 
 	elif action == "restart":
 		print("Stopping DBImport REST Server")
+		currentPid = os.getpid()
 		for line in os.popen("ps ax|grep -E \"/restServer restart$|/restServer start$|/restServer noDaemon\"|grep -v grep"):
 			pid = int(line.split()[0])
+			if pid == currentPid:
+				continue
 			os.kill(pid, signal.SIGTERM)
 
 		print("Starting DBImport REST Server")

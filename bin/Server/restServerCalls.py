@@ -966,7 +966,7 @@ class dbCalls:
 		resultDict['validationCustomQuerySourceSQL'] = row[18]
 		resultDict['validationCustomQueryHiveSQL'] = row[19]
 		resultDict['validationCustomQueryValidateImportTable'] = row[20]
-		resultDict['truncateTable'] = row[21]
+#		resultDict['truncateTable'] = row[21]
 		resultDict['mappers'] = row[22]
 		resultDict['softDeleteDuringMerge'] = row[23]
 		resultDict['sourceRowcount'] = row[24]
@@ -1010,7 +1010,7 @@ class dbCalls:
 		resultDict['generatedSqoopQuery'] = row[54]
 		resultDict['generatedSqoopOptions'] = row[55]
 		resultDict['generatedPkColumns'] = row[56]
-		resultDict['generatedForeignKeys'] = row[57]
+#		resultDict['generatedForeignKeys'] = row[57]
 		resultDict['datalakeSource'] = row[58]
 		resultDict['operatorNotes'] = row[59]
 		try:
@@ -1102,7 +1102,7 @@ class dbCalls:
 		if getattr(table, "validateDiffAllowed") == None:						setattr(table, "validateDiffAllowed", -1)
 		if getattr(table, "validationCustomQueryValidateImportTable") == None:	setattr(table, "validationCustomQueryValidateImportTable", 1)
 		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
-		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
+#		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
 		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
 		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
 		if getattr(table, "useGeneratedSql") == None:							setattr(table, "useGeneratedSql", -1)
@@ -1135,7 +1135,7 @@ class dbCalls:
 				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
-				truncate_hive = getattr(table, "truncateTable"),
+#				truncate_hive = getattr(table, "truncateTable"),
 				mappers = getattr(table, "mappers"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
@@ -1186,7 +1186,7 @@ class dbCalls:
 				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
-				truncate_hive = getattr(table, "truncateTable"),
+#				truncate_hive = getattr(table, "truncateTable"),
 				mappers = getattr(table, "mappers"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
@@ -2630,7 +2630,14 @@ class dbCalls:
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 		if getattr(airflowDag, "filterTable") == None:								setattr(airflowDag, "filterTable", "")
+		if getattr(airflowDag, "finishAllStage1First") == None:						setattr(airflowDag, "finishAllStage1First", "0")
 		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "5")
+		if getattr(airflowDag, "autoRegenerateDag") == None:						setattr(airflowDag, "autoRegenerateDag", "1")
+		if getattr(airflowDag, "runImportAndEtlSeparate") == None:					setattr(airflowDag, "runImportAndEtlSeparate", "0")
+		if getattr(airflowDag, "metadataImport") == None:							setattr(airflowDag, "metadataImport", "0")
+		if getattr(airflowDag, "emailOnFailure") == None:							setattr(airflowDag, "emailOnFailure", "0")
+		if getattr(airflowDag, "emailOnRetries") == None:							setattr(airflowDag, "emailOnRetries", "0")
+		if getattr(airflowDag, "retryExponentialBackoff") == None:					setattr(airflowDag, "retryExponentialBackoff", "0")
 
 		try:
 			query = insert(configSchema.airflowImportDags).values(
@@ -2777,6 +2784,10 @@ class dbCalls:
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 		if getattr(airflowDag, "filterConnection") == None:							setattr(airflowDag, "filterConnection", "")
 		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "5")
+		if getattr(airflowDag, "autoRegenerateDag") == None:						setattr(airflowDag, "autoRegenerateDag", "1")
+		if getattr(airflowDag, "emailOnFailure") == None:							setattr(airflowDag, "emailOnFailure", "0")
+		if getattr(airflowDag, "emailOnRetries") == None:							setattr(airflowDag, "emailOnRetries", "0")
+		if getattr(airflowDag, "retryExponentialBackoff") == None:					setattr(airflowDag, "retryExponentialBackoff", "0")
 
 		try:
 			query = insert(configSchema.airflowExportDags).values(
@@ -2912,6 +2923,10 @@ class dbCalls:
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
 		if getattr(airflowDag, "retries") == None:									setattr(airflowDag, "retries", "0")
+		if getattr(airflowDag, "autoRegenerateDag") == None:						setattr(airflowDag, "autoRegenerateDag", "1")
+		if getattr(airflowDag, "emailOnFailure") == None:							setattr(airflowDag, "emailOnFailure", "0")
+		if getattr(airflowDag, "emailOnRetries") == None:							setattr(airflowDag, "emailOnRetries", "0")
+		if getattr(airflowDag, "retryExponentialBackoff") == None:					setattr(airflowDag, "retryExponentialBackoff", "0")
 
 		try:
 			query = insert(configSchema.airflowCustomDags).values(

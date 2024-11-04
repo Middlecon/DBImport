@@ -227,7 +227,7 @@ class importTableDetailsRead(BaseModel):
 	validationCustomQuerySourceSQL: Union[str, None] = None
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: bool
-	truncateTable: bool
+#	truncateTable: bool
 	mappers: int
 	softDeleteDuringMerge: bool
 	sourceRowcount: Union[int, None] = None
@@ -263,7 +263,7 @@ class importTableDetailsRead(BaseModel):
 	generatedSqoopQuery: Union[str, None] = None
 	generatedSqoopOptions: Union[str, None] = None
 	generatedPkColumns: Union[str, None] = None
-	generatedForeignKeys: Union[str, None] = None
+#	generatedForeignKeys: Union[str, None] = None
 	datalakeSource: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	copyFinished: Union[str, None] = None
@@ -301,7 +301,7 @@ class importTableDetailsWrite(BaseModel):
 	validationCustomQuerySourceSQL: Union[str, None] = None
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: Union[bool, None] = None
-	truncateTable: Union[bool, None] = None
+#	truncateTable: Union[bool, None] = None
 	mappers: Union[int, None] = None
 	softDeleteDuringMerge: Union[bool, None] = None
 	incrMode: Union[str, None] = None
