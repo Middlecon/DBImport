@@ -253,7 +253,7 @@ function EditTableModal({
                     connectionNames={connectionNames}
                     disabled={isAirflowTasksConnectionDisabled}
                   />
-                  {setting.infoText && (
+                  {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
                       label={setting.label}
                       infoText={setting.infoText}

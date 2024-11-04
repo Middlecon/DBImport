@@ -13,6 +13,7 @@ import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
+import InfoText from './InfoText'
 
 interface CreateTableModalProps {
   database: string
@@ -183,7 +184,13 @@ function CreateTableModal({
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                     connectionNames={connectionNames}
-                  />
+                  />{' '}
+                  {setting.infoText && setting.infoText.length > 0 && (
+                    <InfoText
+                      label={setting.label}
+                      infoText={setting.infoText}
+                    />
+                  )}
                 </div>
               ))}
           </div>
