@@ -108,6 +108,10 @@ function Setting({
         return <span>{value ? 'True' : 'False'}</span>
       case 'booleanNumber':
         return <span>{value === 1 ? 'True' : 'False'}</span>
+      case 'booleanNumberOrAuto':
+        return (
+          <span>{value === 1 ? 'True' : value === 0 ? 'False' : 'Auto'}</span>
+        )
       case 'booleanOrDefaultFromConfig(-1)':
         return (
           <span>
@@ -128,6 +132,12 @@ function Setting({
               : 'Default from connection'}
           </span>
         )
+      case 'integerFromOneOrAuto(-1)':
+        return <span>{value === -1 ? 'Auto' : value}</span>
+      case 'integerFromZeroOrAuto(-1)':
+        return <span>{value === -1 ? 'Auto' : value}</span>
+      case 'integerFromOneOrDefaultFromConfig(null)':
+        return <span>{value === null ? 'Default from Config' : value}</span>
       case 'readonly':
         return <span>{value}</span>
       case 'text':

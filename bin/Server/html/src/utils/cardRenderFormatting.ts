@@ -1478,7 +1478,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'Uppercase Columns',
       value: table.uppercaseColumns,
-      type: SettingType.Readonly,
+      type: SettingType.BooleanNumberOrAuto,
       infoText: infoTexts.table.export.uppercaseColumns
     }, // Read-only (meanwhile) or maybe IntegerFromOneOrAuto, required
     {
@@ -1739,13 +1739,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
     {
       label: 'Include In Export',
       value: row.includeInExport,
-      type: SettingType.BooleanNumber
-    }, // Boolean, 1=true or 0=false (probably will get changed to a true or false boolean), required
-    // {
-    //   label: 'Include In Export',
-    //   value: row.includeInExport,
-    //   type: SettingType.Boolean
-    // }, // Boolean, true or false, required
+      type: SettingType.Boolean,
       infoText: infoTexts.table.export.columns.includeInExport
     }, // Boolean, true or false boolean, required
     {

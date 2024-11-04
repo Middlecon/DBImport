@@ -3,6 +3,7 @@
 export enum SettingType {
   Boolean = 'boolean',
   BooleanNumber = 'booleanNumber',
+  BooleanNumberOrAuto = 'booleanNumberOrAuto',
   BooleanOrDefaultFromConfig = 'booleanOrDefaultFromConfig(-1)',
   BooleanOrDefaultFromConnection = 'booleanOrDefaultFromConnection(-1)',
   Readonly = 'readonly',

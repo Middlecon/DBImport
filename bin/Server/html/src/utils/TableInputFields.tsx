@@ -146,6 +146,49 @@ function TableInputFields({
         </>
       )
 
+    case 'booleanNumberOrAuto':
+      return (
+        <>
+          <label>{setting.label}:</label>
+          <div className="radio-edit">
+            <label>
+              <input
+                type="radio"
+                name={`booleanNumber-${index}`}
+                value="true"
+                checked={setting.value === 1}
+                onChange={() => handleInputChange(index, 1)}
+              />
+              True
+            </label>
+            <label>
+              <input
+                type="radio"
+                name={`booleanNumber-${index}`}
+                value="false"
+                checked={setting.value === 0}
+                onChange={() => handleInputChange(index, 0)}
+              />
+              False
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={setting.value === -1}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    handleInputChange(index, -1) // Sets to -1 for Auto
+                  } else {
+                    handleInputChange(index, prevValue === '' ? -1 : prevValue) // Restores the previous value
+                  }
+                }}
+              />
+              Auto
+            </label>
+          </div>
+        </>
+      )
+
     case 'booleanOrDefaultFromConfig(-1)':
       return (
         <>
@@ -443,8 +486,6 @@ function TableInputFields({
             onChange={(event) => {
               let value: string | number | null =
                 event.target.value === '' ? '' : Number(event.target.value)
-              console.log('airflowType', airflowType)
-              console.log('setting.label', setting.label)
               if (typeof value === 'number' && value < 0) {
                 value = integerFromZeroDefaultValue
               }
