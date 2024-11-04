@@ -14,6 +14,7 @@ import { useAtom } from 'jotai'
 import {
   importDbListFiltersAtom,
   isDbDropdownReadyAtom,
+  latestSelectedMenuOptionAtom,
   selectedImportDatabaseAtom
 } from '../../atoms/atoms'
 
@@ -38,6 +39,7 @@ function Import() {
     selectedImportDatabaseAtom
   )
   const [, setSelectedFilters] = useAtom(importDbListFiltersAtom)
+  const [, setLatestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
 
   useEffect(() => {
     if (isLoading || !databaseNames.length) return
@@ -67,6 +69,7 @@ function Import() {
 
   const handleSelect = (item: string | null) => {
     setSelectedFilters({})
+    setLatestSelectedMenuOption(`/import/${item}`)
     navigate(`/import/${item}`)
   }
 

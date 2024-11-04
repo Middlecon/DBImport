@@ -11,8 +11,9 @@ import { EditSetting } from '../../utils/interfaces'
 // import { useQueryClient } from '@tanstack/react-query'
 import { useAtom } from 'jotai'
 import {
-  exportDbListFiltersAtom,
+  exportCnListFiltersAtom,
   isDbDropdownReadyAtom,
+  latestSelectedMenuOptionAtom,
   selectedExportConnectionAtom
 } from '../../atoms/atoms'
 // import { useCreateExportTable } from '../../utils/mutations'
@@ -34,20 +35,21 @@ function Export() {
   const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
     isDbDropdownReadyAtom
   )
-  const [selectedConnection, setSelectedConnection] = useAtom(
+  const [selectedExportConnection, setSelectedExportConnection] = useAtom(
     selectedExportConnectionAtom
   )
-  const [, setSelectedFilters] = useAtom(exportDbListFiltersAtom)
+  const [, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
+  const [, setLatestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
 
   useEffect(() => {
     if (isLoading || !cnNames.length) return
 
     if (connection && cnNames.includes(connection)) {
-      if (connection !== selectedConnection) {
-        setSelectedConnection(connection)
+      if (connection !== selectedExportConnection) {
+        setSelectedExportConnection(connection)
       }
     } else {
-      setSelectedConnection(null)
+      setSelectedExportConnection(null)
       setSelectedFilters({})
 
       navigate('/export', { replace: true })
@@ -59,14 +61,15 @@ function Export() {
     connection,
     isLoading,
     navigate,
-    selectedConnection,
+    selectedExportConnection,
     setIsDbDropdownReady,
-    setSelectedConnection,
+    setSelectedExportConnection,
     setSelectedFilters
   ])
 
   const handleSelect = (item: string | null) => {
     setSelectedFilters({})
+    setLatestSelectedMenuOption(`/export/${item}`)
     navigate(`/export/${item}`)
   }
 
@@ -118,7 +121,7 @@ function Export() {
         <div className="import-header">
           <h1>Export</h1>
           <div className="db-dropdown">
-            {selectedConnection && (
+            {selectedExportConnection && (
               <Button
                 title="+ Create table"
                 onClick={() => setCreateModalOpen(true)}
@@ -136,7 +139,7 @@ function Export() {
                   handleDropdownToggle('cnSearch', isOpen)
                 }
                 searchFilter={true}
-                initialTitle={selectedConnection || 'Select Connection'}
+                initialTitle={selectedExportConnection || 'Select Connection'}
                 leftwards={true}
                 chevron={true}
                 placeholder="Search for db..."

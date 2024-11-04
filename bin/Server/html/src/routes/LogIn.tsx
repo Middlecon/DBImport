@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 // import DBImportIconTextLogo from '../assets/icons/DBImportIconTextLogo'
 import LogoWithText from '../components/LogoWithText'
 import { useAtom } from 'jotai'
-import { usernameAtom } from '../atoms/atoms'
+import { latestSelectedMenuOptionAtom, usernameAtom } from '../atoms/atoms'
 import { getCookie, setCookie } from '../utils/cookies'
 
 interface LogInResponse {
@@ -22,6 +22,7 @@ interface LogInResponse {
 
 function LogIn() {
   const [, setUsername] = useAtom(usernameAtom)
+  const [latestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
 
   const [formData, setFormData] = useState({
       username: '',
@@ -44,7 +45,7 @@ function LogIn() {
 
     try {
       await loginUser(formData)
-      navigate('/')
+      navigate(latestSelectedMenuOption ? latestSelectedMenuOption : '/')
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message)
@@ -83,7 +84,7 @@ function LogIn() {
       }
 
       if (responseData.access_token && responseData.token_type) {
-        setCookie('DBI_auth_token', responseData.access_token, 7)
+        setCookie('DBI_auth_token', responseData.access_token)
         setUsername(username)
       }
     } catch (error) {

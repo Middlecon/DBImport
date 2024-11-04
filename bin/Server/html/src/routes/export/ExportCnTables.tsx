@@ -17,7 +17,7 @@ import EditTableModal from '../../components/EditTableModal'
 import { useQueryClient } from '@tanstack/react-query'
 // import { useUpdateTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
-import { exportDbListFiltersAtom } from '../../atoms/atoms'
+import { exportCnListFiltersAtom } from '../../atoms/atoms'
 import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
 
 const checkboxFilters = [
@@ -86,7 +86,7 @@ function ExportCnTables() {
   const queryClient = useQueryClient()
   // const { mutate: updateTable } = useUpdateTable()
 
-  const [selectedFilters, setSelectedFilters] = useAtom(exportDbListFiltersAtom)
+  const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {

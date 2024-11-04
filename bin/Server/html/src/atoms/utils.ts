@@ -8,7 +8,10 @@ import {
   airflowExportFilterAtom,
   airflowCustomFilterAtom,
   isAirflowSubmenuActiveAtom,
-  usernameAtom
+  usernameAtom,
+  exportCnListFiltersAtom,
+  selectedExportConnectionAtom,
+  latestSelectedMenuOptionAtom
 } from './atoms'
 
 export function atomWithSessionStorage<T>(key: string, initialValue: T) {
@@ -33,23 +36,29 @@ export const clearSessionStorageAtoms = () => {
   const store = getDefaultStore()
 
   store.set(selectedImportDatabaseAtom, RESET)
+  store.set(selectedExportConnectionAtom, RESET)
   store.set(importDbListFiltersAtom, RESET)
+  store.set(exportCnListFiltersAtom, RESET)
   store.set(connectionFilterAtom, RESET)
   store.set(airflowImportFilterAtom, RESET)
   store.set(airflowExportFilterAtom, RESET)
   store.set(airflowCustomFilterAtom, RESET)
   store.set(isAirflowSubmenuActiveAtom, RESET)
   store.set(usernameAtom, RESET)
+  store.set(latestSelectedMenuOptionAtom, RESET)
 
   const sessionKeys = [
     'selectedImportDatabase',
+    'selectedExportConnection',
     'importDbListFilters',
+    'exportCnListFilters',
     'connectionFilters',
     'airflowImportFilter',
     'airflowExportFilter',
     'airflowCustomFilter',
     'isAirflowSubmenuActive',
-    'username'
+    'username',
+    'latestSelectedMenuOption'
   ]
   sessionKeys.forEach((key) => sessionStorage.removeItem(key))
 }

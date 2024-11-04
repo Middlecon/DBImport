@@ -13,6 +13,7 @@ import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
   isAirflowSubmenuActiveAtom,
+  latestSelectedMenuOptionAtom,
   selectedExportConnectionAtom,
   selectedImportDatabaseAtom,
   usernameAtom
@@ -43,6 +44,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
     isAirflowSubmenuActiveAtom
   )
   const [userName] = useAtom(usernameAtom)
+  const [, setLatestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
 
   const handleToggleAirflowMenu = () => {
     setToggleAirflowActive((prev) => !prev)
@@ -70,6 +72,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
             className="mainsidebar-logo-link"
             onClick={() => {
               setIsAirflowSubmenuActive(false)
+              setLatestSelectedMenuOption('/')
             }}
           >
             <LogoWithText size="small" noText={minimized ? true : false} />
@@ -98,6 +101,9 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setLatestSelectedMenuOption(
+                    selectedDatabase ? `/import/${selectedDatabase}` : '/import'
+                  )
                 }}
               >
                 <ImportIcon />
@@ -116,6 +122,11 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setLatestSelectedMenuOption(
+                    selectedExportConnection
+                      ? `/export/${selectedExportConnection}`
+                      : '/export'
+                  )
                 }}
               >
                 <ExportIcon />
@@ -142,6 +153,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setLatestSelectedMenuOption('/airflow/import')
                       }}
                     >
                       <AirflowImportIcon />
@@ -156,6 +168,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setLatestSelectedMenuOption('/airflow/export')
                       }}
                     >
                       <AirflowExportIcon />
@@ -171,6 +184,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setLatestSelectedMenuOption('/airflow/custom')
                       }}
                     >
                       <AirflowCustomIcon />
@@ -189,6 +203,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setLatestSelectedMenuOption('/connection')
                 }}
               >
                 <ConnectionIcon />

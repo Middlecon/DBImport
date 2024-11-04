@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import ChevronRight from '../assets/icons/ChevronRight'
 import { useAtom } from 'jotai'
 import {
-  exportDbListFiltersAtom,
+  exportCnListFiltersAtom,
   importDbListFiltersAtom,
   isAirflowSubmenuActiveAtom,
   isDbDropdownReadyAtom,
@@ -19,8 +19,8 @@ const Breadcrumbs = () => {
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
   const [, setSelectedImportFilters] = useAtom(importDbListFiltersAtom)
 
-  const [, setSelectedConnection] = useAtom(selectedExportConnectionAtom)
-  const [, setSelectedExportFilters] = useAtom(exportDbListFiltersAtom)
+  const [, setSelectedExportConnection] = useAtom(selectedExportConnectionAtom)
+  const [, setSelectedExportFilters] = useAtom(exportCnListFiltersAtom)
 
   const [, setIsAirflowSubmenuActive] = useAtom(isAirflowSubmenuActiveAtom)
 
@@ -62,7 +62,7 @@ const Breadcrumbs = () => {
 
     if (path === '/export') {
       setIsDbDropdownReady(false)
-      setSelectedConnection(null)
+      setSelectedExportConnection(null)
       setSelectedExportFilters({})
     }
     navigate(path)

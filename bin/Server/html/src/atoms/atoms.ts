@@ -16,9 +16,9 @@ export const importDbListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
 }>('importDbListFilters', {})
 
-export const exportDbListFiltersAtom = atomWithSessionStorage<{
+export const exportCnListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
-}>('importDbListFilters', {})
+}>('exportCnListFilters', {})
 
 export const connectionFilterAtom = atomWithSessionStorage<{
   [key: string]: string[]
@@ -47,3 +47,7 @@ export const usernameAtom = atomWithSessionStorage<string | null>(
   'username',
   null
 )
+
+export const latestSelectedMenuOptionAtom = atomWithSessionStorage<
+  string | null
+>('latestSelectedMenuOption', null)

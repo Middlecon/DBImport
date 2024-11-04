@@ -1,7 +1,6 @@
 import { createContext, useEffect, useState } from 'react'
 import { deleteCookie, getCookie } from './utils/cookies'
 import axiosInstance from './utils/axiosInstance'
-import { clearSessionStorageAtoms } from './atoms/utils'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -36,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function logout() {
     deleteCookie('DBI_auth_token')
-    clearSessionStorageAtoms()
     setIsAuthenticated(false)
     window.location.href = '/login' // Redirect to login
   }
