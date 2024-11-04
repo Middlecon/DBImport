@@ -118,11 +118,8 @@ export function updateConnectionData(
   )
 
   filteredSettings.forEach((setting) => {
-    let value = setting.value
+    const value = setting.value
 
-    if (setting.type === 'enum' && setting.enumOptions) {
-      value = reverseMapEnumValue(setting.label, value as string)
-    }
     // To do: use getKeyFromConnectionLabel instead of labelToKeyMap if that is better
     // const key = getKeyFromConnectionLabel(setting.label)
     const key = labelToKeyMap[setting.label]
@@ -178,7 +175,6 @@ const fieldsToRemove = [
   'generatedSqoopQuery',
   'generatedSqoopOptions',
   'generatedPkColumns',
-  'generatedForeignKeys',
   'copyFinished',
   'copySlave'
 ]
@@ -281,7 +277,7 @@ export function updateTableData(
       let value = setting.value as string
 
       if (setting.type === 'enum' && setting.enumOptions) {
-        value = reverseMapEnumValue(setting.label, value as string)
+        value = reverseMapEnumValue('import', setting.label, value as string)
       }
 
       const key = getKeyFromLabel(setting.label)
@@ -342,7 +338,6 @@ export function createTableData(
     validationCustomQuerySourceSQL: null,
     validationCustomQueryHiveSQL: null,
     validationCustomQueryValidateImportTable: null,
-    truncateTable: null,
     mappers: null,
     softDeleteDuringMerge: null,
     incrMode: null,
@@ -395,7 +390,7 @@ export function createTableData(
     let value = setting.value
 
     if (setting.type === 'enum' && setting.enumOptions) {
-      value = reverseMapEnumValue(setting.label, value as string)
+      value = reverseMapEnumValue('import', setting.label, value as string)
     }
     const key = labelToKeyMap[setting.label]
 
@@ -433,7 +428,7 @@ function updateExportColumnData(
   const part1: {
     targetColumnName: string | null
     targetColumnType: string | null
-    includeInExport: number
+    includeInExport: boolean
     operatorNotes: string | null
   } = {
     targetColumnName: currentColumn.targetColumnName,
@@ -465,7 +460,7 @@ function updateExportColumnData(
   if (key) {
     if (
       typeof settingValue === 'string' ||
-      typeof settingValue === 'number' ||
+      typeof settingValue === 'boolean' ||
       settingValue === null
     ) {
       ;(part1[key] as (typeof part1)[typeof key]) = settingValue
@@ -497,15 +492,15 @@ export function updateExportTableData(
       )
       console.log('updatedSettings', updatedSettings)
       console.log('indexInColumnsSetting', indexInColumnsSetting)
-      // const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-      const indexInColumns = indexInColumnsSetting?.value as number // Temporary until columnOrder is starting at 1 instead of 0
+      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+      // const indexInColumns = indexInColumnsSetting?.value as number // Temporary until columnOrder is starting at 1 instead of 0
 
       updateExportColumnData(updatedTableData, setting, indexInColumns)
     } else {
       let value = setting.value as string
 
       if (setting.type === 'enum' && setting.enumOptions) {
-        value = reverseMapEnumValue(setting.label, value as string)
+        value = reverseMapEnumValue('export', setting.label, value as string)
       }
 
       const key = getKeyFromExportLabel(setting.label)
@@ -632,11 +627,7 @@ export function updateImportDagData(
       )
       updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
-      let value = setting.value as string
-
-      if (setting.type === 'enum' && setting.enumOptions) {
-        value = reverseMapEnumValue(setting.label, value as string)
-      }
+      const value = setting.value as string
 
       const key = getKeyFromImportAirflowLabel(setting.label)
 
@@ -687,11 +678,7 @@ export function updateExportDagData(
       )
       updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
-      let value = setting.value as string
-
-      if (setting.type === 'enum' && setting.enumOptions) {
-        value = reverseMapEnumValue(setting.label, value as string)
-      }
+      const value = setting.value as string
 
       const key = getKeyFromExportAirflowLabel(setting.label)
 
@@ -740,11 +727,7 @@ export function updateCustomDagData(
       )
       updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
-      let value = setting.value as string
-
-      if (setting.type === 'enum' && setting.enumOptions) {
-        value = reverseMapEnumValue(setting.label, value as string)
-      }
+      const value = setting.value as string
 
       const key = getKeyFromCustomAirflowLabel(setting.label)
 
@@ -936,9 +919,39 @@ export function createCustomDagData(
   newCustomAirflowData: EditSetting[]
 ): CustomCreateAirflowDAG {
   // Part 1: Keys that will get values from newCustomAirflowData
+  // const part1: {
+  //   name: string
+  //   scheduleInterval: string
+  //   autoRegenerateDag: boolean
+  //   filterTable: string | null
+  // } = {
+  //   name: '',
+  //   scheduleInterval: 'None',
+  //   autoRegenerateDag: true,
+  //   filterTable: null
+  // }
+
+  // // Part 2: Rest of the keys required by the API
+  // const part2: Omit<CustomCreateAirflowDAG, keyof typeof part1> = {
+  //   retries: 5,
+  //   operatorNotes: null,
+  //   applicationNotes: null,
+  //   airflowNotes: null,
+  //   sudoUser: null,
+  //   timezone: null,
+  //   email: null,
+  //   emailOnFailure: false,
+  //   emailOnRetries: false,
+  //   tags: null,
+  //   slaWarningTime: null,
+  //   retryExponentialBackoff: false,
+  //   concurrency: null,
+  //   tasks: []
+  // }
+
   const part1: {
     name: string
-    scheduleInterval: string
+    scheduleInterval: string | null
     autoRegenerateDag: boolean
     filterTable: string | null
   } = {
@@ -950,18 +963,18 @@ export function createCustomDagData(
 
   // Part 2: Rest of the keys required by the API
   const part2: Omit<CustomCreateAirflowDAG, keyof typeof part1> = {
-    retries: 5,
+    retries: null,
     operatorNotes: null,
     applicationNotes: null,
     airflowNotes: null,
     sudoUser: null,
     timezone: null,
     email: null,
-    emailOnFailure: false,
-    emailOnRetries: false,
+    emailOnFailure: null,
+    emailOnRetries: null,
     tags: null,
     slaWarningTime: null,
-    retryExponentialBackoff: false,
+    retryExponentialBackoff: null,
     concurrency: null,
     tasks: []
   }

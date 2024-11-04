@@ -38,6 +38,13 @@ function AirflowTasks({ type }: { type: string }) {
   // const { mutate: updateTable } = useUpdateTable()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
+  const tasksData = useMemo(
+    () => [...(originalDagData?.tasks || [])],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [originalDagData, dataRefreshTrigger]
+  )
+  // const tasksData: AirflowTask[] = originalDagData.tasks
 
   const columns: Column<AirflowTask>[] = useMemo(
     () => [
@@ -95,8 +102,6 @@ function AirflowTasks({ type }: { type: string }) {
 
   if (!originalDagData) return <div className="loading">No data found yet.</div>
 
-  const tasksData: AirflowTask[] = originalDagData.tasks
-
   const handleSave = (updatedSettings: EditSetting[]) => {
     const dagDataCopy = { ...originalDagData }
 
@@ -134,6 +139,7 @@ function AirflowTasks({ type }: { type: string }) {
             queryClient.invalidateQueries({
               queryKey: ['airflows', type, dagName]
             }) // For getting fresh data from database to the cache
+            setDataRefreshTrigger((prev) => prev + 1)
             console.log('Update successful', response)
             setIsEditModalOpen(false)
           },

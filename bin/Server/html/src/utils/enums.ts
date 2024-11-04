@@ -117,3 +117,13 @@ export enum ExportTool {
   Spark = 'spark',
   Sqoop = 'sqoop'
 }
+
+export enum ExportValidationMethod {
+  CustomQuery = 'customQuery',
+  RowCount = 'rowCount'
+}
+
+export enum ExportIncrValidationMethod {
+  Full = 'full',
+  Incremental = 'incr'
+}

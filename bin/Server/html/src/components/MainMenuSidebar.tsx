@@ -114,6 +114,9 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }
+                onClick={() => {
+                  setIsAirflowSubmenuActive(false)
+                }}
               >
                 <ExportIcon />
                 {!minimized && <h2>Export</h2>}

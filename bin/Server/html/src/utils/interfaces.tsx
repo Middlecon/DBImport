@@ -4,8 +4,10 @@ import {
   AnonymizationFunction,
   EtlEngine,
   EtlType,
+  ExportIncrValidationMethod,
   ExportTool,
   ExportType,
+  ExportValidationMethod,
   ImportTool,
   ImportType,
   IncrMode,
@@ -102,7 +104,6 @@ export interface Table {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean
-  truncateTable: boolean
   mappers: 0
   softDeleteDuringMerge: boolean
   sourceRowcount: 0
@@ -138,7 +139,6 @@ export interface Table {
   generatedSqoopQuery: string
   generatedSqoopOptions: string
   generatedPkColumns: string
-  generatedForeignKeys: string
   datalakeSource: string
   operatorNotes: string
   copyFinished: string
@@ -177,7 +177,6 @@ export interface UITable {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  truncateTable: boolean
   mappers: 0
   softDeleteDuringMerge: boolean
   sourceRowcount: 0
@@ -213,7 +212,6 @@ export interface UITable {
   generatedSqoopQuery: string
   generatedSqoopOptions: string
   generatedPkColumns: string
-  generatedForeignKeys: string
   datalakeSource: string
   operatorNotes: string
   copyFinished: string
@@ -253,7 +251,6 @@ export interface UITableWithoutEnum {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  truncateTable: boolean
   mappers: number
   softDeleteDuringMerge: boolean
   sourceRowcount: number
@@ -289,7 +286,6 @@ export interface UITableWithoutEnum {
   generatedSqoopQuery: string
   generatedSqoopOptions: string
   generatedPkColumns: string
-  generatedForeignKeys: string
   datalakeSource: string
   operatorNotes: string
   copyFinished: string
@@ -328,7 +324,6 @@ export interface TableUpdate {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  truncateTable: boolean
   mappers: 0
   softDeleteDuringMerge: boolean
   incrMode: IncrMode
@@ -383,7 +378,6 @@ export interface TableCreateWithoutEnum {
   validationCustomQuerySourceSQL: null
   validationCustomQueryHiveSQL: null
   validationCustomQueryValidateImportTable: null
-  truncateTable: null
   mappers: null
   softDeleteDuringMerge: null
   incrMode: null
@@ -438,7 +432,6 @@ export interface TableCreate {
   validationCustomQuerySourceSQL: null
   validationCustomQueryHiveSQL: null
   validationCustomQueryValidateImportTable: null
-  truncateTable: null
   mappers: null
   softDeleteDuringMerge: null
   incrMode: null
@@ -581,24 +574,10 @@ export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
   exportToolDisplay: string
 }
 
-// export interface UIExportCnTables {
-//   connection: string
-//   targetSchema: string
-//   targetTable: string
-//   database: string
-//   table: string
-//   exportType: ExportType
-//   exportTool: ExportTool
-//   exportTypeDisplay: string
-//   exportToolDisplay: string
-// }
-
 export interface ExportTable {
   connection: string
   targetSchema: string
   targetTable: string
-  // exportType: string
-  // exportTool: string
   exportType: ExportType
   exportTool: ExportTool
   database: string
@@ -643,7 +622,7 @@ export interface ExportColumns {
   targetColumnName: string | null
   targetColumnType: string | null
   lastUpdateFromHive: string | null
-  includeInExport: number
+  includeInExport: boolean
   comment: string | null
   operatorNotes: string | null
 }
@@ -662,7 +641,7 @@ export interface UIExportTable {
   airflowPriority: number | null
   forceCreateTempTable: boolean | null
   validateExport: boolean | null
-  validationMethod: ValidationMethod | null
+  validationMethod: ExportValidationMethod | null
   validationCustomQueryHiveSQL: string | null
   validationCustomQueryTargetSQL: string | null
   uppercaseColumns: number | null
@@ -673,7 +652,7 @@ export interface UIExportTable {
   validationCustomQueryHiveValue: string | null
   validationCustomQueryTargetValue: string | null
   incrColumn: string | null
-  incrValidationMethod: IncrValidationMethod | null
+  incrValidationMethod: ExportIncrValidationMethod | null
   incrMinvalue: string | null
   incrMaxvalue: string | null
   incrMinvaluePending: string | null
@@ -833,7 +812,7 @@ export interface AirflowTask {
 export interface BaseCreateAirflowDAG {
   name: string
   scheduleInterval: string | null
-  retries: number
+  retries: number | null
   operatorNotes: string | null
   applicationNotes: string | null
   autoRegenerateDag: boolean
@@ -841,11 +820,11 @@ export interface BaseCreateAirflowDAG {
   sudoUser: string | null
   timezone: string | null
   email: string | null
-  emailOnFailure: boolean
-  emailOnRetries: boolean
+  emailOnFailure: boolean | null
+  emailOnRetries: boolean | null
   tags: string | null
   slaWarningTime: string | null
-  retryExponentialBackoff: boolean
+  retryExponentialBackoff: boolean | null
   concurrency: number | null
   tasks: AirflowTask[]
 }
@@ -853,18 +832,57 @@ export interface BaseCreateAirflowDAG {
 export interface ImportCreateAirflowDAG extends BaseCreateAirflowDAG {
   filterTable: string | null
   finishAllStage1First: boolean | null
-  runImportAndEtlSeparate: boolean
+  runImportAndEtlSeparate: boolean | null
   retriesStage1: number | null
   retriesStage2: number | null
   poolStage1: string | null
   poolStage2: string | null
-  metadataImport: boolean
+  metadataImport: boolean | null
 }
 
 export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
-  filterConnection: string
+  filterConnection: string | null
   filterTargetSchema: string | null
   filterTargetTable: string | null
 }
 
 export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
+
+// export interface BaseCreateAirflowDAG {
+//   name: string
+//   scheduleInterval: string | null
+//   retries: number
+//   operatorNotes: string | null
+//   applicationNotes: string | null
+//   autoRegenerateDag: boolean
+//   airflowNotes: string | null
+//   sudoUser: string | null
+//   timezone: string | null
+//   email: string | null
+//   emailOnFailure: boolean
+//   emailOnRetries: boolean
+//   tags: string | null
+//   slaWarningTime: string | null
+//   retryExponentialBackoff: boolean
+//   concurrency: number | null
+//   tasks: AirflowTask[]
+// }
+
+// export interface ImportCreateAirflowDAG extends BaseCreateAirflowDAG {
+//   filterTable: string | null
+//   finishAllStage1First: boolean | null
+//   runImportAndEtlSeparate: boolean
+//   retriesStage1: number | null
+//   retriesStage2: number | null
+//   poolStage1: string | null
+//   poolStage2: string | null
+//   metadataImport: boolean
+// }
+
+// export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
+//   filterConnection: string
+//   filterTargetSchema: string | null
+//   filterTargetTable: string | null
+// }
+
+// export type CustomCreateAirflowDAG = BaseCreateAirflowDAG

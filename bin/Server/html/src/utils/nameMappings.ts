@@ -83,18 +83,28 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   },
 
   // Export
+
   exportType: {
     [ExportType.Full]: 'Full',
     [ExportType.Incremental]: 'Incremental'
   },
-
   exportTool: {
     [ImportTool.Spark]: 'Spark',
     [ImportTool.Sqoop]: 'Sqoop'
   },
+  exportValidationMethod: {
+    [ValidationMethod.CustomQuery]: 'Custom Query',
+    [ValidationMethod.RowCount]: 'Row Count'
+  },
+  exportIncrValidationMethod: {
+    [IncrValidationMethod.Full]: 'Full',
+    [IncrValidationMethod.Incremental]: 'Incremental'
+  },
+
   // Airflow DAG task type:
+
   type: {
-    [AirflowDAGTaskType.ShellScript]: 'Shell Script',
+    [AirflowDAGTaskType.ShellScript]: 'shell script',
     [AirflowDAGTaskType.HiveSQL]: 'Hive SQL',
     [AirflowDAGTaskType.HiveSQLScript]: 'Hive SQL Script',
     [AirflowDAGTaskType.JDBCSQL]: 'JDBC SQL',
@@ -105,9 +115,9 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   },
   // Airflow DAG task placement:
   placement: {
-    [AirflowDAGTaskPlacement.BeforeMain]: 'Before Main',
-    [AirflowDAGTaskPlacement.AfterMain]: 'After Main',
-    [AirflowDAGTaskPlacement.InMain]: 'In Main'
+    [AirflowDAGTaskPlacement.BeforeMain]: 'before main',
+    [AirflowDAGTaskPlacement.AfterMain]: 'after main',
+    [AirflowDAGTaskPlacement.InMain]: 'in main'
   }
 }
 
@@ -130,7 +140,6 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Import Table': 'importTable',
     'History Database': 'historyDatabase',
     'History Table': 'historyTable',
-    'Truncate Table': 'truncateTable',
     'Allow Text Splitter': 'allowTextSplitter',
     'Force String': 'forceString',
     'Split By Column': 'splitByColumn',
@@ -147,7 +156,6 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Generated Sqoop Query': 'generatedSqoopQuery',
     'Generated Sqoop Options': 'generatedSqoopOptions',
     'Generated Primary Key Columns': 'generatedPkColumns',
-    'Generated Foreign Keys': 'generatedForeignKeys',
     'Incremental Min Value': 'incrMinvalue',
     'Incremental Max Value': 'incrMaxvalue',
     'Pending Min Value': 'incrMinvaluePending',
@@ -319,7 +327,12 @@ export const nameReverseMappings: {
     Hash: AnonymizationFunction.Hash,
     'Replace with star': AnonymizationFunction.ReplaceWithStar,
     'Show first 4 chars': AnonymizationFunction.ShowFirst4Chars
-  },
+  }
+}
+
+export const exportNameReverseMappings: {
+  [category: string]: { [key: string]: string }
+} = {
   'Export Type': {
     Full: ExportType.Full,
     Incremental: ExportType.Incremental
@@ -327,6 +340,14 @@ export const nameReverseMappings: {
   'Export Tool': {
     Spark: ExportTool.Spark,
     Sqoop: ExportTool.Sqoop
+  },
+  'Incremental Validation Method': {
+    Full: IncrValidationMethod.Full,
+    Incremental: IncrValidationMethod.Incremental
+  },
+  'Validation Method': {
+    'Custom Query': ValidationMethod.CustomQuery,
+    'Row Count': ValidationMethod.RowCount
   }
 }
 
@@ -348,10 +369,14 @@ export function mapEnumValue<T extends string>(
 }
 
 export const reverseMapEnumValue = (
+  type: 'import' | 'export',
   category: string,
   displayValue: string
 ): string => {
-  const categoryMappings = nameReverseMappings[category]
+  const categoryMappings =
+    type === 'import'
+      ? nameReverseMappings[category]
+      : exportNameReverseMappings[category]
 
   if (!categoryMappings) {
     throw new Error(`No mappings found for category: ${category}`)

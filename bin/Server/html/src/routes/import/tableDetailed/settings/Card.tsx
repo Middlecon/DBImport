@@ -92,6 +92,14 @@ function Card({
     }
   }
 
+  const getInitWidth = () => {
+    const widths: { [key: string]: number } = {
+      'export:Main Settings': 400,
+      'import:ETL Options': 616
+    }
+    return widths[`${type}:${title}`] || 584
+  }
+
   return (
     <div className={isDisabled ? 'card-disabled' : 'card'}>
       <div className="card-head">
@@ -111,7 +119,7 @@ function Card({
           settings={settings}
           onSave={handleSave}
           onClose={handleCloseModal}
-          initWidth={type === 'export' && title === 'Main Settings' ? 400 : 584}
+          initWidth={getInitWidth()}
         />
       )}
     </div>
