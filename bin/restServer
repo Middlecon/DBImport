@@ -182,13 +182,13 @@ def main(argv):
 
 	elif action == "stop":
 		print("Stopping DBImport REST Server")
-		for line in os.popen("ps ax|grep -E \"/restServer start$|/restServer noDaemon\"|grep -v grep"):
+		for line in os.popen("ps ax|grep -E \"/restServer restart$|/restServer start$|/restServer noDaemon\"|grep -v grep"):
 			pid = int(line.split()[0])
 			os.kill(pid, signal.SIGTERM)
 
 	elif action == "restart":
 		print("Stopping DBImport REST Server")
-		for line in os.popen("ps ax|grep -E \"/restServer start$|/restServer noDaemon\"|grep -v grep"):
+		for line in os.popen("ps ax|grep -E \"/restServer restart$|/restServer start$|/restServer noDaemon\"|grep -v grep"):
 			pid = int(line.split()[0])
 			os.kill(pid, signal.SIGTERM)
 

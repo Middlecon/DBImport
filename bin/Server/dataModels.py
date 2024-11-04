@@ -413,7 +413,7 @@ class exportTableColumnsRead(BaseModel):
 	targetColumnName: Union[str, None] = None
 	targetColumnType: Union[str, None] = None
 	lastUpdateFromHive: Union[str, None] = None
-	includeInExport: Union[int, None] = None
+	includeInExport: bool
 	comment: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 
@@ -427,7 +427,7 @@ class exportTableColumnsWrite(BaseModel):
 	targetColumnName: Union[str, None] = None
 	targetColumnType: Union[str, None] = None
 	lastUpdateFromHive: Union[str, None] = None
-	includeInExport: Union[int, None] = None
+	includeInExport: bool
 	comment: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 

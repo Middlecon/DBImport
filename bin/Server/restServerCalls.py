@@ -1678,7 +1678,9 @@ class dbCalls:
 #			resultDict['targetTable'] = row[2]
 			resultDict['columnName'] = row[3]
 			resultDict['columnType'] = row[4]
-			resultDict['columnOrder'] = row[5]
+			# ColumnOrder should start with 1 in API, but database stores is as a start with 0. 
+			# For ImportColumns, it starts with 1. So we need to do a +1 here to have the same functionality as importColumns
+			resultDict['columnOrder'] = int(row[5]) + 1
 			resultDict['targetColumnName'] = row[6]
 			resultDict['targetColumnType'] = row[7]
 			try:
@@ -1870,7 +1872,7 @@ class dbCalls:
 						table_id = tableID,
 						column_name = getattr(column, "columnName"),
 						column_type = getattr(column, "columnType"),
-						column_order = getattr(column, "columnOrder"),
+						column_order = int(getattr(column, "columnOrder")) - 1,
 						hive_db = getattr(table, "database"),
 						hive_table = getattr(table, "table"),
 						target_column_name = getattr(column, "targetColumnName"),
@@ -1892,7 +1894,7 @@ class dbCalls:
 							"column_id": columnID,
 							"column_name": getattr(column, "columnName"),
 							"column_type": getattr(column, "columnType"),
-							"column_order": getattr(column, "columnOrder"),
+							"column_order": int(getattr(column, "columnOrder")) - 1,
 							"hive_db": getattr(table, "database"),
 							"hive_table": getattr(table, "table"),
 							"target_column_name": getattr(column, "targetColumnName"),
