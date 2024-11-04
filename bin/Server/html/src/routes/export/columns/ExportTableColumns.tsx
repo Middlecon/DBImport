@@ -47,8 +47,7 @@ function ExportTableColumns() {
       { header: 'Last Update From Hive', accessor: 'lastUpdateFromHive' },
       { header: 'Include In Export', accessor: 'includeInExport' },
       { header: 'Comment', accessor: 'comment' },
-      { header: 'Operator Notes', accessor: 'operatorNotes' },
-      { header: 'Edit', isAction: 'edit' }
+      { header: 'Operator Notes', accessor: 'operatorNotes' }
     ],
     []
   )

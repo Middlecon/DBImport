@@ -48,8 +48,7 @@ function TableColumns() {
       { header: 'Last Update From Source', accessor: 'lastUpdateFromSource' },
       { header: 'Comment', accessor: 'comment' },
       { header: 'Operator Notes', accessor: 'operatorNotes' },
-      { header: 'Anonymization Function', accessor: 'anonymizationFunction' },
-      { header: 'Edit', isAction: 'edit' }
+      { header: 'Anonymization Function', accessor: 'anonymizationFunction' }
     ],
     []
   )

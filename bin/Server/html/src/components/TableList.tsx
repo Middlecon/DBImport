@@ -223,7 +223,7 @@ function TableList<T>({
         )
       }
 
-      if (column.header === 'Task Name') {
+      if (column.header === 'Task Name' || column.header === 'Column Name') {
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
