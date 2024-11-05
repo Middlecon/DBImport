@@ -76,7 +76,7 @@ class dbCalls:
 		# self.common_config.reconnectConfigDatabase(printReconnectMessage=True, buffered=False)
 
 		self.logdir = configuration.get("Server", "logdir")
-		self.ADMIN_USER = self.common_config.getConfigValue("restserver_admin_user")
+		self.adminUser = self.common_config.getConfigValue("restserver_admin_user")
 
 		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "spark_max_executors", "timezone" ]
 
@@ -402,20 +402,58 @@ class dbCalls:
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
 
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
 
-		# self.common_config.reconnectConfigDatabase(buffered=False)
-		self.common_config.reconnectConfigDatabase(printReconnectMessage=False)
+		configurationTable = aliased(configSchema.configuration)
+		tableJDBCconnections = aliased(configSchema.jdbcConnections)
+
+		configurations = (session.query(
+					configurationTable.configKey,
+					configurationTable.valueInt,
+					configurationTable.valueStr,
+					configurationTable.valueDate
+				)
+				.select_from(configurationTable)
+				.order_by(configurationTable.configKey)
+				.all()
+			)
 
 		resultDict = {}
-		for key in self.allConfigKeys:
-			if key in ["restserver_admin_user", "restserver_authentication_method", "restserver_secret_key", "restserver_token_ttl"]:
-				if currentUser == self.ADMIN_USER:
-					resultDict[key] = self.common_config.getConfigValue(key)
-			else:
-				resultDict[key] = self.common_config.getConfigValue(key)
+		for row in configurations:
+			if row[0] in ["restserver_secret_key"]:
+				# These should not be visable in the REST service. Skip them
+				continue
+
+			if row[0] == "restserver_admin_user":
+				self.adminUser = row[2]
+
+			valueColumn, boolValue = self.common_config.getConfigValueColumn(row[0], ignoreErrorOutput=True)
+			if valueColumn == None:
+				# If there is no handling of the value in self.common_config.getConfigValueColumn we will ignore it. 
+				# But even if it's handling in that configuration, it must also exists in the datamodel for it to be shown
+				continue
+
+			if row[0] in ["restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl"]:
+				if currentUser != self.adminUser:
+					continue
+
+			if valueColumn == "valueInt":
+				resultDict[row[0]] = row[1]
+			elif valueColumn == "valueStr":
+				resultDict[row[0]] = row[2]
+			elif valueColumn == "valueDate":
+				resultDict[row[0]] = row[3]
+
+		session.remove()
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		return jsonResult
+
+
 
 	def updateConfiguration(self, configuration, currentUser):
 		""" Update configuration items in the configuration table """
@@ -449,12 +487,18 @@ class dbCalls:
 						raise HTTPException(
 							status_code=status.HTTP_400_BAD_REQUEST,
 							detail="only valid options for 'restserver_authentication_method' is 'local' and 'pam'")
+
+					if key in ["restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl"]:
+						if currentUser != self.adminUser:
+							raise HTTPException(
+								status_code=status.HTTP_403_FORBIDDEN,
+								detail="You are not allowed to update '%s'"%(key))
+
 		except AttributeError as e:
 			print(e)
 			raise HTTPException(
 				status_code=status.HTTP_400_BAD_REQUEST,
 				detail="invalid configuration option")
-
 
 		for key in self.allConfigKeys:
 			if type(getattr(configuration, key)) in (str, bool, int):

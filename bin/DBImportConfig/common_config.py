@@ -1856,7 +1856,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable
 
-	def getConfigValueColumn(self, key):
+	def getConfigValueColumn(self, key, ignoreErrorOutput = False):
 		""" Return the type of the column that have the value for the specified key """
 
 		valueColumn = ""
@@ -1870,9 +1870,14 @@ class config(object, metaclass=Singleton):
 		elif key in ("import_staging_table", "import_staging_database", "import_work_table", "import_work_database", "import_history_table", "import_history_database", "export_staging_database", "hive_validate_table", "airflow_aws_instanceids", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile", "import_columnname_delete", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_update", "import_columnname_histtime", "import_columnname_source", "restserver_secret_key", "restserver_admin_user", "restserver_authentication_method", "post_data_to_awssns_topic"):
 			valueColumn = "valueStr"
 		else:
-			logging.error("There is no configuration with the name '%s'"%(key))
-			self.remove_temporary_files()
-			sys.exit(1)
+			if ignoreErrorOutput == False:
+				# This is needed from the REST interface, as it's parsing everything in the database. And entries may exists that isnt a valid config anymore
+				logging.error("There is no configuration with the name '%s'"%(key))
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				valueColumn = None
+				boolValue = None
 
 		return (valueColumn, boolValue)
 
