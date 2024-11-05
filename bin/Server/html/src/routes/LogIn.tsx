@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 // import DBImportIconTextLogo from '../assets/icons/DBImportIconTextLogo'
 import LogoWithText from '../components/LogoWithText'
 import { useAtom } from 'jotai'
-import { latestSelectedMenuOptionAtom, usernameAtom } from '../atoms/atoms'
+import { latestPathAtom, usernameAtom } from '../atoms/atoms'
 import { getCookie, setCookie } from '../utils/cookies'
 
 interface LogInResponse {
@@ -22,7 +22,7 @@ interface LogInResponse {
 
 function LogIn() {
   const [, setUsername] = useAtom(usernameAtom)
-  const [latestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
+  const [latestPath] = useAtom(latestPathAtom)
 
   const [formData, setFormData] = useState({
       username: '',
@@ -45,7 +45,7 @@ function LogIn() {
 
     try {
       await loginUser(formData)
-      navigate(latestSelectedMenuOption ? latestSelectedMenuOption : '/')
+      navigate(latestPath ? latestPath : '/')
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message)

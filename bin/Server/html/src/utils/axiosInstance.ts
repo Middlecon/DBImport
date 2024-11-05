@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { deleteCookie, getCookie } from './cookies'
+import { setLatestPath } from '../atoms/atoms'
 
 const axiosInstance = axios.create({
   baseURL: '/api',
@@ -31,6 +32,7 @@ axiosInstance.interceptors.response.use(
     console.log('error.response AXIOS', error.response)
 
     if (error.response && error.response.status === 401) {
+      setLatestPath(window.location.pathname)
       deleteCookie('DBI_auth_token')
 
       window.location.href = '/login'

@@ -1758,3 +1758,71 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
 
   return rowData
 }
+
+export function initialCreateExportTableSettings(connection: string) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Connection',
+      value: connection,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.database
+    }, //Free-text, default selected db, potentially copyable?, required
+    {
+      label: 'Table',
+      value: null,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.table
+    }, // Free-text, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Source Schema',
+      value: null,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceSchema
+    }, // Free-text, varchar(256), required
+    {
+      label: 'Source Table',
+      value: '',
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sourceTable
+    }, // Free-text, varchar(256), required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Import Type',
+      value: mapDisplayValue('importPhaseType', ImportType.Full),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType'),
+      infoText: infoTexts.table.import.importPhaseType
+    }, // Enum mapping for 'Import Type'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType'),
+      infoText: infoTexts.table.import.etlPhaseType
+    }, // Enum mapping for 'ETL Type'
+    {
+      label: 'Import Tool',
+      value: mapDisplayValue('importTool', ImportTool.Spark),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool'),
+      infoText: infoTexts.table.import.importTool
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Engine',
+      value: mapDisplayValue('etlEngine', EtlEngine.Spark),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine'),
+      infoText: infoTexts.table.import.etlEngine
+    } // Enum mapping for 'ETL Engine'
+  ]
+  return settings
+}

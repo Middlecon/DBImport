@@ -1,49 +1,51 @@
-import { createContext, useEffect, useState } from 'react'
-import { deleteCookie, getCookie } from './utils/cookies'
-import axiosInstance from './utils/axiosInstance'
+// May not be used
 
-interface AuthContextType {
-  isAuthenticated: boolean
-  logout: () => void
-}
+// import { createContext, useEffect, useState } from 'react'
+// import { deleteCookie, getCookie } from './utils/cookies'
+// import axiosInstance from './utils/axiosInstance'
 
-export const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  logout: () => {}
-})
+// interface AuthContextType {
+//   isAuthenticated: boolean
+//   logout: () => void
+// }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    !!getCookie('DBI_auth_token')
-  )
+// export const AuthContext = createContext<AuthContextType>({
+//   isAuthenticated: false,
+//   logout: () => {}
+// })
 
-  useEffect(() => {
-    const interceptor = axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response && error.response.status === 401) {
-          logout()
-        }
-        return Promise.reject(error)
-      }
-    )
+// export function AuthProvider({ children }: { children: React.ReactNode }) {
+//   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+//     !!getCookie('DBI_auth_token')
+//   )
 
-    return () => {
-      axiosInstance.interceptors.response.eject(interceptor)
-    }
-  }, [])
+//   useEffect(() => {
+//     const interceptor = axiosInstance.interceptors.response.use(
+//       (response) => response,
+//       (error) => {
+//         if (error.response && error.response.status === 401) {
+//           logout()
+//         }
+//         return Promise.reject(error)
+//       }
+//     )
 
-  function logout() {
-    deleteCookie('DBI_auth_token')
-    setIsAuthenticated(false)
-    window.location.href = '/login' // Redirect to login
-  }
+//     return () => {
+//       axiosInstance.interceptors.response.eject(interceptor)
+//     }
+//   }, [])
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, logout }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+//   function logout() {
+//     deleteCookie('DBI_auth_token')
+//     setIsAuthenticated(false)
+//     window.location.href = '/login' // Redirect to login
+//   }
+
+//   return (
+//     <AuthContext.Provider value={{ isAuthenticated, logout }}>
+//       {children}
+//     </AuthContext.Provider>
+//   )
+// }
 
 // export const useAuth = () => useContext(AuthContext);

@@ -1,4 +1,4 @@
-import { atom } from 'jotai'
+import { atom, getDefaultStore } from 'jotai'
 import { atomWithSessionStorage } from './utils'
 
 export const selectedImportDatabaseAtom = atomWithSessionStorage<string | null>(
@@ -48,6 +48,12 @@ export const usernameAtom = atomWithSessionStorage<string | null>(
   null
 )
 
-export const latestSelectedMenuOptionAtom = atomWithSessionStorage<
-  string | null
->('latestSelectedMenuOption', null)
+export const latestPathAtom = atomWithSessionStorage<string | null>(
+  'latestPath',
+  null
+)
+
+export const setLatestPath = (value: string) => {
+  const store = getDefaultStore()
+  store.set(latestPathAtom, value)
+}

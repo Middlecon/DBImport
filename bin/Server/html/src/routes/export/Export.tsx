@@ -13,7 +13,6 @@ import { useAtom } from 'jotai'
 import {
   exportCnListFiltersAtom,
   isDbDropdownReadyAtom,
-  latestSelectedMenuOptionAtom,
   selectedExportConnectionAtom
 } from '../../atoms/atoms'
 // import { useCreateExportTable } from '../../utils/mutations'
@@ -39,7 +38,6 @@ function Export() {
     selectedExportConnectionAtom
   )
   const [, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
-  const [, setLatestSelectedMenuOption] = useAtom(latestSelectedMenuOptionAtom)
 
   useEffect(() => {
     if (isLoading || !cnNames.length) return
@@ -69,7 +67,6 @@ function Export() {
 
   const handleSelect = (item: string | null) => {
     setSelectedFilters({})
-    setLatestSelectedMenuOption(`/export/${item}`)
     navigate(`/export/${item}`)
   }
 
