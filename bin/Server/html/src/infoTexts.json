@@ -184,7 +184,7 @@
       "emailOnRetries": "Send email on retries",
       "tags": "Comma seperated list of Airflow tags that will be set on the Dag",
       "slaWarningTime": "Maximum time this DAG should run before Airflow triggers a SLA miss",
-      "retryExponentialBackoff": "true = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, false = Run with a fixed time of 5 min between the task retries",
+      "retryExponentialBackoff": "true = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, \nfalse = Run with a fixed time of 5 min between the task retries",
       "concurrency": "Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration"
     },
     "custom": {
@@ -202,7 +202,7 @@
       "emailOnRetries": "Send email on retries",
       "tags": "Comma seperated list of Airflow tags that will be set on the Dag",
       "slaWarningTime": "Maximum time this DAG should run before Airflow triggers a SLA miss",
-      "retryExponentialBackoff": "true = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, false = Run with a fixed time of 5 min between the task retries",
+      "retryExponentialBackoff": "true = Use the retry_exponential_backoff Airflow function that will cause the retry between failed tasks to be longer and longer each time instead of a fixed time, \nfalse = Run with a fixed time of 5 min between the task retries",
       "concurrency": "Set the max number of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration"
     },
     "tasks": {
@@ -242,8 +242,8 @@
     "owner": "Owner of system and/or data. Used by Atlas integration",
     "environment": "Name of the Environment type",
     "seedFile": "File that will be used to fetch the custom seed that will be used for anonymization functions on data from the connection",
-    "createForeignKey": "true = Create foreign keys, false = Dont create foreign keys",
-    "atlasDiscovery": "true = Discover tables/views on this connection, false = Dont use Atlas discovery on this connection",
+    "createForeignKey": "true = Create foreign keys, \nfalse = Dont create foreign keys",
+    "atlasDiscovery": "true = Discover tables/views on this connection, \nfalse = Dont use Atlas discovery on this connection",
     "atlasIncludeFilter": "Include filter for Atlas discovery",
     "atlasExcludeFilter": "Exclude filter for Atlas discovery",
     "atlasLastDiscovery": ""
