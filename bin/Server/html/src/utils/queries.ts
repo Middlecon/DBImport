@@ -28,8 +28,10 @@ import { mapDisplayValue, mapEnumValue } from './nameMappings'
 import {
   EtlEngine,
   EtlType,
+  ExportIncrValidationMethod,
   ExportTool,
   ExportType,
+  ExportValidationMethod,
   ImportTool,
   ImportType,
   IncrMode,
@@ -278,13 +280,16 @@ export const fetchExportTableData = async (
     exportTool: mapEnumValue(data.exportTool, Object.values(ExportTool)),
     validationMethod:
       typeof data.validationMethod === 'string'
-        ? mapEnumValue(data.validationMethod, Object.values(ValidationMethod))
+        ? mapEnumValue(
+            data.validationMethod,
+            Object.values(ExportValidationMethod)
+          )
         : null,
     incrValidationMethod:
       typeof data.incrValidationMethod === 'string'
         ? mapEnumValue(
             data.incrValidationMethod,
-            Object.values(IncrValidationMethod)
+            Object.values(ExportIncrValidationMethod)
           )
         : null
   }
