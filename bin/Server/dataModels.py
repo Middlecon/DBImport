@@ -142,12 +142,7 @@ class configuration(BaseModel):
 	post_data_to_awssns_topic: Union[str, None] = None
 	restserver_admin_user: Union[str, None] = None
 	restserver_authentication_method: Union[str, None] = None
-#	restserver_secret_key: Union[str, None] = None
 	restserver_token_ttl: Union[int, None] = None
-	rest_timeout: Union[int, None] = None
-	rest_trustcafile: Union[str, None] = None
-	rest_url: Union[str, None] = None
-	rest_verifyssl: Union[bool, None] = None
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
 
@@ -322,6 +317,7 @@ class importTableDetailsWrite(BaseModel):
 	comment: Union[str, None] = None
 	datalakeSource: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
+	copySlave: Union[bool, None] = None
 	createForeignKeys: Union[int, None] = None
 	invalidateImpala: Union[int, None] = None
 	customMaxQuery: Union[str, None] = None

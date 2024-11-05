@@ -76,8 +76,9 @@ class dbCalls:
 		# self.common_config.reconnectConfigDatabase(printReconnectMessage=True, buffered=False)
 
 		self.logdir = configuration.get("Server", "logdir")
+		self.ADMIN_USER = self.common_config.getConfigValue("restserver_admin_user")
 
-		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
+		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "spark_max_executors", "timezone" ]
 
 		self.createDefaultAdminUser()
 
@@ -397,7 +398,7 @@ class dbCalls:
 		# return (jsonResult, returnCode)
 		return (result, returnCode)
 
-	def getConfiguration(self):
+	def getConfiguration(self, currentUser):
 		""" Returns all configuration items from the configuration table """
 		log = logging.getLogger(self.logger)
 
@@ -407,7 +408,11 @@ class dbCalls:
 
 		resultDict = {}
 		for key in self.allConfigKeys:
-			resultDict[key] = self.common_config.getConfigValue(key)
+			if key in ["restserver_admin_user", "restserver_authentication_method", "restserver_secret_key", "restserver_token_ttl"]:
+				if currentUser == self.ADMIN_USER:
+					resultDict[key] = self.common_config.getConfigValue(key)
+			else:
+				resultDict[key] = self.common_config.getConfigValue(key)
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		return jsonResult
@@ -1111,6 +1116,7 @@ class dbCalls:
 		if getattr(table, "invalidateImpala") == None:							setattr(table, "invalidateImpala", -1)
 		if getattr(table, "mergeCompactionMethod") == None:						setattr(table, "mergeCompactionMethod", "default")
 		if getattr(table, "createForeignKeys") == None:							setattr(table, "createForeignKeys", -1)
+		if getattr(table, "copySlave") == None:									setattr(table, "copySlave", 0)
 
 		try:
 			query = insert(configSchema.importTables).values(
@@ -1156,6 +1162,7 @@ class dbCalls:
 				comment = getattr(table, "comment"),
 				datalake_source = getattr(table, "datalakeSource"),
 				operator_notes = getattr(table, "operatorNotes"),
+				copy_slave = getattr(table, "copySlave"),
 				create_foreign_keys = getattr(table, "createForeignKeys"),
 				invalidate_impala = getattr(table, "invalidateImpala"),
 				custom_max_query = getattr(table, "customMaxQuery"),
@@ -1207,6 +1214,7 @@ class dbCalls:
 				comment = getattr(table, "comment"),
 				datalake_source = getattr(table, "datalakeSource"),
 				operator_notes = getattr(table, "operatorNotes"),
+				copy_slave = getattr(table, "copySlave"),
 				create_foreign_keys = getattr(table, "createForeignKeys"),
 				invalidate_impala = getattr(table, "invalidateImpala"),
 				custom_max_query = getattr(table, "customMaxQuery"),

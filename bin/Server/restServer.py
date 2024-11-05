@@ -339,7 +339,7 @@ async def change_configuration_for_jdbc_drivers(jdbcDriver: dataModels.jdbcDrive
 
 @app.get("/config/getConfig", response_model=dataModels.configuration)
 async def get_global_configuration(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-    return dbCalls.getConfiguration()
+    return dbCalls.getConfiguration(current_user["username"])
 
 @app.post("/config/updateConfig")
 async def update_global_configuration(configuration: dataModels.configuration, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
