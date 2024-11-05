@@ -11,7 +11,7 @@
       "importTool": "What tool should be used for importing data",
       "etlEngine": "What engine will be used to process etl stage",
       "lastUpdateFromSource": "Timestamp of last schema update from source. Fetching the schema is the first thing that happens during an import. During this part of the import, all columns are fetched and the list of columns will be updated. Before that, no columns exists for the table",
-      "sourceTableType": "Type of table on the source system. This is a information only and can not be changed",
+      "sourceTableType": "Information Only\nType of table on the source system. Will show if this is a real table or a view",
       "importDatabase": "Override the database name used for the import table. Rules for default databases name is defined in 'Configurations'",
       "importTable": "Override the table name used for the import table. Rules for default table name is defined in 'Configurations'",
       "historyDatabase": "Override the database name used for the history table if that exists. Rules for default history databases name is defined in 'Configurations'",
