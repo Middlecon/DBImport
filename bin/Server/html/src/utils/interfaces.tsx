@@ -710,6 +710,47 @@ export interface UIExportTableWithoutEnum {
   columns: ExportColumns[]
 }
 
+export interface ExportTableCreateWithoutEnum {
+  connection: string
+  targetSchema: string
+  targetTable: string
+  exportType: string
+  exportTool: string
+  database: string
+  table: string
+  lastUpdateFromHive: string | null
+  sqlWhereAddition: string | null
+  includeInAirflow: boolean | null
+  airflowPriority: number | null
+  forceCreateTempTable: boolean | null
+  validateExport: boolean | null
+  validationMethod: string | null
+  validationCustomQueryHiveSQL: string | null
+  validationCustomQueryTargetSQL: string | null
+  uppercaseColumns: number | null
+  truncateTarget: boolean | null
+  mappers: number | null
+  tableRowcount: number | null
+  targetRowcount: number | null
+  validationCustomQueryHiveValue: string | null
+  validationCustomQueryTargetValue: string | null
+  incrColumn: string | null
+  incrValidationMethod: string | null
+  incrMinvalue: string | null
+  incrMaxvalue: string | null
+  incrMinvaluePending: string | null
+  incrMaxvaluePending: string | null
+  sqoopOptions: string | null
+  lastSize: number | null
+  lastRows: number | null
+  lastMappers: number | null
+  lastExecution: number | null
+  javaHeap: number | null
+  createTargetTableSql: string | null
+  operatorNotes: string | null
+  columns: ExportColumns[]
+}
+
 // Airflow
 
 export interface BaseAirflowsData {

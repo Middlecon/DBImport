@@ -1764,64 +1764,57 @@ export function initialCreateExportTableSettings(connection: string) {
       label: 'Connection',
       value: connection,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.database
-    }, //Free-text, default selected db, potentially copyable?, required
+      infoText: infoTexts.table.export.connection
+    }, //Free-text, default selected connection, required
+    {
+      label: 'Target Table',
+      value: null,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.targetTable
+    }, // Free-text, varchar(256), required
+    {
+      label: 'Target Schema',
+      value: null,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.targetSchema
+    }, // Free-text, varchar(256), required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Database',
+      value: null,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.database
+    }, // Free-text, varchar(256), required
     {
       label: 'Table',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.table
-    }, // Free-text, required
+      infoText: infoTexts.table.export.table
+    }, // Free-text, varchar(256), required
+
     {
       label: '',
       value: '',
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Source Schema',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceSchema
-    }, // Free-text, varchar(256), required
-    {
-      label: 'Source Table',
-      value: '',
-      type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceTable
-    }, // Free-text, varchar(256), required
-    {
-      label: '',
-      value: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
-      label: 'Import Type',
-      value: mapDisplayValue('importPhaseType', ImportType.Full),
+      label: 'Export Type',
+      value: mapDisplayValue('exportType', ExportType.Full),
       type: SettingType.Enum,
-      enumOptions: getEnumOptions('importPhaseType'),
-      infoText: infoTexts.table.import.importPhaseType
+      enumOptions: getEnumOptions('exportType'),
+      infoText: infoTexts.table.export.exportType
     }, // Enum mapping for 'Import Type'
     {
-      label: 'ETL Type',
-      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
+      label: 'Export Tool',
+      value: mapDisplayValue('exportTool', ExportTool.Spark),
       type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlPhaseType'),
-      infoText: infoTexts.table.import.etlPhaseType
-    }, // Enum mapping for 'ETL Type'
-    {
-      label: 'Import Tool',
-      value: mapDisplayValue('importTool', ImportTool.Spark),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('importTool'),
-      infoText: infoTexts.table.import.importTool
-    }, // Enum mapping for 'Import Tool'
-    {
-      label: 'ETL Engine',
-      value: mapDisplayValue('etlEngine', EtlEngine.Spark),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlEngine'),
-      infoText: infoTexts.table.import.etlEngine
-    } // Enum mapping for 'ETL Engine'
+      enumOptions: getEnumOptions('exportTool'),
+      infoText: infoTexts.table.export.exportTool
+    } // Enum mapping for 'Import Tool'
   ]
   return settings
 }

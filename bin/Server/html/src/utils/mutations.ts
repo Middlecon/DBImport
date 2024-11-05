@@ -10,7 +10,8 @@ import {
   CustomCreateAirflowDAG,
   ExportCreateAirflowDAG,
   ImportCreateAirflowDAG,
-  UIExportTableWithoutEnum
+  UIExportTableWithoutEnum,
+  ExportTableCreateWithoutEnum
 } from './interfaces'
 
 // Connection
@@ -82,9 +83,9 @@ export const useCreateImportTable = () => {
 
 // Export Table
 
-const postCreateExportTable = async (table: TableCreateWithoutEnum) => {
+const postCreateExportTable = async (table: ExportTableCreateWithoutEnum) => {
   console.log('postTable table', table)
-  const response = await axiosInstance.post('/import/table', table)
+  const response = await axiosInstance.post('/export/table', table)
   console.log('postTable response.data', response.data)
 
   return response.data
@@ -92,7 +93,7 @@ const postCreateExportTable = async (table: TableCreateWithoutEnum) => {
 
 export const useCreateExportTable = () => {
   return useMutation({
-    mutationFn: (tableUpdated: TableCreateWithoutEnum) => {
+    mutationFn: (tableUpdated: ExportTableCreateWithoutEnum) => {
       return postCreateExportTable(tableUpdated)
     }
   })

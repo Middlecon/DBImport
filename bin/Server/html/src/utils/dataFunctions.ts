@@ -1,4 +1,11 @@
-import { EtlEngine, EtlType, ImportTool, ImportType } from './enums'
+import {
+  EtlEngine,
+  EtlType,
+  ExportTool,
+  ExportType,
+  ImportTool,
+  ImportType
+} from './enums'
 import {
   UITable,
   EditSetting,
@@ -17,7 +24,8 @@ import {
   ExportCreateAirflowDAG,
   UIExportTable,
   ExportColumns,
-  UIExportTableWithoutEnum
+  UIExportTableWithoutEnum,
+  ExportTableCreateWithoutEnum
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
@@ -521,6 +529,104 @@ export function updateExportTableData(
   return finalTableData
 }
 
+export function createExportTableData(
+  newTableSettings: EditSetting[]
+): ExportTableCreateWithoutEnum {
+  // Part 1: Keys that will get values from newTableSettings
+  const part1: {
+    connection: string
+    targetTable: string
+    targetSchema: string
+    database: string
+    table: string
+    exportType: string
+    exportTool: string
+  } = {
+    connection: '',
+    targetTable: '',
+    targetSchema: '',
+    database: '',
+    table: '',
+    exportType: ExportType.Full,
+    exportTool: ExportTool.Spark
+  }
+
+  // Part 2: Keys that will retain default values
+  const part2: Omit<ExportTableCreateWithoutEnum, keyof typeof part1> = {
+    lastUpdateFromHive: null,
+    sqlWhereAddition: null,
+    includeInAirflow: true,
+    airflowPriority: null,
+    forceCreateTempTable: false,
+    validateExport: true,
+    validationMethod: 'rowCount',
+    validationCustomQueryHiveSQL: null,
+    validationCustomQueryTargetSQL: null,
+    uppercaseColumns: -1,
+    truncateTarget: true,
+    mappers: -1,
+    tableRowcount: null,
+    targetRowcount: null,
+    validationCustomQueryHiveValue: null,
+    validationCustomQueryTargetValue: null,
+    incrColumn: null,
+    incrValidationMethod: null,
+    incrMinvalue: null,
+    incrMaxvalue: null,
+    incrMinvaluePending: null,
+    incrMaxvaluePending: null,
+    sqoopOptions: null,
+    lastSize: null,
+    lastRows: null,
+    lastMappers: null,
+    lastExecution: null,
+    javaHeap: null,
+    createTargetTableSql: null,
+    operatorNotes: null,
+    columns: []
+  }
+
+  const labelToKeyMap: Record<string, keyof typeof part1> = {
+    Connection: 'connection',
+    'Target Table': 'targetTable',
+    'Target Schema': 'targetSchema',
+    Database: 'database',
+    Table: 'table',
+    'Export Type': 'exportType',
+    'Export Tool': 'exportTool'
+  }
+
+  const filteredSettings = newTableSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    let value = setting.value
+
+    if (setting.type === 'enum' && setting.enumOptions) {
+      value = reverseMapEnumValue('export', setting.label, value as string)
+    }
+    const key = labelToKeyMap[setting.label]
+
+    if (key) {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        part1[key] = value as (typeof part1)[typeof key]
+      }
+    }
+  })
+
+  const finalCreateTableData: ExportTableCreateWithoutEnum = {
+    ...part2,
+    ...part1
+  }
+  // const finalCreateTableData: Omit<TableCreateMapped, 'includeInAirflow'> = { ...part2, ...part1 };
+
+  return finalCreateTableData
+}
 /////////////////////////////////////////////////////////////////////////////////////////
 // Airflow
 
@@ -918,37 +1024,6 @@ export function createExportDagData(
 export function createCustomDagData(
   newCustomAirflowData: EditSetting[]
 ): CustomCreateAirflowDAG {
-  // Part 1: Keys that will get values from newCustomAirflowData
-  // const part1: {
-  //   name: string
-  //   scheduleInterval: string
-  //   autoRegenerateDag: boolean
-  //   filterTable: string | null
-  // } = {
-  //   name: '',
-  //   scheduleInterval: 'None',
-  //   autoRegenerateDag: true,
-  //   filterTable: null
-  // }
-
-  // // Part 2: Rest of the keys required by the API
-  // const part2: Omit<CustomCreateAirflowDAG, keyof typeof part1> = {
-  //   retries: 5,
-  //   operatorNotes: null,
-  //   applicationNotes: null,
-  //   airflowNotes: null,
-  //   sudoUser: null,
-  //   timezone: null,
-  //   email: null,
-  //   emailOnFailure: false,
-  //   emailOnRetries: false,
-  //   tags: null,
-  //   slaWarningTime: null,
-  //   retryExponentialBackoff: false,
-  //   concurrency: null,
-  //   tasks: []
-  // }
-
   const part1: {
     name: string
     scheduleInterval: string | null

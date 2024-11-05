@@ -5,7 +5,6 @@ import '../import/Import.scss'
 import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
-import CreateImportTableModal from '../../components/CreateImportTableModal'
 import { EditSetting } from '../../utils/interfaces'
 // import { createTableData } from '../../utils/dataFunctions'
 // import { useQueryClient } from '@tanstack/react-query'
@@ -15,6 +14,10 @@ import {
   isDbDropdownReadyAtom,
   selectedExportConnectionAtom
 } from '../../atoms/atoms'
+import CreateExportTableModal from '../../components/CreateExportTableModal'
+import { createExportTableData } from '../../utils/dataFunctions'
+import { useCreateExportTable } from '../../utils/mutations'
+import { useQueryClient } from '@tanstack/react-query'
 // import { useCreateExportTable } from '../../utils/mutations'
 
 function Export() {
@@ -27,8 +30,8 @@ function Export() {
   const navigate = useNavigate()
   const { connection } = useParams<{ connection: string }>()
   const { data: tables } = useExportTables(connection ? connection : null)
-  // const { mutate: createTable } = useCreateExportTable()
-  // const queryClient = useQueryClient()
+  const { mutate: createTable } = useCreateExportTable()
+  const queryClient = useQueryClient()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
   const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
@@ -95,21 +98,21 @@ function Export() {
 
   const handleSave = (newTableData: EditSetting[]) => {
     console.log('newTableData', newTableData)
-    // const newTable = createTableData(newTableData)
-    // console.log('newTable', newTable)
+    const newTable = createExportTableData(newTableData)
+    console.log('newTable', newTable)
 
-    // createTable(newTable, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({
-    //       queryKey: ['export', newTable.database]
-    //     })
-    //     console.log('Update successful', response)
-    //     setCreateModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    //     console.error('Error updating table', error)
-    //   }
-    // })
+    createTable(newTable, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['export', newTable.connection]
+        })
+        console.log('Create successful', response)
+        setCreateModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error creating table', error)
+      }
+    })
   }
 
   return (
@@ -156,9 +159,8 @@ function Export() {
           <>
             <Outlet />
             {isCreateModalOpen && mostCommonConnection && (
-              <CreateImportTableModal
-                database={connection}
-                prefilledConnection={mostCommonConnection}
+              <CreateExportTableModal
+                connection={connection}
                 onSave={handleSave}
                 onClose={() => setCreateModalOpen(false)}
               />

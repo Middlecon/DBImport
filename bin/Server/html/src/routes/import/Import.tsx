@@ -103,11 +103,11 @@ function Import() {
         queryClient.invalidateQueries({
           queryKey: ['tables', newTable.database]
         })
-        console.log('Update successful', response)
+        console.log('Create successful', response)
         setCreateModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error updating table', error)
+        console.error('Error creating table', error)
       }
     })
   }

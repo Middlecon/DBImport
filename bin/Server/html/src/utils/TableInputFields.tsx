@@ -58,6 +58,9 @@ function TableInputFields({
     setting.label === 'Table' ||
     setting.label === 'Source Schema' ||
     setting.label === 'Source Table' ||
+    setting.label === 'Target Table' ||
+    setting.label === 'Target Schema' ||
+    setting.label === 'Connection' ||
     setting.label === 'Connection String' ||
     setting.label === 'DAG Name'
 
