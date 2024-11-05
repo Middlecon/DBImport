@@ -114,12 +114,12 @@ class webServerOperations(object):
 
 		result = subprocess.run(["npm", "config", "set", "fund", "false"])
 		if result.returncode != 0:
-			log.error("Unknown error when executing 'npm config' command. Please solve this and rerun setup command")
+			logging.error("Unknown error when executing 'npm config' command. Please solve this and rerun setup command")
 			sys.exit(1)
 
 		result = subprocess.run(["npm", "install", "--prefix", prefixDir])
 		if result.returncode != 0:
-			log.error("Unknown error when executing 'npm install' command. Please solve this and rerun setup command")
+			logging.error("Unknown error when executing 'npm install' command. Please solve this and rerun setup command")
 			sys.exit(1)
 
 		logging.debug("Executing webServerOperations.runNPMinstall() - Finished")
@@ -138,7 +138,7 @@ class webServerOperations(object):
 
 		result = subprocess.run(["npm", "run", "build", "--prefix", prefixDir])
 		if result.returncode != 0:
-			log.error("Unknown error when executing 'npm run build' command. Please solve this and rerun setup command")
+			logging.error("Unknown error when executing 'npm run build' command. Please solve this and rerun setup command")
 			sys.exit(1)
 
 		logging.debug("Executing webServerOperations.runNPMbuild() - Finished")
