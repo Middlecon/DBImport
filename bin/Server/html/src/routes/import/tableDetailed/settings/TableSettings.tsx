@@ -125,7 +125,6 @@ function TableSettings() {
                 title="Site-to-site Copy"
                 settings={importCards.siteToSiteCopy}
                 tableData={table}
-                isNotEditable={true}
               />
             </div>
           </div>

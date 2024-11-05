@@ -157,6 +157,7 @@ export function updateConnectionData(
 
 // Table
 
+// Not edited read-only fields
 const fieldsToRemove = [
   'sourceRowcount',
   'sourceRowcountIncr',
@@ -175,8 +176,7 @@ const fieldsToRemove = [
   'generatedSqoopQuery',
   'generatedSqoopOptions',
   'generatedPkColumns',
-  'copyFinished',
-  'copySlave'
+  'copyFinished'
 ]
 
 function updateColumnData(

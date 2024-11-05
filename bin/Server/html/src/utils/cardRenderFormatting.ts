@@ -1146,7 +1146,7 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'Copy Slave',
       value: table.copySlave,
-      type: SettingType.Readonly,
+      type: SettingType.Boolean,
       infoText: infoTexts.table.import.copySlave
     } // Read-only, Boolean
   ]
