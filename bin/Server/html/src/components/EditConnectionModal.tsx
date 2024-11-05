@@ -62,12 +62,6 @@ function EditConnectionModal({
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
 
-  const validationMethodSetting = editedSettings.find(
-    (s) => s.label === 'Validation Method'
-  )
-  const isCustomQueryDisabled =
-    validationMethodSetting?.value !== 'Custom Query'
-
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = ['Connection String']
     return editedSettings.some(
@@ -75,12 +69,22 @@ function EditConnectionModal({
     )
   }, [editedSettings])
 
+  const airflowEmailOnFailure = editedSettings.find(
+    (s) => s.label === 'Email On Failure'
+  )
+  const airflowEmailOnRetries = editedSettings.find(
+    (s) => s.label === 'Email On Retries'
+  )
+  const isAirflowEmailDisabled =
+    airflowEmailOnFailure?.value === false &&
+    airflowEmailOnRetries?.value === false
+      ? true
+      : false
+
   const handleInputChange = (
     index: number,
     newValue: string | number | boolean | null
   ) => {
-    console.log('index', index)
-    console.log('newValue', newValue)
     // Creates a new array, copying all elements of editedSettings
 
     const newSettings = [...editedSettings]
@@ -243,8 +247,8 @@ function EditConnectionModal({
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                     prevValue={prevValue}
-                    isCustomQueryDisabled={isCustomQueryDisabled}
                     connectionNames={connectionNames}
+                    isAirflowEmailDisabled={isAirflowEmailDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText

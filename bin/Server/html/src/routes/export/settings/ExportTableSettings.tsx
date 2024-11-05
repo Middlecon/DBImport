@@ -57,6 +57,8 @@ function ExportTableSettings() {
                 title="Incremental Exports"
                 settings={exportCards.incrementalExports}
                 tableData={exportTableData}
+                isNotEditable={exportTableData.exportType !== 'incr'}
+                isDisabled={exportTableData.exportType !== 'incr'}
               />
             </div>
           </div>

@@ -29,7 +29,6 @@ function EditTableModal({
   onClose,
   initWidth
 }: EditModalProps) {
-  console.log('settings', settings)
   const editableSettings =
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
@@ -70,10 +69,19 @@ function EditTableModal({
   const validationMethodSetting = editedSettings.find(
     (s) => s.label === 'Validation Method'
   )
+
+  const useGenSQLSetting = editedSettings.find(
+    (s) => s.label === 'Use Generated SQL'
+  )
+
   const isCustomQueryDisabled =
-    validationMethodSetting?.value !== 'Custom Query'
+    (validationMethodSetting?.value !== 'Custom Query' &&
+      useGenSQLSetting?.value === undefined) ||
+    (useGenSQLSetting?.value !== false &&
+      validationMethodSetting?.value === undefined)
 
   const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
+
   const isAirflowTasksConnectionDisabled =
     airflowTypeValue?.value !== 'JDBC SQL'
 

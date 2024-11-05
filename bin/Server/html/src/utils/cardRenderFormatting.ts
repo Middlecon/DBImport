@@ -866,35 +866,6 @@ export function importCardRenderSettings(table: UITable) {
 
   const incrementalImports: EditSetting[] = [
     {
-      label: 'Incremental Min Value',
-      value: table.incrMinvalue,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.import.incrMinvalue
-    }, // Read-only
-    {
-      label: 'Incremental Max Value',
-      value: table.incrMaxvalue,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.import.incrMaxvalue
-    }, // Read-only
-    {
-      label: 'Pending Min Value',
-      value: table.incrMinvaluePending,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.import.incrMinvaluePending
-    }, // Read-only
-    {
-      label: 'Pending Max Value',
-      value: table.incrMaxvaluePending,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.import.incrMaxvaluePending
-    }, // Read-only
-    {
-      label: '',
-      value: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
       label: 'Incremental Mode',
       value: mapDisplayValue('incrMode', table.incrMode),
       type: SettingType.Enum,
@@ -919,7 +890,36 @@ export function importCardRenderSettings(table: UITable) {
       enumOptions: getEnumOptions('incrValidationMethod'),
       infoText: infoTexts.table.import.incrValidationMethod,
       isConditionsMet: table.importPhaseType === ImportType.Incremental
-    } // Enum list, active if importPhaseType=incr
+    }, // Enum list, active if importPhaseType=incr
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Incremental Min Value',
+      value: table.incrMinvalue,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.import.incrMinvalue
+    }, // Read-only
+    {
+      label: 'Incremental Max Value',
+      value: table.incrMaxvalue,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.import.incrMaxvalue
+    }, // Read-only
+    {
+      label: 'Pending Min Value',
+      value: table.incrMinvaluePending,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.import.incrMinvaluePending
+    }, // Read-only
+    {
+      label: 'Pending Max Value',
+      value: table.incrMaxvaluePending,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.import.incrMaxvaluePending
+    } // Read-only
   ]
 
   const etlOptions: EditSetting[] = [
@@ -1527,6 +1527,29 @@ export function exportCardRenderSettings(table: UIExportTable) {
 
   const incrementalExports: EditSetting[] = [
     {
+      label: 'Incremental Column',
+      value: table.incrColumn,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.incrColumn,
+      isConditionsMet: table.exportType === ExportType.Incremental
+    }, // Free-text, varchar(256), active if exportType=incr
+    {
+      label: 'Incremental Validation Method',
+      value: mapDisplayValue(
+        'exportIncrValidationMethod',
+        table.incrValidationMethod as string
+      ),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportIncrValidationMethod'),
+      infoText: infoTexts.table.export.incrValidationMethod,
+      isConditionsMet: table.exportType === ExportType.Incremental
+    }, // Enum list, active if exportType=incr
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
       label: 'Incremental Min Value',
       value: table.incrMinvalue,
       type: SettingType.Readonly,
@@ -1549,31 +1572,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       value: table.incrMaxvaluePending,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.incrMaxvaluePending
-    }, // Read-only
-    {
-      label: '',
-      value: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-
-    {
-      label: 'Incremental Column',
-      value: table.incrColumn,
-      type: SettingType.Text,
-      infoText: infoTexts.table.export.incrColumn,
-      isConditionsMet: table.exportType === ExportType.Incremental
-    }, // Free-text, varchar(256), active if exportType=incr
-    {
-      label: 'Incremental Validation Method',
-      value: mapDisplayValue(
-        'exportIncrValidationMethod',
-        table.incrValidationMethod as string
-      ),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('exportIncrValidationMethod'),
-      infoText: infoTexts.table.export.incrValidationMethod,
-      isConditionsMet: table.exportType === ExportType.Incremental
-    } // Enum list, active if exportType=incr
+    } // Read-only
   ]
 
   const performance: EditSetting[] = [

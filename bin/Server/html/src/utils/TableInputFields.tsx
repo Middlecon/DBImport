@@ -21,6 +21,7 @@ interface TableInputFieldsProps {
   prevValue?: string | number | boolean
   connectionNames?: string[]
   isCustomQueryDisabled?: boolean
+  isAirflowEmailDisabled?: boolean
   disabled?: boolean
 }
 
@@ -32,8 +33,9 @@ function TableInputFields({
   handleInputChange,
   handleSelect,
   prevValue = '',
-  isCustomQueryDisabled = true,
   connectionNames,
+  isCustomQueryDisabled = true,
+  isAirflowEmailDisabled = true,
   disabled = false
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -60,6 +62,8 @@ function TableInputFields({
     setting.label === 'DAG Name'
 
   const showRequiredIndicator = isRequired && !setting.value
+
+  const isFieldDisabled = setting.isConditionsMet === false
 
   const autoResizeTextarea = useCallback(() => {
     if (textareaRef.current) {
@@ -89,25 +93,35 @@ function TableInputFields({
     case 'boolean':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div className="radio-edit">
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`boolean-${index}`}
                 value="true"
                 checked={setting.value === true}
                 onChange={() => handleInputChange(index, true)}
+                disabled={isFieldDisabled}
               />
               True
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`boolean-${index}`}
                 value="false"
                 checked={setting.value === false}
                 onChange={() => handleInputChange(index, false)}
+                disabled={isFieldDisabled}
               />
               False
             </label>
@@ -120,25 +134,35 @@ function TableInputFields({
     case 'booleanNumber':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div className="radio-edit">
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanNumber-${index}`}
                 value="true"
                 checked={setting.value === 1}
                 onChange={() => handleInputChange(index, 1)}
+                disabled={isFieldDisabled}
               />
               True
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanNumber-${index}`}
                 value="false"
                 checked={setting.value === 0}
                 onChange={() => handleInputChange(index, 0)}
+                disabled={isFieldDisabled}
               />
               False
             </label>
@@ -149,29 +173,41 @@ function TableInputFields({
     case 'booleanNumberOrAuto':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div className="radio-edit">
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanNumber-${index}`}
                 value="true"
                 checked={setting.value === 1}
                 onChange={() => handleInputChange(index, 1)}
+                disabled={isFieldDisabled}
               />
               True
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanNumber-${index}`}
                 value="false"
                 checked={setting.value === 0}
                 onChange={() => handleInputChange(index, 0)}
+                disabled={isFieldDisabled}
               />
               False
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="checkbox"
                 checked={setting.value === -1}
@@ -182,6 +218,7 @@ function TableInputFields({
                     handleInputChange(index, prevValue === '' ? -1 : prevValue) // Restores the previous value
                   }
                 }}
+                disabled={isFieldDisabled}
               />
               Auto
             </label>
@@ -192,35 +229,52 @@ function TableInputFields({
     case 'booleanOrDefaultFromConfig(-1)':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div className="radio-edit">
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConfig(-1)-${index}`}
                 value="true"
                 checked={setting.value === 1}
                 onChange={() => handleInputChange(index, 1)}
+                disabled={isFieldDisabled}
               />
               True
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConfig(-1)-${index}`}
                 value="false"
                 checked={setting.value === 0}
                 onChange={() => handleInputChange(index, 0)}
+                disabled={isFieldDisabled}
               />
               False
             </label>
-            <label className="label-default-from-config">
+            <label
+              className={
+                isFieldDisabled
+                  ? ' label-default-from-config input-fields-label-disabled'
+                  : 'label-default-from-config'
+              }
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConfig(-1)-${index}`}
                 value="-1"
                 checked={setting.value === -1}
                 onChange={() => handleInputChange(index, -1)}
+                disabled={isFieldDisabled}
               />
               Default from Config
             </label>
@@ -231,35 +285,52 @@ function TableInputFields({
     case 'booleanOrDefaultFromConnection(-1)':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div className="radio-edit">
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConnection(-1)-${index}`}
                 value="true"
                 checked={setting.value === true}
                 onChange={() => handleInputChange(index, 1)}
+                disabled={isFieldDisabled}
               />
               True
             </label>
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConnection(-1)-${index}`}
                 value="false"
                 checked={setting.value === false}
                 onChange={() => handleInputChange(index, 0)}
+                disabled={isFieldDisabled}
               />
               False
             </label>
-            <label className="label-default-from-config">
+            <label
+              className={
+                isFieldDisabled
+                  ? ' label-default-from-config input-fields-label-disabled'
+                  : 'label-default-from-config'
+              }
+            >
               <input
                 type="radio"
                 name={`booleanOrDefaultFromConnection(-1)-${index}`}
                 value="-1"
                 checked={setting.value === -1}
                 onChange={() => handleInputChange(index, -1)}
+                disabled={isFieldDisabled}
               />
               Default from Connection
             </label>
@@ -270,7 +341,12 @@ function TableInputFields({
     case 'readonly':
       return (
         <>
-          <label htmlFor={`text-input-${index}`}>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            htmlFor={`text-input-${index}`}
+          >
+            {setting.label}:
+          </label>
           <span id={`text-input-${index}`}>{setting.value}</span>
         </>
       )
@@ -278,7 +354,10 @@ function TableInputFields({
     case 'text': {
       if (
         setting.label === 'Custom Query Source SQL' ||
-        setting.label === 'Custom Query Hive SQL'
+        setting.label === 'Custom Query Hive SQL' ||
+        setting.label === 'Custom Query Target SQL' ||
+        setting.label === 'Custom Query' ||
+        setting.label === 'Custom Max Query'
       ) {
         return (
           <>
@@ -303,7 +382,10 @@ function TableInputFields({
       }
       return (
         <>
-          <label htmlFor={`text-input-${index}`}>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            htmlFor={`text-input-${index}`}
+          >
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
@@ -315,6 +397,7 @@ function TableInputFields({
             value={setting.value ? String(setting.value) : ''}
             onChange={(event) => handleInputChange(index, event.target.value)}
             required={isRequired}
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -323,7 +406,10 @@ function TableInputFields({
     case 'textarea': {
       return (
         <>
-          <label htmlFor={`textarea-input-${index}`}>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            htmlFor={`textarea-input-${index}`}
+          >
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
@@ -337,6 +423,7 @@ function TableInputFields({
               autoResizeTextarea()
             }}
             required={isRequired}
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -345,7 +432,12 @@ function TableInputFields({
     case 'email':
       return (
         <>
-          <label htmlFor={`email-input-${index}`}>
+          <label
+            className={
+              isAirflowEmailDisabled ? 'input-fields-label-disabled' : ''
+            }
+            htmlFor={`email-input-${index}`}
+          >
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
@@ -362,6 +454,7 @@ function TableInputFields({
               validateEmails(event.target as HTMLInputElement)
             }
             required={isRequired}
+            disabled={isAirflowEmailDisabled}
           />
         </>
       )
@@ -373,7 +466,11 @@ function TableInputFields({
 
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <Dropdown
             keyLabel={setting.label}
             items={dropdownOptions}
@@ -402,7 +499,10 @@ function TableInputFields({
     case 'connectionReference':
       return (
         <>
-          <label style={disabled ? { color: '#aeaeae' } : {}}>
+          <label
+            className={disabled ? 'input-fields-label-disabled' : ''}
+            style={disabled ? { color: '#aeaeae' } : {}}
+          >
             {setting.label}:
           </label>
 
@@ -439,7 +539,11 @@ function TableInputFields({
     case 'connectionReferenceRequired':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
 
           <Dropdown
             keyLabel={setting.label}
@@ -474,7 +578,11 @@ function TableInputFields({
     case 'integerFromZero':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <input
             className="input-fields-number-input"
             type="number"
@@ -509,6 +617,7 @@ function TableInputFields({
               }
             }}
             step="1"
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -516,7 +625,11 @@ function TableInputFields({
     case 'integerFromOneOrNull':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <input
             className="input-fields-number-input"
             type="number"
@@ -560,6 +673,7 @@ function TableInputFields({
               }
             }}
             step="1"
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -567,7 +681,11 @@ function TableInputFields({
     case 'integerFromZeroOrNull':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <input
             className="input-fields-number-input"
             type="number"
@@ -595,6 +713,7 @@ function TableInputFields({
               }
             }}
             step="1"
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -602,15 +721,18 @@ function TableInputFields({
     case 'integerFromZeroOrAuto(-1)':
       return (
         <>
-          <label>{setting.label}:</label>
-
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <div>
             <input
               className="input-fields-number-input"
               type="number"
               value={
                 setting.value === -1
-                  ? '' // Shows empty string when disabled (Auto is checked)
+                  ? '' // Shows empty string when isFieldDisabled (Auto is checked)
                   : setting.value !== null && setting.value !== undefined
                   ? Number(setting.value)
                   : ''
@@ -634,9 +756,11 @@ function TableInputFields({
                 }
               }}
               step="1"
-              disabled={setting.value === -1}
+              disabled={setting.value === -1 || isFieldDisabled}
             />
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="checkbox"
                 checked={setting.value === -1}
@@ -647,6 +771,7 @@ function TableInputFields({
                     handleInputChange(index, prevValue === '' ? 0 : prevValue) // Restores the previous value
                   }
                 }}
+                disabled={isFieldDisabled}
               />
               Auto
             </label>
@@ -657,7 +782,11 @@ function TableInputFields({
     case 'integerFromOneOrAuto(-1)':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
 
           <div>
             <input
@@ -665,7 +794,7 @@ function TableInputFields({
               type="number"
               value={
                 setting.value === -1 || setting.value === 0
-                  ? '' // Shows empty string when disabled (Auto is checked)
+                  ? '' // Shows empty string when isFieldDisabled (Auto is checked)
                   : setting.value !== null && setting.value !== undefined
                   ? Number(setting.value)
                   : ''
@@ -689,9 +818,13 @@ function TableInputFields({
                 }
               }}
               step="1"
-              disabled={setting.value === 0 || setting.value === -1}
+              disabled={
+                setting.value === 0 || setting.value === -1 || isFieldDisabled
+              }
             />
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="checkbox"
                 checked={setting.value === -1 || setting.value === 0}
@@ -702,6 +835,7 @@ function TableInputFields({
                     handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
                   }
                 }}
+                disabled={isFieldDisabled}
               />
               Auto
             </label>
@@ -712,7 +846,11 @@ function TableInputFields({
     case 'integerFromOneOrDefaultFromConfig(null)':
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
 
           <div>
             <input
@@ -720,7 +858,7 @@ function TableInputFields({
               type="number"
               value={
                 setting.value === null
-                  ? '' // Shows empty string when disabled (Default from Config is checked)
+                  ? '' // Shows empty string when isFieldDisabled (Default from Config is checked)
                   : setting.value !== null && setting.value !== undefined
                   ? Number(setting.value)
                   : ''
@@ -744,9 +882,11 @@ function TableInputFields({
                 }
               }}
               step="1"
-              disabled={setting.value === null}
+              disabled={setting.value === null || isFieldDisabled}
             />
-            <label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
               <input
                 type="checkbox"
                 checked={setting.value === null}
@@ -757,6 +897,7 @@ function TableInputFields({
                     handleInputChange(index, prevValue === '' ? 1 : prevValue) // Restores the previous value
                   }
                 }}
+                disabled={isFieldDisabled}
               />
               Default from Config
             </label>
@@ -767,13 +908,18 @@ function TableInputFields({
     case 'time': {
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <input
             className="input-fields-text-input"
             type="time"
             step="1"
             value={setting.value ? String(setting.value) : ''}
             onChange={(event) => handleInputChange(index, event.target.value)}
+            disabled={isFieldDisabled}
           />
         </>
       )
@@ -789,7 +935,11 @@ function TableInputFields({
 
       return (
         <>
-          <label>{setting.label}:</label>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
           <Dropdown
             keyLabel={setting.label}
             items={timeZoneNames}

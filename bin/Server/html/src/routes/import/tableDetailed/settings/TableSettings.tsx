@@ -71,6 +71,8 @@ function TableSettings() {
                 title="Incremental Imports"
                 settings={importCards.incrementalImports}
                 tableData={table}
+                isNotEditable={table.importPhaseType !== 'incr'}
+                isDisabled={table.importPhaseType !== 'incr'}
               />
             </div>
           </div>
