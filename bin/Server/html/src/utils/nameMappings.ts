@@ -172,7 +172,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Datalake Source': 'datalakeSource',
     Mappers: 'mappers',
     'Hive Split Count': 'splitCount',
-    'Hive Java Heap (MB)': 'mergeHeap',
+    'Hive Java Heap (MB)': 'hiveContainerSize',
     'Spark Executor Memory': 'sparkExecutorMemory',
     'Spark Executors': 'sparkExecutors',
     'Validate Import': 'validateImport',
@@ -236,7 +236,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     'Last Rows': 'lastRows',
     'Last Mappers': 'lastMappers',
     'Last Execution': 'lastExecution',
-    'Java Heap': 'javaHeap',
+    'Java Heap': 'hiveContainerSize',
     'Create Target Table Sql': 'createTargetTableSql',
     'Operator Notes': 'operatorNotes'
   }

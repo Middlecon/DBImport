@@ -1000,9 +1000,9 @@ export function importCardRenderSettings(table: UITable) {
     }, // Integer, active if etlEngine=hive
     {
       label: 'Hive Tez Container size (MB)',
-      value: table.mergeHeap,
+      value: table.hiveContainerSize,
       type: SettingType.IntegerFromOneOrNull,
-      infoText: infoTexts.table.import.mergeHeap
+      infoText: infoTexts.table.import.hiveContainerSize
     }, // Integer, value is MB
     {
       label: '',
@@ -1589,9 +1589,9 @@ export function exportCardRenderSettings(table: UIExportTable) {
     }, // Layout space
     {
       label: 'Hive Tez Container size (MB)',
-      value: table.javaHeap,
+      value: table.hiveContainerSize,
       type: SettingType.IntegerFromOneOrNull,
-      infoText: infoTexts.table.export.javaHeap
+      infoText: infoTexts.table.export.hiveContainerSize
     } // Integer, bigint(20), value is MB
   ]
 

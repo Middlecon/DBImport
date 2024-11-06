@@ -120,7 +120,7 @@ export interface Table {
   incrMaxvaluePending: string
   pkColumnOverride: string
   pkColumnOverrideMergeonly: string
-  mergeHeap: 0
+  hiveContainerSize: 0
   splitCount: 0
   sparkExecutorMemory: string
   sparkExecutors: 0
@@ -193,7 +193,7 @@ export interface UITable {
   incrMaxvaluePending: string
   pkColumnOverride: string
   pkColumnOverrideMergeonly: string
-  mergeHeap: 0
+  hiveContainerSize: 0
   splitCount: 0
   sparkExecutorMemory: string
   sparkExecutors: 0
@@ -267,7 +267,7 @@ export interface UITableWithoutEnum {
   incrMaxvaluePending: string
   pkColumnOverride: string
   pkColumnOverrideMergeonly: string
-  mergeHeap: number
+  hiveContainerSize: number
   splitCount: number
   sparkExecutorMemory: string
   sparkExecutors: number
@@ -331,7 +331,7 @@ export interface TableUpdate {
   incrValidationMethod: IncrValidationMethod
   pkColumnOverride: string
   pkColumnOverrideMergeonly: string
-  mergeHeap: 0
+  hiveContainerSize: 0
   splitCount: 0
   sparkExecutorMemory: string
   sparkExecutors: 0
@@ -385,7 +385,7 @@ export interface TableCreateWithoutEnum {
   incrValidationMethod: null
   pkColumnOverride: null
   pkColumnOverrideMergeonly: null
-  mergeHeap: null
+  hiveContainerSize: null
   splitCount: null
   sparkExecutorMemory: null
   sparkExecutors: null
@@ -439,7 +439,7 @@ export interface TableCreate {
   incrValidationMethod: null
   pkColumnOverride: null
   pkColumnOverrideMergeonly: null
-  mergeHeap: null
+  hiveContainerSize: null
   splitCount: null
   sparkExecutorMemory: null
   sparkExecutors: null
@@ -609,7 +609,7 @@ export interface ExportTable {
   lastRows: number | null
   lastMappers: number | null
   lastExecution: number | null
-  javaHeap: number | null
+  hiveContainerSize: number | null
   createTargetTableSql: string | null
   operatorNotes: string | null
   columns: ExportColumns[]
@@ -662,7 +662,7 @@ export interface UIExportTable {
   lastRows: number | null
   lastMappers: number | null
   lastExecution: number | null
-  javaHeap: number | null
+  hiveContainerSize: number | null
   createTargetTableSql: string | null
   operatorNotes: string | null
   columns: ExportColumns[]
@@ -704,7 +704,7 @@ export interface UIExportTableWithoutEnum {
   lastRows: number | null
   lastMappers: number | null
   lastExecution: number | null
-  javaHeap: number | null
+  hiveContainerSize: number | null
   createTargetTableSql: string | null
   operatorNotes: string | null
   columns: ExportColumns[]
@@ -745,7 +745,7 @@ export interface ExportTableCreateWithoutEnum {
   lastRows: number | null
   lastMappers: number | null
   lastExecution: number | null
-  javaHeap: number | null
+  hiveContainerSize: number | null
   createTargetTableSql: string | null
   operatorNotes: string | null
   columns: ExportColumns[]
