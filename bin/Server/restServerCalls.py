@@ -1006,7 +1006,10 @@ class dbCalls:
 			resultDict['lastUpdateFromSource'] = None
 		resultDict['sqlWhereAddition'] = row[10]
 		resultDict['nomergeIngestionSqlAddition'] = row[11]
-		resultDict['includeInAirflow'] = row[12]
+		if row[12] == 1:
+			resultDict['includeInAirflow'] = True
+		else:
+			resultDict['includeInAirflow'] = False
 		resultDict['airflowPriority'] = row[13]
 		resultDict['validateImport'] = row[14]
 		resultDict['validationMethod'] = row[15]
@@ -1648,7 +1651,10 @@ class dbCalls:
 		except AttributeError:
 			resultDict['lastUpdateFromHive'] = None
 		resultDict['sqlWhereAddition'] = row[8]
-		resultDict['includeInAirflow'] = row[9]
+		if row[9] == 1:
+			resultDict['includeInAirflow'] = True
+		else:
+			resultDict['includeInAirflow'] = False
 		resultDict['airflowPriority'] = row[10]
 		resultDict['forceCreateTempTable'] = row[11]
 		resultDict['validateExport'] = row[12]
@@ -1819,6 +1825,15 @@ class dbCalls:
 			getattr(table, "targetSchema"), 
 			getattr(table, "targetTable"), 
 			getattr(table, "connection")))
+
+		# Set default values
+		if getattr(table, "includeInAirflow") == None:							setattr(table, "includeInAirflow", 1)
+		if getattr(table, "forceCreateTempTable") == None:						setattr(table, "forceCreateTempTable", 0)	
+		if getattr(table, "validateExport") == None:							setattr(table, "validateExport", 1)
+		if getattr(table, "validationMethod") == None:							setattr(table, "validationMethod", "rowCount")
+		if getattr(table, "uppercaseColumns") == None:							setattr(table, "uppercaseColumns", -1)
+		if getattr(table, "truncateTarget") == None:							setattr(table, "truncateTarget", 1)
+		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
 
 		try:
 			query = insert(configSchema.exportTables).values(
@@ -2229,7 +2244,10 @@ class dbCalls:
 			resultDict['connection'] = row[3]
 			resultDict['airflowPool'] = row[4]
 			resultDict['airflowPriority'] = row[5]
-			resultDict['includeInAirflow'] = row[6]
+			if row[6] == 1:
+				resultDict['includeInAirflow'] = True
+			else:
+				resultDict['includeInAirflow'] = False
 			resultDict['taskDependencyDownstream'] = row[7]
 			resultDict['taskDependencyUpstream'] = row[8]
 			resultDict['taskConfig'] = row[9]
