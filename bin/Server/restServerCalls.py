@@ -1834,6 +1834,7 @@ class dbCalls:
 		if getattr(table, "uppercaseColumns") == None:							setattr(table, "uppercaseColumns", -1)
 		if getattr(table, "truncateTarget") == None:							setattr(table, "truncateTarget", 1)
 		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
+		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
 
 		try:
 			query = insert(configSchema.exportTables).values(
