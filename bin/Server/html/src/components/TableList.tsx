@@ -157,6 +157,20 @@ function TableList<T>({
         )
       }
 
+      if (column.accessor === 'forceString') {
+        return (
+          <>
+            <p>
+              {cellValue === 1
+                ? 'True'
+                : cellValue === 0
+                ? 'False'
+                : 'Default from Config'}
+            </p>
+          </>
+        )
+      }
+
       if (!isExport && column.accessor === 'table') {
         return (
           <p

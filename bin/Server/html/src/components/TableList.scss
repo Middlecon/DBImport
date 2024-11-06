@@ -30,6 +30,11 @@
     z-index: 14;
   }
 
+  p {
+    font-size: 12px;
+    margin: 0;
+  }
+
   // To make table header borders stay filled with the right color when scroll across browsers, for Chrome (update: does not seem to be needed anymore, keep it here for a while longer if turns out to be needed again):
   // th:after,
   // th:before {
@@ -117,8 +122,6 @@
     p {
       overflow-x: hidden;
       text-overflow: ellipsis;
-      font-size: 12px;
-      margin: 0;
     }
     &:hover .tooltip {
       visibility: visible;

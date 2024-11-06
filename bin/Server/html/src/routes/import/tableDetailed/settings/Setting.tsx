@@ -129,7 +129,7 @@ function Setting({
               ? 'True'
               : value === 0
               ? 'False'
-              : 'Default from connection'}
+              : 'Default from Connection'}
           </span>
         )
       case 'integerFromOneOrAuto(-1)':
