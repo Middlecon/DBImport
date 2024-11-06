@@ -68,7 +68,7 @@ function TableColumns() {
     [tableData]
   )
 
-  if (!tableData) return <div className="loading">No data found yet.</div>
+  if (!tableData) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const editedTableData = updateTableData(tableData, updatedSettings, true)

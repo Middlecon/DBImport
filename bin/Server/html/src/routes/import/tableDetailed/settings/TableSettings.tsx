@@ -12,7 +12,7 @@ function TableSettings() {
   }>()
   const { data: table } = useTable(database, tableParam)
 
-  if (!table) return <div className="loading">No data found yet.</div>
+  if (!table) return <div className="loading">Loading...</div>
 
   const importCards = importCardRenderSettings(table)
 

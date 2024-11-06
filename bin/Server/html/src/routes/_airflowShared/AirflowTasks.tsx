@@ -100,7 +100,7 @@ function AirflowTasks({ type }: { type: string }) {
     [originalDagData]
   )
 
-  if (!originalDagData) return <div className="loading">No data found yet.</div>
+  if (!originalDagData) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const dagDataCopy = { ...originalDagData }

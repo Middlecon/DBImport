@@ -67,7 +67,7 @@ function ExportTableColumns() {
     [tableData]
   )
 
-  if (!tableData) return <div className="loading">No data found yet.</div>
+  if (!tableData) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     console.log('updatedSettings export', updatedSettings)

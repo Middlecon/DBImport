@@ -11,8 +11,7 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   }>()
   const { data: dagData } = useAirflowDAG(type, dagName)
 
-  if (!dagName && !dagData)
-    return <div className="loading">No data found yet.</div>
+  if (!dagName && !dagData) return <div className="loading">Loading...</div>
   console.log('dagName', dagName)
 
   if (!dagData) {

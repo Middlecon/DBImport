@@ -10,7 +10,7 @@ function ExportTableSettings() {
 
   const { data: exportTableData } = useExportTable(connection, schema, table)
 
-  if (!exportTableData) return <div className="loading">No data found yet.</div>
+  if (!exportTableData) return <div className="loading">Loading...</div>
   const exportCards = exportCardRenderSettings(exportTableData)
   console.log('exportTableData', exportTableData)
   return (
