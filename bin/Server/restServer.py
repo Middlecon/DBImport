@@ -83,7 +83,7 @@ def get_user(username: str, format_password: bool = True):
 		return
 
 	if format_password == True:
-		if not userDict["password"].startswith("arn:aws:secretsmanager:"):
+		if user["password"] == None or not userDict["password"].startswith("arn:aws:secretsmanager:"):
 			userDict["password"] = "<encrypted>"
 
 	return userDict
@@ -96,6 +96,10 @@ def authenticate_user(username: str, password: str):
 		return False
 
 	if AUTHENTICATION_METHOD == "local":
+		if user["password"] == None:
+			log.warning("User '%s' made an unsuccessful authentication attempt"%(username))
+			return False
+
 		if not user["password"].startswith("arn:aws:secretsmanager:"):
 			log.debug("Authenticate with LOCAL")
 			if not verify_password(password, user["password"]):
