@@ -239,7 +239,7 @@ class importTableDetailsRead(BaseModel):
 	incrMaxvaluePending: Union[str, None] = None
 	pkColumnOverride: Union[str, None] = None
 	pkColumnOverrideMergeonly: Union[str, None] = None
-	mergeHeap: Union[int, None] = None
+	hiveContainerSize: Union[int, None] = None
 	splitCount: Union[int, None] = None
 	sparkExecutorMemory: Union[str, None] = None
 	sparkExecutors: Union[int, None] = None
@@ -304,7 +304,7 @@ class importTableDetailsWrite(BaseModel):
 	incrValidationMethod: Union[str, None] = None
 	pkColumnOverride: Union[str, None] = None
 	pkColumnOverrideMergeonly: Union[str, None] = None
-	mergeHeap: Union[int, None] = None
+	hiveContainerSize: Union[int, None] = None
 	splitCount: Union[int, None] = None
 	sparkExecutorMemory: Union[str, None] = None
 	sparkExecutors: Union[int, None] = None
@@ -359,7 +359,7 @@ class importTableDetailsWrite(BaseModel):
 #	incrValidationMethod: str
 #	pkColumnOverride: Union[str, None] = None
 #	pkColumnOverrideMergeonly: Union[str, None] = None
-#	mergeHeap: Union[int, None] = None
+#	hiveContainerSize: Union[int, None] = None
 #	splitCount: Union[int, None] = None
 #	sparkExecutorMemory: Union[str, None] = None
 #	sparkExecutors: Union[int, None] = None
@@ -462,7 +462,7 @@ class exportTableDetailsRead(BaseModel):
 	lastRows: Union[int, None] = None
 	lastMappers: Union[int, None] = None
 	lastExecution: Union[int, None] = None
-	javaHeap: Union[int, None] = None
+	hiveContainerSize: Union[int, None] = None
 	createTargetTableSql: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	columns: List[exportTableColumnsRead] = []
@@ -502,7 +502,7 @@ class exportTableDetailsWrite(BaseModel):
 #	lastRows: Union[int, None] = None
 #	lastMappers: Union[int, None] = None
 #	lastExecution: Union[int, None] = None
-	javaHeap: Union[int, None] = None
+	hiveContainerSize: Union[int, None] = None
 	createTargetTableSql: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	columns: List[exportTableColumnsWrite] = []

@@ -1038,7 +1038,7 @@ class dbCalls:
 		resultDict['incrMaxvaluePending'] = row[35]
 		resultDict['pkColumnOverride'] = row[36]
 		resultDict['pkColumnOverrideMergeonly'] = row[37]
-		resultDict['mergeHeap'] = row[38]
+		resultDict['hiveContainerSize'] = row[38]
 		resultDict['splitCount'] = row[39]
 		resultDict['sparkExecutorMemory'] = row[40]
 		resultDict['sparkExecutors'] = row[41]
@@ -1196,7 +1196,7 @@ class dbCalls:
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				pk_column_override = getattr(table, "pkColumnOverride"),
 				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
-				hive_merge_heap = getattr(table, "mergeHeap"),
+				hive_merge_heap = getattr(table, "hiveContainerSize"),
 				hive_split_count = getattr(table, "splitCount"),
 				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
 				spark_executors = getattr(table, "sparkExecutors"),
@@ -1248,7 +1248,7 @@ class dbCalls:
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				pk_column_override = getattr(table, "pkColumnOverride"),
 				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
-				hive_merge_heap = getattr(table, "mergeHeap"),
+				hive_merge_heap = getattr(table, "hiveContainerSize"),
 				hive_split_count = getattr(table, "splitCount"),
 				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
 				spark_executors = getattr(table, "sparkExecutors"),
@@ -1679,7 +1679,7 @@ class dbCalls:
 		resultDict['lastRows'] = row[31]
 		resultDict['lastMappers'] = row[32]
 		resultDict['lastExecution'] = row[33]
-		resultDict['javaHeap'] = row[34]
+		resultDict['hiveContainerSize'] = row[34]
 		resultDict['createTargetTableSql'] = row[35]
 		resultDict['operatorNotes'] = row[36]
 
@@ -1860,7 +1860,7 @@ class dbCalls:
 				incr_column = getattr(table, "incrColumn"),
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				sqoop_options = getattr(table, "sqoopOptions"),
-				hive_javaheap = getattr(table, "javaHeap"),
+				hive_javaheap = getattr(table, "hiveContainerSize"),
 				create_target_table_sql = getattr(table, "createTargetTableSql"),
 				operator_notes = getattr(table, "operatorNotes"))
 
@@ -1887,7 +1887,7 @@ class dbCalls:
 				incr_column = getattr(table, "incrColumn"),
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				sqoop_options = getattr(table, "sqoopOptions"),
-				hive_javaheap = getattr(table, "javaHeap"),
+				hive_javaheap = getattr(table, "hiveContainerSize"),
 				create_target_table_sql = getattr(table, "createTargetTableSql"),
 				operator_notes = getattr(table, "operatorNotes"))
 
