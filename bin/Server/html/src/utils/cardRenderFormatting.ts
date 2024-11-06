@@ -722,6 +722,12 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.sourceTableType
     }, // Read-only
     {
+      label: 'Comment',
+      value: table.comment,
+      type: SettingType.Readonly
+      // infoText: infoTexts.table.import.comment
+    }, // Read-only
+    {
       label: 'Import Database',
       value: table.importDatabase,
       type: SettingType.Text,
@@ -1250,7 +1256,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
     {
       label: 'Comment',
       value: row.comment,
-      type: SettingType.Text,
+      type: SettingType.Readonly,
       infoText: infoTexts.table.import.columns.comment
     }, // Free-text
     {
@@ -1516,12 +1522,6 @@ export function exportCardRenderSettings(table: UIExportTable) {
       value: table.lastMappers,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.lastMappers
-    }, // Read-only
-    {
-      label: 'Last Execution',
-      value: table.lastExecution,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.export.lastExecution
     } // Read-only
   ]
 
@@ -1744,7 +1744,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
     {
       label: 'Comment',
       value: row.comment,
-      type: SettingType.Text,
+      type: SettingType.Readonly,
       infoText: infoTexts.table.export.columns.comment
     }, // Free-text, 64k
     {
