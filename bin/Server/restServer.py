@@ -83,7 +83,7 @@ def get_user(username: str, format_password: bool = True):
 		return
 
 	if format_password == True:
-		if user["password"] == None or not userDict["password"].startswith("arn:aws:secretsmanager:"):
+		if userDict["password"] == None or not userDict["password"].startswith("arn:aws:secretsmanager:"):
 			userDict["password"] = "<encrypted>"
 
 	return userDict
