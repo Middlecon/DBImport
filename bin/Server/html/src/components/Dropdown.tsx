@@ -63,6 +63,8 @@ function Dropdown<T>({
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (disabled) return
 
@@ -80,6 +82,12 @@ function Dropdown<T>({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [disabled, onToggle])
+
+  useEffect(() => {
+    if (isOpen && searchFilter && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [isOpen, searchFilter])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return
@@ -190,6 +198,7 @@ function Dropdown<T>({
                 value={searchTerm}
                 placeholder={placeholder}
                 onChange={handleInputChange}
+                ref={searchInputRef}
               />
             </div>
           )}
