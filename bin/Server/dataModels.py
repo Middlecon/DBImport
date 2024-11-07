@@ -214,7 +214,7 @@ class importTableDetailsRead(BaseModel):
 	sqlWhereAddition: Union[str, None] = None
 	nomergeIngestionSqlAddition: Union[str, None] = None
 	includeInAirflow: bool
-	airflowPriority: Union[str, None] = None
+	airflowPriority: Union[int, None] = None
 	validateImport: bool
 	validationMethod: str
 	validateSource: str
@@ -288,7 +288,7 @@ class importTableDetailsWrite(BaseModel):
 	sqlWhereAddition: Union[str, None] = None
 	nomergeIngestionSqlAddition: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
-	airflowPriority: Union[str, None] = None
+	airflowPriority: Union[int, None] = None
 	validateImport: Union[bool, None] = None
 	validationMethod: Union[str, None] = None
 	validateSource: Union[str, None] = None
@@ -343,7 +343,7 @@ class importTableDetailsWrite(BaseModel):
 #	sqlWhereAddition: Union[str, None] = None
 #	nomergeIngestionSqlAddition: Union[str, None] = None
 #	includeInAirflow: bool
-#	airflowPriority: Union[str, None] = None
+#	airflowPriority: Union[int, None] = None
 #	validateImport: bool
 #	validationMethod: str
 #	validateSource: str
