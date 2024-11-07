@@ -12,8 +12,6 @@ import TableList from '../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
 import { useAirflowDAG } from '../../utils/queries'
 import EditTableModal from '../../components/EditTableModal'
-// import { useQueryClient } from '@tanstack/react-query'
-// import { useUpdateTable } from '../../../../utils/mutations'
 import { useParams } from 'react-router-dom'
 import '../../components/Loading.scss'
 import { airflowTaskRowDataEdit } from '../../utils/cardRenderFormatting'
@@ -33,9 +31,6 @@ function AirflowTasks({ type }: { type: string }) {
   const { data: originalDagData, isLoading } = useAirflowDAG(type, dagName)
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
-
-  // const queryClient = useQueryClient()
-  // const { mutate: updateTable } = useUpdateTable()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
@@ -44,7 +39,6 @@ function AirflowTasks({ type }: { type: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [originalDagData, dataRefreshTrigger]
   )
-  // const tasksData: AirflowTask[] = originalDagData.tasks
 
   const columns: Column<AirflowTask>[] = useMemo(
     () => [
@@ -88,7 +82,7 @@ function AirflowTasks({ type }: { type: string }) {
   const handleEditClick = useCallback(
     (row: AirflowTask) => {
       if (!originalDagData) {
-        console.error('Table data is not available.')
+        console.error('Task data is not available.')
         return
       }
 
@@ -181,7 +175,7 @@ function AirflowTasks({ type }: { type: string }) {
 
       {isEditModalOpen && currentRow && (
         <EditTableModal
-          title={`Edit DAG ${currentRow[0].value}`}
+          title={`Edit Task ${currentRow[0].value}`}
           settings={currentRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}

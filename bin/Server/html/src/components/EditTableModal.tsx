@@ -13,6 +13,7 @@ import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from './InfoText'
+import { AirflowDAGTaskType } from '../utils/enums'
 
 interface EditModalProps {
   title: string
@@ -83,7 +84,20 @@ function EditTableModal({
   const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
 
   const isAirflowTasksConnectionDisabled =
-    airflowTypeValue?.value !== 'JDBC SQL'
+    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL
+
+  const isAirflowTasksSensorPokeAndSoftDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.DAGSensor &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
+
+  const isAirflowTasksSensorConnectionDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
+
+  const isAirflowTasksSudoUserDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.DBImportCommand &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQL &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQLScript
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = [
@@ -257,8 +271,17 @@ function EditTableModal({
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                     prevValue={prevValue}
-                    isCustomQueryDisabled={isCustomQueryDisabled}
                     connectionNames={connectionNames}
+                    isCustomQueryDisabled={isCustomQueryDisabled}
+                    isAirflowTasksSensorPokeAndSoftDisabled={
+                      isAirflowTasksSensorPokeAndSoftDisabled
+                    }
+                    isAirflowTasksSensorConnectionDisabled={
+                      isAirflowTasksSensorConnectionDisabled
+                    }
+                    isAirflowTasksSudoUserDisabled={
+                      isAirflowTasksSudoUserDisabled
+                    }
                     disabled={isAirflowTasksConnectionDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (

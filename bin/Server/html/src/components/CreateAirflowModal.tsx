@@ -196,7 +196,7 @@ function CreateAirflowModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
-                  />{' '}
+                  />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
                       label={setting.label}

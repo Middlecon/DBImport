@@ -22,6 +22,9 @@ interface TableInputFieldsProps {
   connectionNames?: string[]
   isCustomQueryDisabled?: boolean
   isAirflowEmailDisabled?: boolean
+  isAirflowTasksSensorPokeAndSoftDisabled?: boolean
+  isAirflowTasksSensorConnectionDisabled?: boolean
+  isAirflowTasksSudoUserDisabled?: boolean
   disabled?: boolean
 }
 
@@ -36,6 +39,9 @@ function TableInputFields({
   connectionNames,
   isCustomQueryDisabled = true,
   isAirflowEmailDisabled = true,
+  isAirflowTasksSensorPokeAndSoftDisabled = true,
+  isAirflowTasksSensorConnectionDisabled = true,
+  isAirflowTasksSudoUserDisabled = true,
   disabled = false
 }: TableInputFieldsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -135,6 +141,57 @@ function TableInputFields({
         </>
       )
     case 'booleanNumber':
+      if (setting.label === 'Sensor Soft Fail') {
+        return (
+          <>
+            <label
+              className={
+                isAirflowTasksSensorPokeAndSoftDisabled
+                  ? 'input-fields-label-disabled'
+                  : ''
+              }
+            >
+              {setting.label}:
+            </label>
+            <div className="radio-edit">
+              <label
+                className={
+                  isAirflowTasksSensorPokeAndSoftDisabled
+                    ? 'input-fields-label-disabled'
+                    : ''
+                }
+              >
+                <input
+                  type="radio"
+                  name={`booleanNumber-${index}`}
+                  value="true"
+                  checked={setting.value === 1}
+                  onChange={() => handleInputChange(index, 1)}
+                  disabled={isAirflowTasksSensorPokeAndSoftDisabled}
+                />
+                True
+              </label>
+              <label
+                className={
+                  isAirflowTasksSensorPokeAndSoftDisabled
+                    ? 'input-fields-label-disabled'
+                    : ''
+                }
+              >
+                <input
+                  type="radio"
+                  name={`booleanNumber-${index}`}
+                  value="false"
+                  checked={setting.value === 0}
+                  onChange={() => handleInputChange(index, 0)}
+                  disabled={isAirflowTasksSensorPokeAndSoftDisabled}
+                />
+                False
+              </label>
+            </div>
+          </>
+        )
+      }
       return (
         <>
           <label
@@ -379,6 +436,54 @@ function TableInputFields({
               value={setting.value ? String(setting.value) : ''}
               onChange={(event) => handleInputChange(index, event.target.value)}
               disabled={isCustomQueryDisabled}
+            />
+          </>
+        )
+      }
+      if (setting.label === 'Sensor Connection') {
+        return (
+          <>
+            <label
+              className={
+                isAirflowTasksSensorConnectionDisabled
+                  ? 'input-fields-label-disabled'
+                  : ''
+              }
+              htmlFor={`text-input-${index}`}
+            >
+              {setting.label}:
+            </label>
+            <input
+              className="input-fields-text-input"
+              id={`text-input-${index}`}
+              type="text"
+              value={setting.value ? String(setting.value) : ''}
+              onChange={(event) => handleInputChange(index, event.target.value)}
+              disabled={isAirflowTasksSensorConnectionDisabled}
+            />
+          </>
+        )
+      }
+      if (setting.label === 'Sudo User') {
+        return (
+          <>
+            <label
+              className={
+                isAirflowTasksSudoUserDisabled
+                  ? 'input-fields-label-disabled'
+                  : ''
+              }
+              htmlFor={`text-input-${index}`}
+            >
+              {setting.label}:
+            </label>
+            <input
+              className="input-fields-text-input"
+              id={`text-input-${index}`}
+              type="text"
+              value={setting.value ? String(setting.value) : ''}
+              onChange={(event) => handleInputChange(index, event.target.value)}
+              disabled={isAirflowTasksSudoUserDisabled}
             />
           </>
         )
@@ -682,6 +787,50 @@ function TableInputFields({
       )
 
     case 'integerFromZeroOrNull':
+      if (setting.label === 'Sensor Poke Interval') {
+        return (
+          <>
+            <label
+              className={
+                isAirflowTasksSensorPokeAndSoftDisabled
+                  ? 'input-fields-label-disabled'
+                  : ''
+              }
+            >
+              {setting.label}:
+            </label>
+            <input
+              className="input-fields-number-input"
+              type="number"
+              value={
+                setting.value !== null && setting.value !== undefined
+                  ? Number(setting.value)
+                  : ''
+              }
+              onChange={(event) => {
+                let value: string | number | null =
+                  event.target.value === '' ? '' : Number(event.target.value)
+
+                if (typeof value === 'number' && value < 0) {
+                  value = null
+                }
+
+                handleInputChange(index, value === '' ? null : value)
+              }}
+              onBlur={(event) => {
+                const value = event.target.value
+                // If input is empty or not a valid number greater than 1, set to null
+                if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
+                  handleInputChange(index, null)
+                  event.target.value = ''
+                }
+              }}
+              step="1"
+              disabled={isAirflowTasksSensorPokeAndSoftDisabled}
+            />
+          </>
+        )
+      }
       return (
         <>
           <label

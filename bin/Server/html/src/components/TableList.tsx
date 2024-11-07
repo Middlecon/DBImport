@@ -171,6 +171,26 @@ function TableList<T>({
         )
       }
 
+      if (column.accessor === 'sensorSoftFail') {
+        return (
+          <>
+            <p>{cellValue === 1 ? 'True' : 'False'}</p>
+          </>
+        )
+      }
+
+      if (
+        column.accessor === 'includeInImport' ||
+        column.accessor === 'includeInExport' ||
+        column.accessor === 'includeInAirflow'
+      ) {
+        return (
+          <>
+            <p>{cellValue === true ? 'True' : 'False'}</p>
+          </>
+        )
+      }
+
       if (!isExport && column.accessor === 'table') {
         return (
           <p

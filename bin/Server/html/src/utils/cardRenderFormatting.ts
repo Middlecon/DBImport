@@ -383,6 +383,9 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Sensor Poke Interval',
       value: row.sensorPokeInterval,
       type: SettingType.IntegerFromZeroOrNull,
+      isConditionsMet:
+        row.type === AirflowDAGTaskType.DAGSensor ||
+        row.type === AirflowDAGTaskType.SQLSensor,
       infoText: infoTexts.airflow.tasks.sensorPokeInterval
     }, // Number, Poke interval for sensors in seconds, int(11)
     {
@@ -395,18 +398,27 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Sensor Connection',
       value: row.sensorConnection,
       type: SettingType.Text,
+      isConditionsMet: row.type === AirflowDAGTaskType.SQLSensor,
       infoText: infoTexts.airflow.tasks.sensorConnection
     }, // Free-text, Name of Connection in Airflow, varchar(64)
     {
       label: 'Sensor Soft Fail',
       value: row.sensorSoftFail === 1 ? 1 : 0,
       type: SettingType.BooleanNumber,
+      isConditionsMet:
+        row.type === AirflowDAGTaskType.DAGSensor ||
+        row.type === AirflowDAGTaskType.SQLSensor,
       infoText: infoTexts.airflow.tasks.sensorSoftFail
     }, // Boolean number, Setting this to 1 will add soft_fail=True on sensor (1=true, all else = false), int(11)
     {
       label: 'Sudo User',
       value: row.sudoUser,
       type: SettingType.Text,
+      isConditionsMet:
+        row.type === AirflowDAGTaskType.DBImportCommand ||
+        row.type === AirflowDAGTaskType.JDBCSQL ||
+        row.type === AirflowDAGTaskType.HiveSQL ||
+        row.type === AirflowDAGTaskType.HiveSQLScript,
       infoText: infoTexts.airflow.tasks.sudoUser
     } // Free-text, The task will use this user for sudo instead of default, varchar(64)
   ]
