@@ -145,7 +145,7 @@ export function airflowCardRenderSettings(
             infoText: infoTexts.airflow.import.filterTable
           }, // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE, required
           {
-            label: 'Finish all Stage 1 first',
+            label: 'Finish all Import stages first',
             value: dagData.finishAllStage1First,
             type: SettingType.Boolean,
             infoText: infoTexts.airflow.import.finishAllStage1First

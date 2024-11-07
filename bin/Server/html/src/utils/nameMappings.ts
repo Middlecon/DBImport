@@ -448,7 +448,7 @@ export const labelToImportAirflowKey: {
   Concurrency: 'concurrency',
 
   'Filter Table': 'filterTable',
-  'Finish all Stage 1 first': 'finishAllStage1First',
+  'Finish all Import stages first': 'finishAllStage1First',
   'Run Import and Etl separate': 'runImportAndEtlSeparate',
   'Retries Stage 1': 'retriesStage1',
   'Retries Stage 2': 'retriesStage2',
