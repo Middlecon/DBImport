@@ -8,12 +8,15 @@ export enum SettingType {
   BooleanOrDefaultFromConnection = 'booleanOrDefaultFromConnection(-1)',
   Readonly = 'readonly',
   Text = 'text',
+  TextTripletOctalValue = 'textTripletOctalValue',
   Textarea = 'textarea',
   Enum = 'enum',
   ConnectionReference = 'connectionReference',
   ConnectionReferenceRequired = 'connectionReferenceRequired',
   Hidden = 'hidden', // Needed here or handled in other way?
+  IntegerOneOrTwo = 'integerOneOrTwo',
   IntegerFromZero = 'integerFromZero',
+  IntegerFromOne = 'integerFromOne',
   IntegerFromZeroOrNull = 'integerFromZeroOrNull',
   IntegerFromOneOrNull = 'integerFromOneOrNull',
   IntegerFromZeroOrAuto = 'integerFromZeroOrAuto(-1)',
@@ -126,4 +129,11 @@ export enum ExportValidationMethod {
 export enum ExportIncrValidationMethod {
   Full = 'full',
   Incremental = 'incr'
+}
+
+// Configuration Global
+
+export enum RestserverAuthenticationMethod {
+  Local = 'local',
+  Pam = 'pam'
 }

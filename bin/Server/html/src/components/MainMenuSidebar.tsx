@@ -13,6 +13,7 @@ import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
   isAirflowSubmenuActiveAtom,
+  isConfigurationSubmenuActiveAtom,
   selectedExportConnectionAtom,
   selectedImportDatabaseAtom,
   usernameAtom
@@ -26,6 +27,8 @@ import LogoutIcon from '../assets/icons/LogoutIcon'
 import { useGetStatusAndVersion } from '../utils/queries'
 import { deleteCookie } from '../utils/cookies'
 import { clearSessionStorageAtoms } from '../atoms/utils'
+import ConfigurationJDBCDriversIcon from '../assets/icons/ConfigurationJDBCDriversIcon'
+import ConfigurationGlobalIcon from '../assets/icons/ConfigurationGlobalIcon'
 
 interface MainSidebarProps {
   minimized: boolean
@@ -38,14 +41,22 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const [selectedExportConnection] = useAtom(selectedExportConnectionAtom)
 
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
+  const [toggleConfigurationActive, setToggleConfigurationActive] =
+    useState(false)
   const [toggleUsernameMenu, setToggleUsernameMenu] = useState(false)
   const [isAirflowSubmenuActive, setIsAirflowSubmenuActive] = useAtom(
     isAirflowSubmenuActiveAtom
   )
+  const [isConfigurationSubmenuActive, setIsConfigurationSubmenuActive] =
+    useAtom(isConfigurationSubmenuActiveAtom)
   const [userName] = useAtom(usernameAtom)
 
   const handleToggleAirflowMenu = () => {
     setToggleAirflowActive((prev) => !prev)
+  }
+
+  const handleToggleConfigurationMenu = () => {
+    setToggleConfigurationActive((prev) => !prev)
   }
 
   const handleToggleMinimize = () => {
@@ -98,6 +109,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setIsConfigurationSubmenuActive(false)
                 }}
               >
                 <ImportIcon />
@@ -116,6 +128,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setIsConfigurationSubmenuActive(false)
                 }}
               >
                 <ExportIcon />
@@ -142,6 +155,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setIsConfigurationSubmenuActive(false)
                       }}
                     >
                       <AirflowImportIcon />
@@ -156,6 +170,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setIsConfigurationSubmenuActive(false)
                       }}
                     >
                       <AirflowExportIcon />
@@ -171,6 +186,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                       }
                       onClick={() => {
                         setIsAirflowSubmenuActive(true)
+                        setIsConfigurationSubmenuActive(false)
                       }}
                     >
                       <AirflowCustomIcon />
@@ -189,22 +205,58 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
                 }
                 onClick={() => {
                   setIsAirflowSubmenuActive(false)
+                  setIsConfigurationSubmenuActive(false)
                 }}
               >
                 <ConnectionIcon />
                 {!minimized && <h2>Connection</h2>}
               </NavLink>
             </li>
-            <li className="mainsidebar-disabled">
-              {/* <NavLink
-                to="/configuration"
-                className={({ isActive }) =>
-                  `mainsidebar-menu-link ${isActive ? 'active' : ''}`
-                }
-              > */}
-              <ConfigurationIcon />
-              {!minimized && <h2>Configuration</h2>}
-              {/* </NavLink> */}
+            <li className="mainsidebar-menu-li">
+              <div
+                className={`mainsidebar-menu-link ${
+                  isConfigurationSubmenuActive ? 'active' : ''
+                }`}
+                onClick={handleToggleConfigurationMenu}
+              >
+                <ConfigurationIcon />
+                {!minimized && <h2>Configuration</h2>}
+              </div>
+              {toggleConfigurationActive && (
+                <ul>
+                  <li className="airflow-submenu-option">
+                    <NavLink
+                      to="/configuration/global"
+                      className={({ isActive }) =>
+                        `mainsidebar-menu-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={() => {
+                        setIsAirflowSubmenuActive(false)
+                        setIsConfigurationSubmenuActive(true)
+                      }}
+                    >
+                      <ConfigurationGlobalIcon />
+                      {!minimized && <h3>Global</h3>}
+                    </NavLink>
+                  </li>
+                  <li className="airflow-submenu-option">
+                    <NavLink
+                      to="/configuration/jdbcdrivers"
+                      className={({ isActive }) =>
+                        `mainsidebar-menu-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={() => {
+                        setIsAirflowSubmenuActive(false)
+                        setIsConfigurationSubmenuActive(true)
+                      }}
+                    >
+                      <ConfigurationJDBCDriversIcon />
+
+                      {!minimized && <h3>JDBC Drivers</h3>}
+                    </NavLink>
+                  </li>
+                </ul>
+              )}
             </li>
             <li className="mainsidebar-usermenu-li">
               {toggleUsernameMenu && (

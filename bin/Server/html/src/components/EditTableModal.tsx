@@ -14,6 +14,8 @@ import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from './InfoText'
 import { AirflowDAGTaskType } from '../utils/enums'
+import { useLocation } from 'react-router-dom'
+import { isValidTripletOctal } from '../utils/functions'
 
 interface EditModalProps {
   title: string
@@ -47,6 +49,10 @@ function EditTableModal({
         : [],
     [connectionsData]
   )
+
+  const location = useLocation()
+  const [isNotTripleOctalValue, setIsNotTripleOctalValue] = useState(false)
+
   const [originalEditableSettings] = useState(editableSettings)
   const [editedSettings, setEditedSettings] = useState(editableSettings)
   const [changedSettings, setChangedSettings] = useState<
@@ -121,6 +127,19 @@ function EditTableModal({
     const currentValue = newSettings[index].value
     const originalValue = originalEditableSettings[index]?.value
 
+    if (setting.label === 'DAG File Permission') {
+      const isValueValid = isValidTripletOctal(newValue as string)
+      setIsNotTripleOctalValue(!isValueValid)
+    }
+
+    if (
+      setting.type === 'integerFromOne' &&
+      typeof originalValue === 'number' &&
+      Number.isInteger(originalValue)
+    ) {
+      setPrevValue(originalValue)
+    }
+
     // Only stores previous value if it's a whole number
     if (newValue === -1) {
       if (
@@ -175,6 +194,8 @@ function EditTableModal({
   }
 
   const handleSave = () => {
+    if (isNotTripleOctalValue) return
+
     // Creates a new updatedSettings array by merging editedSettings into the original settings, ensuring immutability.
     const updatedSettings = Array.isArray(settings)
       ? settings.map((setting) => {
@@ -298,7 +319,16 @@ function EditTableModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+          {location.pathname === '/configuration/global' ? (
+            <RequiredFieldsInfo
+              isRequiredFieldEmpty={isRequiredFieldEmpty}
+              validation={true}
+              isValidationSad={isNotTripleOctalValue}
+              validationText="DAG File Permission needs to be a triple-octal value"
+            />
+          ) : (
+            <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+          )}
 
           <div className="table-modal-footer">
             <Button

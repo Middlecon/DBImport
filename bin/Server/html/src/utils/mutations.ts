@@ -11,7 +11,9 @@ import {
   ExportCreateAirflowDAG,
   ImportCreateAirflowDAG,
   UIExportTableWithoutEnum,
-  ExportTableCreateWithoutEnum
+  ExportTableCreateWithoutEnum,
+  ConfigGlobalWithIndex,
+  JDBCdriversWithIndex
 } from './interfaces'
 
 // Connection
@@ -146,5 +148,39 @@ export const useCreateAirflowDag = () => {
     }
   >({
     mutationFn: ({ type, dagData }) => postCreateAirflowDag(type, dagData)
+  })
+}
+
+// Configuration
+
+const postGlobalConfig = async (config: ConfigGlobalWithIndex) => {
+  console.log('post config:', config)
+  const response = await axiosInstance.post('/config/updateConfig', config)
+  console.log('post config response.data', response.data)
+
+  return response.data
+}
+
+export const useUpdateGlobalConfig = () => {
+  return useMutation({
+    mutationFn: (globalConfigUpdated: ConfigGlobalWithIndex) => {
+      return postGlobalConfig(globalConfigUpdated)
+    }
+  })
+}
+
+const postJDBCdriver = async (driver: JDBCdriversWithIndex) => {
+  console.log('post driver:', driver)
+  const response = await axiosInstance.post('/config/updateJDBCdriver', driver)
+  console.log('post driver response.data', response.data)
+
+  return response.data
+}
+
+export const useUpdateJDBCdrivers = () => {
+  return useMutation({
+    mutationFn: (driverUpdated: JDBCdriversWithIndex) => {
+      return postJDBCdriver(driverUpdated)
+    }
   })
 }

@@ -35,3 +35,9 @@ export function validateEmails(input: HTMLInputElement) {
     }
   }
 }
+
+export function isValidTripletOctal(value: string) {
+  const octalPattern = /^[0-7]+$/
+
+  return octalPattern.test(value) && value.length % 3 === 0
+}

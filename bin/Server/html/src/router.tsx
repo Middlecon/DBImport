@@ -21,6 +21,8 @@ import AirflowSettings from './routes/_airflowShared/AirflowSettings'
 import ExportCnTables from './routes/export/ExportCnTables'
 import ExportTableSettings from './routes/export/settings/ExportTableSettings'
 import ExportTableColumns from './routes/export/columns/ExportTableColumns'
+import ConfigGlobalBase from './routes/configGlobal/ConfigGlobalBase'
+import ConfigJDBCDriversBase from './routes/configJDBCDrivers/ConfigJDBCDriversBase'
 
 export const router = createBrowserRouter([
   {
@@ -164,8 +166,12 @@ export const router = createBrowserRouter([
         element: <ConnectionDetailedView />
       },
       {
-        path: '/configuration',
-        element: <div>Configuration</div>
+        path: '/configuration/global',
+        element: <ConfigGlobalBase />
+      },
+      {
+        path: '/configuration/jdbcdrivers',
+        element: <ConfigJDBCDriversBase />
       },
       // Wildcard route to catch unmatched paths
       {

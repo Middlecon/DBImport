@@ -6,6 +6,7 @@ import './TableInputFields.scss'
 import { useAtom } from 'jotai'
 import { airflowTypeAtom } from '../atoms/atoms'
 import { validateEmails } from './functions'
+import { useLocation } from 'react-router-dom'
 
 interface TableInputFieldsProps {
   index: number
@@ -44,6 +45,9 @@ function TableInputFields({
   isAirflowTasksSudoUserDisabled = true,
   disabled = false
 }: TableInputFieldsProps) {
+  const location = useLocation()
+  const pathnames = location.pathname.split('/').filter((x) => x)
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const [airflowType] = useAtom(airflowTypeAtom)
@@ -140,6 +144,7 @@ function TableInputFields({
           )} */}
         </>
       )
+
     case 'booleanNumber':
       if (setting.label === 'Sensor Soft Fail') {
         return (
@@ -464,7 +469,7 @@ function TableInputFields({
           </>
         )
       }
-      if (setting.label === 'Sudo User') {
+      if (pathnames[3] === 'tasks' && setting.label === 'Sudo User') {
         return (
           <>
             <label
@@ -488,6 +493,30 @@ function TableInputFields({
           </>
         )
       }
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            htmlFor={`text-input-${index}`}
+          >
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+
+          <input
+            className="input-fields-text-input"
+            id={`text-input-${index}`}
+            type="text"
+            value={setting.value ? String(setting.value) : ''}
+            onChange={(event) => handleInputChange(index, event.target.value)}
+            required={isRequired}
+            disabled={isFieldDisabled}
+          />
+        </>
+      )
+    }
+
+    case 'textTripletOctalValue': {
       return (
         <>
           <label
@@ -682,6 +711,48 @@ function TableInputFields({
       )
     case 'hidden':
       return null
+
+    case 'integerOneOrTwo':
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
+          <div className="radio-edit">
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
+              <input
+                type="radio"
+                name={`integer-${index}`}
+                value="true"
+                checked={setting.value === 1}
+                onChange={() => handleInputChange(index, 1)}
+                disabled={isFieldDisabled}
+              />
+              1
+            </label>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            >
+              <input
+                type="radio"
+                name={`integer-${index}`}
+                value="false"
+                checked={setting.value === 2}
+                onChange={() => handleInputChange(index, 2)}
+                disabled={isFieldDisabled}
+              />
+              2
+            </label>
+          </div>
+          {/* {isChanged && (
+              <span className="input-fields-changed">Changed</span>
+            )} */}
+        </>
+      )
 
     case 'integerFromZero':
       return (
@@ -927,6 +998,55 @@ function TableInputFields({
               />
               Auto
             </label>
+          </div>
+        </>
+      )
+
+    case 'integerFromOne':
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+          </label>
+
+          <div>
+            <input
+              className="input-fields-number-input"
+              type="number"
+              value={
+                setting.value === ''
+                  ? ''
+                  : setting.value !== null && setting.value !== undefined
+                  ? Number(setting.value)
+                  : ''
+              }
+              onChange={(event) => {
+                let value =
+                  event.target.value === '' ? '' : Number(event.target.value)
+                if (
+                  setting.label === 'Atlas Discovery Interval' &&
+                  Number(value) > 24
+                )
+                  value = prevValue as number
+
+                // Temporarily allows empty input, otherwise enforce minimum of 1
+                handleInputChange(
+                  index,
+                  value === '' || Number(value) >= 1 ? value : 1
+                )
+              }}
+              onBlur={(event) => {
+                const value = Number(event.target.value)
+
+                // Reverts to prevValue if the input is empty or less than 1
+                if (event.target.value === '' || isNaN(value) || value < 1) {
+                  handleInputChange(index, prevValue)
+                }
+              }}
+              step="1"
+            />
           </div>
         </>
       )

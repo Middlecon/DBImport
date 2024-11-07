@@ -37,10 +37,12 @@ const Breadcrumbs = () => {
       const label =
         index === 0
           ? capitalizeFirstLetter(pathname)
-          : pathnames[0] === 'airflow' && index === 1
+          : pathname === 'jdbcdrivers'
+          ? 'JDBC Drivers'
+          : (pathnames[0] === 'airflow' || pathnames[0] === 'configuration') &&
+            index === 1
           ? capitalizeFirstLetter(pathname)
           : pathname
-
       breadcrumbItems.push({
         label,
         path
@@ -82,7 +84,7 @@ const Breadcrumbs = () => {
             {/* Only shows chevron after the first item */}
             {idx === crumbs.length - 1 || idx >= 3 ? (
               <span>{crumb.label}</span> /* Current/last item is not a link */
-            ) : crumb.label === 'Airflow' ? (
+            ) : crumb.label === 'Airflow' || crumb.label === 'Configuration' ? (
               <span>{crumb.label}</span>
             ) : (
               <Link

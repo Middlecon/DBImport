@@ -889,41 +889,168 @@ export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
 
 export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
 
-// export interface BaseCreateAirflowDAG {
-//   name: string
-//   scheduleInterval: string | null
-//   retries: number
-//   operatorNotes: string | null
-//   applicationNotes: string | null
-//   autoRegenerateDag: boolean
-//   airflowNotes: string | null
-//   sudoUser: string | null
-//   timezone: string | null
-//   email: string | null
-//   emailOnFailure: boolean
-//   emailOnRetries: boolean
-//   tags: string | null
-//   slaWarningTime: string | null
-//   retryExponentialBackoff: boolean
-//   concurrency: number | null
-//   tasks: AirflowTask[]
-// }
+// Configuration
 
-// export interface ImportCreateAirflowDAG extends BaseCreateAirflowDAG {
-//   filterTable: string | null
-//   finishAllStage1First: boolean | null
-//   runImportAndEtlSeparate: boolean
-//   retriesStage1: number | null
-//   retriesStage2: number | null
-//   poolStage1: string | null
-//   poolStage2: string | null
-//   metadataImport: boolean
-// }
+export interface ConfigGlobal {
+  airflow_aws_instanceids: string | null
+  airflow_aws_pool_to_instanceid: boolean | null
+  airflow_create_pool_with_task: boolean | null
+  airflow_dag_directory: string | null
+  airflow_dag_file_group: string | null
+  airflow_dag_file_permission: string | null
+  airflow_dag_staging_directory: string | null
+  airflow_dbimport_commandpath: string | null
+  airflow_default_pool_size: number | null
+  airflow_disable: boolean | null
+  airflow_dummy_task_queue: string | null
+  airflow_major_version: number | null
+  airflow_sudo_user: string | null
+  atlas_discovery_interval: number | null
+  cluster_name: string | null
+  export_default_sessions: number | null
+  export_max_sessions: number | null
+  export_stage_disable: boolean | null
+  export_staging_database: string | null
+  export_start_disable: boolean | null
+  hdfs_address: string | null
+  hdfs_basedir: string | null
+  hdfs_blocksize: string | null
+  hive_acid_with_clusteredby: boolean | null
+  hive_insert_only_tables: boolean | null
+  hive_major_compact_after_merge: boolean | null
+  hive_print_messages: boolean | null
+  hive_remove_locks_by_force: boolean | null
+  hive_validate_before_execution: boolean | null
+  hive_validate_table: string | null
+  impala_invalidate_metadata: boolean | null
+  import_columnname_delete: string | null
+  import_columnname_histtime: string | null
+  import_columnname_import: string | null
+  import_columnname_insert: string | null
+  import_columnname_iud: string | null
+  import_columnname_source: string | null
+  import_columnname_update: string | null
+  import_default_sessions: number | null
+  import_history_database: string | null
+  import_history_table: string | null
+  import_max_sessions: number | null
+  import_process_empty: boolean | null
+  import_stage_disable: boolean | null
+  import_staging_database: string | null
+  import_staging_table: string | null
+  import_start_disable: boolean | null
+  import_work_database: string | null
+  import_work_table: string | null
+  kafka_brokers: string | null
+  kafka_saslmechanism: string | null
+  kafka_securityprotocol: string | null
+  kafka_topic: string | null
+  kafka_trustcafile: string | null
+  post_airflow_dag_operations: boolean | null
+  post_data_to_kafka_extended: boolean | null
+  post_data_to_kafka: boolean | null
+  post_data_to_rest_extended: boolean | null
+  post_data_to_rest: boolean | null
+  post_data_to_awssns_extended: boolean | null
+  post_data_to_awssns: boolean | null
+  post_data_to_awssns_topic: string | null
+  restserver_admin_user: string | null
+  restserver_authentication_method: string | null
+  restserver_token_ttl: number | null
+  rest_timeout: number | null
+  rest_trustcafile: string | null
+  rest_url: string | null
+  rest_verifyssl: boolean | null
+  spark_max_executors: number | null
+  timezone: string | null
+}
 
-// export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
-//   filterConnection: string
-//   filterTargetSchema: string | null
-//   filterTargetTable: string | null
-// }
+export interface ConfigGlobalWithIndex {
+  [key: string]: string | boolean | number | null
+  airflow_aws_instanceids: string | null
+  airflow_aws_pool_to_instanceid: boolean | null
+  airflow_create_pool_with_task: boolean | null
+  airflow_dag_directory: string | null
+  airflow_dag_file_group: string | null
+  airflow_dag_file_permission: string | null
+  airflow_dag_staging_directory: string | null
+  airflow_dbimport_commandpath: string | null
+  airflow_default_pool_size: number | null
+  airflow_disable: boolean | null
+  airflow_dummy_task_queue: string | null
+  airflow_major_version: number | null
+  airflow_sudo_user: string | null
+  atlas_discovery_interval: number | null
+  cluster_name: string | null
+  export_default_sessions: number | null
+  export_max_sessions: number | null
+  export_stage_disable: boolean | null
+  export_staging_database: string | null
+  export_start_disable: boolean | null
+  hdfs_address: string | null
+  hdfs_basedir: string | null
+  hdfs_blocksize: string | null
+  hive_acid_with_clusteredby: boolean | null
+  hive_insert_only_tables: boolean | null
+  hive_major_compact_after_merge: boolean | null
+  hive_print_messages: boolean | null
+  hive_remove_locks_by_force: boolean | null
+  hive_validate_before_execution: boolean | null
+  hive_validate_table: string | null
+  impala_invalidate_metadata: boolean | null
+  import_columnname_delete: string | null
+  import_columnname_histtime: string | null
+  import_columnname_import: string | null
+  import_columnname_insert: string | null
+  import_columnname_iud: string | null
+  import_columnname_source: string | null
+  import_columnname_update: string | null
+  import_default_sessions: number | null
+  import_history_database: string | null
+  import_history_table: string | null
+  import_max_sessions: number | null
+  import_process_empty: boolean | null
+  import_stage_disable: boolean | null
+  import_staging_database: string | null
+  import_staging_table: string | null
+  import_start_disable: boolean | null
+  import_work_database: string | null
+  import_work_table: string | null
+  kafka_brokers: string | null
+  kafka_saslmechanism: string | null
+  kafka_securityprotocol: string | null
+  kafka_topic: string | null
+  kafka_trustcafile: string | null
+  post_airflow_dag_operations: boolean | null
+  post_data_to_kafka_extended: boolean | null
+  post_data_to_kafka: boolean | null
+  post_data_to_rest_extended: boolean | null
+  post_data_to_rest: boolean | null
+  post_data_to_awssns_extended: boolean | null
+  post_data_to_awssns: boolean | null
+  post_data_to_awssns_topic: string | null
+  restserver_admin_user: string | null
+  restserver_authentication_method: string | null
+  restserver_token_ttl: number | null
+  rest_timeout: number | null
+  rest_trustcafile: string | null
+  rest_url: string | null
+  rest_verifyssl: boolean | null
+  spark_max_executors: number | null
+  timezone: string | null
+}
 
-// export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
+export interface JDBCdrivers {
+  databaseType: string
+  version: string
+  driver: string
+  classpath: string
+}
+
+export interface JDBCdriversWithIndex {
+  [key: string]: string | boolean | number | null
+  databaseType: string
+  version: string
+  driver: string
+  classpath: string
+}

@@ -40,6 +40,10 @@ export const isAirflowSubmenuActiveAtom = atomWithSessionStorage<boolean>(
   'isAirflowSubmenuActive',
   false
 )
+export const isConfigurationSubmenuActiveAtom = atomWithSessionStorage<boolean>(
+  'isConfigurationSubmenuActive',
+  false
+)
 
 export const airflowTypeAtom = atom('')
 

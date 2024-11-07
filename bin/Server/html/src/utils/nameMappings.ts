@@ -11,16 +11,21 @@ import {
   IncrMode,
   IncrValidationMethod,
   MergeCompactionMethod,
+  RestserverAuthenticationMethod,
   ValidateSource,
   ValidationMethod
 } from './enums'
 import {
   AirflowWithDynamicKeys,
   Columns,
+  ConfigGlobal,
+  ConfigGlobalWithIndex,
   Connection,
   CustomAirflowDAG,
   ExportAirflowDAG,
   ImportAirflowDAG,
+  JDBCdrivers,
+  JDBCdriversWithIndex,
   UIExportTable,
   UIExportTableWithoutEnum,
   UITableWithoutEnum
@@ -118,6 +123,13 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
     [AirflowDAGTaskPlacement.BeforeMain]: 'before main',
     [AirflowDAGTaskPlacement.AfterMain]: 'after main',
     [AirflowDAGTaskPlacement.InMain]: 'in main'
+  },
+
+  // Configuration Global
+
+  restserver_authentication_method: {
+    [RestserverAuthenticationMethod.Local]: 'Local',
+    [RestserverAuthenticationMethod.Pam]: 'Pam'
   }
 }
 
@@ -172,7 +184,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Datalake Source': 'datalakeSource',
     Mappers: 'mappers',
     'Hive Split Count': 'splitCount',
-    'Hive Java Heap (MB)': 'hiveContainerSize',
+    'Hive Tez Container size (MB)': 'hiveContainerSize',
     'Spark Executor Memory': 'sparkExecutorMemory',
     'Spark Executors': 'sparkExecutors',
     'Validate Import': 'validateImport',
@@ -236,7 +248,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     'Last Rows': 'lastRows',
     'Last Mappers': 'lastMappers',
     'Last Execution': 'lastExecution',
-    'Java Heap': 'hiveContainerSize',
+    'Hive Tez Container size (MB)': 'hiveContainerSize',
     'Create Target Table Sql': 'createTargetTableSql',
     'Operator Notes': 'operatorNotes'
   }
@@ -271,6 +283,98 @@ export function getKeyFromColumnLabel(
   label: string
 ): keyof Columns | undefined {
   return labelToColumnKey[label]
+}
+
+export const labelToUIGlobalConfigKey: { [label: string]: keyof ConfigGlobal } =
+  {
+    'AWS Instanceids': 'airflow_aws_instanceids',
+    'AWS Pool to Instanceid': 'airflow_aws_pool_to_instanceid',
+    'Create Pool With Task': 'airflow_create_pool_with_task',
+    'DAG Directory': 'airflow_dag_directory',
+    'DAG File Group': 'airflow_dag_file_group',
+    'DAG File Permission': 'airflow_dag_file_permission',
+    'DAG Staging Directory': 'airflow_dag_staging_directory',
+    'DBImport Commandpath': 'airflow_dbimport_commandpath',
+    'Default Pool Size': 'airflow_default_pool_size',
+    'Dummy Task Queue': 'airflow_dummy_task_queue',
+    'Major Version': 'airflow_major_version',
+    'Sudo User': 'airflow_sudo_user',
+    'Airflow Disable': 'airflow_disable',
+    'Export Start Disable': 'export_start_disable',
+    'Export Stage Disable': 'export_stage_disable',
+    'Import Start Disable': 'import_start_disable',
+    'Import Stage Disable': 'import_stage_disable',
+    Timezone: 'timezone',
+    'Atlas Discovery Interval': 'atlas_discovery_interval',
+    'Cluster Name': 'cluster_name',
+    Address: 'hdfs_address',
+    'Base Directory': 'hdfs_basedir',
+    Blocksize: 'hdfs_blocksize',
+    'Hive Acid With Clusteredby': 'hive_acid_with_clusteredby',
+    'Hive Insert Only Tables': 'hive_insert_only_tables',
+    'Hive Major Compact After Merge': 'hive_major_compact_after_merge',
+    'Hive Print Messages': 'hive_print_messages',
+    'Hive Remove Locks By Force': 'hive_remove_locks_by_force',
+    'Hive Validate Before Execution': 'hive_validate_before_execution',
+    'Hive Validate Table': 'hive_validate_table',
+    'Impala Invalidate Metadata': 'impala_invalidate_metadata',
+    'Import Columnname Delete': 'import_columnname_delete',
+    'Import Columnname Histtime': 'import_columnname_histtime',
+    'Import Columnname Import': 'import_columnname_import',
+    'Import Columnname Insert': 'import_columnname_insert',
+    'Import Columnname Iud': 'import_columnname_iud',
+    'Import Columnname Source': 'import_columnname_source',
+    'Import Columnname Update': 'import_columnname_update',
+    'Import History Database': 'import_history_database',
+    'Import History Table': 'import_history_table',
+    'Import Process Empty': 'import_process_empty',
+    'Import Staging Database': 'import_staging_database',
+    'Import Staging Table': 'import_staging_table',
+    'Import Work Database': 'import_work_database',
+    'Import Work Table': 'import_work_table',
+    'Export Staging Database': 'export_staging_database',
+    'Kafka Brokers': 'kafka_brokers',
+    'Kafka Saslmechanism': 'kafka_saslmechanism',
+    'Kafka Securityprotocol': 'kafka_securityprotocol',
+    'Kafka Topic': 'kafka_topic',
+    'Kafka Trustcafile': 'kafka_trustcafile',
+    'Post Airflow Dag Operations': 'post_airflow_dag_operations',
+    'Post Data To AWS SNS': 'post_data_to_awssns',
+    'Post Data To AWS SNS Extended': 'post_data_to_awssns_extended',
+    'Post Data To AWS SNS Topic': 'post_data_to_awssns_topic',
+    'Post Data To Kafka': 'post_data_to_kafka',
+    'Post Data To Kafka Extended': 'post_data_to_kafka_extended',
+    'Post Data To Rest': 'post_data_to_rest',
+    'Post Data To Rest Extended': 'post_data_to_rest_extended',
+    'Admin User': 'restserver_admin_user',
+    'Authentication Method': 'restserver_authentication_method',
+    'Token TTL': 'restserver_token_ttl',
+    Timeout: 'rest_timeout',
+    Trustcafile: 'rest_trustcafile',
+    Url: 'rest_url',
+    'Verify SSL': 'rest_verifyssl',
+    'Import Default Sessions': 'import_default_sessions',
+    'Import Max Sessions': 'import_max_sessions',
+    'Export Default Sessions': 'export_default_sessions',
+    'Export Max Sessions': 'export_max_sessions',
+    'Spark Max Executors': 'spark_max_executors'
+  }
+
+export function getKeyFromGlobalConfigLabel(
+  label: string
+): keyof ConfigGlobalWithIndex | undefined {
+  return labelToUIGlobalConfigKey[label]
+}
+
+export const labelToUIJDBCdriversKey: { [label: string]: keyof JDBCdrivers } = {
+  Driver: 'driver',
+  'Class Path': 'classpath'
+}
+
+export function getKeyFromJDBCdriversLabel(
+  label: string
+): keyof JDBCdriversWithIndex | undefined {
+  return labelToUIJDBCdriversKey[label]
 }
 
 export const nameReverseMappings: {
@@ -351,6 +455,15 @@ export const exportNameReverseMappings: {
   }
 }
 
+export const configNameReverseMappings: {
+  [category: string]: { [key: string]: string }
+} = {
+  'Authentication Method': {
+    Local: RestserverAuthenticationMethod.Local,
+    Pam: RestserverAuthenticationMethod.Pam
+  }
+}
+
 export const mapDisplayValue = (key: string, value: string): string => {
   return nameDisplayMappings[key]?.[value] || value
 }
@@ -369,14 +482,16 @@ export function mapEnumValue<T extends string>(
 }
 
 export const reverseMapEnumValue = (
-  type: 'import' | 'export',
+  type: 'import' | 'export' | 'config',
   category: string,
   displayValue: string
 ): string => {
   const categoryMappings =
     type === 'import'
       ? nameReverseMappings[category]
-      : exportNameReverseMappings[category]
+      : type === 'export'
+      ? exportNameReverseMappings[category]
+      : configNameReverseMappings[category]
 
   if (!categoryMappings) {
     throw new Error(`No mappings found for category: ${category}`)

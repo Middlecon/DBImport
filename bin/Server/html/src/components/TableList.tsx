@@ -269,6 +269,18 @@ function TableList<T>({
         )
       }
 
+      if (column.accessor === 'databaseType') {
+        return (
+          <p
+            ref={(el) => (cellRefs.current[rowIndex] = el)}
+            onClick={() => onEdit && onEdit(row)}
+            className="clickable-table-name"
+          >
+            {String(cellValue)}
+          </p>
+        )
+      }
+
       if (column.isAction) {
         return (
           <div className="actions-row">

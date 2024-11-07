@@ -5,6 +5,7 @@ import {
   AirflowsData,
   AirflowsExportData,
   AirflowsImportData,
+  ConfigGlobal,
   Connection,
   Connections,
   CustomAirflowDAG,
@@ -15,6 +16,7 @@ import {
   ExportConnections,
   ExportTable,
   ImportAirflowDAG,
+  JDBCdrivers,
   Table,
   UIExportCnTables,
   UIExportTable,
@@ -482,5 +484,31 @@ export const useGetStatusAndVersion = (): UseQueryResult<
   return useQuery({
     queryKey: ['status'],
     queryFn: () => getStatusAndVersion()
+  })
+}
+
+// CONFIGURATION
+
+const getGlobalConfig = async () => {
+  const response = await axiosInstance.get('/config/getConfig')
+  return response.data
+}
+
+export const useGlobalConfig = (): UseQueryResult<ConfigGlobal, Error> => {
+  return useQuery({
+    queryKey: ['configuration', 'global'],
+    queryFn: () => getGlobalConfig()
+  })
+}
+
+const getJDBCdrivers = async () => {
+  const response = await axiosInstance.get('/config/getJDBCdrivers')
+  return response.data
+}
+
+export const useJDBCDrivers = (): UseQueryResult<JDBCdrivers[], Error> => {
+  return useQuery({
+    queryKey: ['configuration', 'jdbcdrivers'],
+    queryFn: () => getJDBCdrivers()
   })
 }

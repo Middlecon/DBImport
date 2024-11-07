@@ -25,13 +25,19 @@ import {
   UIExportTable,
   ExportColumns,
   UIExportTableWithoutEnum,
-  ExportTableCreateWithoutEnum
+  ExportTableCreateWithoutEnum,
+  ConfigGlobal,
+  ConfigGlobalWithIndex,
+  JDBCdriversWithIndex,
+  JDBCdrivers
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
   getKeyFromExportAirflowLabel,
   getKeyFromExportLabel,
+  getKeyFromGlobalConfigLabel,
   getKeyFromImportAirflowLabel,
+  getKeyFromJDBCdriversLabel,
   // getKeyFromColumnLabel,
   // getKeyFromConnectionLabel,
   getKeyFromLabel,
@@ -274,8 +280,6 @@ export function updateTableData(
 
   filteredSettings.forEach((setting) => {
     if (column === true) {
-      console.log('updatedSettings', updatedSettings)
-
       const indexInColumnsSetting = updatedSettings.find(
         (setting) => setting.label === 'Column Order'
       )
@@ -1083,4 +1087,79 @@ export function createCustomDagData(
   const finalCreateData: CustomCreateAirflowDAG = { ...part2, ...part1 }
 
   return finalCreateData
+}
+
+// Configuration
+
+export function updateGlobalConfigData(
+  configData: ConfigGlobal,
+  updatedSettings: EditSetting[]
+): ConfigGlobalWithIndex {
+  const updatedConfigData: ConfigGlobalWithIndex = {
+    ...configData
+  } as ConfigGlobalWithIndex
+
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  console.log('filteredSettings', filteredSettings)
+
+  filteredSettings.forEach((setting) => {
+    let value = setting.value as string
+
+    if (setting.type === 'enum' && setting.enumOptions) {
+      value = reverseMapEnumValue('config', setting.label, value as string)
+    }
+
+    const key = getKeyFromGlobalConfigLabel(setting.label)
+
+    if (key) {
+      updatedConfigData[key] = value
+    }
+  })
+
+  const finalConfigData = Object.keys(updatedConfigData).reduce((acc, key) => {
+    if (
+      filteredSettings.some(
+        (setting) => getKeyFromGlobalConfigLabel(setting.label) === key
+      ) &&
+      !fieldsToRemove.includes(key)
+    ) {
+      acc[key] = updatedConfigData[key]
+    }
+    return acc
+  }, {} as ConfigGlobalWithIndex)
+
+  return finalConfigData
+}
+
+export function updateJDBCdriversData(
+  configData: JDBCdrivers,
+  updatedSettings: EditSetting[]
+): JDBCdriversWithIndex {
+  const updatedConfigData: JDBCdriversWithIndex = {
+    ...configData
+  } as JDBCdriversWithIndex
+
+  const filteredSettings = updatedSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    const value = setting.value as string
+
+    const key = getKeyFromJDBCdriversLabel(setting.label)
+
+    if (key) {
+      updatedConfigData[key] = value
+    }
+  })
+
+  const finalConfigData = Object.keys(updatedConfigData).reduce((acc, key) => {
+    acc[key] = updatedConfigData[key]
+    return acc
+  }, {} as JDBCdriversWithIndex)
+
+  return finalConfigData
 }
