@@ -115,7 +115,7 @@ function CardAirflow({
 
       {isEditModalOpen && !isNotEditable && !isDisabled && (
         <EditConnectionModal
-          title={`Edit ${title}`}
+          title={`Edit DAG ${originalData.name}`}
           settings={settings}
           onSave={handleSave}
           onClose={handleCloseModal}
