@@ -217,11 +217,8 @@ function EditConnectionModal({
   }, [isResizing, handleMouseMove, handleMouseUp])
 
   return (
-    <div className="table-modal-backdrop-connection">
-      <div
-        className="table-modal-content-connection"
-        style={{ width: `${modalWidth}px` }}
-      >
+    <div className="table-modal-backdrop">
+      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

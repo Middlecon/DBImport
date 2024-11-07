@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { CSSProperties, useEffect, useRef, useState } from 'react'
 import InfoIcon from '../assets/icons/InfoIcon'
 import './InfoText.scss'
 
 interface InfoTextProps {
   label: string
   infoText: string
+  iconPosition?: CSSProperties
 }
 
-function InfoText({ label, infoText }: InfoTextProps) {
+function InfoText({
+  label,
+  infoText,
+  iconPosition = { paddingTop: 2 }
+}: InfoTextProps) {
   const [openInfoDropdown, setOpenInfoDropdown] = useState<string | null>(null)
   const [isHovered, setIsHovered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -71,6 +76,7 @@ function InfoText({ label, infoText }: InfoTextProps) {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         ref={containerRef}
+        style={iconPosition}
       >
         <InfoIcon />
         {shouldShowInfo && (

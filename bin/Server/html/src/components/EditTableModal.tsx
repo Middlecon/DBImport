@@ -288,6 +288,11 @@ function EditTableModal({
                     <InfoText
                       label={setting.label}
                       infoText={setting.infoText}
+                      iconPosition={
+                        setting.type === 'readonly'
+                          ? { paddingTop: 0, paddingBottom: 2 }
+                          : { paddingTop: 2 }
+                      }
                     />
                   )}
                 </div>
