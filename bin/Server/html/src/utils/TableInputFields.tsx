@@ -72,7 +72,8 @@ function TableInputFields({
     setting.label === 'Target Schema' ||
     setting.label === 'Connection' ||
     setting.label === 'Connection String' ||
-    setting.label === 'DAG Name'
+    setting.label === 'DAG Name' ||
+    pathnames[1] === 'global'
 
   const showRequiredIndicator = isRequired && !setting.value
 
@@ -104,6 +105,8 @@ function TableInputFields({
 
   switch (setting.type) {
     case 'boolean':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -146,6 +149,8 @@ function TableInputFields({
       )
 
     case 'booleanNumber':
+      if (setting.isHidden === true) return null
+
       if (setting.label === 'Sensor Soft Fail') {
         return (
           <>
@@ -236,6 +241,8 @@ function TableInputFields({
       )
 
     case 'booleanNumberOrAuto':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -292,6 +299,8 @@ function TableInputFields({
       )
 
     case 'booleanOrDefaultFromConfig(-1)':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -348,6 +357,8 @@ function TableInputFields({
       )
 
     case 'booleanOrDefaultFromConnection(-1)':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -404,6 +415,8 @@ function TableInputFields({
       )
 
     case 'readonly':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -417,6 +430,8 @@ function TableInputFields({
       )
 
     case 'text': {
+      if (setting.isHidden === true) return null
+
       if (
         setting.label === 'Custom Query Source SQL' ||
         setting.label === 'Custom Query Hive SQL' ||
@@ -509,6 +524,11 @@ function TableInputFields({
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(event) => handleInputChange(index, event.target.value)}
+            onBlur={(event) => {
+              if (event.target.value === '') {
+                handleInputChange(index, prevValue)
+              }
+            }}
             required={isRequired}
             disabled={isFieldDisabled}
           />
@@ -517,6 +537,8 @@ function TableInputFields({
     }
 
     case 'textTripletOctalValue': {
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -541,6 +563,8 @@ function TableInputFields({
     }
 
     case 'textarea': {
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -567,6 +591,8 @@ function TableInputFields({
     }
 
     case 'email':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -597,6 +623,8 @@ function TableInputFields({
       )
 
     case 'enum': {
+      if (setting.isHidden === true) return null
+
       const dropdownOptions = setting.enumOptions
         ? Object.values(setting.enumOptions)
         : []
@@ -634,6 +662,8 @@ function TableInputFields({
     }
 
     case 'connectionReference':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -674,6 +704,8 @@ function TableInputFields({
       )
 
     case 'connectionReferenceRequired':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -713,6 +745,8 @@ function TableInputFields({
       return null
 
     case 'integerOneOrTwo':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -755,6 +789,8 @@ function TableInputFields({
       )
 
     case 'integerFromZero':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -802,6 +838,8 @@ function TableInputFields({
       )
 
     case 'integerFromOneOrNull':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -858,6 +896,8 @@ function TableInputFields({
       )
 
     case 'integerFromZeroOrNull':
+      if (setting.isHidden === true) return null
+
       if (setting.label === 'Sensor Poke Interval') {
         return (
           <>
@@ -942,6 +982,8 @@ function TableInputFields({
       )
 
     case 'integerFromZeroOrAuto(-1)':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -1003,6 +1045,8 @@ function TableInputFields({
       )
 
     case 'integerFromOne':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -1052,6 +1096,8 @@ function TableInputFields({
       )
 
     case 'integerFromOneOrAuto(-1)':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -1116,6 +1162,8 @@ function TableInputFields({
       )
 
     case 'integerFromOneOrDefaultFromConfig(null)':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -1177,7 +1225,9 @@ function TableInputFields({
         </>
       )
 
-    case 'time': {
+    case 'time':
+      if (setting.isHidden === true) return null
+
       return (
         <>
           <label
@@ -1195,9 +1245,10 @@ function TableInputFields({
           />
         </>
       )
-    }
 
     case 'timezone': {
+      if (setting.isHidden === true) return null
+
       // const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone // Maybe use if field is required
       // console.log("User's current time zone:", userTimeZone)
       const allTimeZones = getAllTimezones({ deprecated: true })

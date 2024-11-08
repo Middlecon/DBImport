@@ -51,6 +51,7 @@ function EditTableModal({
   )
 
   const location = useLocation()
+  const pathnames = location.pathname.split('/').filter((x) => x)
   const [isNotTripleOctalValue, setIsNotTripleOctalValue] = useState(false)
 
   const [originalEditableSettings] = useState(editableSettings)
@@ -130,6 +131,10 @@ function EditTableModal({
     if (setting.label === 'DAG File Permission') {
       const isValueValid = isValidTripletOctal(newValue as string)
       setIsNotTripleOctalValue(!isValueValid)
+    }
+
+    if (typeof originalValue === 'string' && pathnames[1] === 'global') {
+      setPrevValue(originalValue)
     }
 
     if (
