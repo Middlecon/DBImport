@@ -21,6 +21,7 @@ function TableColumns() {
   const { mutate: updateTable } = useUpdateTable()
   const [isModalOpen, setModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
   const columnsData = useMemo(
     () => [...(tableData?.columns || [])],
@@ -54,7 +55,7 @@ function TableColumns() {
   )
 
   const handleEditClick = useCallback(
-    (row: Columns) => {
+    (row: Columns, rowIndex: number | undefined) => {
       if (!tableData) {
         console.error('Table data is not available.')
         return
@@ -63,6 +64,7 @@ function TableColumns() {
       const rowData: EditSetting[] = importColumnRowDataEdit(row, tableData)
 
       setCurrentRow(rowData)
+      setRowIndex(rowIndex)
       setModalOpen(true)
     },
     [tableData]
@@ -71,7 +73,12 @@ function TableColumns() {
   if (!tableData) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    const editedTableData = updateTableData(tableData, updatedSettings, true)
+    const editedTableData = updateTableData(
+      tableData,
+      updatedSettings,
+      true,
+      rowIndex
+    )
 
     updateTable(
       { type: 'import', table: editedTableData },

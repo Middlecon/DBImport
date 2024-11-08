@@ -30,6 +30,7 @@ function ExportTableColumns() {
   const { mutate: updateTable } = useUpdateTable()
   const [isModalOpen, setModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
   const columnsData = useMemo(
     () => [...(tableData?.columns || [])],
@@ -53,7 +54,7 @@ function ExportTableColumns() {
   )
 
   const handleEditClick = useCallback(
-    (row: ExportColumns) => {
+    (row: ExportColumns, rowIndex: number | undefined) => {
       if (!tableData) {
         console.error('Table data is not available.')
         return
@@ -61,6 +62,7 @@ function ExportTableColumns() {
 
       const rowData: EditSetting[] = exportColumnRowDataEdit(row)
 
+      setRowIndex(rowIndex)
       setCurrentRow(rowData)
       setModalOpen(true)
     },
@@ -74,7 +76,8 @@ function ExportTableColumns() {
     const editedTableData = updateExportTableData(
       tableData,
       updatedSettings,
-      true
+      true,
+      rowIndex
     )
     updateTable(
       { type: 'export', table: editedTableData },

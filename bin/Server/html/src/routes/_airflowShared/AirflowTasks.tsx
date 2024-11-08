@@ -33,6 +33,7 @@ function AirflowTasks({ type }: { type: string }) {
   const { mutate: updateDag } = useUpdateAirflowDag()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
   const tasksData = useMemo(
     () => [...(originalDagData?.tasks || [])],
@@ -80,7 +81,7 @@ function AirflowTasks({ type }: { type: string }) {
   )
 
   const handleEditClick = useCallback(
-    (row: AirflowTask) => {
+    (row: AirflowTask, rowIndex: number | undefined) => {
       if (!originalDagData) {
         console.error('Task data is not available.')
         return
@@ -88,6 +89,7 @@ function AirflowTasks({ type }: { type: string }) {
 
       const rowData: EditSetting[] = airflowTaskRowDataEdit(row)
 
+      setRowIndex(rowIndex)
       setCurrentRow(rowData)
       setIsEditModalOpen(true)
     },
@@ -104,11 +106,17 @@ function AirflowTasks({ type }: { type: string }) {
       | BaseAirflowDAG
       | ExportAirflowDAG
       | null = null
-    if (type === 'import') {
+    if (
+      type === 'import' &&
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0 &&
+      rowIndex < dagDataCopy.tasks.length
+    ) {
       editedDagData = updateImportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings,
-        true
+        true,
+        rowIndex
       )
     } else if (type === 'export') {
       editedDagData = updateExportDagData(

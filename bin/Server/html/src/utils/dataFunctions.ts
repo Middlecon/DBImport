@@ -268,7 +268,8 @@ function updateColumnData(
 export function updateTableData(
   tableData: UITable,
   updatedSettings: EditSetting[],
-  column?: boolean
+  column?: boolean,
+  indexInColumns?: number
 ): UITableWithoutEnum {
   const updatedTableData: UITableWithoutEnum = {
     ...tableData
@@ -279,11 +280,7 @@ export function updateTableData(
   )
 
   filteredSettings.forEach((setting) => {
-    if (column === true) {
-      const indexInColumnsSetting = updatedSettings.find(
-        (setting) => setting.label === 'Column Order'
-      )
-      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
+    if (indexInColumns !== undefined && column === true) {
       updateColumnData(updatedTableData, setting, indexInColumns)
     } else {
       let value = setting.value as string
@@ -487,7 +484,8 @@ function updateExportColumnData(
 export function updateExportTableData(
   tableData: UIExportTable,
   updatedSettings: EditSetting[],
-  column?: boolean
+  column?: boolean,
+  indexInColumns?: number
 ): UIExportTableWithoutEnum {
   const updatedTableData: UIExportTableWithoutEnum = {
     ...tableData
@@ -498,15 +496,7 @@ export function updateExportTableData(
   )
 
   filteredSettings.forEach((setting) => {
-    if (column === true) {
-      const indexInColumnsSetting = updatedSettings.find(
-        (setting) => setting.label === 'Column Order'
-      )
-      console.log('updatedSettings', updatedSettings)
-      console.log('indexInColumnsSetting', indexInColumnsSetting)
-      const indexInColumns = (indexInColumnsSetting?.value as number) - 1
-      // const indexInColumns = indexInColumnsSetting?.value as number // Temporary until columnOrder is starting at 1 instead of 0
-
+    if (indexInColumns !== undefined && column === true) {
       updateExportColumnData(updatedTableData, setting, indexInColumns)
     } else {
       let value = setting.value as string
@@ -715,7 +705,8 @@ function updateTasksData(
 export function updateImportDagData(
   dagData: AirflowWithDynamicKeys<ImportAirflowDAG>,
   updatedSettings: EditSetting[],
-  task?: boolean
+  task?: boolean,
+  indexInTasks?: number
 ): ImportAirflowDAG {
   const updatedDagData: AirflowWithDynamicKeys<ImportAirflowDAG> = {
     ...dagData
@@ -726,15 +717,7 @@ export function updateImportDagData(
   )
 
   filteredSettings.forEach((setting) => {
-    if (task === true) {
-      const taskNameSetting = updatedSettings.find(
-        (setting) => setting.label === 'Task Name'
-      )
-      const taskName = taskNameSetting ? taskNameSetting.value : ''
-
-      const indexInTasks = updatedDagData.tasks.findIndex(
-        (task) => task.name === taskName
-      )
+    if (indexInTasks !== undefined && task === true) {
       updateTasksData(updatedDagData, setting, indexInTasks)
     } else {
       const value = setting.value as string
@@ -743,7 +726,6 @@ export function updateImportDagData(
 
       if (key) {
         console.log('updatedTableData[key]', updatedDagData[key])
-        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
         updatedDagData[key] = value
       }
     }

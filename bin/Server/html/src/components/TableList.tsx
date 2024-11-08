@@ -267,7 +267,7 @@ function TableList<T>({
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
-            onClick={() => onEdit && onEdit(row)}
+            onClick={() => onEdit && onEdit(row, rowIndex)}
             className="clickable-table-name"
           >
             {String(cellValue)}
@@ -291,7 +291,10 @@ function TableList<T>({
         return (
           <div className="actions-row">
             {column.isAction === 'edit' || column.isAction === 'both' ? (
-              <button onClick={() => onEdit && onEdit(row)} disabled={!onEdit}>
+              <button
+                onClick={() => onEdit && onEdit(row, rowIndex)}
+                disabled={!onEdit}
+              >
                 <EditIcon />
               </button>
             ) : null}
