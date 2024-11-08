@@ -207,7 +207,7 @@ function updateColumnData(
     columnTypeOverride: string | null
     sqoopColumnTypeOverride: string | null
     forceString: number
-    includeInImport: string
+    includeInImport: boolean
     comment: string | null
     operatorNotes: string | null
     anonymizationFunction: string
@@ -254,6 +254,7 @@ function updateColumnData(
     if (
       typeof settingValue === 'string' ||
       typeof settingValue === 'number' ||
+      typeof settingValue === 'boolean' ||
       settingValue === null
     ) {
       ;(part1[key] as (typeof part1)[typeof key]) = settingValue

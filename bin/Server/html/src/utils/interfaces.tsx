@@ -489,7 +489,7 @@ export interface Columns {
   sqoopColumnType: string | null
   sqoopColumnTypeOverride: string | null
   forceString: number
-  includeInImport: string
+  includeInImport: boolean
   sourcePrimaryKey: string | null
   lastUpdateFromSource: string
   comment: string | null
