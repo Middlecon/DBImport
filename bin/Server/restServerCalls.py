@@ -1735,18 +1735,30 @@ class dbCalls:
 #			resultDict['targetSchema'] = row[1]
 #			resultDict['targetTable'] = row[2]
 			resultDict['columnName'] = row[3]
-			resultDict['columnType'] = row[4]
+
+			if row[4] == None:
+				resultDict['columnType'] = "unknown"
+			else:
+				resultDict['columnType'] = row[4]
+
 			# ColumnOrder should start with 1 in API, but database stores is as a start with 0. 
 			# For ImportColumns, it starts with 1. So we need to do a +1 here to have the same functionality as importColumns
 			if row[5] != None:
 				resultDict['columnOrder'] = int(row[5]) + 1
+
 			resultDict['targetColumnName'] = row[6]
 			resultDict['targetColumnType'] = row[7]
+
 			try:
 				resultDict['lastUpdateFromHive'] = row[8].strftime("%Y-%m-%d %H:%M:%S")
 			except AttributeError:
 				resultDict['lastUpdateFromHive'] = None
-			resultDict['includeInExport'] = row[9]
+
+			if row[9] == 1:
+				resultDict['includeInExport'] = True
+			else:
+				resultDict['includeInExport'] = False
+
 			resultDict['comment'] = row[10]
 			resultDict['operatorNotes'] = row[11]
 
@@ -1934,6 +1946,10 @@ class dbCalls:
 				)
 				
 			try:
+				columnOrder = None
+				if getattr(column, "columnOrder") != None:
+					columnOrder = int(getattr(column, "columnOrder")) - 1
+
 				if row == None:
 					log.debug("Column does not exist")
 	
@@ -1941,7 +1957,7 @@ class dbCalls:
 						table_id = tableID,
 						column_name = getattr(column, "columnName"),
 						column_type = getattr(column, "columnType"),
-						column_order = int(getattr(column, "columnOrder")) - 1,
+						column_order = columnOrder,
 						hive_db = getattr(table, "database"),
 						hive_table = getattr(table, "table"),
 						target_column_name = getattr(column, "targetColumnName"),
@@ -1956,6 +1972,7 @@ class dbCalls:
 				else:
 					columnID = row[0]
 					log.debug("Export column with id '%s' was updated"%(columnID))
+
 					session.execute(update(exportColumns),
 						[
 							{
@@ -1963,7 +1980,7 @@ class dbCalls:
 							"column_id": columnID,
 							"column_name": getattr(column, "columnName"),
 							"column_type": getattr(column, "columnType"),
-							"column_order": int(getattr(column, "columnOrder")) - 1,
+							"column_order": columnOrder,
 							"hive_db": getattr(table, "database"),
 							"hive_table": getattr(table, "table"),
 							"target_column_name": getattr(column, "targetColumnName"),
