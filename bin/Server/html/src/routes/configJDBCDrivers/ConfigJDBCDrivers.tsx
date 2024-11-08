@@ -5,16 +5,17 @@ import { Column, EditSetting, JDBCdrivers } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import EditTableModal from '../../components/EditTableModal'
 import { JDBCdriversRowDataEdit } from '../../utils/cardRenderFormatting'
-import { updateJDBCdriversData } from '../../utils/dataFunctions'
-// import { useQueryClient } from '@tanstack/react-query'
-// import { useUpdateJDBCdrivers } from '../../utils/mutations'
+import { updateJDBCdriverData } from '../../utils/dataFunctions'
+import { useQueryClient } from '@tanstack/react-query'
+import { useUpdateJDBCdrivers } from '../../utils/mutations'
 
 function ConfigJDBCDrivers() {
-  // const queryClient = useQueryClient()
-  // const { mutate: updateDriver } = useUpdateJDBCdrivers()
+  const queryClient = useQueryClient()
+  const { mutate: updateDriver } = useUpdateJDBCdrivers()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [row, setRow] = useState<JDBCdrivers>()
+  const [rowIndex, setRowIndex] = useState<number>()
 
   const { data: originalDriverData, isLoading } = useJDBCDrivers()
 
@@ -29,15 +30,15 @@ function ConfigJDBCDrivers() {
   )
 
   const handleEditClick = useCallback(
-    (row: JDBCdrivers) => {
+    (row: JDBCdrivers, rowIndex: number | undefined) => {
       if (!originalDriverData) {
         console.error('Drivers data is not available.')
         return
       }
 
       const rowData: EditSetting[] = JDBCdriversRowDataEdit(row)
-      console.log('rowData', rowData)
-      console.log('row', row)
+
+      setRowIndex(rowIndex)
       setRow(row)
       setCurrentRow(rowData)
       setIsEditModalOpen(true)
@@ -48,40 +49,42 @@ function ConfigJDBCDrivers() {
   if (!originalDriverData) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    console.log('updatedSettings', updatedSettings)
+    const originalDataCopy: JDBCdrivers[] = [...originalDriverData]
 
-    const originalDataCopy: JDBCdrivers[] = { ...originalDriverData }
-
-    console.log('originalDataCopy', originalDataCopy)
-
-    const editedJDBCDriversData = updateJDBCdriversData(
+    const editedJDBCDriverData = updateJDBCdriverData(
       row!, // row is set at edit click before user can save
       updatedSettings
     )
 
-    console.log('editedJDBCDriversData', editedJDBCDriversData)
+    if (
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0 &&
+      rowIndex < originalDataCopy.length
+    ) {
+      originalDataCopy[rowIndex] = editedJDBCDriverData
+    } else {
+      console.error('Invalid row index:', rowIndex)
+      return
+    }
 
-    // queryClient.setQueryData(
-    //   ['configuration', 'jdbcdrivers'],
-    //   editedJDBCDriversData
-    // )
-    // updateDriver(editedJDBCDriversData, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({
-    //       queryKey: ['configuration', 'jdbcdrivers']
-    //     }) // For getting fresh data from database to the cache
-    //     console.log('Update successful', response)
-    //     setIsEditModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    // queryClient.setQueryData(
-    //   ['configuration', 'jdbcdrivers'],
-    //   originalDriverData
-    // )
+    queryClient.setQueryData(['configuration', 'jdbcdrivers'], originalDataCopy)
+    updateDriver(editedJDBCDriverData, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['configuration', 'jdbcdrivers']
+        }) // For getting fresh data from database to the cache
+        console.log('Update successful', response)
+        setIsEditModalOpen(false)
+      },
+      onError: (error) => {
+        queryClient.setQueryData(
+          ['configuration', 'jdbcdrivers'],
+          originalDriverData
+        )
 
-    //   console.error('Error updating JDBC Drivers', error)
-    // }
-    // })
+        console.error('Error updating JDBC Drivers', error)
+      }
+    })
   }
 
   return (

@@ -1134,7 +1134,7 @@ export function updateGlobalConfigData(
   return finalConfigData
 }
 
-export function updateJDBCdriversData(
+export function updateJDBCdriverData(
   configData: JDBCdrivers,
   updatedSettings: EditSetting[]
 ): JDBCdriversWithIndex {

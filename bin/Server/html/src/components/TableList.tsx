@@ -9,7 +9,7 @@ interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
   isLoading: boolean
-  onEdit?: (row: T) => void
+  onEdit?: (row: T, rowIndex?: number) => void
   scrollbarMarginTop?: string
   airflowType?: string
   isExport?: boolean
@@ -55,7 +55,13 @@ function TableList<T>({
   useEffect(() => {
     setVisibleData([])
     setAllDataLoaded(false)
-    setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
+    console.log('data', data)
+    if (Array.isArray(data)) {
+      setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
+    } else {
+      console.error('Expected data to be an array but got:', data)
+    }
+    // setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
   }, [data])
 
   // Automatically loads more rows in chunks in the background after the initial render
@@ -273,7 +279,7 @@ function TableList<T>({
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
-            onClick={() => onEdit && onEdit(row)}
+            onClick={() => onEdit && onEdit(row, rowIndex)}
             className="clickable-table-name"
           >
             {String(cellValue)}
