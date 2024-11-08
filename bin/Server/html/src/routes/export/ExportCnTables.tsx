@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 import TableList from '../../components/TableList'
@@ -59,6 +59,43 @@ const radioFilters = [
 // ]
 
 function ExportCnTables() {
+  const { connection } = useParams<{ connection: string }>()
+  const { data, isLoading } = useExportTables(connection ? connection : null)
+  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [tableData, setTableData] = useState<UIExportTable | null>(null)
+  const [tableName, setTableName] = useState<string>('')
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
+  const [scrollbarRefresh, setScrollbarRefresh] = useState(0)
+
+  useEffect(() => {
+    const viewLayout = document.querySelector(
+      '.view-layout-root'
+    ) as HTMLElement
+
+    const handleResize = () => {
+      if (viewLayout) {
+        const newMarginTop = viewLayout.offsetWidth <= 1158 ? '50px' : '35px'
+        if (newMarginTop !== scrollbarMarginTop) {
+          setScrollbarMarginTop(newMarginTop)
+          setScrollbarRefresh((prev) => prev + 1) // Triggers refresh
+        }
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(handleResize)
+    if (viewLayout) resizeObserver.observe(viewLayout)
+
+    return () => {
+      if (viewLayout) resizeObserver.unobserve(viewLayout)
+    }
+  }, [scrollbarMarginTop])
+
+  const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
+
   const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
       { header: 'Target Table', accessor: 'targetTable' },
@@ -73,20 +110,9 @@ function ExportCnTables() {
       },
       { header: 'Actions', isAction: 'both' }
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scrollbarRefresh]
   )
-
-  const { connection } = useParams<{ connection: string }>()
-  const { data, isLoading } = useExportTables(connection ? connection : null)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
-  const [tableData, setTableData] = useState<UIExportTable | null>(null)
-  const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setModalOpen] = useState(false)
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const queryClient = useQueryClient()
-  // const { mutate: updateTable } = useUpdateTable()
-
-  const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -248,7 +274,7 @@ function ExportCnTables() {
           data={filteredData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="50px"
+          scrollbarMarginTop={scrollbarMarginTop}
           isExport={true}
         />
       ) : (

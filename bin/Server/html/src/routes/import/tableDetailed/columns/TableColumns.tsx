@@ -112,7 +112,7 @@ function TableColumns() {
           data={columnsData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="78px"
+          scrollbarMarginTop="80px"
         />
       ) : (
         <p

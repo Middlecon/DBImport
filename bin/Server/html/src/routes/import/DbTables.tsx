@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 import TableList from '../../components/TableList'
@@ -76,6 +76,44 @@ const radioFilters = [
 // ]
 
 function DbTables() {
+  const { database } = useParams<{ database: string }>()
+  const { data, isLoading } = useDbTables(database ? database : null)
+  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [tableData, setTableData] = useState<UITable | null>(null)
+  const [tableName, setTableName] = useState<string>('')
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const { mutate: updateTable } = useUpdateTable()
+
+  const [selectedFilters, setSelectedFilters] = useAtom(importDbListFiltersAtom)
+
+  const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
+  const [scrollbarRefresh, setScrollbarRefresh] = useState(0)
+
+  useEffect(() => {
+    const viewLayout = document.querySelector(
+      '.view-layout-root'
+    ) as HTMLElement
+
+    const handleResize = () => {
+      if (viewLayout) {
+        const newMarginTop = viewLayout.offsetWidth <= 1217 ? '50px' : '35px'
+        if (newMarginTop !== scrollbarMarginTop) {
+          setScrollbarMarginTop(newMarginTop)
+          setScrollbarRefresh((prev) => prev + 1) // Triggers refresh
+        }
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(handleResize)
+    if (viewLayout) resizeObserver.observe(viewLayout)
+
+    return () => {
+      if (viewLayout) resizeObserver.unobserve(viewLayout)
+    }
+  }, [scrollbarMarginTop])
+
   const columns: Column<DbTable>[] = useMemo(
     () => [
       { header: 'Table', accessor: 'table' },
@@ -89,20 +127,9 @@ function DbTables() {
       { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
       { header: 'Actions', isAction: 'both' }
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scrollbarRefresh]
   )
-
-  const { database } = useParams<{ database: string }>()
-  const { data, isLoading } = useDbTables(database ? database : null)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
-  const [tableData, setTableData] = useState<UITable | null>(null)
-  const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setModalOpen] = useState(false)
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const queryClient = useQueryClient()
-  const { mutate: updateTable } = useUpdateTable()
-
-  const [selectedFilters, setSelectedFilters] = useAtom(importDbListFiltersAtom)
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -261,7 +288,7 @@ function DbTables() {
           data={filteredData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="50px"
+          scrollbarMarginTop={scrollbarMarginTop}
         />
       ) : (
         <div>Loading....</div>

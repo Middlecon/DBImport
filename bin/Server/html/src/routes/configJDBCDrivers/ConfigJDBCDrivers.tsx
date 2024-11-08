@@ -1,5 +1,5 @@
 import '../import/Import.scss'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useJDBCDrivers } from '../../utils/queries'
 import { Column, EditSetting, JDBCdrivers } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
@@ -16,6 +16,31 @@ function ConfigJDBCDrivers() {
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [row, setRow] = useState<JDBCdrivers>()
   const [rowIndex, setRowIndex] = useState<number>()
+  const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
+  const [scrollbarRefresh, setScrollbarRefresh] = useState(0)
+
+  useEffect(() => {
+    const viewLayout = document.querySelector(
+      '.view-layout-root'
+    ) as HTMLElement
+
+    const handleResize = () => {
+      if (viewLayout) {
+        const newMarginTop = viewLayout.offsetWidth <= 1061 ? '50px' : '35px'
+        if (newMarginTop !== scrollbarMarginTop) {
+          setScrollbarMarginTop(newMarginTop)
+          setScrollbarRefresh((prev) => prev + 1) // Triggers refresh
+        }
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(handleResize)
+    if (viewLayout) resizeObserver.observe(viewLayout)
+
+    return () => {
+      if (viewLayout) resizeObserver.unobserve(viewLayout)
+    }
+  }, [scrollbarMarginTop])
 
   const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
 
@@ -26,7 +51,8 @@ function ConfigJDBCDrivers() {
       { header: 'Driver', accessor: 'driver' },
       { header: 'Classpath', accessor: 'classpath' }
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scrollbarRefresh]
   )
 
   const handleEditClick = useCallback(
@@ -100,7 +126,7 @@ function ConfigJDBCDrivers() {
           data={originalDriverData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="48px"
+          scrollbarMarginTop={scrollbarMarginTop}
         />
       ) : (
         <p
