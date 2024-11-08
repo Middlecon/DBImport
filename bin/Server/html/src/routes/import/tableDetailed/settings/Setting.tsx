@@ -14,9 +14,8 @@ interface SettingProps {
   type: SettingType
   infoText?: string
   isConditionsMet?: boolean
-  // enumOptions?: { [key: string]: string } // Maybe not needed here
-  valueFieldWidth?: string
   isHidden?: boolean
+  valueFieldWidth?: string
   columnSetting?: boolean
 }
 
@@ -26,6 +25,7 @@ function Setting({
   type,
   infoText,
   isConditionsMet,
+  isHidden,
   valueFieldWidth,
   columnSetting
 }: SettingProps) {
@@ -101,17 +101,19 @@ function Setting({
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     setOpenDropdown(isOpen ? dropdownId : null)
   }
-
   const renderSetting = () => {
     switch (type) {
       case 'boolean':
         return <span>{value ? 'True' : 'False'}</span>
+
       case 'booleanNumber':
         return <span>{value === 1 ? 'True' : 'False'}</span>
+
       case 'booleanNumberOrAuto':
         return (
           <span>{value === 1 ? 'True' : value === 0 ? 'False' : 'Auto'}</span>
         )
+
       case 'booleanOrDefaultFromConfig(-1)':
         return (
           <span>
@@ -122,6 +124,7 @@ function Setting({
               : 'Default from Config'}
           </span>
         )
+
       case 'booleanOrDefaultFromConnection(-1)':
         return (
           <span>
@@ -132,14 +135,19 @@ function Setting({
               : 'Default from Connection'}
           </span>
         )
+
       case 'integerFromOneOrAuto(-1)':
         return <span>{value === -1 ? 'Auto' : value}</span>
+
       case 'integerFromZeroOrAuto(-1)':
         return <span>{value === -1 ? 'Auto' : value}</span>
+
       case 'integerFromOneOrDefaultFromConfig(null)':
         return <span>{value === null ? 'Default from Config' : value}</span>
+
       case 'readonly':
         return <span>{value}</span>
+
       case 'text':
         return <span>{getTruncatedText(value, openDropdown === label)}</span>
 
@@ -149,10 +157,15 @@ function Setting({
         } else
           return <div>{getTruncatedText(value, openDropdown === label)}</div>
 
+      case 'hidden':
+        return null
+
       default:
         return <span>{value}</span>
     }
   }
+
+  if (isHidden === true) return null
 
   return (
     <div className={isConditionsMet === false ? 'setting-disabled' : 'setting'}>

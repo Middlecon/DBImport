@@ -1901,19 +1901,22 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'AWS Instanceids',
       value: config.airflow_aws_instanceids,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_aws_instanceids
+      infoText: infoTexts.configuration.global.airflow_aws_instanceids,
+      isHidden: config.airflow_aws_instanceids === null
     }, //Free-text, varchar(256), required
     {
       label: 'AWS Pool to Instanceid',
       value: config.airflow_aws_pool_to_instanceid,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.airflow_aws_pool_to_instanceid
+      infoText: infoTexts.configuration.global.airflow_aws_pool_to_instanceid,
+      isHidden: config.airflow_aws_pool_to_instanceid === null
     }, // Boolean, true or false, required
     {
       label: 'Create Pool With Task',
       value: config.airflow_create_pool_with_task,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.airflow_create_pool_with_task
+      infoText: infoTexts.configuration.global.airflow_create_pool_with_task,
+      isHidden: config.airflow_create_pool_with_task === null
     }, // Boolean, true or false, required
     {
       label: '',
@@ -1925,25 +1928,29 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DAG Directory',
       value: config.airflow_dag_directory,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_dag_directory
+      infoText: infoTexts.configuration.global.airflow_dag_directory,
+      isHidden: config.airflow_dag_directory === null
     }, // Free-text, varchar (256), folder name, required
     {
       label: 'DAG File Group',
       value: config.airflow_dag_file_group,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_dag_file_group
+      infoText: infoTexts.configuration.global.airflow_dag_file_group,
+      isHidden: config.airflow_dag_file_group === null
     }, // Free-text, varchar (256), group name, required
     {
       label: 'DAG File Permission',
       value: config.airflow_dag_file_permission,
       type: SettingType.TextTripletOctalValue,
-      infoText: infoTexts.configuration.global.airflow_dag_file_permission
+      infoText: infoTexts.configuration.global.airflow_dag_file_permission,
+      isHidden: config.airflow_dag_file_permission === null
     }, // Free-text, varchar (256), Has to be a string with triplet-octal value, e.g. 342, required
     {
       label: 'DAG Staging Directory',
       value: config.airflow_dag_staging_directory,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_dag_staging_directory
+      infoText: infoTexts.configuration.global.airflow_dag_staging_directory,
+      isHidden: config.airflow_dag_staging_directory === null
     }, // Free-text, varchar (256), folder name, required
     {
       label: '',
@@ -1955,31 +1962,36 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DBImport Commandpath',
       value: config.airflow_dbimport_commandpath,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_dbimport_commandpath
+      infoText: infoTexts.configuration.global.airflow_dbimport_commandpath,
+      isHidden: config.airflow_dbimport_commandpath === null
     }, // Free-text, varchar (256), full command, required
     {
       label: 'Default Pool Size',
       value: config.airflow_default_pool_size,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.airflow_default_pool_size
+      infoText: infoTexts.configuration.global.airflow_default_pool_size,
+      isHidden: config.airflow_default_pool_size === null
     }, // Integer, from 1, required
     {
       label: 'Dummy Task Queue',
       value: config.airflow_dummy_task_queue,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_dummy_task_queue
+      infoText: infoTexts.configuration.global.airflow_dummy_task_queue,
+      isHidden: config.airflow_dummy_task_queue === null
     }, // Free-text, varchar (256), required
     {
       label: 'Major Version',
       value: config.airflow_major_version,
       type: SettingType.IntegerOneOrTwo,
-      infoText: infoTexts.configuration.global.airflow_major_version
+      infoText: infoTexts.configuration.global.airflow_major_version,
+      isHidden: config.airflow_major_version === null
     }, // Integer, 1 or 2, required
     {
       label: 'Sudo User',
       value: config.airflow_sudo_user,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_sudo_user
+      infoText: infoTexts.configuration.global.airflow_sudo_user,
+      isHidden: config.airflow_sudo_user === null
     } // Free-text, varchar (256), username, required
   ]
 
@@ -1988,31 +2000,36 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Airflow Disable',
       value: config.airflow_disable,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.airflow_disable
+      infoText: infoTexts.configuration.global.airflow_disable,
+      isHidden: config.airflow_disable === null
     }, // Boolean, true or false, required
     {
       label: 'Export Start Disable',
       value: config.export_start_disable,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.export_start_disable
+      infoText: infoTexts.configuration.global.export_start_disable,
+      isHidden: config.export_start_disable === null
     }, // Boolean, true or false, required
     {
       label: 'Export Stage Disable',
       value: config.export_stage_disable,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.export_stage_disable
+      infoText: infoTexts.configuration.global.export_stage_disable,
+      isHidden: config.export_stage_disable === null
     }, // Boolean, true or false, required
     {
       label: 'Import Start Disable',
       value: config.import_start_disable,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.import_start_disable
+      infoText: infoTexts.configuration.global.import_start_disable,
+      isHidden: config.import_start_disable === null
     }, // Boolean, true or false, required
     {
       label: 'Import Stage Disable',
       value: config.import_stage_disable,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.import_stage_disable
+      infoText: infoTexts.configuration.global.import_stage_disable,
+      isHidden: config.import_stage_disable === null
     } // Boolean, true or false, required
   ]
 
@@ -2021,13 +2038,15 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Timezone',
       value: config.timezone,
       type: SettingType.TimeZone,
-      infoText: infoTexts.configuration.global.timezone
+      infoText: infoTexts.configuration.global.timezone,
+      isHidden: config.timezone === null
     }, // Timezone,, varchar(64), Use full text timezone, example Europe/Stockholm
     {
       label: 'Atlas Discovery Interval',
       value: config.atlas_discovery_interval,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.atlas_discovery_interval
+      infoText: infoTexts.configuration.global.atlas_discovery_interval,
+      isHidden: config.atlas_discovery_interval === null
     } // Integer, 1-24, required
   ]
 
@@ -2036,25 +2055,29 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Cluster Name',
       value: config.cluster_name,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.cluster_name
+      infoText: infoTexts.configuration.global.cluster_name,
+      isHidden: config.cluster_name === null
     }, // Free-text, varchar (256), required
     {
       label: 'Address',
       value: config.hdfs_address,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.hdfs_address
+      infoText: infoTexts.configuration.global.hdfs_address,
+      isHidden: config.hdfs_address === null
     }, // Free-text, varchar (256), filesytem url, required
     {
       label: 'Base Directory',
       value: config.hdfs_basedir,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.hdfs_basedir
+      infoText: infoTexts.configuration.global.hdfs_basedir,
+      isHidden: config.hdfs_basedir === null
     }, // Free-text, varchar (256), folder name, required
     {
       label: 'Blocksize',
       value: config.hdfs_blocksize,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.hdfs_blocksize
+      infoText: infoTexts.configuration.global.hdfs_blocksize,
+      isHidden: config.hdfs_blocksize === null
     } // Free-text, varchar (256), it is string but usually it is a bigint saved in it, required
   ]
 
@@ -2063,49 +2086,57 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Hive Acid With Clusteredby',
       value: config.hive_acid_with_clusteredby,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_acid_with_clusteredby
+      infoText: infoTexts.configuration.global.hive_acid_with_clusteredby,
+      isHidden: config.hive_acid_with_clusteredby === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Insert Only Tables',
       value: config.hive_insert_only_tables,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_insert_only_tables
+      infoText: infoTexts.configuration.global.hive_insert_only_tables,
+      isHidden: config.hive_insert_only_tables === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Major Compact After Merge',
       value: config.hive_major_compact_after_merge,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_major_compact_after_merge
+      infoText: infoTexts.configuration.global.hive_major_compact_after_merge,
+      isHidden: config.hive_major_compact_after_merge === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Print Messages',
       value: config.hive_print_messages,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_print_messages
+      infoText: infoTexts.configuration.global.hive_print_messages,
+      isHidden: config.hive_print_messages === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Remove Locks By Force',
       value: config.hive_remove_locks_by_force,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_remove_locks_by_force
+      infoText: infoTexts.configuration.global.hive_remove_locks_by_force,
+      isHidden: config.hive_remove_locks_by_force === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Validate Before Execution',
       value: config.hive_validate_before_execution,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.hive_validate_before_execution
+      infoText: infoTexts.configuration.global.hive_validate_before_execution,
+      isHidden: config.hive_validate_before_execution === null
     }, // Boolean, true or false, required
     {
       label: 'Hive Validate Table',
       value: config.hive_validate_table,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.hive_validate_table
+      infoText: infoTexts.configuration.global.hive_validate_table,
+      isHidden: config.hive_validate_table === null
     }, // Free-text, varchar(256), table name, required
     {
       label: 'Impala Invalidate Metadata',
       value: config.impala_invalidate_metadata,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.impala_invalidate_metadata
+      infoText: infoTexts.configuration.global.impala_invalidate_metadata,
+      isHidden: config.impala_invalidate_metadata === null
     } // Boolean, true or false, required
   ]
 
@@ -2114,43 +2145,50 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Delete',
       value: config.import_columnname_delete,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_delete
+      infoText: infoTexts.configuration.global.import_columnname_delete,
+      isHidden: config.import_columnname_delete === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Histtime',
       value: config.import_columnname_histtime,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_histtime
+      infoText: infoTexts.configuration.global.import_columnname_histtime,
+      isHidden: config.import_columnname_histtime === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Import',
       value: config.import_columnname_import,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_import
+      infoText: infoTexts.configuration.global.import_columnname_import,
+      isHidden: config.import_columnname_import === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Insert',
       value: config.import_columnname_insert,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_insert
+      infoText: infoTexts.configuration.global.import_columnname_insert,
+      isHidden: config.import_columnname_insert === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Iud',
       value: config.import_columnname_iud,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_iud
+      infoText: infoTexts.configuration.global.import_columnname_iud,
+      isHidden: config.import_columnname_iud === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Source',
       value: config.import_columnname_source,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_source
+      infoText: infoTexts.configuration.global.import_columnname_source,
+      isHidden: config.import_columnname_source === null
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Update',
       value: config.import_columnname_update,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_columnname_update
+      infoText: infoTexts.configuration.global.import_columnname_update,
+      isHidden: config.import_columnname_update === null
     }, // Free-text, varchar (256), column name, required
     {
       label: '',
@@ -2162,39 +2200,45 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import History Database',
       value: config.import_history_database,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_history_database
+      infoText: infoTexts.configuration.global.import_history_database,
+      isHidden: config.import_history_database === null
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import History Table',
       value: config.import_history_table,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_history_table
+      infoText: infoTexts.configuration.global.import_history_table,
+      isHidden: config.import_history_table === null
     }, // Free-text, varchar (256), table name, required
 
     {
       label: 'Import Staging Database',
       value: config.import_staging_database,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_staging_database
+      infoText: infoTexts.configuration.global.import_staging_database,
+      isHidden: config.import_staging_database === null
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import Staging Table',
       value: config.import_staging_table,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_staging_table
+      infoText: infoTexts.configuration.global.import_staging_table,
+      isHidden: config.import_staging_table === null
     }, // Free-text, varchar (256), table name, required
 
     {
       label: 'Import Work Database',
       value: config.import_work_database,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_work_database
+      infoText: infoTexts.configuration.global.import_work_database,
+      isHidden: config.import_work_database === null
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import Work Table',
       value: config.import_work_table,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.import_work_table
+      infoText: infoTexts.configuration.global.import_work_table,
+      isHidden: config.import_work_table === null
     }, // Free-text, varchar (256), table name, required
     {
       label: '',
@@ -2205,7 +2249,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Export Staging Database',
       value: config.export_staging_database,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.export_staging_database
+      infoText: infoTexts.configuration.global.export_staging_database,
+      isHidden: config.export_staging_database === null
     }, // Free-text, varchar (256), required
     {
       label: '',
@@ -2216,7 +2261,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Process Empty',
       value: config.import_process_empty,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.import_process_empty
+      infoText: infoTexts.configuration.global.import_process_empty,
+      isHidden: config.import_process_empty === null
     } // Boolean, true or false, required
   ]
 
@@ -2225,44 +2271,51 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Post Airflow Dag Operations',
       value: config.post_airflow_dag_operations,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_airflow_dag_operations
+      infoText: infoTexts.configuration.global.post_airflow_dag_operations,
+      isHidden: config.post_airflow_dag_operations === null
     }, // Boolean, true or false, required
     {
       label: 'Post Data To AWS SNS',
       value: config.post_data_to_awssns,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_awssns
+      infoText: infoTexts.configuration.global.post_data_to_awssns,
+      isHidden: config.post_data_to_awssns === null
     }, // Boolean, true or false, required
     {
       label: 'Post Data To AWS SNS Extended',
       value: config.post_data_to_awssns_extended,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_awssns_extended
+      infoText: infoTexts.configuration.global.post_data_to_awssns_extended,
+      isHidden: config.post_data_to_awssns_extended === null
     }, // Boolean, true or false, required
 
     {
       label: 'Post Data To Kafka',
       value: config.post_data_to_kafka,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_kafka
+      infoText: infoTexts.configuration.global.post_data_to_kafka,
+      isHidden: config.post_data_to_kafka === null
     }, // Boolean, true or false, required
     {
       label: 'Post Data To Kafka Extended',
       value: config.post_data_to_kafka_extended,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_kafka_extended
+      infoText: infoTexts.configuration.global.post_data_to_kafka_extended,
+      isHidden: config.post_data_to_kafka_extended === null
     }, // Boolean, true or false, required
     {
       label: 'Post Data To Rest',
       value: config.post_data_to_rest,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_rest
+      infoText: infoTexts.configuration.global.post_data_to_rest,
+      isHidden: config.post_data_to_rest === null
     }, // Boolean, true or false, required
     {
       label: 'Post Data To Rest Extended',
       value: config.post_data_to_rest_extended,
       type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.post_data_to_rest_extended
+      infoText: infoTexts.configuration.global.post_data_to_rest_extended,
+      isHidden: config.post_data_to_rest_extended === null
     }, // Boolean, true or false, required
     {
       label: '',
@@ -2273,7 +2326,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Post Data To AWS SNS Topic',
       value: config.post_data_to_awssns_topic,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.post_data_to_awssns_topic
+      infoText: infoTexts.configuration.global.post_data_to_awssns_topic,
+      isHidden: config.post_data_to_awssns_topic === null
     }, // Free-text, varchar (256), sns topic address, required
     {
       label: '',
@@ -2284,32 +2338,37 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Brokers',
       value: config.kafka_brokers,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.kafka_brokers
+      infoText: infoTexts.configuration.global.kafka_brokers,
+      isHidden: config.kafka_brokers === null
     }, // Free-text, varchar (256), comma separated list of servers and ports, required
     {
       label: 'Kafka Securityprotocol',
       value: config.kafka_securityprotocol,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.kafka_securityprotocol
+      infoText: infoTexts.configuration.global.kafka_securityprotocol,
+      isHidden: config.kafka_securityprotocol === null
     }, // Free-text, varchar (256), required
     {
       label: 'Kafka Saslmechanism',
       value: config.kafka_saslmechanism,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.kafka_saslmechanism
+      infoText: infoTexts.configuration.global.kafka_saslmechanism,
+      isHidden: config.kafka_saslmechanism === null
     }, // Free-text, varchar (256), required
 
     {
       label: 'Kafka Topic',
       value: config.kafka_topic,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.kafka_topic
+      infoText: infoTexts.configuration.global.kafka_topic,
+      isHidden: config.kafka_topic === null
     }, // Free-text, varchar (256), required
     {
       label: 'Kafka Trustcafile',
       value: config.kafka_trustcafile,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.kafka_trustcafile
+      infoText: infoTexts.configuration.global.kafka_trustcafile,
+      isHidden: config.kafka_trustcafile === null
     }, // Free-text, varchar (256), filename, required
     {
       label: '',
@@ -2320,26 +2379,30 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Rest Timeout',
       value: config.rest_timeout,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.rest_timeout
+      infoText: infoTexts.configuration.global.rest_timeout,
+      isHidden: config.rest_timeout === null
     }, // Integer, from 1, required
     {
       label: 'Rest Trustcafile',
       value: config.rest_trustcafile,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.rest_trustcafile
+      infoText: infoTexts.configuration.global.rest_trustcafile,
+      isHidden: config.rest_trustcafile === null
     }, // Free-text, varchar (256), filename, required
     {
       label: 'Rest Url',
       value: config.rest_url,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.rest_url
+      infoText: infoTexts.configuration.global.rest_url,
+      isHidden: config.rest_url === null
     }, // Free-text, varchar (256), url, required
     {
       label: 'Rest Verify SSL',
       value: config.rest_verifyssl,
-      type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.rest_verifyssl
-    } // Boolean, true or false, required
+      type: SettingType.BooleanNumber,
+      infoText: infoTexts.configuration.global.rest_verifyssl,
+      isHidden: config.rest_verifyssl === null
+    } // Boolean, true or false, required , is BooleanNumber now
   ]
 
   const dbimportServersConfigData: EditSetting[] = [
@@ -2347,7 +2410,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Admin User',
       value: config.restserver_admin_user,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.global.restserver_admin_user
+      infoText: infoTexts.configuration.global.restserver_admin_user,
+      isHidden: config.restserver_admin_user === null
     }, // Free-text, varchar (256), required
     {
       label: 'Authentication Method',
@@ -2357,14 +2421,16 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       ),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('restserver_authentication_method'),
-      infoText: infoTexts.configuration.global.restserver_authentication_method
+      infoText: infoTexts.configuration.global.restserver_authentication_method,
+      isHidden: config.restserver_authentication_method === null
     }, // Free-text, varchar (256), filesytem url, required
 
     {
       label: 'Token TTL',
       value: config.restserver_token_ttl,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.restserver_token_ttl
+      infoText: infoTexts.configuration.global.restserver_token_ttl,
+      isHidden: config.restserver_token_ttl === null
     } // Integer, from 1, required
   ]
 
@@ -2373,31 +2439,37 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Default Sessions',
       value: config.import_default_sessions,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.import_default_sessions
+      infoText: infoTexts.configuration.global.import_default_sessions,
+      // isHidden: config.import_default_sessions === null
+      isHidden: true
     }, // Integer, from 1, required
     {
       label: 'Import Max Sessions',
       value: config.import_max_sessions,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.import_max_sessions
+      infoText: infoTexts.configuration.global.import_max_sessions,
+      isHidden: config.import_max_sessions === null
     }, // Integer, from 1, required
     {
       label: 'Export Default Sessions',
       value: config.export_default_sessions,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.export_default_sessions
+      infoText: infoTexts.configuration.global.export_default_sessions,
+      isHidden: config.export_default_sessions === null
     }, // Integer, from 1, required
     {
       label: 'Export Max Sessions',
       value: config.export_max_sessions,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.export_max_sessions
+      infoText: infoTexts.configuration.global.export_max_sessions,
+      isHidden: config.export_max_sessions === null
     }, // Integer, from 1, required
     {
       label: 'Spark Max Executors',
       value: config.spark_max_executors,
       type: SettingType.IntegerFromOne,
-      infoText: infoTexts.configuration.global.spark_max_executors
+      infoText: infoTexts.configuration.global.spark_max_executors,
+      isHidden: config.spark_max_executors === null
     } // Integer, from 1, required
   ]
 
