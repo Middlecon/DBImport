@@ -11,6 +11,7 @@ import {
   usernameAtom,
   exportCnListFiltersAtom,
   selectedExportConnectionAtom,
+  isConfigurationSubmenuActiveAtom,
   latestPathAtom
 } from './atoms'
 
@@ -44,6 +45,7 @@ export const clearSessionStorageAtoms = () => {
   store.set(airflowExportFilterAtom, RESET)
   store.set(airflowCustomFilterAtom, RESET)
   store.set(isAirflowSubmenuActiveAtom, RESET)
+  store.set(isConfigurationSubmenuActiveAtom, RESET)
   store.set(usernameAtom, RESET)
   store.set(latestPathAtom, RESET)
 

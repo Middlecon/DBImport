@@ -960,7 +960,7 @@ export interface ConfigGlobal {
   rest_timeout: number | null
   rest_trustcafile: string | null
   rest_url: string | null
-  rest_verifyssl: boolean | null
+  rest_verifyssl: number | null
   spark_max_executors: number | null
   timezone: string | null
 }
@@ -1035,7 +1035,7 @@ export interface ConfigGlobalWithIndex {
   rest_timeout: number | null
   rest_trustcafile: string | null
   rest_url: string | null
-  rest_verifyssl: boolean | null
+  rest_verifyssl: number | null
   spark_max_executors: number | null
   timezone: string | null
 }
