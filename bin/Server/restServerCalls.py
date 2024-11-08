@@ -1738,7 +1738,8 @@ class dbCalls:
 			resultDict['columnType'] = row[4]
 			# ColumnOrder should start with 1 in API, but database stores is as a start with 0. 
 			# For ImportColumns, it starts with 1. So we need to do a +1 here to have the same functionality as importColumns
-			resultDict['columnOrder'] = int(row[5]) + 1
+			if row[5] != None:
+				resultDict['columnOrder'] = int(row[5]) + 1
 			resultDict['targetColumnName'] = row[6]
 			resultDict['targetColumnType'] = row[7]
 			try:
