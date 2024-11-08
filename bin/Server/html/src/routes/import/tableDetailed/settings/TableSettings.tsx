@@ -10,9 +10,12 @@ function TableSettings() {
     database: string
     table: string
   }>()
-  const { data: table } = useTable(database, tableParam)
+  const { data: table, isError } = useTable(database, tableParam)
 
-  if (!table) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!table && !isError) return <div className="loading">Loading...</div>
 
   const importCards = importCardRenderSettings(table)
 

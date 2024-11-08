@@ -6,9 +6,15 @@ import { configGlobalCardRenderSettings } from '../../utils/cardRenderFormatting
 import CardConfig from './CardConfig'
 
 function ConfigGlobalSettings() {
-  const { data: globalConfig } = useGlobalConfig()
+  const { data: globalConfig, isError } = useGlobalConfig()
 
-  if (!globalConfig) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!globalConfig && !isError) {
+    return <div className="loading">Loading...</div>
+  }
+
   console.log('globalConfig', globalConfig)
   const globalSettings = configGlobalCardRenderSettings(globalConfig)
 

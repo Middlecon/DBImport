@@ -8,9 +8,17 @@ import { exportCardRenderSettings } from '../../../utils/cardRenderFormatting'
 function ExportTableSettings() {
   const { connection, schema, table } = useParams()
 
-  const { data: exportTableData } = useExportTable(connection, schema, table)
+  const { data: exportTableData, isError } = useExportTable(
+    connection,
+    schema,
+    table
+  )
 
-  if (!exportTableData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!exportTableData && !isError)
+    return <div className="loading">Loading...</div>
   const exportCards = exportCardRenderSettings(exportTableData)
   console.log('exportTableData', exportTableData)
   return (

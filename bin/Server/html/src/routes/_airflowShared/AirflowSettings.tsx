@@ -9,9 +9,13 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
     dagName: string
   }>()
-  const { data: dagData } = useAirflowDAG(type, dagName)
+  const { data: dagData, isError } = useAirflowDAG(type, dagName)
 
-  if (!dagName && !dagData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!dagName && !dagData && !isError)
+    return <div className="loading">Loading...</div>
   console.log('dagName', dagName)
 
   if (!dagData) {

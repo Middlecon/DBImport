@@ -20,11 +20,11 @@ function ExportTableColumns() {
     schema: string
     table: string
   }>()
-  const { data: tableData, isLoading } = useExportTable(
-    connection,
-    schema,
-    tableParam
-  )
+  const {
+    data: tableData,
+    isLoading,
+    isError
+  } = useExportTable(connection, schema, tableParam)
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -69,7 +69,10 @@ function ExportTableColumns() {
     [tableData]
   )
 
-  if (!tableData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!tableData && !isError) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     console.log('updatedSettings export', updatedSettings)

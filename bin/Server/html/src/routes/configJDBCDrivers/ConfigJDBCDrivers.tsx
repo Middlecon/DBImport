@@ -17,7 +17,7 @@ function ConfigJDBCDrivers() {
   const [row, setRow] = useState<JDBCdrivers>()
   const [rowIndex, setRowIndex] = useState<number>()
 
-  const { data: originalDriverData, isLoading } = useJDBCDrivers()
+  const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
 
   const columns: Column<JDBCdrivers>[] = useMemo(
     () => [
@@ -46,7 +46,12 @@ function ConfigJDBCDrivers() {
     [originalDriverData]
   )
 
-  if (!originalDriverData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+
+  if (!originalDriverData && !isError)
+    return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const originalDataCopy: JDBCdrivers[] = [...originalDriverData]

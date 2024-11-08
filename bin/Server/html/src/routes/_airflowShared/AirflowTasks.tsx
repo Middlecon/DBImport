@@ -28,7 +28,11 @@ function AirflowTasks({ type }: { type: string }) {
     dagName: string
   }>()
 
-  const { data: originalDagData, isLoading } = useAirflowDAG(type, dagName)
+  const {
+    data: originalDagData,
+    isLoading,
+    isError
+  } = useAirflowDAG(type, dagName)
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -96,7 +100,12 @@ function AirflowTasks({ type }: { type: string }) {
     [originalDagData]
   )
 
-  if (!originalDagData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+
+  if (!originalDagData && !isError)
+    return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const dagDataCopy = { ...originalDagData }

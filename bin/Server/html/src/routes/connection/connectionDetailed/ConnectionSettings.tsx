@@ -10,9 +10,13 @@ function ConnectionSettings() {
   const { connection: connectionParam } = useParams<{
     connection: string
   }>()
-  const { data: connection } = useConnection(connectionParam)
+  const { data: connection, isError } = useConnection(connectionParam)
 
-  if (!connection) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+
+  if (!connection && !isError) return <div className="loading">Loading...</div>
 
   const connectionSettings = connectionCardRenderSettings(connection)
 

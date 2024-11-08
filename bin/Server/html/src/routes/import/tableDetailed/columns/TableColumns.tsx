@@ -15,7 +15,7 @@ function TableColumns() {
     database: string
     table: string
   }>()
-  const { data: tableData, isLoading } = useTable(database, tableParam)
+  const { data: tableData, isLoading, isError } = useTable(database, tableParam)
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -70,7 +70,10 @@ function TableColumns() {
     [tableData]
   )
 
-  if (!tableData) return <div className="loading">Loading...</div>
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!tableData && !isError) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const editedTableData = updateTableData(
