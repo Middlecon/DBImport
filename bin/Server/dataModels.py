@@ -227,7 +227,7 @@ class importTableDetailsRead(BaseModel):
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: bool
 #	truncateTable: bool
-	mappers: int
+	sqlSessions: int
 	softDeleteDuringMerge: bool
 	sourceRowcount: Union[int, None] = None
 	sourceRowcountIncr: Union[int, None] = None
@@ -252,7 +252,7 @@ class importTableDetailsRead(BaseModel):
 	sqoopOptions: Union[str, None] = None
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
-	lastMappers: Union[int, None] = None
+	lastSqlSessions: Union[int, None] = None
 	lastExecution: Union[int, None] = None
 	useGeneratedSql: bool
 	allowTextSplitter: bool
@@ -301,7 +301,7 @@ class importTableDetailsWrite(BaseModel):
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: Union[bool, None] = None
 #	truncateTable: Union[bool, None] = None
-	mappers: Union[int, None] = None
+	sqlSessions: Union[int, None] = None
 	softDeleteDuringMerge: Union[bool, None] = None
 	incrMode: Union[str, None] = None
 	incrColumn: Union[str, None] = None
@@ -356,7 +356,7 @@ class importTableDetailsWrite(BaseModel):
 #	validationCustomQueryHiveSQL: Union[str, None] = None
 #	validationCustomQueryValidateImportTable: bool
 #	truncateTable: bool
-#	mappers: int
+#	sqlSessions: int
 #	softDeleteDuringMerge: bool
 #	incrMode: Union[str, None] = None
 #	incrColumn: Union[str, None] = None
@@ -450,7 +450,7 @@ class exportTableDetailsRead(BaseModel):
 	validationCustomQueryTargetSQL: Union[str, None] = None
 	uppercaseColumns: Union[int, None] = None
 	truncateTarget: Union[bool, None] = None
-	mappers: Union[int, None] = None
+	sqlSessions: Union[int, None] = None
 	tableRowcount: Union[int, None] = None
 	targetRowcount: Union[int, None] = None
 	validationCustomQueryHiveValue: Union[str, None] = None
@@ -464,7 +464,7 @@ class exportTableDetailsRead(BaseModel):
 	sqoopOptions: Union[str, None] = None
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
-	lastMappers: Union[int, None] = None
+	lastSqlSessions: Union[int, None] = None
 	lastExecution: Union[int, None] = None
 	hiveContainerSize: Union[int, None] = None
 	createTargetTableSql: Union[str, None] = None
@@ -490,7 +490,7 @@ class exportTableDetailsWrite(BaseModel):
 	validationCustomQueryTargetSQL: Union[str, None] = None
 	uppercaseColumns: Union[int, None] = None
 	truncateTarget: Union[bool, None] = None
-	mappers: Union[int, None] = None
+	sqlSessions: Union[int, None] = None
 #	tableRowcount: Union[int, None] = None
 #	targetRowcount: Union[int, None] = None
 #	validationCustomQueryHiveValue: Union[str, None] = None
@@ -504,7 +504,7 @@ class exportTableDetailsWrite(BaseModel):
 	sqoopOptions: Union[str, None] = None
 #	lastSize: Union[int, None] = None
 #	lastRows: Union[int, None] = None
-#	lastMappers: Union[int, None] = None
+#	lastSqlSessions: Union[int, None] = None
 #	lastExecution: Union[int, None] = None
 	hiveContainerSize: Union[int, None] = None
 	createTargetTableSql: Union[str, None] = None

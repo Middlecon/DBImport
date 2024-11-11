@@ -1019,7 +1019,7 @@ class dbCalls:
 		resultDict['validationCustomQueryHiveSQL'] = row[19]
 		resultDict['validationCustomQueryValidateImportTable'] = row[20]
 #		resultDict['truncateTable'] = row[21]
-		resultDict['mappers'] = row[22]
+		resultDict['sqlSessions'] = row[22]
 		resultDict['softDeleteDuringMerge'] = row[23]
 		resultDict['sourceRowcount'] = row[24]
 		resultDict['sourceRowcountIncr'] = row[25]
@@ -1047,7 +1047,7 @@ class dbCalls:
 		resultDict['sqoopOptions'] = row[44]
 		resultDict['lastSize'] = row[45]
 		resultDict['lastRows'] = row[46]
-		resultDict['lastMappers'] = row[47]
+		resultDict['lastSqlSessions'] = row[47]
 		resultDict['lastExecution'] = row[48]
 		if row[49] == -1:       # -1 is not allowed, but default in the database. Setting these to 1
 			resultDict['useGeneratedSql'] = 1
@@ -1155,7 +1155,7 @@ class dbCalls:
 		if getattr(table, "validationCustomQueryValidateImportTable") == None:	setattr(table, "validationCustomQueryValidateImportTable", 1)
 		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
 #		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
-		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
+		if getattr(table, "SqlSessions") == None:								setattr(table, "SqlSessions", -1)
 		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
 		if getattr(table, "useGeneratedSql") == None:							setattr(table, "useGeneratedSql", -1)
 		if getattr(table, "allowTextSplitter") == None:							setattr(table, "allowTextSplitter", 0)
@@ -1189,7 +1189,7 @@ class dbCalls:
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
 #				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "mappers"),
+				mappers = getattr(table, "SqlSessions"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
 				incr_column = getattr(table, "incrColumn"),
@@ -1241,7 +1241,7 @@ class dbCalls:
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
 #				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "mappers"),
+				mappers = getattr(table, "SqlSessions"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
 				incr_column = getattr(table, "incrColumn"),
@@ -1663,7 +1663,7 @@ class dbCalls:
 		resultDict['validationCustomQueryTargetSQL'] = row[15]
 		resultDict['uppercaseColumns'] = row[16]
 		resultDict['truncateTarget'] = row[17]
-		resultDict['mappers'] = row[18]
+		resultDict['SqlSessions'] = row[18]
 		resultDict['tableRowcount'] = row[19]
 		resultDict['targetRowcount'] = row[20]
 		resultDict['validationCustomQueryHiveValue'] = row[21]
@@ -1677,7 +1677,7 @@ class dbCalls:
 		resultDict['sqoopOptions'] = row[29]
 		resultDict['lastSize'] = row[30]
 		resultDict['lastRows'] = row[31]
-		resultDict['lastMappers'] = row[32]
+		resultDict['lastSqlSessions'] = row[32]
 		resultDict['lastExecution'] = row[33]
 		resultDict['hiveContainerSize'] = row[34]
 		resultDict['createTargetTableSql'] = row[35]
@@ -1846,7 +1846,7 @@ class dbCalls:
 		if getattr(table, "validationMethod") == None:							setattr(table, "validationMethod", "rowCount")
 		if getattr(table, "uppercaseColumns") == None:							setattr(table, "uppercaseColumns", -1)
 		if getattr(table, "truncateTarget") == None:							setattr(table, "truncateTarget", 1)
-		if getattr(table, "mappers") == None:									setattr(table, "mappers", -1)
+		if getattr(table, "sqlSessions") == None:								setattr(table, "sqlSessions", -1)
 		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
 
 		try:
@@ -1869,7 +1869,7 @@ class dbCalls:
 				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
 				uppercase_columns = getattr(table, "uppercaseColumns"),
 				truncate_target = getattr(table, "truncateTarget"),
-				mappers = getattr(table, "mappers"),
+				mappers = getattr(table, "sqlSessions"),
 				incr_column = getattr(table, "incrColumn"),
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				sqoop_options = getattr(table, "sqoopOptions"),
@@ -1896,7 +1896,7 @@ class dbCalls:
 				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
 				uppercase_columns = getattr(table, "uppercaseColumns"),
 				truncate_target = getattr(table, "truncateTarget"),
-				mappers = getattr(table, "mappers"),
+				mappers = getattr(table, "sqlSessions"),
 				incr_column = getattr(table, "incrColumn"),
 				incr_validation_method = getattr(table, "incrValidationMethod"),
 				sqoop_options = getattr(table, "sqoopOptions"),
