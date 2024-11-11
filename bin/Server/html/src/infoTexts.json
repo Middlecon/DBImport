@@ -65,8 +65,8 @@
       "mappers": "Auto or positiv number for a fixed number of mappers. If Auto, then it's calculated based of last import size. \nIf the import is having problems to split the data, a common option is to set this to 1 to avoid splits all together",
       "splitCount": "Sets tez.grouping.split-count in the Hive session",
       "hiveContainerSize": "Sets hive.tez.container.size in the Hive session. This is an integer based value in MB. Should be a multiple of Yarn container size. If not set, then it will use the default specified in Yarn and TEZ\n\nExample: 3072 for 3G container size",
-      "sparkExecutorMemory": "Memory used by spark when importring data. Overrides default value in global configuration\n\nExample: 32G or 2688M",
-      "sparkExecutors": "Number of Spark executors to use. Overrides default value in global configuration",
+      "sparkExecutorMemory": "Memory for each Spark executor. Overrides default value set in dbimport.cfg\n\nExample: 32G or 2688M",
+      "sparkExecutors": "If Spark Dynamic Allocation is set to True in dbimport.cfg, this configuration option will control the maximum dynamic number of Spark executors to use (spark.dynamicAllocation.maxExecutors).\n\nIf Spark Dynamic Allocation is False, this will set the max executors to use for the entire Spark session (spark.executor.instances).\n\nThis should not be mixed up with how many sessions that will be used when transfering data. That is still controlled by 'Mappers' setting and limited by Import/Export Max Sessions in Configuration/Global.\n\nOverrides the default value in Configuration/Global",
       "copyFinished": "Information only\nTime when last copy from Master DBImport instance was completed.",
       "copySlave": "Defines if this table is a Master table or a Slave table. If an import from the Master DBImport comes, this will be set to Slave automatically by DBImport. But in order to switch back, you need to manually set this to False.",
       "columns": {
@@ -321,7 +321,7 @@
       "rest_trustcafile": "REST CA Trust file for SSL",
       "rest_url": "Rest server URL",
       "rest_verifyssl": "If True, the SSL communication should be fully validated with a correct trust certificate. You need to specify a valid trustfile for this",
-      "spark_max_executors": "The default value for maximum number of spark executors",
+      "spark_max_executors": "If Spark Dynamic Allocation is set to True in dbimport.cfg, this configuration option will control the maximum dynamic number of Spark executors to use (spark.dynamicAllocation.maxExecutors).\n\nIf Spark Dynamic Allocation is False, this will set the max executors to use for the entire Spark session (spark.executor.instances).\n\nThis should not be mixed up with how many sessions that will be used when transfering data. That is still controlled by Import/Export Max Sessions",
       "timezone": "The default timezone that the configured times are meant for. Use full text timezone. \n\nExample: Europe/Stockholm"
     },
     "jdbcDrivers": {
