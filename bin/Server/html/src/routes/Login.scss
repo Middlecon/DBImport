@@ -22,18 +22,25 @@
   }
 }
 
+.login-disabled-label {
+  color: rgb(216, 216, 216);
+}
+
 .input-container {
   text-align: left;
   padding-left: 76px;
   margin-bottom: 8px;
   label {
     font-size: 19px;
+    padding-right: 2px;
   }
   input {
     padding-top: 4px;
+    padding-left: 4px;
     width: 170px;
   }
 }
+
 .input-container:nth-child(2) {
   padding-left: 81px;
   margin-bottom: 25px;
@@ -45,9 +52,19 @@
   margin-left: 65px;
 }
 
-.error-message {
-  color: rgb(253, 89, 71);
-  font-size: 20px;
-  margin-left: 100px;
-  margin-top: 50px;
+.login-message-placeholder {
+  height: 20px;
+  margin-top: 25px;
+}
+
+.login-error-message {
+  color: rgb(190, 72, 59);
+  font-size: 14px;
+  margin-left: 70px;
+}
+
+.logging-in-message {
+  color: rgb(242, 242, 242);
+  font-size: 14px;
+  margin-left: 79px;
 }

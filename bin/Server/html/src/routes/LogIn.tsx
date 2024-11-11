@@ -11,19 +11,14 @@ import { getCookie, setCookie } from '../utils/cookies'
 interface LogInResponse {
   access_token?: string
   token_type?: string
-  detail?: [
-    {
-      loc: [string, 0]
-      msg: string
-      type: string
-    }
-  ]
+  detail?: string
 }
 
 function LogIn() {
   const [, setUsername] = useAtom(usernameAtom)
   const [latestPath] = useAtom(latestPathAtom)
 
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
       username: '',
       password: ''
@@ -41,15 +36,19 @@ function LogIn() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setErrorMessage('')
+    setLoading(true)
 
     try {
-      await loginUser(formData)
-      navigate(latestPath ? latestPath : '/')
+      const success = await loginUser(formData)
+      if (success) {
+        navigate(latestPath ? latestPath : '/')
+      }
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message)
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -59,7 +58,7 @@ function LogIn() {
   }: {
     username: string
     password: string
-  }): Promise<void> => {
+  }): Promise<boolean> => {
     const url = '/api/oauth2/access_token'
 
     try {
@@ -79,18 +78,21 @@ function LogIn() {
 
       if (!response.ok && responseData.detail) {
         console.error('Login failed:', responseData.detail)
-        setErrorMessage(responseData.detail?.[0].msg)
-        return
+        setErrorMessage(responseData.detail)
+        return false
       }
 
       if (responseData.access_token && responseData.token_type) {
         setCookie('DBI_auth_token', responseData.access_token)
         setUsername(username)
+        return true
       }
     } catch (error) {
       errorHandling('POST', 'on Log in', error)
-      throw new Error('Failed to log in.')
+      setErrorMessage('Failed to log in.')
+      return false
     }
+    return false
   }
 
   return (
@@ -103,43 +105,60 @@ function LogIn() {
           <h2>Log in</h2>
           <form onSubmit={handleSubmit}>
             <div className="input-container">
-              <label htmlFor="username">Username: </label>
+              <label
+                className={loading ? 'login-disabled-label' : ''}
+                htmlFor="username"
+              >
+                Username:
+              </label>
               <input
                 id="username"
                 type="text"
                 autoComplete="username"
                 value={formData.username}
-                onChange={(event) =>
+                onChange={(event) => {
                   setFormData({ ...formData, username: event.target.value })
-                }
+                  setErrorMessage('')
+                }}
+                disabled={loading}
                 required
               />
             </div>
             <div className="input-container">
-              <label htmlFor="password">Password: </label>
+              <label
+                className={loading ? 'login-disabled-label' : ''}
+                htmlFor="password"
+              >
+                Password:
+              </label>
               <input
                 id="password"
                 type="password"
                 autoComplete="current-password"
                 value={formData.password}
-                onChange={(event) =>
+                onChange={(event) => {
                   setFormData({ ...formData, password: event.target.value })
-                }
+                  setErrorMessage('')
+                }}
+                disabled={loading}
                 required
               />
             </div>
             <button
               className="login-submit-button"
               type="submit"
-              disabled={!formData.username || !formData.password}
+              disabled={!formData.username || !formData.password || loading}
             >
               Log in
             </button>
-            {errorMessage && (
-              <div data-testid="error-message" className="error-message">
-                {errorMessage}
-              </div>
-            )}
+            <div className="login-message-placeholder">
+              {errorMessage && (
+                <div className="login-error-message">{errorMessage}</div>
+              )}
+              {loading && (
+                <div className="logging-in-message">Logging in...</div>
+              )}
+            </div>
           </form>
         </div>
       </div>
