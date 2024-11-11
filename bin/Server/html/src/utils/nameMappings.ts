@@ -128,8 +128,8 @@ export const nameDisplayMappings: { [key: string]: FilterMapping } = {
   // Configuration Global
 
   restserver_authentication_method: {
-    [RestserverAuthenticationMethod.Local]: 'Local',
-    [RestserverAuthenticationMethod.Pam]: 'Pam'
+    [RestserverAuthenticationMethod.Local]: 'local',
+    [RestserverAuthenticationMethod.Pam]: 'pam'
   }
 }
 
@@ -163,7 +163,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'No Merge Ingestion SQL Addition': 'nomergeIngestionSqlAddition',
     'Last Size': 'lastSize',
     'Last Rows': 'lastRows',
-    'Last Mappers': 'lastMappers',
+    'Last number of SQL Sessions': 'lastSqlSessions',
     'Generated Hive Column Definition': 'generatedHiveColumnDefinition',
     'Generated Sqoop Query': 'generatedSqoopQuery',
     'Generated Sqoop Options': 'generatedSqoopOptions',
@@ -182,7 +182,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Soft Delete During Merge': 'softDeleteDuringMerge',
     'Merge Compaction Method': 'mergeCompactionMethod',
     'Datalake Source': 'datalakeSource',
-    Mappers: 'mappers',
+    'SQL Sessions': 'sqlSessions',
     'Hive Split Count': 'splitCount',
     'Hive Tez Container size (MB)': 'hiveContainerSize',
     'Spark Executor Memory': 'sparkExecutorMemory',
@@ -232,7 +232,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     'Validation Custom Query Target SQL': 'validationCustomQueryTargetSQL',
     'Uppercase Columns': 'uppercaseColumns',
     'Truncate Target': 'truncateTarget',
-    Mappers: 'mappers',
+    'SQL Sessions': 'sqlSessions',
     'Table Row Count': 'tableRowcount',
     'Target Row Count': 'targetRowcount',
     'Custom Query Hive Value': 'validationCustomQueryHiveValue',
@@ -246,7 +246,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     'Sqoop Options': 'sqoopOptions',
     'Last Size': 'lastSize',
     'Last Rows': 'lastRows',
-    'Last Mappers': 'lastMappers',
+    'Last number of SQL Sessions': 'lastSqlSessions',
     'Last Execution': 'lastExecution',
     'Hive Tez Container size (MB)': 'hiveContainerSize',
     'Create Target Table Sql': 'createTargetTableSql',
@@ -459,8 +459,8 @@ export const configNameReverseMappings: {
   [category: string]: { [key: string]: string }
 } = {
   'Authentication Method': {
-    Local: RestserverAuthenticationMethod.Local,
-    Pam: RestserverAuthenticationMethod.Pam
+    local: RestserverAuthenticationMethod.Local,
+    pam: RestserverAuthenticationMethod.Pam
   }
 }
 

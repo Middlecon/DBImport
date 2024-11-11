@@ -63,9 +63,12 @@ function EditConnectionModal({
   const [initialWidth, setInitialWidth] = useState(700)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Connection String']
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
+    const requiredFields = editedSettings.filter(
+      (setting) => setting.isRequired
+    )
+
+    return requiredFields.some(
+      (setting) => setting.value === null || setting.value === ''
     )
   }, [editedSettings])
 
@@ -91,6 +94,15 @@ function EditConnectionModal({
     const setting = newSettings[index]
     const currentValue = index === -1 ? null : newSettings[index].value
     const originalValue = originalEditableSettings[index]?.value
+
+    if (
+      (setting.type === 'integerFromOne' ||
+        setting.type === 'integerFromZero') &&
+      typeof originalValue === 'number' &&
+      Number.isInteger(originalValue)
+    ) {
+      setPrevValue(originalValue)
+    }
 
     if (newValue === -1) {
       if (
@@ -251,6 +263,30 @@ function EditConnectionModal({
                     <InfoText
                       label={setting.label}
                       infoText={setting.infoText}
+                      infoTextMaxWidth={
+                        setting.type === 'text' ||
+                        setting.type === 'textarea' ||
+                        setting.type === 'booleanNumberOrAuto' ||
+                        setting.type === 'booleanOrDefaultFromConfig(-1)' ||
+                        setting.type === 'booleanOrDefaultFromConnection(-1)' ||
+                        setting.type ===
+                          'integerFromOneOrDefaultFromConfig(null)'
+                          ? 430
+                          : setting.type === 'enum'
+                          ? 280
+                          : setting.type === 'boolean' ||
+                            setting.type === 'booleanNumber'
+                          ? 380
+                          : setting.type === 'integerOneOrTwo' ||
+                            setting.type === 'integerFromZero' ||
+                            setting.type === 'integerFromOne' ||
+                            setting.type === 'integerFromZeroOrNull' ||
+                            setting.type === 'integerFromOneOrNull' ||
+                            setting.type === 'integerFromZeroOrAuto(-1)' ||
+                            setting.type === 'integerFromOneOrAuto(-1)'
+                          ? 343
+                          : 270
+                      }
                     />
                   )}
                 </div>

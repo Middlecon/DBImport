@@ -6,11 +6,13 @@ interface InfoTextProps {
   label: string
   infoText: string
   iconPosition?: CSSProperties
+  infoTextMaxWidth?: number
 }
 
 function InfoText({
   label,
   infoText,
+  infoTextMaxWidth,
   iconPosition = { paddingTop: 2 }
 }: InfoTextProps) {
   const [openInfoDropdown, setOpenInfoDropdown] = useState<string | null>(null)
@@ -80,7 +82,10 @@ function InfoText({
       >
         <InfoIcon />
         {shouldShowInfo && (
-          <div className="expanded-content">
+          <div
+            className="info-expanded-content"
+            style={{ maxWidth: infoTextMaxWidth }}
+          >
             <div className="info-text" ref={infoTextRef}>
               {infoText}
             </div>

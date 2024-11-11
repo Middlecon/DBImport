@@ -184,7 +184,7 @@ const fieldsToRemove = [
   'incrMaxvaluePending',
   'lastSize',
   'lastRows',
-  'lastMappers',
+  'lastSqlSessions',
   'lastExecution',
   'generatedHiveColumnDefinition',
   'generatedSqoopQuery',
@@ -348,7 +348,7 @@ export function createTableData(
     validationCustomQuerySourceSQL: null,
     validationCustomQueryHiveSQL: null,
     validationCustomQueryValidateImportTable: null,
-    mappers: null,
+    sqlSessions: null,
     softDeleteDuringMerge: null,
     incrMode: null,
     incrColumn: null,
@@ -559,7 +559,7 @@ export function createExportTableData(
     validationCustomQueryTargetSQL: null,
     uppercaseColumns: null,
     truncateTarget: null,
-    mappers: null,
+    sqlSessions: null,
     tableRowcount: null,
     targetRowcount: null,
     validationCustomQueryHiveValue: null,
@@ -573,7 +573,7 @@ export function createExportTableData(
     sqoopOptions: null,
     lastSize: null,
     lastRows: null,
-    lastMappers: null,
+    lastSqlSessions: null,
     lastExecution: null,
     hiveContainerSize: null,
     createTargetTableSql: null,
@@ -692,6 +692,7 @@ function updateTasksData(
     if (
       typeof settingValue === 'string' ||
       typeof settingValue === 'number' ||
+      typeof settingValue === 'boolean' ||
       settingValue === null
     ) {
       ;(part1[key] as (typeof part1)[typeof key]) = settingValue

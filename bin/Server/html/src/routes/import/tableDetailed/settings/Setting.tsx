@@ -212,12 +212,39 @@ function Setting({
         )}
       </dd>
       {hasOverflow && openDropdown && (
-        <div ref={dropdownRef} className="expanded-content">
+        <div ref={dropdownRef} className="setting-expanded-content">
           {renderSetting()}
         </div>
       )}
 
-      {infoText && <InfoText label={label} infoText={infoText} />}
+      {infoText && (
+        <InfoText
+          label={label}
+          infoText={infoText}
+          infoTextMaxWidth={
+            type === 'text' ||
+            type === 'textarea' ||
+            type === 'booleanNumberOrAuto' ||
+            type === 'booleanOrDefaultFromConfig(-1)' ||
+            type === 'booleanOrDefaultFromConnection(-1)' ||
+            type === 'integerFromOneOrDefaultFromConfig(null)'
+              ? 430
+              : type === 'enum'
+              ? 280
+              : type === 'boolean' || type === 'booleanNumber'
+              ? 380
+              : type === 'integerOneOrTwo' ||
+                type === 'integerFromZero' ||
+                type === 'integerFromOne' ||
+                type === 'integerFromZeroOrNull' ||
+                type === 'integerFromOneOrNull' ||
+                type === 'integerFromZeroOrAuto(-1)' ||
+                type === 'integerFromOneOrAuto(-1)'
+              ? 343
+              : 270
+          }
+        />
+      )}
     </div>
   )
 }

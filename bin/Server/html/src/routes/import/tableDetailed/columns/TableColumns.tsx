@@ -133,6 +133,7 @@ function TableColumns() {
           settings={currentRow}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
+          initWidth={587}
         />
       )}
     </div>

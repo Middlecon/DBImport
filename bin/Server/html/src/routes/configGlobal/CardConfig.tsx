@@ -52,9 +52,9 @@ function CardConfig({ title, settings, originalData }: CardConfigProps) {
 
   const getInitWidth = () => {
     const widths: { [key: string]: number } = {
-      'Disable Operations Settings': 400,
-      'Misc Settings': 400,
-      Performance: 400
+      'Disable Operations Settings': 410,
+      'Misc Settings': 515,
+      Performance: 370
     }
     return widths[`${title}`] || 584
   }

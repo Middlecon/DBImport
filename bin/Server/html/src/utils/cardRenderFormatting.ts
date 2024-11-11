@@ -53,7 +53,7 @@ export function airflowCardRenderSettings(
       value: dagData.scheduleInterval,
       type: SettingType.Text,
       infoText: infoTexts.airflow[airflowType].scheduleInterval
-    }, // Free-text, Time to execute DAG, varchar(128), required
+    }, // Free-text, Time to execute DAG, varchar(128), required?
     {
       label: 'Timezone',
       value: dagData.timezone,
@@ -75,7 +75,8 @@ export function airflowCardRenderSettings(
       label: 'Retries',
       value: dagData.retries,
       type: SettingType.IntegerFromZero,
-      infoText: infoTexts.airflow[airflowType].retries
+      infoText: infoTexts.airflow[airflowType].retries,
+      isRequired: true
     } // Integer, tinyint(4), default value: 5 for import & export and 0 for custom, How many retries should be Task do in Airflow before it failes,  required
   ]
   const baseAirflowDagSettingsPart3: EditSetting[] = [
@@ -175,7 +176,7 @@ export function airflowCardRenderSettings(
             value: dagData.filterTable, // column filter_hive in db
             type: SettingType.Textarea,
             infoText: infoTexts.airflow.import.filterTable
-          } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE, required
+          } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE
         ]
       : []
   const airflowImportDagSettingsPart2: EditSetting[] =
@@ -238,7 +239,8 @@ export function airflowCardRenderSettings(
             label: 'Filter Connection',
             value: dagData.filterConnection, // column filter_hive in db
             type: SettingType.Text,
-            infoText: infoTexts.airflow.export.filterConnection
+            infoText: infoTexts.airflow.export.filterConnection,
+            isRequired: true
           }, // Free-text, varchar(256), Filter string for DBALIAS in export_tables, required
           {
             label: 'Filter Target Schema',
@@ -298,7 +300,8 @@ export function createAirflowSettings(
       label: 'DAG Name',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.airflow[airflowType].name
+      infoText: infoTexts.airflow[airflowType].name,
+      isRequired: true
     } //Free-text, varchar(64), have to be unique across import, export and custom, required
   ]
   const baseAirflowDagSettingsPart2: EditSetting[] = [
@@ -306,7 +309,8 @@ export function createAirflowSettings(
       label: 'Schedule Interval',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.airflow[airflowType].scheduleInterval
+      infoText: infoTexts.airflow[airflowType].scheduleInterval,
+      isRequired: true
     }, // Free-text, Time to execute DAG, varchar(128), required
     {
       label: 'Auto Regenerate DAG',
@@ -322,7 +326,7 @@ export function createAirflowSettings(
       value: null,
       type: SettingType.Text,
       infoText: infoTexts.airflow.import.filterTable
-    } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE, required
+    } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE
   ]
 
   const airflowExportDagSettings: EditSetting[] = [
@@ -501,7 +505,8 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Connection String',
       value: connection.connectionString,
       type: SettingType.Textarea,
-      infoText: infoTexts.connection.connectionString
+      infoText: infoTexts.connection.connectionString,
+      isRequired: true
     }, // Free-text (64k)
     {
       label: 'Private Key Path',
@@ -737,13 +742,15 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Source Schema',
       value: table.sourceSchema,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceSchema
-    }, // Free-text
+      infoText: infoTexts.table.import.sourceSchema,
+      isRequired: true
+    }, // Free-text, required
     {
       label: 'Source Table',
       value: table.sourceTable,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceTable
+      infoText: infoTexts.table.import.sourceTable,
+      isRequired: true
     }, // Free-text
     {
       label: '',
@@ -908,10 +915,10 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.lastRows
     }, // Read-only
     {
-      label: 'Last Mappers',
-      value: table.lastMappers,
+      label: 'Last number of Sql Sessions',
+      value: table.lastSqlSessions,
       type: SettingType.Readonly,
-      infoText: infoTexts.table.import.lastMappers
+      infoText: infoTexts.table.import.lastSqlSessions
     }, // Read-only
     {
       label: '',
@@ -1061,11 +1068,12 @@ export function importCardRenderSettings(table: UITable) {
 
   const performance: EditSetting[] = [
     {
-      label: 'Mappers',
-      value: table.mappers,
+      label: 'SQL Sessions',
+      value: table.sqlSessions,
       type: SettingType.IntegerFromOneOrAuto,
-      infoText: infoTexts.table.import.mappers
-    }, // Integer, -1 = Auto
+      infoText: infoTexts.table.import.sqlSessions,
+      isRequired: true
+    }, // Integer, -1 = Auto, required
     {
       label: '',
       value: '',
@@ -1252,7 +1260,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       value: row.columnName,
       type: SettingType.Readonly,
       infoText: infoTexts.table.import.columns.columnName
-    }, // Read-only, , free-text
+    }, // Read-only, free-text
     {
       label: 'Column Order',
       value: row.columnOrder,
@@ -1360,13 +1368,15 @@ export function initialCreateImportTableSettings(
       label: 'Database',
       value: database,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.database
+      infoText: infoTexts.table.import.database,
+      isRequired: true
     }, //Free-text, default selected db, potentially copyable?, required
     {
       label: 'Table',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.table
+      infoText: infoTexts.table.import.table,
+      isRequired: true
     }, // Free-text, required
     {
       label: '',
@@ -1383,13 +1393,15 @@ export function initialCreateImportTableSettings(
       label: 'Source Schema',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceSchema
+      infoText: infoTexts.table.import.sourceSchema,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: 'Source Table',
       value: '',
       type: SettingType.Text,
-      infoText: infoTexts.table.import.sourceTable
+      infoText: infoTexts.table.import.sourceTable,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: '',
@@ -1436,13 +1448,15 @@ export function exportCnTablesEditSettings(row: UIExportCnTables) {
       label: 'Database',
       value: row.database,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.database
+      infoText: infoTexts.table.export.database,
+      isRequired: true
     }, //Free-text, varchar(256), required
     {
       label: 'Table',
       value: row.table,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.table
+      infoText: infoTexts.table.export.table,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: '',
@@ -1483,7 +1497,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.targetTable
     }, // Read-only, required
     {
-      label: 'Target Schemna',
+      label: 'Target Schema',
       value: table.targetSchema,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.targetSchema
@@ -1493,13 +1507,15 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Database',
       value: table.database,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.database
+      infoText: infoTexts.table.export.database,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: 'Table',
       value: table.table,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.table
+      infoText: infoTexts.table.export.table,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: '',
@@ -1592,10 +1608,10 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.lastRows
     }, // Read-only
     {
-      label: 'Last Mappers',
-      value: table.lastMappers,
+      label: 'Last number of SQL Sessions',
+      value: table.lastSqlSessions,
       type: SettingType.Readonly,
-      infoText: infoTexts.table.export.lastMappers
+      infoText: infoTexts.table.export.lastSqlSessions
     } // Read-only
   ]
 
@@ -1651,11 +1667,11 @@ export function exportCardRenderSettings(table: UIExportTable) {
 
   const performance: EditSetting[] = [
     {
-      label: 'Mappers',
-      value: table.mappers,
+      label: 'SQL Sessions',
+      value: table.sqlSessions,
       type: SettingType.IntegerFromOneOrAuto,
-      infoText: infoTexts.table.export.mappers
-    }, // Integer, tinyint(4) -1 = Auto, required
+      infoText: infoTexts.table.export.sqlSessions
+    }, // Integer, tinyint(4) -1 = Auto
     {
       label: '',
       value: '',
@@ -1838,19 +1854,22 @@ export function initialCreateExportTableSettings(connection: string) {
       label: 'Connection',
       value: connection,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.connection
+      infoText: infoTexts.table.export.connection,
+      isRequired: true
     }, //Free-text, default selected connection, required
     {
       label: 'Target Table',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.targetTable
+      infoText: infoTexts.table.export.targetTable,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: 'Target Schema',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.targetSchema
+      infoText: infoTexts.table.export.targetSchema,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: '',
@@ -1861,13 +1880,15 @@ export function initialCreateExportTableSettings(connection: string) {
       label: 'Database',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.database
+      infoText: infoTexts.table.export.database,
+      isRequired: true
     }, // Free-text, varchar(256), required
     {
       label: 'Table',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.table.export.table
+      infoText: infoTexts.table.export.table,
+      isRequired: true
     }, // Free-text, varchar(256), required
 
     {
@@ -1902,7 +1923,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.airflow_aws_instanceids,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_aws_instanceids,
-      isHidden: config.airflow_aws_instanceids === null
+      isHidden: config.airflow_aws_instanceids === null,
+      isRequired: true
     }, //Free-text, varchar(256), required
     {
       label: 'AWS Pool to Instanceid',
@@ -1910,13 +1932,6 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.airflow_aws_pool_to_instanceid,
       isHidden: config.airflow_aws_pool_to_instanceid === null
-    }, // Boolean, true or false, required
-    {
-      label: 'Create Pool With Task',
-      value: config.airflow_create_pool_with_task,
-      type: SettingType.Boolean,
-      infoText: infoTexts.configuration.global.airflow_create_pool_with_task,
-      isHidden: config.airflow_create_pool_with_task === null
     }, // Boolean, true or false, required
     {
       label: '',
@@ -1929,28 +1944,32 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.airflow_dag_directory,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_dag_directory,
-      isHidden: config.airflow_dag_directory === null
+      isHidden: config.airflow_dag_directory === null,
+      isRequired: true
     }, // Free-text, varchar (256), folder name, required
     {
       label: 'DAG File Group',
       value: config.airflow_dag_file_group,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_dag_file_group,
-      isHidden: config.airflow_dag_file_group === null
+      isHidden: config.airflow_dag_file_group === null,
+      isRequired: true
     }, // Free-text, varchar (256), group name, required
     {
       label: 'DAG File Permission',
       value: config.airflow_dag_file_permission,
       type: SettingType.TextTripletOctalValue,
       infoText: infoTexts.configuration.global.airflow_dag_file_permission,
-      isHidden: config.airflow_dag_file_permission === null
+      isHidden: config.airflow_dag_file_permission === null,
+      isRequired: true
     }, // Free-text, varchar (256), Has to be a string with triplet-octal value, e.g. 342, required
     {
       label: 'DAG Staging Directory',
       value: config.airflow_dag_staging_directory,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_dag_staging_directory,
-      isHidden: config.airflow_dag_staging_directory === null
+      isHidden: config.airflow_dag_staging_directory === null,
+      isRequired: true
     }, // Free-text, varchar (256), folder name, required
     {
       label: '',
@@ -1959,25 +1978,43 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
     }, // Layout space
 
     {
-      label: 'DBImport Commandpath',
+      label: 'DBImport Command Path',
       value: config.airflow_dbimport_commandpath,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_dbimport_commandpath,
-      isHidden: config.airflow_dbimport_commandpath === null
+      isHidden: config.airflow_dbimport_commandpath === null,
+      isRequired: true
     }, // Free-text, varchar (256), full command, required
+    {
+      label: 'Sudo User',
+      value: config.airflow_sudo_user,
+      type: SettingType.Text,
+      infoText: infoTexts.configuration.global.airflow_sudo_user,
+      isHidden: config.airflow_sudo_user === null,
+      isRequired: true
+    }, // Free-text, varchar (256), username, required
+    {
+      label: 'Create Pool With Task',
+      value: config.airflow_create_pool_with_task,
+      type: SettingType.Boolean,
+      infoText: infoTexts.configuration.global.airflow_create_pool_with_task,
+      isHidden: config.airflow_create_pool_with_task === null
+    }, // Boolean, true or false, required
     {
       label: 'Default Pool Size',
       value: config.airflow_default_pool_size,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.airflow_default_pool_size,
-      isHidden: config.airflow_default_pool_size === null
+      isHidden: config.airflow_default_pool_size === null,
+      isRequired: true
     }, // Integer, from 1, required
     {
       label: 'Dummy Task Queue',
       value: config.airflow_dummy_task_queue,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.airflow_dummy_task_queue,
-      isHidden: config.airflow_dummy_task_queue === null
+      isHidden: config.airflow_dummy_task_queue === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: 'Major Version',
@@ -1985,14 +2022,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       type: SettingType.IntegerOneOrTwo,
       infoText: infoTexts.configuration.global.airflow_major_version,
       isHidden: config.airflow_major_version === null
-    }, // Integer, 1 or 2, required
-    {
-      label: 'Sudo User',
-      value: config.airflow_sudo_user,
-      type: SettingType.Text,
-      infoText: infoTexts.configuration.global.airflow_sudo_user,
-      isHidden: config.airflow_sudo_user === null
-    } // Free-text, varchar (256), username, required
+    } // Integer, 1 or 2, required
   ]
 
   const disableOperationsConfigData: EditSetting[] = [
@@ -2046,7 +2076,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.atlas_discovery_interval,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.atlas_discovery_interval,
-      isHidden: config.atlas_discovery_interval === null
+      isHidden: config.atlas_discovery_interval === null,
+      isRequired: true
     } // Integer, 1-24, required
   ]
 
@@ -2056,28 +2087,32 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.cluster_name,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.cluster_name,
-      isHidden: config.cluster_name === null
+      isHidden: config.cluster_name === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: 'Address',
       value: config.hdfs_address,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.hdfs_address,
-      isHidden: config.hdfs_address === null
+      isHidden: config.hdfs_address === null,
+      isRequired: true
     }, // Free-text, varchar (256), filesytem url, required
     {
       label: 'Base Directory',
       value: config.hdfs_basedir,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.hdfs_basedir,
-      isHidden: config.hdfs_basedir === null
+      isHidden: config.hdfs_basedir === null,
+      isRequired: true
     }, // Free-text, varchar (256), folder name, required
     {
       label: 'Blocksize',
       value: config.hdfs_blocksize,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.hdfs_blocksize,
-      isHidden: config.hdfs_blocksize === null
+      isHidden: config.hdfs_blocksize === null,
+      isRequired: true
     } // Free-text, varchar (256), it is string but usually it is a bigint saved in it, required
   ]
 
@@ -2129,7 +2164,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.hive_validate_table,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.hive_validate_table,
-      isHidden: config.hive_validate_table === null
+      isHidden: config.hive_validate_table === null,
+      isRequired: true
     }, // Free-text, varchar(256), table name, required
     {
       label: 'Impala Invalidate Metadata',
@@ -2146,49 +2182,56 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.import_columnname_delete,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_delete,
-      isHidden: config.import_columnname_delete === null
+      isHidden: config.import_columnname_delete === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Histtime',
       value: config.import_columnname_histtime,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_histtime,
-      isHidden: config.import_columnname_histtime === null
+      isHidden: config.import_columnname_histtime === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Import',
       value: config.import_columnname_import,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_import,
-      isHidden: config.import_columnname_import === null
+      isHidden: config.import_columnname_import === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Insert',
       value: config.import_columnname_insert,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_insert,
-      isHidden: config.import_columnname_insert === null
+      isHidden: config.import_columnname_insert === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Iud',
       value: config.import_columnname_iud,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_iud,
-      isHidden: config.import_columnname_iud === null
+      isHidden: config.import_columnname_iud === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Source',
       value: config.import_columnname_source,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_source,
-      isHidden: config.import_columnname_source === null
+      isHidden: config.import_columnname_source === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: 'Import Columnname Update',
       value: config.import_columnname_update,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_columnname_update,
-      isHidden: config.import_columnname_update === null
+      isHidden: config.import_columnname_update === null,
+      isRequired: true
     }, // Free-text, varchar (256), column name, required
     {
       label: '',
@@ -2201,14 +2244,16 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.import_history_database,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_history_database,
-      isHidden: config.import_history_database === null
+      isHidden: config.import_history_database === null,
+      isRequired: true
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import History Table',
       value: config.import_history_table,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_history_table,
-      isHidden: config.import_history_table === null
+      isHidden: config.import_history_table === null,
+      isRequired: true
     }, // Free-text, varchar (256), table name, required
 
     {
@@ -2216,14 +2261,16 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.import_staging_database,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_staging_database,
-      isHidden: config.import_staging_database === null
+      isHidden: config.import_staging_database === null,
+      isRequired: true
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import Staging Table',
       value: config.import_staging_table,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_staging_table,
-      isHidden: config.import_staging_table === null
+      isHidden: config.import_staging_table === null,
+      isRequired: true
     }, // Free-text, varchar (256), table name, required
 
     {
@@ -2231,14 +2278,16 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.import_work_database,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_work_database,
-      isHidden: config.import_work_database === null
+      isHidden: config.import_work_database === null,
+      isRequired: true
     }, // Free-text, varchar (256), database name, required
     {
       label: 'Import Work Table',
       value: config.import_work_table,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.import_work_table,
-      isHidden: config.import_work_table === null
+      isHidden: config.import_work_table === null,
+      isRequired: true
     }, // Free-text, varchar (256), table name, required
     {
       label: '',
@@ -2250,7 +2299,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.export_staging_database,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.export_staging_database,
-      isHidden: config.export_staging_database === null
+      isHidden: config.export_staging_database === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: '',
@@ -2327,7 +2377,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.post_data_to_awssns_topic,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.post_data_to_awssns_topic,
-      isHidden: config.post_data_to_awssns_topic === null
+      isHidden: config.post_data_to_awssns_topic === null,
+      isRequired: true
     }, // Free-text, varchar (256), sns topic address, required
     {
       label: '',
@@ -2339,21 +2390,24 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.kafka_brokers,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.kafka_brokers,
-      isHidden: config.kafka_brokers === null
+      isHidden: config.kafka_brokers === null,
+      isRequired: true
     }, // Free-text, varchar (256), comma separated list of servers and ports, required
     {
       label: 'Kafka Securityprotocol',
       value: config.kafka_securityprotocol,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.kafka_securityprotocol,
-      isHidden: config.kafka_securityprotocol === null
+      isHidden: config.kafka_securityprotocol === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: 'Kafka Saslmechanism',
       value: config.kafka_saslmechanism,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.kafka_saslmechanism,
-      isHidden: config.kafka_saslmechanism === null
+      isHidden: config.kafka_saslmechanism === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
 
     {
@@ -2361,14 +2415,16 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.kafka_topic,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.kafka_topic,
-      isHidden: config.kafka_topic === null
+      isHidden: config.kafka_topic === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: 'Kafka Trustcafile',
       value: config.kafka_trustcafile,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.kafka_trustcafile,
-      isHidden: config.kafka_trustcafile === null
+      isHidden: config.kafka_trustcafile === null,
+      isRequired: true
     }, // Free-text, varchar (256), filename, required
     {
       label: '',
@@ -2380,29 +2436,32 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.rest_timeout,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.rest_timeout,
-      isHidden: config.rest_timeout === null
+      isHidden: config.rest_timeout === null,
+      isRequired: true
     }, // Integer, from 1, required
     {
       label: 'Rest Trustcafile',
       value: config.rest_trustcafile,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.rest_trustcafile,
-      isHidden: config.rest_trustcafile === null
+      isHidden: config.rest_trustcafile === null,
+      isRequired: true
     }, // Free-text, varchar (256), filename, required
     {
       label: 'Rest Url',
       value: config.rest_url,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.rest_url,
-      isHidden: config.rest_url === null
+      isHidden: config.rest_url === null,
+      isRequired: true
     }, // Free-text, varchar (256), url, required
     {
       label: 'Rest Verify SSL',
       value: config.rest_verifyssl,
-      type: SettingType.BooleanNumber,
+      type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.rest_verifyssl,
       isHidden: config.rest_verifyssl === null
-    } // Boolean, true or false, required , is BooleanNumber now
+    } // Boolean, true or false, required
   ]
 
   const dbimportServersConfigData: EditSetting[] = [
@@ -2411,7 +2470,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.restserver_admin_user,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.restserver_admin_user,
-      isHidden: config.restserver_admin_user === null
+      isHidden: config.restserver_admin_user === null,
+      isRequired: true
     }, // Free-text, varchar (256), required
     {
       label: 'Authentication Method',
@@ -2430,7 +2490,8 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.restserver_token_ttl,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.restserver_token_ttl,
-      isHidden: config.restserver_token_ttl === null
+      isHidden: config.restserver_token_ttl === null,
+      isRequired: true
     } // Integer, from 1, required
   ]
 
@@ -2440,36 +2501,50 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       value: config.import_default_sessions,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.import_default_sessions,
-      // isHidden: config.import_default_sessions === null
-      isHidden: true
+      isHidden: config.import_default_sessions === null,
+      isRequired: true
     }, // Integer, from 1, required
     {
       label: 'Import Max Sessions',
       value: config.import_max_sessions,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.import_max_sessions,
-      isHidden: config.import_max_sessions === null
+      isHidden: config.import_max_sessions === null,
+      isRequired: true
     }, // Integer, from 1, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
     {
       label: 'Export Default Sessions',
       value: config.export_default_sessions,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.export_default_sessions,
-      isHidden: config.export_default_sessions === null
+      isHidden: config.export_default_sessions === null,
+      isRequired: true
     }, // Integer, from 1, required
     {
       label: 'Export Max Sessions',
       value: config.export_max_sessions,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.export_max_sessions,
-      isHidden: config.export_max_sessions === null
+      isHidden: config.export_max_sessions === null,
+      isRequired: true
     }, // Integer, from 1, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
     {
       label: 'Spark Max Executors',
       value: config.spark_max_executors,
       type: SettingType.IntegerFromOne,
       infoText: infoTexts.configuration.global.spark_max_executors,
-      isHidden: config.spark_max_executors === null
+      isHidden: config.spark_max_executors === null,
+      isRequired: true
     } // Integer, from 1, required
   ]
 
@@ -2494,13 +2569,15 @@ export function JDBCdriversRowDataEdit(row: JDBCdrivers) {
       label: 'Driver',
       value: row.driver,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.jdbcDrivers.driver
+      infoText: infoTexts.configuration.jdbcDrivers.driver,
+      isRequired: true
     }, // Free-text, varchar(128), required
     {
       label: 'Class Path',
       value: row.classpath,
       type: SettingType.Text,
-      infoText: infoTexts.configuration.jdbcDrivers.classpath
+      infoText: infoTexts.configuration.jdbcDrivers.classpath,
+      isRequired: true
     } // Free-text, varchar(255), required
   ]
 

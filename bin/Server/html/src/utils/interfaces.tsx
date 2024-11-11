@@ -104,7 +104,7 @@ export interface Table {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean
-  mappers: 0
+  sqlSessions: 0
   softDeleteDuringMerge: boolean
   sourceRowcount: 0
   sourceRowcountIncr: 0
@@ -129,7 +129,7 @@ export interface Table {
   sqoopOptions: string
   lastSize: 0
   lastRows: 0
-  lastMappers: 0
+  lastSqlSessions: 0
   lastExecution: 0
   useGeneratedSql: boolean
   allowTextSplitter: boolean
@@ -177,7 +177,7 @@ export interface UITable {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  mappers: 0
+  sqlSessions: 0
   softDeleteDuringMerge: boolean
   sourceRowcount: 0
   sourceRowcountIncr: 0
@@ -202,7 +202,7 @@ export interface UITable {
   sqoopOptions: string
   lastSize: 0
   lastRows: 0
-  lastMappers: 0
+  lastSqlSessions: 0
   lastExecution: 0
   useGeneratedSql: boolean
   allowTextSplitter: boolean
@@ -251,7 +251,7 @@ export interface UITableWithoutEnum {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  mappers: number
+  sqlSessions: number
   softDeleteDuringMerge: boolean
   sourceRowcount: number
   sourceRowcountIncr: number
@@ -276,7 +276,7 @@ export interface UITableWithoutEnum {
   sqoopOptions: string
   lastSize: number
   lastRows: number
-  lastMappers: number
+  lastSqlSessions: number
   lastExecution: number
   useGeneratedSql: boolean
   allowTextSplitter: boolean
@@ -324,7 +324,7 @@ export interface TableUpdate {
   validationCustomQuerySourceSQL: string
   validationCustomQueryHiveSQL: string
   validationCustomQueryValidateImportTable: boolean // should stay true
-  mappers: 0
+  sqlSessions: 0
   softDeleteDuringMerge: boolean
   incrMode: IncrMode
   incrColumn: string
@@ -378,7 +378,7 @@ export interface TableCreateWithoutEnum {
   validationCustomQuerySourceSQL: null
   validationCustomQueryHiveSQL: null
   validationCustomQueryValidateImportTable: null
-  mappers: null
+  sqlSessions: null
   softDeleteDuringMerge: null
   incrMode: null
   incrColumn: null
@@ -432,7 +432,7 @@ export interface TableCreate {
   validationCustomQuerySourceSQL: null
   validationCustomQueryHiveSQL: null
   validationCustomQueryValidateImportTable: null
-  mappers: null
+  sqlSessions: null
   softDeleteDuringMerge: null
   incrMode: null
   incrColumn: null
@@ -525,6 +525,7 @@ export interface EditSetting {
   infoText?: string
   isConditionsMet?: boolean
   isHidden?: boolean
+  isRequired?: boolean
 }
 
 export interface TableCreate {
@@ -593,7 +594,7 @@ export interface ExportTable {
   validationCustomQueryTargetSQL: string | null
   uppercaseColumns: number | null
   truncateTarget: boolean | null
-  mappers: number | null
+  sqlSessions: number | null
   tableRowcount: number | null
   targetRowcount: number | null
   validationCustomQueryHiveValue: string | null
@@ -607,7 +608,7 @@ export interface ExportTable {
   sqoopOptions: string | null
   lastSize: number | null
   lastRows: number | null
-  lastMappers: number | null
+  lastSqlSessions: number | null
   lastExecution: number | null
   hiveContainerSize: number | null
   createTargetTableSql: string | null
@@ -646,7 +647,7 @@ export interface UIExportTable {
   validationCustomQueryTargetSQL: string | null
   uppercaseColumns: number | null
   truncateTarget: boolean | null
-  mappers: number | null
+  sqlSessions: number | null
   tableRowcount: number | null
   targetRowcount: number | null
   validationCustomQueryHiveValue: string | null
@@ -660,7 +661,7 @@ export interface UIExportTable {
   sqoopOptions: string | null
   lastSize: number | null
   lastRows: number | null
-  lastMappers: number | null
+  lastSqlSessions: number | null
   lastExecution: number | null
   hiveContainerSize: number | null
   createTargetTableSql: string | null
@@ -688,7 +689,7 @@ export interface UIExportTableWithoutEnum {
   validationCustomQueryTargetSQL: string | null
   uppercaseColumns: number | null
   truncateTarget: boolean | null
-  mappers: number | null
+  sqlSessions: number | null
   tableRowcount: number | null
   targetRowcount: number | null
   validationCustomQueryHiveValue: string | null
@@ -702,7 +703,7 @@ export interface UIExportTableWithoutEnum {
   sqoopOptions: string | null
   lastSize: number | null
   lastRows: number | null
-  lastMappers: number | null
+  lastSqlSessions: number | null
   lastExecution: number | null
   hiveContainerSize: number | null
   createTargetTableSql: string | null
@@ -729,7 +730,7 @@ export interface ExportTableCreateWithoutEnum {
   validationCustomQueryTargetSQL: string | null
   uppercaseColumns: number | null
   truncateTarget: boolean | null
-  mappers: number | null
+  sqlSessions: number | null
   tableRowcount: number | null
   targetRowcount: number | null
   validationCustomQueryHiveValue: string | null
@@ -743,7 +744,7 @@ export interface ExportTableCreateWithoutEnum {
   sqoopOptions: string | null
   lastSize: number | null
   lastRows: number | null
-  lastMappers: number | null
+  lastSqlSessions: number | null
   lastExecution: number | null
   hiveContainerSize: number | null
   createTargetTableSql: string | null

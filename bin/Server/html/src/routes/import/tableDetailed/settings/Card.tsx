@@ -95,7 +95,9 @@ function Card({
   const getInitWidth = () => {
     const widths: { [key: string]: number } = {
       'export:Main Settings': 400,
-      'import:ETL Options': 616
+      'import:Import Options': 592,
+      'import:ETL Options': 622,
+      'import:Site-to-site Copy': 400
     }
     return widths[`${type}:${title}`] || 584
   }

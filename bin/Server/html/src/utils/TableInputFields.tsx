@@ -50,8 +50,10 @@ function TableInputFields({
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const [airflowType] = useAtom(airflowTypeAtom)
-  const integerFromZeroDefaultValue = useMemo(() => {
+  const retriesDefaultValue = useMemo(() => {
     if (
       (setting.label === 'Retries' && airflowType === 'import') ||
       (setting.label === 'Retries' && airflowType === 'export')
@@ -73,9 +75,13 @@ function TableInputFields({
     setting.label === 'Connection' ||
     setting.label === 'Connection String' ||
     setting.label === 'DAG Name' ||
+    setting.label === 'Retries' ||
+    setting.label === 'Filter Connection' ||
+    (pathnames[0] === 'import' && setting.label === 'SQL Sessions') ||
     pathnames[1] === 'global'
 
-  const showRequiredIndicator = isRequired && !setting.value
+  const showRequiredIndicator =
+    (setting.value === null || setting.value === '') && isRequired
 
   const isFieldDisabled = setting.isConditionsMet === false
 
@@ -102,6 +108,20 @@ function TableInputFields({
       autoResizeTextarea()
     }
   }, [setting.value, autoResizeTextarea])
+
+  useEffect(() => {
+    const inputElement = inputRef.current
+    if (inputElement) {
+      const handleWheel = (event: WheelEvent) => event.preventDefault()
+
+      inputElement.addEventListener('wheel', handleWheel, { passive: false })
+
+      // Cleanup event listener on component unmount
+      return () => {
+        inputElement.removeEventListener('wheel', handleWheel)
+      }
+    }
+  }, [])
 
   switch (setting.type) {
     case 'boolean':
@@ -336,11 +356,7 @@ function TableInputFields({
               False
             </label>
             <label
-              className={
-                isFieldDisabled
-                  ? ' label-default-from-config input-fields-label-disabled'
-                  : 'label-default-from-config'
-              }
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
             >
               <input
                 type="radio"
@@ -394,11 +410,7 @@ function TableInputFields({
               False
             </label>
             <label
-              className={
-                isFieldDisabled
-                  ? ' label-default-from-config input-fields-label-disabled'
-                  : 'label-default-from-config'
-              }
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
             >
               <input
                 type="radio"
@@ -454,7 +466,17 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
-              onChange={(event) => handleInputChange(index, event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                handleInputChange(index, value.trim() === '' ? '' : value)
+              }}
+              onBlur={(event) => {
+                const trimmedValue = event.target.value.trim()
+                handleInputChange(
+                  index,
+                  trimmedValue === '' ? prevValue : trimmedValue
+                )
+              }}
               disabled={isCustomQueryDisabled}
             />
           </>
@@ -478,7 +500,17 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
-              onChange={(event) => handleInputChange(index, event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                handleInputChange(index, value.trim() === '' ? '' : value)
+              }}
+              onBlur={(event) => {
+                const trimmedValue = event.target.value.trim()
+                handleInputChange(
+                  index,
+                  trimmedValue === '' ? prevValue : trimmedValue
+                )
+              }}
               disabled={isAirflowTasksSensorConnectionDisabled}
             />
           </>
@@ -502,7 +534,17 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
-              onChange={(event) => handleInputChange(index, event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                handleInputChange(index, value.trim() === '' ? '' : value)
+              }}
+              onBlur={(event) => {
+                const trimmedValue = event.target.value.trim()
+                handleInputChange(
+                  index,
+                  trimmedValue === '' ? prevValue : trimmedValue
+                )
+              }}
               disabled={isAirflowTasksSudoUserDisabled}
             />
           </>
@@ -523,11 +565,16 @@ function TableInputFields({
             id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
-            onChange={(event) => handleInputChange(index, event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value
+              handleInputChange(index, value.trim() === '' ? '' : value)
+            }}
             onBlur={(event) => {
-              if (event.target.value === '') {
-                handleInputChange(index, prevValue)
-              }
+              const trimmedValue = event.target.value.trim()
+              handleInputChange(
+                index,
+                trimmedValue === '' ? prevValue : trimmedValue
+              )
             }}
             required={isRequired}
             disabled={isFieldDisabled}
@@ -555,6 +602,11 @@ function TableInputFields({
             type="text"
             value={setting.value ? String(setting.value) : ''}
             onChange={(event) => handleInputChange(index, event.target.value)}
+            onBlur={(event) => {
+              if (event.target.value === '') {
+                handleInputChange(index, prevValue)
+              }
+            }}
             required={isRequired}
             disabled={isFieldDisabled}
           />
@@ -782,9 +834,6 @@ function TableInputFields({
               2
             </label>
           </div>
-          {/* {isChanged && (
-              <span className="input-fields-changed">Changed</span>
-            )} */}
         </>
       )
 
@@ -797,103 +846,117 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
           <input
+            ref={inputRef}
             className="input-fields-number-input"
             type="number"
             value={
-              setting.value !== null && setting.value !== undefined
-                ? Number(setting.value)
-                : integerFromZeroDefaultValue
-            }
-            onChange={(event) => {
-              let value: string | number | null =
-                event.target.value === '' ? '' : Number(event.target.value)
-              if (typeof value === 'number' && value < 0) {
-                value = integerFromZeroDefaultValue
-              }
-
-              handleInputChange(index, value === '' ? null : value)
-            }}
-            onBlur={(event) => {
-              const value = event.target.value
-              // If input is empty or not a valid number greater than 1, set to default 5
-              if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
-                handleInputChange(index, integerFromZeroDefaultValue)
-                event.target.value = ''
-              }
-            }}
-            onKeyDown={(event) => {
-              // Prevent invalid characters from being typed
-              if (
-                ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
-              ) {
-                event.preventDefault()
-              }
-            }}
-            step="1"
-            disabled={isFieldDisabled}
-          />
-        </>
-      )
-
-    case 'integerFromOneOrNull':
-      if (setting.isHidden === true) return null
-
-      return (
-        <>
-          <label
-            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
-          >
-            {setting.label}:
-          </label>
-          <input
-            className="input-fields-number-input"
-            type="number"
-            value={
-              setting.value !== null && setting.value !== undefined
+              setting.value === ''
+                ? ''
+                : setting.value !== null && setting.value !== undefined
                 ? Number(setting.value)
                 : ''
+              // setting.value !== null && setting.value !== undefined
+              //   ? Number(setting.value)
+              //   : retriesDefaultValue
             }
             onChange={(event) => {
-              let value: string | number | null =
+              const value =
                 event.target.value === '' ? '' : Number(event.target.value)
 
-              if (
-                isNaN(Number(value)) &&
-                typeof value === 'number' &&
-                value < 0
-              ) {
-                value = null
-                event.target.value = ''
-              }
-
+              // Temporarily allows empty input, otherwise enforce default value
               handleInputChange(
                 index,
-                value === '' || isNaN(Number(value)) ? null : value
+                value === '' || Number(value) >= 0 ? value : retriesDefaultValue
               )
             }}
             onBlur={(event) => {
-              const value = event.target.value
-              // If input is empty or not a valid number greater than 1, set to null
-              if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
-                handleInputChange(index, null)
-                event.target.value = ''
+              const value = Number(event.target.value)
+
+              // Reverts to prevValue if the input is empty or less than 1
+              if (event.target.value === '' || isNaN(value) || value < 1) {
+                handleInputChange(index, prevValue)
               }
             }}
+            // onChange={(event) => {
+
+            //   if (
+            //     setting.label === 'Atlas Discovery Interval' &&
+            //     Number(value) > 24
+            //   )
+            //     value = prevValue as number
+
+            //   // Temporarily allows empty input, otherwise enforce minimum of 1
+            //   handleInputChange(
+            //     index,
+            //     value === '' || Number(value) >= 1 ? value : 1
+            //   )
+            // }}
             onKeyDown={(event) => {
               // Prevent invalid characters from being typed
-              if (
-                ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
-              ) {
+              if (['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key)) {
                 event.preventDefault()
               }
             }}
             step="1"
             disabled={isFieldDisabled}
+            required={isRequired}
           />
         </>
       )
+
+    // case 'integerFromZero':
+    //   if (setting.isHidden === true) return null
+
+    //   return (
+    //     <>
+    //       <label
+    //         className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+    //       >
+    //         {setting.label}:
+    //         {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+    //       </label>
+    //       <input
+    //         className="input-fields-number-input"
+    //         type="number"
+    //         value={
+    //           setting.value !== null && setting.value !== undefined
+    //             ? Number(setting.value)
+    //             : retriesDefaultValue
+    //         }
+    //         onChange={(event) => {
+    //           let value: string | number | null =
+    //             event.target.value === '' ? '' : Number(event.target.value)
+    //           if (typeof value === 'number' && value < 0) {
+    //             value = retriesDefaultValue
+    //           }
+
+    //           handleInputChange(index, value === '' ? null : value)
+    //         }}
+    //         onBlur={(event) => {
+    //           const value = event.target.value
+    //           // If input is empty or not a valid number greater than 1, set to default 5
+    //           if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
+    //             handleInputChange(index, retriesDefaultValue)
+    //             event.target.value = ''
+    //           }
+    //         }}
+    //         onKeyDown={(event) => {
+    //           // Prevent invalid characters from being typed
+    //           if (
+    //             ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
+    //           ) {
+    //             event.preventDefault()
+    //           }
+    //         }}
+    //         step="1"
+    //         disabled={isFieldDisabled}
+    //         required={isRequired}
+    //       />
+    //     </>
+    //   )
 
     case 'integerFromZeroOrNull':
       if (setting.isHidden === true) return null
@@ -911,6 +974,7 @@ function TableInputFields({
               {setting.label}:
             </label>
             <input
+              ref={inputRef}
               className="input-fields-number-input"
               type="number"
               value={
@@ -948,8 +1012,10 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
           <input
+            ref={inputRef}
             className="input-fields-number-input"
             type="number"
             value={
@@ -977,6 +1043,7 @@ function TableInputFields({
             }}
             step="1"
             disabled={isFieldDisabled}
+            required={isRequired}
           />
         </>
       )
@@ -990,9 +1057,11 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
           <div>
             <input
+              ref={inputRef}
               className="input-fields-number-input"
               type="number"
               value={
@@ -1053,10 +1122,12 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <div>
             <input
+              ref={inputRef}
               className="input-fields-number-input"
               type="number"
               value={
@@ -1090,8 +1161,70 @@ function TableInputFields({
                 }
               }}
               step="1"
+              required={isRequired}
             />
           </div>
+        </>
+      )
+
+    case 'integerFromOneOrNull':
+      if (setting.isHidden === true) return null
+
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+          <input
+            ref={inputRef}
+            className="input-fields-number-input"
+            type="number"
+            value={
+              setting.value !== null && setting.value !== undefined
+                ? Number(setting.value)
+                : ''
+            }
+            onChange={(event) => {
+              let value: string | number | null =
+                event.target.value === '' ? '' : Number(event.target.value)
+
+              if (
+                isNaN(Number(value)) &&
+                typeof value === 'number' &&
+                value < 0
+              ) {
+                value = null
+                event.target.value = ''
+              }
+
+              handleInputChange(
+                index,
+                value === '' || isNaN(Number(value)) ? null : value
+              )
+            }}
+            onBlur={(event) => {
+              const value = event.target.value
+              // If input is empty or not a valid number greater than 1, set to null
+              if (value === '' || isNaN(Number(value)) || Number(value) < 1) {
+                handleInputChange(index, null)
+                event.target.value = ''
+              }
+            }}
+            onKeyDown={(event) => {
+              // Prevent invalid characters from being typed
+              if (
+                ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
+              ) {
+                event.preventDefault()
+              }
+            }}
+            step="1"
+            disabled={isFieldDisabled}
+            required={isRequired}
+          />
         </>
       )
 
@@ -1104,10 +1237,12 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <div>
             <input
+              ref={inputRef}
               className="input-fields-number-input"
               type="number"
               value={
@@ -1170,10 +1305,12 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <div>
             <input
+              ref={inputRef}
               className="input-fields-number-input"
               type="number"
               value={
@@ -1234,6 +1371,7 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
           <input
             className="input-fields-text-input"
@@ -1242,6 +1380,7 @@ function TableInputFields({
             value={setting.value ? String(setting.value) : ''}
             onChange={(event) => handleInputChange(index, event.target.value)}
             disabled={isFieldDisabled}
+            required={isRequired}
           />
         </>
       )

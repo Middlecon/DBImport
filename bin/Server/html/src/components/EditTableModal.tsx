@@ -15,7 +15,7 @@ import './Modals.scss'
 import InfoText from './InfoText'
 import { AirflowDAGTaskType } from '../utils/enums'
 import { useLocation } from 'react-router-dom'
-import { isValidTripletOctal } from '../utils/functions'
+import { isValidOctal } from '../utils/functions'
 
 interface EditModalProps {
   title: string
@@ -72,7 +72,7 @@ function EditTableModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(initWidth ? initWidth : 584)
-  const MIN_WIDTH = 584
+  const MIN_WIDTH = initWidth ? initWidth : 584
 
   const validationMethodSetting = editedSettings.find(
     (s) => s.label === 'Validation Method'
@@ -107,14 +107,12 @@ function EditTableModal({
     airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQLScript
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Database',
-      'Table',
-      'Source Schema',
-      'Source Table'
-    ]
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
+    const requiredFields = editedSettings.filter(
+      (setting) => setting.isRequired
+    )
+
+    return requiredFields.some(
+      (setting) => setting.value === null || setting.value === ''
     )
   }, [editedSettings])
 
@@ -129,7 +127,7 @@ function EditTableModal({
     const originalValue = originalEditableSettings[index]?.value
 
     if (setting.label === 'DAG File Permission') {
-      const isValueValid = isValidTripletOctal(newValue as string)
+      const isValueValid = isValidOctal(newValue as string)
       setIsNotTripleOctalValue(!isValueValid)
     }
 
@@ -138,7 +136,8 @@ function EditTableModal({
     }
 
     if (
-      setting.type === 'integerFromOne' &&
+      (setting.type === 'integerFromOne' ||
+        setting.type === 'integerFromZero') &&
       typeof originalValue === 'number' &&
       Number.isInteger(originalValue)
     ) {
@@ -252,7 +251,7 @@ function EditTableModal({
         setModalWidth(Math.max(initialWidth + deltaX, MIN_WIDTH))
       }
     },
-    [isResizing, initialMouseX, initialWidth]
+    [isResizing, initialMouseX, initialWidth, MIN_WIDTH]
   )
 
   useEffect(() => {
@@ -319,6 +318,30 @@ function EditTableModal({
                           ? { paddingTop: 0, paddingBottom: 2 }
                           : { paddingTop: 2 }
                       }
+                      infoTextMaxWidth={
+                        setting.type === 'text' ||
+                        setting.type === 'textarea' ||
+                        setting.type === 'booleanNumberOrAuto' ||
+                        setting.type === 'booleanOrDefaultFromConfig(-1)' ||
+                        setting.type === 'booleanOrDefaultFromConnection(-1)' ||
+                        setting.type ===
+                          'integerFromOneOrDefaultFromConfig(null)'
+                          ? 430
+                          : setting.type === 'enum'
+                          ? 280
+                          : setting.type === 'boolean' ||
+                            setting.type === 'booleanNumber'
+                          ? 380
+                          : setting.type === 'integerOneOrTwo' ||
+                            setting.type === 'integerFromZero' ||
+                            setting.type === 'integerFromOne' ||
+                            setting.type === 'integerFromZeroOrNull' ||
+                            setting.type === 'integerFromOneOrNull' ||
+                            setting.type === 'integerFromZeroOrAuto(-1)' ||
+                            setting.type === 'integerFromOneOrAuto(-1)'
+                          ? 343
+                          : 270
+                      }
                     />
                   )}
                 </div>
@@ -329,7 +352,7 @@ function EditTableModal({
               isRequiredFieldEmpty={isRequiredFieldEmpty}
               validation={true}
               isValidationSad={isNotTripleOctalValue}
-              validationText="DAG File Permission needs to be a triple-octal value"
+              validationText="DAG File Permission must be a 3-digit or 4-digit octal value."
             />
           ) : (
             <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
