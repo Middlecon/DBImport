@@ -143,6 +143,10 @@ class configuration(BaseModel):
 	restserver_admin_user: Union[str, None] = None
 	restserver_authentication_method: Union[str, None] = None
 	restserver_token_ttl: Union[int, None] = None
+	rest_timeout: Union[int, None] = None
+	rest_trustcafile: Union[str, None] = None
+	rest_url: Union[str, None] = None
+	rest_verifyssl: Union[bool, None] = None
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
 
