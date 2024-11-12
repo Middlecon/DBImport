@@ -1155,7 +1155,7 @@ class dbCalls:
 		if getattr(table, "validationCustomQueryValidateImportTable") == None:	setattr(table, "validationCustomQueryValidateImportTable", 1)
 		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
 #		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
-		if getattr(table, "SqlSessions") == None:								setattr(table, "SqlSessions", -1)
+		if getattr(table, "sqlSessions") == None:								setattr(table, "sqlSessions", -1)
 		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
 		if getattr(table, "useGeneratedSql") == None:							setattr(table, "useGeneratedSql", -1)
 		if getattr(table, "allowTextSplitter") == None:							setattr(table, "allowTextSplitter", 0)
@@ -1189,7 +1189,7 @@ class dbCalls:
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
 #				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "SqlSessions"),
+				mappers = getattr(table, "sqlSessions"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
 				incr_column = getattr(table, "incrColumn"),
@@ -1241,7 +1241,7 @@ class dbCalls:
 				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
 				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
 #				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "SqlSessions"),
+				mappers = getattr(table, "sqlSessions"),
 				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
 				incr_mode = getattr(table, "incrMode"),
 				incr_column = getattr(table, "incrColumn"),
@@ -1663,7 +1663,7 @@ class dbCalls:
 		resultDict['validationCustomQueryTargetSQL'] = row[15]
 		resultDict['uppercaseColumns'] = row[16]
 		resultDict['truncateTarget'] = row[17]
-		resultDict['SqlSessions'] = row[18]
+		resultDict['sqlSessions'] = row[18]
 		resultDict['tableRowcount'] = row[19]
 		resultDict['targetRowcount'] = row[20]
 		resultDict['validationCustomQueryHiveValue'] = row[21]
