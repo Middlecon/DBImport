@@ -2277,6 +2277,7 @@ class dbCalls:
 			resultDict['sudoUser'] = row[14]
 			listOfTasks.append(resultDict)
 
+		session.remove()
 		return listOfTasks
 
 
@@ -2402,6 +2403,7 @@ class dbCalls:
 				dagNameIsFree = False
 
 
+		session.remove()
 		return dagNameIsFree
 	
 	def updateAirflowTasks(self, dagname, task, currentUser):
@@ -2463,6 +2465,7 @@ class dbCalls:
 			session.remove()
 			return False
 
+		session.remove()
 		return True
 
 
