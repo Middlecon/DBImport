@@ -284,6 +284,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       {isCreateModalOpen && (
         <CreateAirflowTaskModal
           type={type}
+          tasksData={tasksData}
           onSave={handleSaveCreateTask}
           onClose={() => setCreateModalOpen(false)}
         />

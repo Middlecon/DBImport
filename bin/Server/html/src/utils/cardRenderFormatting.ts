@@ -310,8 +310,7 @@ export function createAirflowSettings(
       label: 'Schedule Interval',
       value: null,
       type: SettingType.Text,
-      infoText: infoTexts.airflow[airflowType].scheduleInterval,
-      isRequired: true
+      infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required
     {
       label: 'Auto Regenerate DAG',
@@ -500,7 +499,7 @@ export function initialCreateAirflowTaskSettings() {
       type: SettingType.Text,
       infoText: infoTexts.airflow.tasks.name,
       isRequired: true
-    }, // Free-text, varchar(64), have to be unique across import, export and custom? ,  required
+    }, // Free-text, varchar(64), have to be unique in the actual DAG and can not be reserved values start or Start or stop or Stop, required
     {
       label: 'Type',
       value: mapDisplayValue('type', AirflowDAGTaskType.HiveSQLScript),
@@ -1024,7 +1023,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.lastRows
     }, // Read-only
     {
-      label: 'Last number of Sql Sessions',
+      label: 'Last number of SQL Sessions',
       value: table.lastSqlSessions,
       type: SettingType.Readonly,
       infoText: infoTexts.table.import.lastSqlSessions

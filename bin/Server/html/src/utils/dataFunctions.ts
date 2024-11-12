@@ -1004,28 +1004,27 @@ export function createImportDagData(
     filterTable: null
   }
 
-  // Part 2: Rest of the keys required by the API
   const part2: Omit<ImportCreateAirflowDAG, keyof typeof part1> = {
-    retries: 5,
+    retries: null,
     operatorNotes: null,
     applicationNotes: null,
     airflowNotes: null,
     sudoUser: null,
     timezone: null,
     email: null,
-    emailOnFailure: false,
-    emailOnRetries: false,
+    emailOnFailure: null,
+    emailOnRetries: null,
     tags: null,
     slaWarningTime: null,
-    retryExponentialBackoff: false,
+    retryExponentialBackoff: null,
     concurrency: null,
-    finishAllStage1First: false,
-    runImportAndEtlSeparate: false,
+    finishAllStage1First: null,
+    runImportAndEtlSeparate: null,
     retriesStage1: null,
     retriesStage2: null,
     poolStage1: null,
     poolStage2: null,
-    metadataImport: false,
+    metadataImport: null,
     tasks: []
   }
 
@@ -1050,7 +1049,10 @@ export function createImportDagData(
       if (key === 'name' && typeof value === 'string') {
         part1[key] = value
         console.log('part1[key]', part1[key])
-      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+      } else if (
+        key === 'scheduleInterval' &&
+        (typeof value === 'string' || value === null)
+      ) {
         part1[key] = value
       } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
         part1[key] = value
@@ -1074,34 +1076,33 @@ export function createExportDagData(
   // Part 1: Keys that will get values from newExportAirflowData
   const part1: {
     name: string
-    scheduleInterval: string
+    scheduleInterval: string | null
     autoRegenerateDag: boolean
-    filterConnection: string
+    filterConnection: string | null
     filterTargetSchema: string | null
     filterTargetTable: string | null
   } = {
     name: '',
-    scheduleInterval: '',
+    scheduleInterval: null,
     autoRegenerateDag: true,
-    filterConnection: '',
+    filterConnection: null,
     filterTargetSchema: null,
     filterTargetTable: null
   }
 
-  // Part 2: Rest of the keys required by the API
   const part2: Omit<ExportCreateAirflowDAG, keyof typeof part1> = {
-    retries: 5,
+    retries: null,
     operatorNotes: null,
     applicationNotes: null,
     airflowNotes: null,
     sudoUser: null,
     timezone: null,
     email: null,
-    emailOnFailure: false,
-    emailOnRetries: false,
+    emailOnFailure: null,
+    emailOnRetries: null,
     tags: null,
     slaWarningTime: null,
-    retryExponentialBackoff: false,
+    retryExponentialBackoff: null,
     concurrency: null,
     tasks: []
   }
@@ -1127,11 +1128,17 @@ export function createExportDagData(
     if (key) {
       if (key === 'name' && typeof value === 'string') {
         part1[key] = value
-      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+      } else if (
+        key === 'scheduleInterval' &&
+        (typeof value === 'string' || value === null)
+      ) {
         part1[key] = value
       } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
         part1[key] = value
-      } else if (key === 'filterConnection' && typeof value === 'string') {
+      } else if (
+        key === 'filterConnection' &&
+        (typeof value === 'string' || value === null)
+      ) {
         part1[key] = value
       } else if (
         key === 'filterTargetSchema' &&
@@ -1203,7 +1210,10 @@ export function createCustomDagData(
     if (key) {
       if (key === 'name' && typeof value === 'string') {
         part1[key] = value
-      } else if (key === 'scheduleInterval' && typeof value === 'string') {
+      } else if (
+        key === 'scheduleInterval' &&
+        (typeof value === 'string' || value === null)
+      ) {
         part1[key] = value
       } else if (key === 'autoRegenerateDag' && typeof value === 'boolean') {
         part1[key] = value

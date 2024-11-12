@@ -337,6 +337,12 @@ function EditTableModal({
                           ? 343
                           : 270
                       }
+                      isInfoTextPositionUp={
+                        setting.label === 'Spark Executors' ||
+                        setting.label === 'Spark Max Executors'
+                          ? true
+                          : false
+                      }
                     />
                   )}
                 </div>

@@ -103,7 +103,10 @@ function Card({
   }
 
   return (
-    <div className={isDisabled ? 'card-disabled' : 'card'}>
+    <div
+      className={isDisabled ? 'card-disabled' : 'card'}
+      style={title === 'Site-to-site Copy' ? { marginBottom: 90 } : {}}
+    >
       <div className="card-head">
         <h3 className="card-h3">{title}</h3>
         {!isNotEditable && <Button title="Edit" onClick={handleOpenModal} />}

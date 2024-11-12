@@ -5,14 +5,16 @@ import './InfoText.scss'
 interface InfoTextProps {
   label: string
   infoText: string
-  iconPosition?: CSSProperties
   infoTextMaxWidth?: number
+  isInfoTextPositionUp?: boolean
+  iconPosition?: CSSProperties
 }
 
 function InfoText({
   label,
   infoText,
   infoTextMaxWidth,
+  isInfoTextPositionUp,
   iconPosition = { paddingTop: 2 }
 }: InfoTextProps) {
   const [openInfoDropdown, setOpenInfoDropdown] = useState<string | null>(null)
@@ -69,7 +71,7 @@ function InfoText({
   const handleMouseLeave = () => setIsHovered(false)
 
   const shouldShowInfo = openInfoDropdown === label || isHovered
-
+  console.log('isInfoTextPositionUp', isInfoTextPositionUp)
   return (
     <div className="info-text-container">
       <div
@@ -84,7 +86,11 @@ function InfoText({
         {shouldShowInfo && (
           <div
             className="info-expanded-content"
-            style={{ maxWidth: infoTextMaxWidth }}
+            style={
+              isInfoTextPositionUp
+                ? { top: 'auto', bottom: '100%', maxWidth: infoTextMaxWidth }
+                : { maxWidth: infoTextMaxWidth }
+            }
           >
             <div className="info-text" ref={infoTextRef}>
               {infoText}

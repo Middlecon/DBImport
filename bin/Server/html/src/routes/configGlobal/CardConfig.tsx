@@ -60,7 +60,10 @@ function CardConfig({ title, settings, originalData }: CardConfigProps) {
   }
 
   return (
-    <div className={'card'}>
+    <div
+      className={'card'}
+      style={title === 'Performance' ? { marginBottom: 240 } : {}}
+    >
       <div className="card-head">
         <h3 className="card-h3">{title}</h3>
         <Button title="Edit" onClick={handleOpenModal} />

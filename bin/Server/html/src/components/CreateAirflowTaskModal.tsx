@@ -5,7 +5,11 @@ import {
   useMemo,
   useState
 } from 'react'
-import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
+import {
+  AirflowTask,
+  EditSetting,
+  EditSettingValueTypes
+} from '../utils/interfaces'
 // import { useAllAirflows } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
@@ -19,12 +23,14 @@ import { useConnections } from '../utils/queries'
 
 interface CreateAirflowModalProps {
   type: 'import' | 'export' | 'custom'
+  tasksData: AirflowTask[]
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateAirflowTaskModal({
   type,
+  tasksData,
   onSave,
   onClose
 }: CreateAirflowModalProps) {
@@ -44,6 +50,12 @@ function CreateAirflowTaskModal({
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
     settings ? settings : []
   )
+
+  const airflowNames = useMemo(
+    () => (Array.isArray(tasksData) ? tasksData.map((task) => task.name) : []),
+    [tasksData]
+  )
+  const [duplicateTaskName, setDuplicateTaskName] = useState(false)
 
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -114,6 +126,20 @@ function CreateAirflowTaskModal({
     const updatedSettings = editedSettings?.map((setting, i) =>
       i === index ? { ...setting, value: newValue } : setting
     )
+
+    const taskNameSetting = updatedSettings.find(
+      (setting) => setting.label === 'Task Name'
+    )
+
+    console.log('airflowNames', airflowNames)
+    if (
+      taskNameSetting &&
+      airflowNames.includes(taskNameSetting.value as string)
+    ) {
+      setDuplicateTaskName(true)
+    } else {
+      setDuplicateTaskName(false)
+    }
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
@@ -229,7 +255,12 @@ function CreateAirflowTaskModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+          <RequiredFieldsInfo
+            isRequiredFieldEmpty={isRequiredFieldEmpty}
+            validation={true}
+            isValidationSad={duplicateTaskName}
+            validationText="Task Name already exists on this DAG. Please choose a different name."
+          />
 
           <div className="table-modal-footer">
             <Button
