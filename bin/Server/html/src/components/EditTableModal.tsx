@@ -78,15 +78,8 @@ function EditTableModal({
     (s) => s.label === 'Validation Method'
   )
 
-  const useGenSQLSetting = editedSettings.find(
-    (s) => s.label === 'Use Generated SQL'
-  )
-
-  const isCustomQueryDisabled =
-    (validationMethodSetting?.value !== 'Custom Query' &&
-      useGenSQLSetting?.value === undefined) ||
-    (useGenSQLSetting?.value !== false &&
-      validationMethodSetting?.value === undefined)
+  const isValidationCustomQueryDisabled =
+    validationMethodSetting?.value !== 'Custom Query'
 
   const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
 
@@ -297,7 +290,9 @@ function EditTableModal({
                     handleSelect={handleSelect}
                     prevValue={prevValue}
                     connectionNames={connectionNames}
-                    isCustomQueryDisabled={isCustomQueryDisabled}
+                    isValidationCustomQueryDisabled={
+                      isValidationCustomQueryDisabled
+                    }
                     isAirflowTasksSensorPokeAndSoftDisabled={
                       isAirflowTasksSensorPokeAndSoftDisabled
                     }

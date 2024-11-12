@@ -21,7 +21,7 @@ interface TableInputFieldsProps {
   ) => void
   prevValue?: string | number | boolean
   connectionNames?: string[]
-  isCustomQueryDisabled?: boolean
+  isValidationCustomQueryDisabled?: boolean
   isAirflowEmailDisabled?: boolean
   isAirflowTasksSensorPokeAndSoftDisabled?: boolean
   isAirflowTasksSensorConnectionDisabled?: boolean
@@ -38,7 +38,7 @@ function TableInputFields({
   handleSelect,
   prevValue = '',
   connectionNames,
-  isCustomQueryDisabled = true,
+  isValidationCustomQueryDisabled = true,
   isAirflowEmailDisabled = true,
   isAirflowTasksSensorPokeAndSoftDisabled = true,
   isAirflowTasksSensorConnectionDisabled = true,
@@ -448,15 +448,17 @@ function TableInputFields({
       if (
         setting.label === 'Custom Query Source SQL' ||
         setting.label === 'Custom Query Hive SQL' ||
-        setting.label === 'Custom Query Target SQL' ||
-        setting.label === 'Custom Query' ||
-        setting.label === 'Custom Max Query'
+        setting.label === 'Custom Query Target SQL'
+        // setting.label === 'Scoop Custom Query' ||
+        // setting.label === 'Custom Max Query'
       ) {
         return (
           <>
             <label
               className={
-                isCustomQueryDisabled ? 'input-fields-label-disabled' : ''
+                isValidationCustomQueryDisabled
+                  ? 'input-fields-label-disabled'
+                  : ''
               }
               htmlFor={`text-input-${index}`}
             >
@@ -478,7 +480,7 @@ function TableInputFields({
                   trimmedValue === '' ? prevValue : trimmedValue
                 )
               }}
-              disabled={isCustomQueryDisabled}
+              disabled={isValidationCustomQueryDisabled}
             />
           </>
         )

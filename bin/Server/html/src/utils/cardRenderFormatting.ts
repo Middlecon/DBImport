@@ -977,25 +977,29 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.sqlWhereAddition
     }, // Free-text
     {
-      label: 'Custom Query',
-      value: table.customQuery,
-      type: SettingType.Text,
-      infoText: infoTexts.table.import.customQuery,
-      isConditionsMet: table.useGeneratedSql === false
-    }, // Active only if useGeneratedSql=false
-    {
       label: 'Custom Max Query',
       value: table.customMaxQuery,
       type: SettingType.Text,
       infoText: infoTexts.table.import.customMaxQuery,
-      isConditionsMet: table.useGeneratedSql === false
-    }, // Active only if useGeneratedSql=false
+      isConditionsMet:
+        table.importPhaseType === ImportType.Incremental ||
+        table.importPhaseType === ImportType.MSSQLChangeTracking ||
+        table.importPhaseType === ImportType.OracleFlashback
+    }, // Active only if import type is of an incremental type, either Incremental, MSSQLChangeTracking or OracleFlashback
     {
-      label: 'Use Generated SQL',
-      value: table.useGeneratedSql,
+      label: 'Sqoop use Generated SQL',
+      value: table.sqoopUseGeneratedSql,
       type: SettingType.Boolean,
-      infoText: infoTexts.table.import.useGeneratedSql
+      infoText: infoTexts.table.import.sqoopUseGeneratedSql,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
     }, // Boolean, true or false
+    {
+      label: 'Scoop Custom Query',
+      value: table.sqoopCustomQuery,
+      type: SettingType.Text,
+      infoText: infoTexts.table.import.sqoopCustomQuery,
+      isConditionsMet: table.importTool === ImportTool.Sqoop
+    }, // Active only if sqoopUseGeneratedSql=false
     {
       label: 'No Merge Ingestion SQL Addition',
       value: table.nomergeIngestionSqlAddition,

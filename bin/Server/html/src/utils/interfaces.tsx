@@ -125,13 +125,13 @@ export interface Table {
   sparkExecutorMemory: string
   sparkExecutors: 0
   splitByColumn: string
-  customQuery: string
+  sqoopCustomQuery: string
   sqoopOptions: string
   lastSize: 0
   lastRows: 0
   lastSqlSessions: 0
   lastExecution: 0
-  useGeneratedSql: boolean
+  sqoopUseGeneratedSql: boolean
   allowTextSplitter: boolean
   forceString: 0
   comment: string
@@ -198,13 +198,13 @@ export interface UITable {
   sparkExecutorMemory: string
   sparkExecutors: 0
   splitByColumn: string
-  customQuery: string
+  sqoopCustomQuery: string
   sqoopOptions: string
   lastSize: 0
   lastRows: 0
   lastSqlSessions: 0
   lastExecution: 0
-  useGeneratedSql: boolean
+  sqoopUseGeneratedSql: boolean
   allowTextSplitter: boolean
   forceString: 0
   comment: string
@@ -272,13 +272,13 @@ export interface UITableWithoutEnum {
   sparkExecutorMemory: string
   sparkExecutors: number
   splitByColumn: string
-  customQuery: string
+  sqoopCustomQuery: string
   sqoopOptions: string
   lastSize: number
   lastRows: number
   lastSqlSessions: number
   lastExecution: number
-  useGeneratedSql: boolean
+  sqoopUseGeneratedSql: boolean
   allowTextSplitter: boolean
   forceString: number
   comment: string
@@ -336,9 +336,9 @@ export interface TableUpdate {
   sparkExecutorMemory: string
   sparkExecutors: 0
   splitByColumn: string
-  customQuery: string
+  sqoopCustomQuery: string
   sqoopOptions: string
-  useGeneratedSql: boolean
+  sqoopUseGeneratedSql: boolean
   allowTextSplitter: boolean
   forceString: number
   comment: string
@@ -390,9 +390,9 @@ export interface TableCreateWithoutEnum {
   sparkExecutorMemory: null
   sparkExecutors: null
   splitByColumn: null
-  customQuery: null
+  sqoopCustomQuery: null
   sqoopOptions: null
-  useGeneratedSql: null
+  sqoopUseGeneratedSql: null
   allowTextSplitter: null
   forceString: null
   comment: null
@@ -444,9 +444,9 @@ export interface TableCreate {
   sparkExecutorMemory: null
   sparkExecutors: null
   splitByColumn: null
-  customQuery: null
+  sqoopCustomQuery: null
   sqoopOptions: null
-  useGeneratedSql: null
+  sqoopUseGeneratedSql: null
   allowTextSplitter: null
   forceString: null
   comment: null
