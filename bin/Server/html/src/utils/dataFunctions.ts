@@ -700,13 +700,14 @@ function updateTasksData(
   }
 
   const finalTasksData: AirflowTask = { ...part2, ...part1 }
-  console.log('finalColumnData', finalTasksData)
+  console.log('finalTasksData', finalTasksData)
   dagData.tasks[indexInTasks] = finalTasksData
 }
 
 export function updateImportDagData(
   dagData: AirflowWithDynamicKeys<ImportAirflowDAG>,
   updatedSettings: EditSetting[],
+  newTask?: boolean,
   task?: boolean,
   indexInTasks?: number
 ): ImportAirflowDAG {
@@ -718,20 +719,72 @@ export function updateImportDagData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  filteredSettings.forEach((setting) => {
-    if (indexInTasks !== undefined && task === true) {
+  if (newTask) {
+    const part1 = {
+      name: '',
+      type: '',
+      placement: '',
+      connection: null,
+      airflowPriority: null,
+      includeInAirflow: true,
+      taskDependencyDownstream: null,
+      taskDependencyUpstream: null,
+      taskConfig: null,
+      sensorPokeInterval: null,
+      sensorConnection: null,
+      sensorSoftFail: null,
+      sudoUser: null
+    }
+
+    const part2: Omit<AirflowTask, keyof typeof part1> = {
+      airflowPool: null,
+      sensorTimeoutMinutes: null
+    }
+
+    const labelToTaskMap: Record<string, keyof typeof part1> = {
+      'Task Name': 'name',
+      Type: 'type',
+      Placement: 'placement',
+      Connection: 'connection',
+      'Airflow Priority': 'airflowPriority',
+      'Include In Airflow': 'includeInAirflow',
+      'Task Dependency Downstream': 'taskDependencyDownstream',
+      'Task Dependency Upstream': 'taskDependencyUpstream',
+      'Task Config': 'taskConfig',
+      'Sensor Poke Interval': 'sensorPokeInterval',
+      'Sensor Connection': 'sensorConnection',
+      'Sensor Soft Fail': 'sensorSoftFail',
+      'Sudo User': 'sudoUser'
+    }
+
+    filteredSettings.forEach((setting) => {
+      const key = labelToTaskMap[setting.label]
+      const settingValue = setting.value
+      if (
+        key &&
+        (typeof settingValue === 'string' ||
+          typeof settingValue === 'boolean' ||
+          settingValue === null)
+      ) {
+        ;(part1[key] as (typeof part1)[typeof key]) = settingValue
+      }
+    })
+
+    const finalTasksData: AirflowTask = { ...part2, ...part1 }
+    updatedDagData.tasks.push(finalTasksData)
+  } else if (task && indexInTasks !== undefined) {
+    filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
-    } else {
+    })
+  } else {
+    filteredSettings.forEach((setting) => {
       const value = setting.value as string
-
       const key = getKeyFromImportAirflowLabel(setting.label)
-
       if (key) {
-        console.log('updatedTableData[key]', updatedDagData[key])
         updatedDagData[key] = value
       }
-    }
-  })
+    })
+  }
 
   const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
     if (!fieldsToRemove.includes(key)) {
@@ -750,7 +803,9 @@ export function updateImportDagData(
 export function updateExportDagData(
   dagData: AirflowWithDynamicKeys<ExportAirflowDAG>,
   updatedSettings: EditSetting[],
-  task?: boolean
+  newTask?: boolean,
+  task?: boolean,
+  indexInTasks?: number
 ): ExportAirflowDAG {
   const updatedDagData: AirflowWithDynamicKeys<ExportAirflowDAG> = {
     ...dagData
@@ -760,29 +815,72 @@ export function updateExportDagData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  filteredSettings.forEach((setting) => {
-    if (task === true) {
-      const taskNameSetting = updatedSettings.find(
-        (setting) => setting.label === 'Task Name'
-      )
-      const taskName = taskNameSetting ? taskNameSetting.value : ''
+  if (newTask) {
+    const part1 = {
+      name: '',
+      type: '',
+      placement: '',
+      connection: null,
+      airflowPriority: null,
+      includeInAirflow: true,
+      taskDependencyDownstream: null,
+      taskDependencyUpstream: null,
+      taskConfig: null,
+      sensorPokeInterval: null,
+      sensorConnection: null,
+      sensorSoftFail: null,
+      sudoUser: null
+    }
 
-      const indexInTasks = updatedDagData.tasks.findIndex(
-        (task) => task.name === taskName
-      )
+    const part2: Omit<AirflowTask, keyof typeof part1> = {
+      airflowPool: null,
+      sensorTimeoutMinutes: null
+    }
+
+    const labelToTaskMap: Record<string, keyof typeof part1> = {
+      'Task Name': 'name',
+      Type: 'type',
+      Placement: 'placement',
+      Connection: 'connection',
+      'Airflow Priority': 'airflowPriority',
+      'Include In Airflow': 'includeInAirflow',
+      'Task Dependency Downstream': 'taskDependencyDownstream',
+      'Task Dependency Upstream': 'taskDependencyUpstream',
+      'Task Config': 'taskConfig',
+      'Sensor Poke Interval': 'sensorPokeInterval',
+      'Sensor Connection': 'sensorConnection',
+      'Sensor Soft Fail': 'sensorSoftFail',
+      'Sudo User': 'sudoUser'
+    }
+
+    filteredSettings.forEach((setting) => {
+      const key = labelToTaskMap[setting.label]
+      const settingValue = setting.value
+      if (
+        key &&
+        (typeof settingValue === 'string' ||
+          typeof settingValue === 'boolean' ||
+          settingValue === null)
+      ) {
+        ;(part1[key] as (typeof part1)[typeof key]) = settingValue
+      }
+    })
+
+    const finalTasksData: AirflowTask = { ...part2, ...part1 }
+    updatedDagData.tasks.push(finalTasksData)
+  } else if (task && indexInTasks !== undefined) {
+    filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
-    } else {
+    })
+  } else {
+    filteredSettings.forEach((setting) => {
       const value = setting.value as string
-
       const key = getKeyFromExportAirflowLabel(setting.label)
-
       if (key) {
-        console.log('updatedTableData[key]', updatedDagData[key])
-        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
         updatedDagData[key] = value
       }
-    }
-  })
+    })
+  }
 
   const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
     if (!fieldsToRemove.includes(key)) {
@@ -799,7 +897,9 @@ export function updateExportDagData(
 export function updateCustomDagData(
   dagData: AirflowWithDynamicKeys<CustomAirflowDAG>,
   updatedSettings: EditSetting[],
-  task?: boolean
+  newTask?: boolean,
+  task?: boolean,
+  indexInTasks?: number
 ): CustomAirflowDAG {
   const updatedDagData: AirflowWithDynamicKeys<CustomAirflowDAG> = {
     ...dagData
@@ -809,29 +909,72 @@ export function updateCustomDagData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  filteredSettings.forEach((setting) => {
-    if (task === true) {
-      const taskNameSetting = updatedSettings.find(
-        (setting) => setting.label === 'Task Name'
-      )
-      const taskName = taskNameSetting ? taskNameSetting.value : ''
+  if (newTask) {
+    const part1 = {
+      name: '',
+      type: '',
+      placement: '',
+      connection: null,
+      airflowPriority: null,
+      includeInAirflow: true,
+      taskDependencyDownstream: null,
+      taskDependencyUpstream: null,
+      taskConfig: null,
+      sensorPokeInterval: null,
+      sensorConnection: null,
+      sensorSoftFail: null,
+      sudoUser: null
+    }
 
-      const indexInTasks = updatedDagData.tasks.findIndex(
-        (task) => task.name === taskName
-      )
+    const part2: Omit<AirflowTask, keyof typeof part1> = {
+      airflowPool: null,
+      sensorTimeoutMinutes: null
+    }
+
+    const labelToTaskMap: Record<string, keyof typeof part1> = {
+      'Task Name': 'name',
+      Type: 'type',
+      Placement: 'placement',
+      Connection: 'connection',
+      'Airflow Priority': 'airflowPriority',
+      'Include In Airflow': 'includeInAirflow',
+      'Task Dependency Downstream': 'taskDependencyDownstream',
+      'Task Dependency Upstream': 'taskDependencyUpstream',
+      'Task Config': 'taskConfig',
+      'Sensor Poke Interval': 'sensorPokeInterval',
+      'Sensor Connection': 'sensorConnection',
+      'Sensor Soft Fail': 'sensorSoftFail',
+      'Sudo User': 'sudoUser'
+    }
+
+    filteredSettings.forEach((setting) => {
+      const key = labelToTaskMap[setting.label]
+      const settingValue = setting.value
+      if (
+        key &&
+        (typeof settingValue === 'string' ||
+          typeof settingValue === 'boolean' ||
+          settingValue === null)
+      ) {
+        ;(part1[key] as (typeof part1)[typeof key]) = settingValue
+      }
+    })
+
+    const finalTasksData: AirflowTask = { ...part2, ...part1 }
+    updatedDagData.tasks.push(finalTasksData)
+  } else if (task && indexInTasks !== undefined) {
+    filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
-    } else {
+    })
+  } else {
+    filteredSettings.forEach((setting) => {
       const value = setting.value as string
-
       const key = getKeyFromCustomAirflowLabel(setting.label)
-
       if (key) {
-        console.log('updatedTableData[key]', updatedDagData[key])
-        console.log('typeof updatedTableData[key]', typeof updatedDagData[key])
         updatedDagData[key] = value
       }
-    }
-  })
+    })
+  }
 
   const reducedDagData = Object.keys(updatedDagData).reduce((acc, key) => {
     if (!fieldsToRemove.includes(key)) {

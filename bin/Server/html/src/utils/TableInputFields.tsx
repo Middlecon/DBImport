@@ -75,6 +75,7 @@ function TableInputFields({
     setting.label === 'Connection' ||
     setting.label === 'Connection String' ||
     setting.label === 'DAG Name' ||
+    setting.label === 'Task Name' ||
     setting.label === 'Retries' ||
     setting.label === 'Filter Connection' ||
     (pathnames[0] === 'import' && setting.label === 'SQL Sessions') ||

@@ -106,7 +106,7 @@ function AirflowImport() {
               onClick={() => setCreateModalOpen(true)}
               fontFamily={`'Work Sans Variable', sans-serif`}
               fontSize="14px"
-              padding="4px 13px 7.5px 9px"
+              padding="4px 12px 7.5px 9px"
             />
           </div>
         </div>

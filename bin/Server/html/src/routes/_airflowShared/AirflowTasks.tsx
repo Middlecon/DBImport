@@ -22,8 +22,10 @@ import {
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateAirflowDag } from '../../utils/mutations'
+import Button from '../../components/Button'
+import CreateAirflowTaskModal from '../../components/CreateAirflowTaskModal'
 
-function AirflowTasks({ type }: { type: string }) {
+function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
     dagName: string
   }>()
@@ -36,6 +38,7 @@ function AirflowTasks({ type }: { type: string }) {
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
@@ -124,20 +127,35 @@ function AirflowTasks({ type }: { type: string }) {
       editedDagData = updateImportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings,
+        false,
         true,
         rowIndex
       )
-    } else if (type === 'export') {
+    } else if (
+      type === 'export' &&
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0 &&
+      rowIndex < dagDataCopy.tasks.length
+    ) {
       editedDagData = updateExportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
         updatedSettings,
-        true
+        false,
+        true,
+        rowIndex
       )
-    } else if (type === 'custom') {
+    } else if (
+      type === 'custom' &&
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0 &&
+      rowIndex < dagDataCopy.tasks.length
+    ) {
       editedDagData = updateCustomDagData(
         dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
         updatedSettings,
-        true
+        false,
+        true,
+        rowIndex
       )
     }
 
@@ -167,8 +185,73 @@ function AirflowTasks({ type }: { type: string }) {
     }
   }
 
+  const handleSaveCreateTask = (updatedSettings: EditSetting[]) => {
+    const dagDataCopy = { ...originalDagData }
+
+    let editedDagData:
+      | ImportAirflowDAG
+      | BaseAirflowDAG
+      | ExportAirflowDAG
+      | null = null
+    if (type === 'import') {
+      editedDagData = updateImportDagData(
+        dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    } else if (type === 'export') {
+      editedDagData = updateExportDagData(
+        dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    } else if (type === 'custom') {
+      editedDagData = updateCustomDagData(
+        dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
+        updatedSettings,
+        true
+      )
+    }
+
+    console.log('editedDagData', editedDagData)
+
+    if (editedDagData && type) {
+      queryClient.setQueryData(['airflows', type, dagName], editedDagData)
+      updateDag(
+        { type, dagData: editedDagData },
+        {
+          onSuccess: (response) => {
+            queryClient.invalidateQueries({
+              queryKey: ['airflows', type, dagName]
+            }) // For getting fresh data from database to the cache
+            setDataRefreshTrigger((prev) => prev + 1)
+            console.log('Update successful', response)
+            setIsEditModalOpen(false)
+          },
+          onError: (error) => {
+            queryClient.setQueryData(
+              ['airflows', type, dagName],
+              originalDagData
+            )
+
+            console.error('Error updating table', error)
+          }
+        }
+      )
+    }
+  }
+
   return (
-    <div style={{ marginTop: 40 }}>
+    <div style={{ marginTop: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'end', marginBottom: 15 }}>
+        <Button
+          title="+ Create"
+          onClick={() => setCreateModalOpen(true)}
+          fontFamily={`'Work Sans Variable', sans-serif`}
+          fontSize="14px"
+          padding="4px 12px 7.5px 9px"
+        />
+      </div>
       {tasksData.length > 0 ? (
         <TableList
           columns={columns}
@@ -196,6 +279,13 @@ function AirflowTasks({ type }: { type: string }) {
           settings={currentRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
+        />
+      )}
+      {isCreateModalOpen && (
+        <CreateAirflowTaskModal
+          type={type}
+          onSave={handleSaveCreateTask}
+          onClose={() => setCreateModalOpen(false)}
         />
       )}
     </div>

@@ -6,14 +6,16 @@ import {
   useState
 } from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
-import { useAllAirflows } from '../utils/queries'
+// import { useAllAirflows } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
-import { createAirflowSettings } from '../utils/cardRenderFormatting'
+import { initialCreateAirflowTaskSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
+import { AirflowDAGTaskType } from '../utils/enums'
+import { useConnections } from '../utils/queries'
 
 interface CreateAirflowModalProps {
   type: 'import' | 'export' | 'custom'
@@ -21,35 +23,37 @@ interface CreateAirflowModalProps {
   onClose: () => void
 }
 
-function CreateAirflowModal({
+function CreateAirflowTaskModal({
   type,
   onSave,
   onClose
 }: CreateAirflowModalProps) {
-  const settings = createAirflowSettings(type)
+  // const { data: airflowsData } = useAllAirflows()
 
-  const { data: airflowsData } = useAllAirflows()
-  const airflowNames = useMemo(
+  const { data: connectionsData } = useConnections(true)
+  const connectionNames = useMemo(
     () =>
-      Array.isArray(airflowsData)
-        ? airflowsData.map((airflow) => airflow.name)
+      Array.isArray(connectionsData)
+        ? connectionsData?.map((connection) => connection.name)
         : [],
-    [airflowsData]
+    [connectionsData]
   )
+
+  const settings = initialCreateAirflowTaskSettings()
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
     settings ? settings : []
   )
+
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [duplicateDagName, setDuplicateDagName] = useState(false)
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['DAG Name']
+    const requiredLabels = ['Task Name']
     return editedSettings.some(
       (setting) =>
         (requiredLabels.includes(setting.label) && setting.value === null) ||
@@ -94,7 +98,7 @@ function CreateAirflowModal({
   }, [isResizing, handleMouseMove, handleMouseUp])
 
   if (!settings) {
-    console.error('DAG data is not available.')
+    console.error('Task data is not available.')
     return
   }
 
@@ -111,21 +115,27 @@ function CreateAirflowModal({
       i === index ? { ...setting, value: newValue } : setting
     )
 
-    const dagNameSetting = updatedSettings.find(
-      (setting) => setting.label === 'DAG Name'
-    )
-    if (
-      dagNameSetting &&
-      airflowNames.includes(dagNameSetting.value as string)
-    ) {
-      setDuplicateDagName(true)
-    } else {
-      setDuplicateDagName(false)
-    }
-
     setEditedSettings(updatedSettings)
     setHasChanges(true)
   }
+
+  const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
+
+  const isAirflowTasksConnectionDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL
+
+  const isAirflowTasksSensorPokeAndSoftDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.DAGSensor &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
+
+  const isAirflowTasksSensorConnectionDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
+
+  const isAirflowTasksSudoUserDisabled =
+    airflowTypeValue?.value !== AirflowDAGTaskType.DBImportCommand &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQL &&
+    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQLScript
 
   const handleSelect = (
     item: EditSettingValueTypes | null,
@@ -140,9 +150,7 @@ function CreateAirflowModal({
   }
 
   const handleSave = () => {
-    if (duplicateDagName) return
-
-    const newDagSettings = settings.map((setting) => {
+    const newTaskSettings = settings.map((setting) => {
       const editedSetting = editedSettings.find(
         (es) => es.label === setting.label
       )
@@ -150,7 +158,7 @@ function CreateAirflowModal({
       return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
-    onSave(newDagSettings)
+    onSave(newTaskSettings)
     onClose()
   }
 
@@ -182,7 +190,9 @@ function CreateAirflowModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">Create DAG</h2>
+        <h2 className="table-modal-h2">{`Create ${
+          type.charAt(0).toUpperCase() + type.slice(1)
+        } DAG Task`}</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -198,6 +208,17 @@ function CreateAirflowModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
+                    connectionNames={connectionNames}
+                    isAirflowTasksSensorPokeAndSoftDisabled={
+                      isAirflowTasksSensorPokeAndSoftDisabled
+                    }
+                    isAirflowTasksSensorConnectionDisabled={
+                      isAirflowTasksSensorConnectionDisabled
+                    }
+                    isAirflowTasksSudoUserDisabled={
+                      isAirflowTasksSudoUserDisabled
+                    }
+                    disabled={isAirflowTasksConnectionDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
@@ -208,12 +229,7 @@ function CreateAirflowModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo
-            isRequiredFieldEmpty={isRequiredFieldEmpty}
-            validation={true}
-            isValidationSad={duplicateDagName}
-            validationText="DAG Name already exists. Please choose a different name."
-          />
+          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
 
           <div className="table-modal-footer">
             <Button
@@ -236,4 +252,4 @@ function CreateAirflowModal({
   )
 }
 
-export default CreateAirflowModal
+export default CreateAirflowTaskModal
