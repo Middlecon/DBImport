@@ -71,7 +71,6 @@ function InfoText({
   const handleMouseLeave = () => setIsHovered(false)
 
   const shouldShowInfo = openInfoDropdown === label || isHovered
-  console.log('isInfoTextPositionUp', isInfoTextPositionUp)
   return (
     <div className="info-text-container">
       <div

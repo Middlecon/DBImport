@@ -61,7 +61,7 @@ function CardConfig({ title, settings, originalData }: CardConfigProps) {
 
   return (
     <div
-      className={'card'}
+      className="card-config"
       style={title === 'Performance' ? { marginBottom: 240 } : {}}
     >
       <div className="card-head">

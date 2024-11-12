@@ -92,3 +92,13 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+.setting-connection-arrow {
+  display: flex;
+  align-items: center;
+  color: #2b66ca;
+  cursor: pointer;
+  &:hover {
+    color: #4b89e7;
+  }
+}

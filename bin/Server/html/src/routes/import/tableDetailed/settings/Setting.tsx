@@ -7,6 +7,8 @@ import ChevronUp from '../../../../assets/icons/ChevronUp'
 import { SettingType } from '../../../../utils/enums'
 import { useCustomSelection } from '../../../../utils/hooks'
 import InfoText from '../../../../components/InfoText'
+import ArrowRightIcon from '../../../../assets/icons/ArrowRightIcon'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 interface SettingProps {
   label: string
@@ -31,11 +33,17 @@ function Setting({
 }: SettingProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [hasOverflow, setHasOverflow] = useState(false)
+  const navigate = useNavigate()
+
   const containerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const maxCharacters = 260
+  const maxTextareaCharacters = 260
+  const maxCharacters = 20
 
   useCustomSelection(dropdownRef, openDropdown === label)
+
+  const location = useLocation()
+  const pathnames = location.pathname.split('/').filter((x) => x)
 
   const checkOverflow = useCallback(() => {
     if (containerRef.current) {
@@ -44,8 +52,16 @@ function Setting({
 
       if (
         typeof value === 'string' &&
-        value.length >= maxCharacters &&
+        value.length >= maxTextareaCharacters &&
         type === 'textarea'
+      ) {
+        setHasOverflow(true)
+      } else if (
+        typeof value === 'string' &&
+        value.length >= maxCharacters &&
+        (pathnames[0] === 'import' ||
+          pathnames[0] === 'export' ||
+          pathnames[0] === 'configuration')
       ) {
         setHasOverflow(true)
       } else {
@@ -57,10 +73,10 @@ function Setting({
         setHasOverflow(isOverflowing)
       }
     }
-  }, [value, type])
+  }, [value, type, pathnames])
 
   useEffect(() => {
-    checkOverflow()
+    requestAnimationFrame(checkOverflow)
     const handleResize = debounce(checkOverflow, 150)
     window.addEventListener('resize', handleResize)
 
@@ -93,14 +109,19 @@ function Setting({
   ) => {
     if (!isString(value)) return ''
 
-    return isDropdownOpen || value.length <= maxCharacters
+    return isDropdownOpen || value.length <= maxTextareaCharacters
       ? value
-      : `${value.slice(0, maxCharacters)}...`
+      : `${value.slice(0, maxTextareaCharacters)}...`
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     setOpenDropdown(isOpen ? dropdownId : null)
   }
+
+  const handleArrowClick = () => {
+    navigate(`/connection/${value}`)
+  }
+
   const renderSetting = () => {
     switch (type) {
       case 'boolean':
@@ -244,6 +265,11 @@ function Setting({
               : 270
           }
         />
+      )}
+      {label === 'Connection' && (
+        <div className="setting-connection-arrow" onClick={handleArrowClick}>
+          <ArrowRightIcon />
+        </div>
       )}
     </div>
   )

@@ -104,7 +104,9 @@ function CardAirflow({
     >
       <div className="card-head">
         <h3 className="card-h3">{title}</h3>
-        {!isNotEditable && <Button title="Edit" onClick={handleOpenModal} />}
+        {!isNotEditable && (
+          <Button title="Edit" onClick={handleOpenModal} marginRight="12px" />
+        )}
       </div>
       <dl className="card-dl">
         {Array.isArray(settings) &&

@@ -9,6 +9,7 @@ interface ButtonProps {
   fontFamily?: string
   fontSize?: string
   padding?: string
+  marginRight?: string
 }
 
 function Button({
@@ -18,7 +19,8 @@ function Button({
   lightStyle = false,
   fontFamily,
   fontSize,
-  padding
+  padding,
+  marginRight
 }: ButtonProps) {
   const style: React.CSSProperties = {}
   if (fontFamily) {
@@ -31,7 +33,8 @@ function Button({
   const buttonStyle: React.CSSProperties = {
     fontFamily: fontFamily,
     fontSize: fontSize,
-    padding: padding
+    padding: padding,
+    marginRight: marginRight
   }
 
   return (
