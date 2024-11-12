@@ -1043,16 +1043,16 @@ class dbCalls:
 		resultDict['sparkExecutorMemory'] = row[40]
 		resultDict['sparkExecutors'] = row[41]
 		resultDict['splitByColumn'] = row[42]
-		resultDict['customQuery'] = row[43]
+		resultDict['sqoopCustomQuery'] = row[43]
 		resultDict['sqoopOptions'] = row[44]
 		resultDict['lastSize'] = row[45]
 		resultDict['lastRows'] = row[46]
 		resultDict['lastSqlSessions'] = row[47]
 		resultDict['lastExecution'] = row[48]
 		if row[49] == -1:       # -1 is not allowed, but default in the database. Setting these to 1
-			resultDict['useGeneratedSql'] = 1
+			resultDict['sqoopUseGeneratedSql'] = 1
 		else:
-			resultDict['useGeneratedSql'] = row[49]
+			resultDict['sqoopUseGeneratedSql'] = row[49]
 		resultDict['allowTextSplitter'] = row[50]
 		resultDict['forceString'] = row[51]
 		if resultDict["forceString"] != 0 and resultDict["forceString"] != 1 and resultDict["forceString"] != -1:
@@ -1157,7 +1157,7 @@ class dbCalls:
 #		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
 		if getattr(table, "sqlSessions") == None:								setattr(table, "sqlSessions", -1)
 		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
-		if getattr(table, "useGeneratedSql") == None:							setattr(table, "useGeneratedSql", -1)
+		if getattr(table, "sqoopUseGeneratedSql") == None:						setattr(table, "sqoopUseGeneratedSql", -1)
 		if getattr(table, "allowTextSplitter") == None:							setattr(table, "allowTextSplitter", 0)
 		if getattr(table, "forceString") == None:								setattr(table, "forceString", -1)
 		if getattr(table, "invalidateImpala") == None:							setattr(table, "invalidateImpala", -1)
@@ -1201,9 +1201,9 @@ class dbCalls:
 				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
 				spark_executors = getattr(table, "sparkExecutors"),
 				split_by_column = getattr(table, "splitByColumn"),
-				sqoop_query = getattr(table, "customQuery"),
+				sqoop_query = getattr(table, "sqoopCustomQuery"),
 				sqoop_options = getattr(table, "sqoopOptions"),
-				sqoop_use_generated_sql = getattr(table, "useGeneratedSql"),
+				sqoop_use_generated_sql = getattr(table, "sqoopUseGeneratedSql"),
 				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
 				force_string = getattr(table, "forceString"),
 				comment = getattr(table, "comment"),
@@ -1253,9 +1253,9 @@ class dbCalls:
 				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
 				spark_executors = getattr(table, "sparkExecutors"),
 				split_by_column = getattr(table, "splitByColumn"),
-				sqoop_query = getattr(table, "customQuery"),
+				sqoop_query = getattr(table, "sqoopCustomQuery"),
 				sqoop_options = getattr(table, "sqoopOptions"),
-				sqoop_use_generated_sql = getattr(table, "useGeneratedSql"),
+				sqoop_use_generated_sql = getattr(table, "sqoopUseGeneratedSql"),
 				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
 				force_string = getattr(table, "forceString"),
 				comment = getattr(table, "comment"),

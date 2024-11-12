@@ -248,13 +248,13 @@ class importTableDetailsRead(BaseModel):
 	sparkExecutorMemory: Union[str, None] = None
 	sparkExecutors: Union[int, None] = None
 	splitByColumn: Union[str, None] = None
-	customQuery: Union[str, None] = None
+	sqoopCustomQuery: Union[str, None] = None
 	sqoopOptions: Union[str, None] = None
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
 	lastSqlSessions: Union[int, None] = None
 	lastExecution: Union[int, None] = None
-	useGeneratedSql: bool
+	sqoopUseGeneratedSql: bool
 	allowTextSplitter: bool
 	forceString: int
 	comment: Union[str, None] = None
@@ -313,9 +313,9 @@ class importTableDetailsWrite(BaseModel):
 	sparkExecutorMemory: Union[str, None] = None
 	sparkExecutors: Union[int, None] = None
 	splitByColumn: Union[str, None] = None
-	customQuery: Union[str, None] = None
+	sqoopCustomQuery: Union[str, None] = None
 	sqoopOptions: Union[str, None] = None
-	useGeneratedSql: Union[bool, None] = None
+	sqoopUseGeneratedSql: Union[bool, None] = None
 	allowTextSplitter: Union[bool, None] = None
 	forceString: Union[int, None] = None
 	comment: Union[str, None] = None
@@ -368,9 +368,9 @@ class importTableDetailsWrite(BaseModel):
 #	sparkExecutorMemory: Union[str, None] = None
 #	sparkExecutors: Union[int, None] = None
 #	splitByColumn: Union[str, None] = None
-#	customQuery: Union[str, None] = None
+#	sqoopCustomQuery: Union[str, None] = None
 #	sqoopOptions: Union[str, None] = None
-#	useGeneratedSql: bool
+#	sqoopUseGeneratedSql: bool
 #	allowTextSplitter: bool
 #	forceString: int
 #	comment: Union[str, None] = None
