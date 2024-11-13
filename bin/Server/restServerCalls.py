@@ -1836,7 +1836,7 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		log.info(table)
+		log.debug(table)
 		log.info("User '%s' updated/created export table '%s.%s' on connection '%s'"%(
 			currentUser, 
 			getattr(table, "targetSchema"), 
