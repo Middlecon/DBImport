@@ -457,8 +457,8 @@ function updateExportColumnData(
   }
 
   const labelToColumnMap: Record<string, keyof typeof part1> = {
-    'Target Column Name Override': 'targetColumnName',
-    'Target Column Type Override': 'targetColumnType',
+    'Target Column Name': 'targetColumnName',
+    'Target Column Type': 'targetColumnType',
     'Include In Export': 'includeInExport',
     'Operator Notes': 'operatorNotes'
   }

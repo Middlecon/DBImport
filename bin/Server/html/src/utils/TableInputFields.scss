@@ -4,8 +4,22 @@
 }
 
 .radio-edit {
+  display: inline-flex;
+  align-items: center;
+  align-content: center;
+
   label {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    width: max-content !important;
     margin-right: 30px;
+  }
+
+  input[type='radio'] {
+    margin: 0;
+    vertical-align: middle;
   }
 }
 
@@ -22,18 +36,32 @@
 .input-fields-textarea {
   max-width: calc(100% - 233px);
   min-width: calc(100% - 233px);
+  min-height: 56px;
   padding: 3px;
 }
 
 .input-fields-number-input {
   max-width: 120px;
   margin-right: 5px;
+  min-height: 18px;
 }
 
 .input-fields-number-input,
 .input-fields-textarea,
 .input-fields-text-input {
   border: 0.5px solid rgb(42, 42, 42);
+  padding-left: 4px;
+}
+
+.input-fields-checkbox-container {
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  width: max-content !important;
 }
 
 // .input-fields-changed {

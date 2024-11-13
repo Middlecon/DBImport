@@ -42,8 +42,8 @@ function ExportTableColumns() {
     () => [
       { header: 'Column Name', accessor: 'columnName' },
       { header: 'Column Order', accessor: 'columnOrder' },
-      { header: 'Target Column Name', accessor: 'targetColumnName' },
       { header: 'Column Type', accessor: 'columnType' },
+      { header: 'Target Column Name', accessor: 'targetColumnName' },
       { header: 'Target Column Type', accessor: 'targetColumnType' },
       { header: 'Last Update From Hive', accessor: 'lastUpdateFromHive' },
       { header: 'Include In Export', accessor: 'includeInExport' },

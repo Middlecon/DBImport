@@ -145,6 +145,19 @@ function Dropdown<T>({
     opacity: disabled ? 0.5 : 1
   }
 
+  const itemContentStyle: React.CSSProperties = {
+    padding: dropdownStyle.padding,
+    height: dropdownStyle.height
+      ? `calc(${dropdownStyle.height} + 5px)`
+      : undefined
+  }
+
+  const heightStyle: React.CSSProperties = {
+    height: dropdownStyle.height
+      ? `calc(${dropdownStyle.height} + 7px)`
+      : undefined
+  }
+
   return (
     <div className="dropdown" ref={dropdownRef}>
       <div
@@ -189,7 +202,7 @@ function Dropdown<T>({
           }
         >
           {searchFilter && (
-            <div className="search">
+            <div className="search" style={heightStyle}>
               <span className="icon">
                 <FilterFunnel />
               </span>
@@ -207,7 +220,7 @@ function Dropdown<T>({
             {Array.isArray(filteredItems) && filteredItems.length ? (
               filteredItems.map((item, index) => (
                 <li key={index} onClick={() => handleSelect(item)}>
-                  <div className="item-content">
+                  <div className="item-content" style={itemContentStyle}>
                     <span className="item-text">{getItemLabel(item)}</span>
                     {chevron && !leftwards && <ChevronRight />}
                   </div>

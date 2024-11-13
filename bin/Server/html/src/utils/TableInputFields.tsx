@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAllTimezones } from 'countries-and-timezones'
 import Dropdown from '../components/Dropdown'
 import { EditSetting } from './interfaces'
@@ -84,16 +84,6 @@ function TableInputFields({
 
   const isFieldDisabled = setting.isConditionsMet === false
 
-  const autoResizeTextarea = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height =
-        setting.label === 'Connection String'
-          ? `${textareaRef.current.scrollHeight}px`
-          : '50px'
-      textareaRef.current.style.maxHeight = `${textareaRef.current.scrollHeight}px`
-    }
-  }, [setting.label])
-
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
       setOpenDropdown(dropdownId)
@@ -103,10 +93,10 @@ function TableInputFields({
   }
 
   useEffect(() => {
-    if (setting.value) {
-      autoResizeTextarea()
+    if (textareaRef.current) {
+      textareaRef.current.style.maxHeight = `${textareaRef.current.scrollHeight}px`
     }
-  }, [setting.value, autoResizeTextarea])
+  }, [setting.value])
 
   useEffect(() => {
     const inputElement = inputRef.current
@@ -297,7 +287,11 @@ function TableInputFields({
               False
             </label>
             <label
-              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+              className={
+                isFieldDisabled
+                  ? 'input-fields-label-disabled'
+                  : 'checkbox-label'
+              }
             >
               <input
                 type="checkbox"
@@ -447,8 +441,6 @@ function TableInputFields({
         setting.label === 'Custom Query Source SQL' ||
         setting.label === 'Custom Query Hive SQL' ||
         setting.label === 'Custom Query Target SQL'
-        // setting.label === 'Scoop Custom Query' ||
-        // setting.label === 'Custom Max Query'
       ) {
         return (
           <>
@@ -633,8 +625,8 @@ function TableInputFields({
             value={setting.value ? String(setting.value) : ''}
             className="input-fields-textarea"
             onChange={(event) => {
+              event.target.style.maxHeight = `${event.target.scrollHeight}px`
               handleInputChange(index, event.target.value)
-              autoResizeTextarea()
             }}
             required={isRequired}
             disabled={isFieldDisabled}
@@ -705,7 +697,7 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 3px"
+            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -747,7 +739,7 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 3px"
+            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -787,7 +779,7 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 3px"
+            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -859,9 +851,6 @@ function TableInputFields({
                 : setting.value !== null && setting.value !== undefined
                 ? Number(setting.value)
                 : ''
-              // setting.value !== null && setting.value !== undefined
-              //   ? Number(setting.value)
-              //   : retriesDefaultValue
             }
             onChange={(event) => {
               const value =
@@ -881,20 +870,6 @@ function TableInputFields({
                 handleInputChange(index, prevValue)
               }
             }}
-            // onChange={(event) => {
-
-            //   if (
-            //     setting.label === 'Atlas Discovery Interval' &&
-            //     Number(value) > 24
-            //   )
-            //     value = prevValue as number
-
-            //   // Temporarily allows empty input, otherwise enforce minimum of 1
-            //   handleInputChange(
-            //     index,
-            //     value === '' || Number(value) >= 1 ? value : 1
-            //   )
-            // }}
             onKeyDown={(event) => {
               // Prevent invalid characters from being typed
               if (['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key)) {
@@ -907,57 +882,6 @@ function TableInputFields({
           />
         </>
       )
-
-    // case 'integerFromZero':
-    //   if (setting.isHidden === true) return null
-
-    //   return (
-    //     <>
-    //       <label
-    //         className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
-    //       >
-    //         {setting.label}:
-    //         {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
-    //       </label>
-    //       <input
-    //         className="input-fields-number-input"
-    //         type="number"
-    //         value={
-    //           setting.value !== null && setting.value !== undefined
-    //             ? Number(setting.value)
-    //             : retriesDefaultValue
-    //         }
-    //         onChange={(event) => {
-    //           let value: string | number | null =
-    //             event.target.value === '' ? '' : Number(event.target.value)
-    //           if (typeof value === 'number' && value < 0) {
-    //             value = retriesDefaultValue
-    //           }
-
-    //           handleInputChange(index, value === '' ? null : value)
-    //         }}
-    //         onBlur={(event) => {
-    //           const value = event.target.value
-    //           // If input is empty or not a valid number greater than 1, set to default 5
-    //           if (value === '' || isNaN(Number(value)) || Number(value) < 0) {
-    //             handleInputChange(index, retriesDefaultValue)
-    //             event.target.value = ''
-    //           }
-    //         }}
-    //         onKeyDown={(event) => {
-    //           // Prevent invalid characters from being typed
-    //           if (
-    //             ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
-    //           ) {
-    //             event.preventDefault()
-    //           }
-    //         }}
-    //         step="1"
-    //         disabled={isFieldDisabled}
-    //         required={isRequired}
-    //       />
-    //     </>
-    //   )
 
     case 'integerFromZeroOrNull':
       if (setting.isHidden === true) return null
@@ -1060,7 +984,7 @@ function TableInputFields({
             {setting.label}:
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
-          <div>
+          <div className="input-fields-checkbox-container">
             <input
               ref={inputRef}
               className="input-fields-number-input"
@@ -1094,7 +1018,11 @@ function TableInputFields({
               disabled={setting.value === -1 || isFieldDisabled}
             />
             <label
-              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+              className={
+                isFieldDisabled
+                  ? 'input-fields-label-disabled'
+                  : 'checkbox-label'
+              }
             >
               <input
                 type="checkbox"
@@ -1241,7 +1169,7 @@ function TableInputFields({
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
-          <div>
+          <div className="input-fields-checkbox-container">
             <input
               ref={inputRef}
               className="input-fields-number-input"
@@ -1277,7 +1205,11 @@ function TableInputFields({
               }
             />
             <label
-              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+              className={
+                isFieldDisabled
+                  ? 'input-fields-label-disabled'
+                  : 'checkbox-label'
+              }
             >
               <input
                 type="checkbox"
@@ -1309,7 +1241,7 @@ function TableInputFields({
             {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
-          <div>
+          <div className="input-fields-checkbox-container">
             <input
               ref={inputRef}
               className="input-fields-number-input"
@@ -1343,7 +1275,11 @@ function TableInputFields({
               disabled={setting.value === null || isFieldDisabled}
             />
             <label
-              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+              className={
+                isFieldDisabled
+                  ? 'input-fields-label-disabled'
+                  : 'checkbox-label'
+              }
             >
               <input
                 type="checkbox"
@@ -1425,7 +1361,7 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 3px"
+            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}

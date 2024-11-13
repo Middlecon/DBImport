@@ -142,7 +142,7 @@ function Export() {
                 initialTitle={selectedExportConnection || 'Select Connection'}
                 leftwards={true}
                 chevron={true}
-                placeholder="Search for db..."
+                placeholder="Search for connection..."
               />
             )}
           </div>
@@ -151,8 +151,8 @@ function Export() {
         {!connection ? (
           <div className="import-text-block">
             <p>
-              Please select a DB in the above dropdown to show and edit settings
-              for its tables.
+              Please select a connection in the above dropdown to show and edit
+              settings for its tables.
             </p>
           </div>
         ) : (

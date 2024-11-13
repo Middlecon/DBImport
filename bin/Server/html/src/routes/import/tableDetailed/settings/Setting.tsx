@@ -233,7 +233,17 @@ function Setting({
         )}
       </dd>
       {hasOverflow && openDropdown && (
-        <div ref={dropdownRef} className="setting-expanded-content">
+        <div
+          ref={dropdownRef}
+          className="setting-expanded-content"
+          style={
+            pathnames[0] === 'import' || pathnames[0] === 'export'
+              ? { right: '8%' }
+              : pathnames[0] === 'connection'
+              ? { right: '2%' }
+              : {}
+          }
+        >
           {renderSetting()}
         </div>
       )}

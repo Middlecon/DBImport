@@ -1327,7 +1327,7 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'Operator Notes',
       value: table.operatorNotes,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
       infoText: infoTexts.table.import.operatorNotes
     } // Free-text setting
   ]
@@ -1452,7 +1452,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
     {
       label: 'Operator Notes',
       value: row.operatorNotes,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
       infoText: infoTexts.table.import.columns.operatorNotes
     }, // Free-text
     {
@@ -1878,7 +1878,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'Operator Notes',
       value: table.operatorNotes,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
       infoText: infoTexts.table.export.operatorNotes
     } // Free-text, 64k
   ]
@@ -1910,17 +1910,17 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
       infoText: infoTexts.table.export.columns.columnOrder
     }, // Number for order in columns, preliminary readonly
     {
-      label: 'Target Column Name',
-      value: row.targetColumnName,
-      type: SettingType.Text,
-      infoText: infoTexts.table.export.columns.targetColumnName
-    }, // Free-text, varchar(256)
-    {
       label: 'Column Type',
       value: row.columnType,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.columns.columnType
     }, // Read-only
+    {
+      label: 'Target Column Name',
+      value: row.targetColumnName,
+      type: SettingType.Text,
+      infoText: infoTexts.table.export.columns.targetColumnName
+    }, // Free-text, varchar(256)
     {
       label: 'Target Column Type',
       value: row.targetColumnType,
@@ -1948,7 +1948,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
     {
       label: 'Operator Notes',
       value: row.operatorNotes,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
       infoText: infoTexts.table.export.columns.operatorNotes
     } // Free-text, 64k
   ]
