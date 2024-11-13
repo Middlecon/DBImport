@@ -1309,6 +1309,10 @@ class dbCalls:
 					.one_or_none()
 				)
 				
+			# Force set to Null if string is empty. This will otherwise cause problems during executions as it's not handled there
+			if getattr(column, "columnNameOverride") != None and getattr(column, "columnNameOverride").strip() == "":			setattr(column, "columnNameOverride", None)
+			if getattr(column, "columnTypeOverride") != None and getattr(column, "columnTypeOverride").strip() == "":			setattr(column, "columnTypeOverride", None)
+
 			try:
 				if row == None:
 					log.debug("Column does not exist")
@@ -1832,7 +1836,7 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		log.debug(table)
+		log.info(table)
 		log.info("User '%s' updated/created export table '%s.%s' on connection '%s'"%(
 			currentUser, 
 			getattr(table, "targetSchema"), 
@@ -1949,6 +1953,10 @@ class dbCalls:
 				columnOrder = None
 				if getattr(column, "columnOrder") != None:
 					columnOrder = int(getattr(column, "columnOrder")) - 1
+
+				# Force set to Null if string is empty. This will otherwise cause problems during executions as it's not handled there
+				if getattr(column, "targetColumnName") != None and getattr(column, "targetColumnName").strip() == "":			setattr(column, "targetColumnName", None)
+				if getattr(column, "targetColumnType") != None and getattr(column, "targetColumnType").strip() == "":			setattr(column, "targetColumnType", None)
 
 				if row == None:
 					log.debug("Column does not exist")
