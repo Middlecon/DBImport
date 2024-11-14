@@ -73,6 +73,7 @@ export interface DbTable {
   sourceSchema: string
   sourceTable: string
   table: string
+  includeInAirflow: boolean
 }
 
 export interface UiDbTable extends Table {
@@ -369,7 +370,7 @@ export interface TableCreateWithoutEnum {
   lastUpdateFromSource: null
   sqlWhereAddition: null
   nomergeIngestionSqlAddition: null
-  includeInAirflow: null
+  includeInAirflow: boolean
   airflowPriority: null
   validateImport: null
   validationMethod: null
@@ -423,7 +424,7 @@ export interface TableCreate {
   lastUpdateFromSource: null
   sqlWhereAddition: null
   nomergeIngestionSqlAddition: null
-  includeInAirflow: null
+  includeInAirflow: boolean
   airflowPriority: null
   validateImport: null
   validationMethod: null
@@ -538,6 +539,7 @@ export interface TableCreate {
   etlPhaseType: EtlType
   importTool: ImportTool
   etlEngine: EtlEngine
+  includeInAirflow: boolean
 }
 
 // Export
@@ -558,6 +560,7 @@ export interface ExportCnTablesWithoutEnum {
   exportType: string
   exportTool: string
   lastUpdateFromHive: string | null
+  includeInAirflow: boolean
 }
 
 export interface ExportCnTables {
@@ -569,6 +572,7 @@ export interface ExportCnTables {
   exportType: ExportType
   exportTool: ExportTool
   lastUpdateFromHive: string | null
+  includeInAirflow: boolean
 }
 export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
   exportTypeDisplay: string

@@ -6,8 +6,6 @@ import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
 import { EditSetting } from '../../utils/interfaces'
-// import { createTableData } from '../../utils/dataFunctions'
-// import { useQueryClient } from '@tanstack/react-query'
 import { useAtom } from 'jotai'
 import {
   exportCnListFiltersAtom,
@@ -18,7 +16,6 @@ import CreateExportTableModal from '../../components/CreateExportTableModal'
 import { createExportTableData } from '../../utils/dataFunctions'
 import { useCreateExportTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-// import { useCreateExportTable } from '../../utils/mutations'
 
 function Export() {
   const { data, isLoading } = useExportConnections()

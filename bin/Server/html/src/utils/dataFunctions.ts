@@ -322,6 +322,7 @@ export function createTableData(
     etlPhaseType: string
     importTool: string
     etlEngine: string
+    includeInAirflow: boolean
   } = {
     database: '',
     table: '',
@@ -331,7 +332,8 @@ export function createTableData(
     importPhaseType: ImportType.Full,
     etlPhaseType: EtlType.TruncateAndInsert,
     importTool: ImportTool.Spark,
-    etlEngine: EtlEngine.Spark
+    etlEngine: EtlEngine.Spark,
+    includeInAirflow: true
   }
 
   // Part 2: Keys that will retain default values
@@ -339,7 +341,6 @@ export function createTableData(
     lastUpdateFromSource: null,
     sqlWhereAddition: null,
     nomergeIngestionSqlAddition: null,
-    includeInAirflow: null,
     airflowPriority: null,
     validateImport: null,
     validationMethod: null,
@@ -389,7 +390,8 @@ export function createTableData(
     'Import Type': 'importPhaseType',
     'ETL Type': 'etlPhaseType',
     'Import Tool': 'importTool',
-    'ETL Engine': 'etlEngine'
+    'ETL Engine': 'etlEngine',
+    'Include In Airflow': 'includeInAirflow'
   }
 
   const filteredSettings = newTableSettings.filter(
@@ -405,12 +407,8 @@ export function createTableData(
     const key = labelToKeyMap[setting.label]
 
     if (key) {
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-      ) {
-        part1[key] = value as (typeof part1)[typeof key]
+      if (typeof value === 'string' || typeof value === 'boolean') {
+        ;(part1[key] as (typeof part1)[typeof key]) = value
       }
     }
   })
@@ -536,6 +534,7 @@ export function createExportTableData(
     table: string
     exportType: string
     exportTool: string
+    includeInAirflow: boolean
   } = {
     connection: '',
     targetTable: '',
@@ -543,14 +542,14 @@ export function createExportTableData(
     database: '',
     table: '',
     exportType: ExportType.Full,
-    exportTool: ExportTool.Spark
+    exportTool: ExportTool.Spark,
+    includeInAirflow: true
   }
 
   // Part 2: Keys that will retain default values
   const part2: Omit<ExportTableCreateWithoutEnum, keyof typeof part1> = {
     lastUpdateFromHive: null,
     sqlWhereAddition: null,
-    includeInAirflow: null,
     airflowPriority: null,
     forceCreateTempTable: null,
     validateExport: null,
@@ -588,7 +587,8 @@ export function createExportTableData(
     Database: 'database',
     Table: 'table',
     'Export Type': 'exportType',
-    'Export Tool': 'exportTool'
+    'Export Tool': 'exportTool',
+    'Include In Airflow': 'includeInAirflow'
   }
 
   const filteredSettings = newTableSettings.filter(
@@ -604,12 +604,8 @@ export function createExportTableData(
     const key = labelToKeyMap[setting.label]
 
     if (key) {
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-      ) {
-        part1[key] = value as (typeof part1)[typeof key]
+      if (typeof value === 'string' || typeof value === 'boolean') {
+        ;(part1[key] as (typeof part1)[typeof key]) = value
       }
     }
   })

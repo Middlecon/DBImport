@@ -55,9 +55,9 @@ interface PostTableProps {
 
 export const useUpdateTable = () => {
   return useMutation<
-    unknown, // Return type of mutation function (you can specify it if known)
-    Error, // Type of error
-    PostTableProps // Variables passed to mutationFn
+    unknown, // Return type of mutation function, specify it more?
+    Error,
+    PostTableProps
   >({
     mutationFn: ({ type, table }) => {
       return postUpdateTable(type, table)

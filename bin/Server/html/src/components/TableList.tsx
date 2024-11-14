@@ -36,6 +36,7 @@ function TableList<T>({
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
   const chunkSize = 50
 
+  // For preventing TableList out of view when filterswrap on narrowing the view
   useEffect(() => {
     const updateHeight = () => {
       const filtersDiv = document.querySelector('.filters')
@@ -55,7 +56,6 @@ function TableList<T>({
   useEffect(() => {
     setVisibleData([])
     setAllDataLoaded(false)
-    console.log('data', data)
     if (Array.isArray(data)) {
       setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
     } else {

@@ -13,9 +13,9 @@ import { fetchExportTableData, useExportTables } from '../../utils/queries'
 import '../import/DbTables.scss'
 import { useParams } from 'react-router-dom'
 import EditTableModal from '../../components/EditTableModal'
-// import { updateTableData } from '../../utils/dataFunctions'
+import { updateExportTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-// import { useUpdateTable } from '../../utils/mutations'
+import { useUpdateTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
 import { exportCnListFiltersAtom } from '../../atoms/atoms'
 import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
@@ -35,32 +35,25 @@ const checkboxFilters = [
 
 const radioFilters = [
   {
-    title: 'Last Update From Hive',
+    title: 'Last update from source',
     accessor: 'lastUpdateFromHive  ',
     radioName: 'timestamp',
     badgeContent: ['D', 'W', 'M', 'Y'],
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+  },
+  {
+    title: 'Include In Airflow',
+    accessor: 'includeInAirflow',
+    radioName: 'includeInAirflow',
+    badgeContent: ['t', 'f'],
+    values: ['True', 'False']
   }
 ]
-
-// const radioFilters = [
-//   {
-//     title: 'Last update from source',
-//     radioName: 'timestamp',
-//     badgeContent: ['D', 'W', 'M', 'Y'],
-//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-//   },
-//   {
-//     title: 'Include in Airflow',
-//     radioName: 'includeInAirflow',
-//     badgeContent: ['y', 'n'],
-//     values: ['Yes', 'No']
-//   }
-// ]
 
 function ExportCnTables() {
   const { connection } = useParams<{ connection: string }>()
   const { data, isLoading } = useExportTables(connection ? connection : null)
+  const { mutate: updateTable } = useUpdateTable()
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
@@ -107,6 +100,10 @@ function ExportCnTables() {
       {
         header: 'Last Update From Hive',
         accessor: 'lastUpdateFromHive'
+      },
+      {
+        header: 'Include In Airflow',
+        accessor: 'includeInAirflow'
       },
       { header: 'Actions', isAction: 'both' }
     ],
@@ -171,12 +168,17 @@ function ExportCnTables() {
         if (selectedItems.length === 0) return true
 
         // Handling the date filter separately
-        if (filter.accessor === 'lastUpdateFromHive  ') {
+        if (filter.accessor === 'lastUpdateFromHive') {
           const selectedRange = selectedItems[0]
           const startDate = getDateRange(selectedRange)
 
           if (!rowDate) return false
           return rowDate >= startDate
+        }
+
+        if (filter.accessor === 'includeInAirflow') {
+          const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+          return selectedItems.includes(airflowValue)
         }
 
         const accessorKey = filter.accessor as keyof typeof row
@@ -192,18 +194,12 @@ function ExportCnTables() {
     const { connection, targetSchema, targetTable } = row
     setTableName(targetTable)
 
-    console.log('connection', connection)
-    console.log('targetSchema', targetSchema)
-    console.log('table', targetTable)
-
     try {
       const fetchedTableData = await queryClient.fetchQuery({
-        queryKey: ['export', 'table', targetTable],
+        queryKey: ['export', connection, targetTable],
         queryFn: () =>
           fetchExportTableData(connection, targetSchema, targetTable)
       })
-
-      console.log('fetchedTableData', fetchedTableData)
 
       setTableData(fetchedTableData)
 
@@ -224,19 +220,22 @@ function ExportCnTables() {
     console.log('tableData', tableData)
     console.log('updatedSettings', updatedSettings)
 
-    // const editedTableData = updateTableData(tableData, updatedSettings)
-    // updateTable(editedTableData, {
-    //   onSuccess: (response) => {
-    //     queryClient.invalidateQueries({
-    //       queryKey: ['tables', tableData.database]
-    //     })
-    //     console.log('Update successful', response)
-    //     setModalOpen(false)
-    //   },
-    //   onError: (error) => {
-    //     console.error('Error updating table', error)
-    //   }
-    // })
+    const editedTableData = updateExportTableData(tableData, updatedSettings)
+    updateTable(
+      { type: 'export', table: editedTableData },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['export', tableData.connection]
+          })
+          console.log('Update successful', response)
+          setModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error updating table', error)
+        }
+      }
+    )
   }
 
   return (

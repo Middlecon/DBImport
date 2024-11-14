@@ -57,23 +57,15 @@ const radioFilters = [
     radioName: 'timestamp',
     badgeContent: ['D', 'W', 'M', 'Y'],
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+  },
+  {
+    title: 'Include In Airflow',
+    accessor: 'includeInAirflow',
+    radioName: 'includeInAirflow',
+    badgeContent: ['t', 'f'],
+    values: ['True', 'False']
   }
 ]
-
-// const radioFilters = [
-//   {
-//     title: 'Last update from source',
-//     radioName: 'timestamp',
-//     badgeContent: ['D', 'W', 'M', 'Y'],
-//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-//   },
-//   {
-//     title: 'Include in Airflow',
-//     radioName: 'includeInAirflow',
-//     badgeContent: ['y', 'n'],
-//     values: ['Yes', 'No']
-//   }
-// ]
 
 function DbTables() {
   const { database } = useParams<{ database: string }>()
@@ -125,6 +117,10 @@ function DbTables() {
       { header: 'Import Tool', accessor: 'importTool' },
       { header: 'ETL Engine', accessor: 'etlEngine' },
       { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
+      {
+        header: 'Include In Airflow',
+        accessor: 'includeInAirflow'
+      },
       { header: 'Actions', isAction: 'both' }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,6 +192,11 @@ function DbTables() {
           return rowDate >= startDate
         }
 
+        if (filter.accessor === 'includeInAirflow') {
+          const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+          return selectedItems.includes(airflowValue)
+        }
+
         const accessorKey = filter.accessor as keyof typeof row
         const displayKey = `${String(accessorKey)}Display` as keyof typeof row
         const rowValue = (row[displayKey] ?? row[accessorKey]) as string
@@ -241,7 +242,7 @@ function DbTables() {
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['tables', tableData.database]
+            queryKey: ['import', tableData.database]
           })
           console.log('Update successful', response)
           setModalOpen(false)

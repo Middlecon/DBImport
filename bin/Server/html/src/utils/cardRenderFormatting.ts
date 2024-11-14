@@ -806,7 +806,18 @@ export function importDbTablesEditSettings(row: UiDbTable) {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine'),
       infoText: infoTexts.table.import.etlEngine
-    } // Enum mapping for 'ETL Engine'
+    }, // Enum mapping for 'ETL Engine'
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Include In Airflow',
+      value: row.includeInAirflow,
+      type: SettingType.Boolean,
+      infoText: infoTexts.table.import.includeInAirflow
+    } // Boolean, true or false
   ]
   return rowData
 }
@@ -1319,7 +1330,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.airflowPriority
     }, // Integer (should not be string in API)
     {
-      label: 'Include in Airflow',
+      label: 'Include In Airflow',
       value: table.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.includeInAirflow
@@ -1543,7 +1554,18 @@ export function initialCreateImportTableSettings(
       type: SettingType.Enum,
       enumOptions: getEnumOptions('etlEngine'),
       infoText: infoTexts.table.import.etlEngine
-    } // Enum mapping for 'ETL Engine'
+    }, // Enum mapping for 'ETL Engine'
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Include In Airflow',
+      value: true,
+      type: SettingType.Boolean,
+      infoText: infoTexts.table.import.includeInAirflow
+    } // Boolean, true or false, default: true
   ]
   return settings
 }
@@ -1584,7 +1606,18 @@ export function exportCnTablesEditSettings(row: UIExportCnTables) {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('exportTool'),
       infoText: infoTexts.table.export.exportTool
-    } // Enum mapping for 'Export Tool', required
+    }, // Enum mapping for 'Export Tool', required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Include In Airflow',
+      value: row.includeInAirflow,
+      type: SettingType.Boolean,
+      infoText: infoTexts.table.export.includeInAirflow
+    } // Boolean true or false, required (default value: true)
   ]
 
   return rowData
@@ -1870,7 +1903,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.airflowPriority
     }, // Integer, tinyint(4) (should not be string in API)
     {
-      label: 'Include in Airflow',
+      label: 'Include In Airflow',
       value: table.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.export.includeInAirflow
@@ -2017,7 +2050,18 @@ export function initialCreateExportTableSettings(connection: string) {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('exportTool'),
       infoText: infoTexts.table.export.exportTool
-    } // Enum mapping for 'Import Tool'
+    }, // Enum mapping for 'Import Tool'
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Include In Airflow',
+      value: true,
+      type: SettingType.Boolean,
+      infoText: infoTexts.table.import.includeInAirflow
+    } // Boolean, true or false, default: true
   ]
   return settings
 }

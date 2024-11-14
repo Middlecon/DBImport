@@ -200,7 +200,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Custom Query Source Value': 'validationCustomQuerySourceValue',
     'Custom Query Hive Value': 'validationCustomQueryHiveValue',
     'Airflow Priority': 'airflowPriority',
-    'Include in Airflow': 'includeInAirflow',
+    'Include In Airflow': 'includeInAirflow',
     'Operator Notes': 'operatorNotes',
     'Copy Finished': 'copyFinished',
     'Copy Slave': 'copySlave'
@@ -223,7 +223,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     Table: 'table',
     'Last Update From Hive': 'lastUpdateFromHive',
     'SQL WHERE Addition': 'sqlWhereAddition',
-    'Include in Airflow': 'includeInAirflow',
+    'Include In Airflow': 'includeInAirflow',
     'Airflow Priority': 'airflowPriority',
     'Force Create Temp Table': 'forceCreateTempTable',
     'Validate Export': 'validateExport',

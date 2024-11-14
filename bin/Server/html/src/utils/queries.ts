@@ -111,7 +111,7 @@ export const useDbTables = (
   database: string | null
 ): UseQueryResult<UiDbTable[], Error> => {
   return useQuery({
-    queryKey: ['tables', database],
+    queryKey: ['import', database],
     queryFn: async () => {
       const data: DbTable[] = await getDbTables(database!) // We are sure that database is not null here because of the enabled flag
       const enumMappedData = data.map(
