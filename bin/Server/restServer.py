@@ -7,7 +7,7 @@ import logging
 from gunicorn.app.wsgiapp import WSGIApplication
 from datetime import datetime, timedelta
 from typing import Union, NewType, List, Union, Any
-from fastapi import Depends, FastAPI, HTTPException, status, Response
+from fastapi import Depends, FastAPI, HTTPException, status, Response, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from jose import JWTError, jwt
@@ -72,8 +72,18 @@ def verify_password(password, hashed_password):
 logger = "gunicorn.error"
 log = logging.getLogger(logger)
 
+tags_metadata = [
+	{"name": "General", "description": "Authentication and general status requests"},
+	{"name": "Credentials", "description": "Users and Groups"},
+	{"name": "Connections", "description": "Connections to JDBC servers"},
+	{"name": "Imports", "description": "All requests related to Exports, except Airflow"},
+	{"name": "Exports", "description": "All requests related to Imports, except Airflow"},
+	{"name": "Airflow", "description": "Airflow functions"},
+	{"name": "Configuration", "description": "All functions related to configurations and customization"}
+]
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
-app = FastAPI()
+app = FastAPI(openapi_tags=tags_metadata)
 dbCalls = restServerCalls.dbCalls()
 
 
@@ -202,7 +212,7 @@ def create_access_token(data):
 	return encoded_jwt
 
 
-@app.post("/oauth2/access_token", response_model=dataModels.Token)
+@app.post("/oauth2/access_token", response_model=dataModels.Token, tags=["General"])
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 	validCredentials = authenticate_user(form_data.username, form_data.password)
 	if validCredentials == False:
@@ -215,12 +225,12 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 	access_token = create_access_token(data={"sub": form_data.username})
 	return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/status", response_model=dataModels.status)
+@app.get("/status", response_model=dataModels.status, tags=["General"])
 # async def get_restServer_status(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 async def get_server_status():
 	return json.loads(json.dumps({ 'status': 'ok', 'version': constant.VERSION}))
 
-@app.post("/users/createUser")
+@app.post("/users/createUser", tags=["Credentials"])
 async def create_a_user(user_data: dataModels.User, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	user = get_user(user_data.username)
 
@@ -241,7 +251,7 @@ async def create_a_user(user_data: dataModels.User, current_user: Annotated[data
 	return "User created successfully" 
 
 
-@app.get("/users/{user}", response_model=dataModels.User)
+@app.get("/users/{user}", response_model=dataModels.User, tags=["Credentials"])
 async def get_user_details(user: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	user = get_user(user)
 	if user == None:
@@ -251,7 +261,7 @@ async def get_user_details(user: str, current_user: Annotated[dataModels.User, D
 
 	return user
 
-@app.post("/users/{user}/changePassword")
+@app.post("/users/{user}/changePassword", tags=["Credentials"])
 async def change_the_user_password(user: str, password_data: dataModels.changePassword, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	user = get_user(user, format_password=False)
 
@@ -282,7 +292,7 @@ async def change_the_user_password(user: str, password_data: dataModels.changePa
 
 	return "Password changed successfully" 
 
-@app.delete("/users/{user}/delete")
+@app.delete("/users/{user}/delete", tags=["Credentials"])
 async def update_user_details(user: str, user_data: dataModels.changeUser, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	username = user
 	user = get_user(username, format_password=False)
@@ -305,7 +315,7 @@ async def update_user_details(user: str, user_data: dataModels.changeUser, curre
 
 	return "User deleted"
 
-@app.post("/users/{user}/update", response_model=dataModels.User)
+@app.post("/users/{user}/update", response_model=dataModels.User, tags=["Credentials"])
 async def update_user_details(user: str, user_data: dataModels.changeUser, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	username = user
 	user = get_user(username, format_password=False)
@@ -331,145 +341,157 @@ async def update_user_details(user: str, user_data: dataModels.changeUser, curre
 	return user
 
 # @app.get("/config/getJDBCdrivers", response_model=dataModels.jdbcDriver)
-@app.get("/config/getJDBCdrivers")
+@app.get("/config/getJDBCdrivers", tags=["Configuration"])
 async def get_all_configured_jdbc_drivers(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getJDBCdrivers()
 
-@app.post("/config/updateJDBCdriver")
+@app.post("/config/updateJDBCdriver", tags=["Configuration"])
 async def change_configuration_for_jdbc_drivers(jdbcDriver: dataModels.jdbcDriver, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	# response.status_code = status.HTTP_201_CREATED
 	returnMsg, response.status_code =  dbCalls.updateJDBCdriver(jdbcDriver, current_user["username"])
 	return returnMsg
 
-@app.get("/config/getConfig", response_model=dataModels.configuration)
+@app.get("/config/getConfig", response_model=dataModels.configuration, tags=["Configuration"])
 async def get_global_configuration(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
     return dbCalls.getConfiguration(current_user["username"])
 
-@app.post("/config/updateConfig")
+@app.post("/config/updateConfig", tags=["Configuration"])
 async def update_global_configuration(configuration: dataModels.configuration, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateConfiguration(configuration, current_user["username"])
 	return returnMsg
 
-@app.get("/connection", response_model=List[dataModels.connection])
+@app.get("/connection", response_model=List[dataModels.connection], tags=["Connections"])
 async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)], listOnlyName: bool=False):
 	return dbCalls.getAllConnections(listOnlyName)
 
-@app.get("/connection/{connection}", response_model=dataModels.connectionDetails)
+@app.get("/connection/{connection}", response_model=dataModels.connectionDetails, tags=["Connections"])
 async def get_connection_details(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getConnection(connection)
 
-@app.delete("/connection/{connection}")
+@app.delete("/connection/{connection}", tags=["Connections"])
 async def delete_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteConnection(connection, current_user["username"])
 	return returnMsg
 
-@app.post("/connection")
+@app.post("/connection", tags=["Connections"])
 async def update_connection(connection: dataModels.connectionDetails, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateConnection(connection, current_user["username"])
 	return returnMsg
 
-@app.get("/import/db", response_model=List[dataModels.importDBs])
+@app.get("/import/db", response_model=List[dataModels.importDBs], tags=["Imports"])
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()
 
-@app.get("/import/table/{database}", response_model=List[dataModels.importTable])
-async def get_import_tables_in_database(database: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getImportTablesInDatabase(database = database)
+@app.post("/import/search", response_model=List[dataModels.importTable], tags=["Imports"])
+async def search_import_tables(searchValues: dataModels.importTableSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	return dbCalls.searchImportTables(searchValues, current_user["username"])
 
-@app.get("/import/table/{database}/{table}", response_model=dataModels.importTableDetailsRead)
+@app.get("/import/table/{connection}", response_model=List[dataModels.importTable], tags=["Imports"])
+async def get_import_tables_on_a_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getImportTablesOnConnection(connection, current_user["username"])
+
+@app.get("/import/table/{database}", response_model=List[dataModels.importTable], tags=["Imports"])
+async def get_import_tables_in_database(database: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
+	return dbCalls.getImportTablesInDatabase(database, current_user["username"])
+
+@app.get("/import/table/{database}/{table}", response_model=dataModels.importTableDetailsRead, tags=["Imports"])
 async def get_import_table_details(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getImportTableDetails(database = database, table = table)
 
-@app.delete("/import/table/{database}/{table}")
+@app.delete("/import/table/{database}/{table}", tags=["Imports"])
 async def delete_import_table(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteImportTable(database, table, current_user["username"])
 	return returnMsg
 
-@app.post("/import/table")
+@app.post("/import/table", tags=["Imports"])
 async def create_or_update_import_table(table: dataModels.importTableDetailsWrite, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateImportTable(table, current_user["username"])
 	return returnMsg
 
-@app.get("/export/connection", response_model=List[dataModels.exportConnections])
+@app.get("/export/connection", response_model=List[dataModels.exportConnections], tags=["Exports"])
 async def get_all_connections_with_exports(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getExportConnections()
 
-@app.get("/export/table/{connection}", response_model=List[dataModels.exportTable])
-async def get_export_tables_on_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getExportTables(connection = connection)
+@app.post("/export/search", response_model=List[dataModels.exportTable], tags=["Exports"])
+async def search_export_tables(searchValues: dataModels.exportTableSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	return dbCalls.searchExportTables(searchValues, current_user["username"])
 
-@app.get("/export/table/{connection}/{schema}", response_model=List[dataModels.exportTable])
-async def get_export_tables_on_connection_and_schema(connection: str, schema: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getExportTables(connection = connection, schema = schema)
+@app.get("/export/table/{connection}", response_model=List[dataModels.exportTable], tags=["Exports"])
+async def get_export_tables_on_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	return dbCalls.getExportTables(connection = connection, schema = None, currentUser = current_user["username"])
 
-@app.get("/export/table/{connection}/{schema}/{table}", response_model=dataModels.exportTableDetailsRead)
+@app.get("/export/table/{connection}/{schema}", response_model=List[dataModels.exportTable], tags=["Exports"])
+async def get_export_tables_on_connection_and_schema(connection: str, schema: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	return dbCalls.getExportTables(connection = connection, schema = schema, currentUser = current_user["username"])
+
+@app.get("/export/table/{connection}/{schema}/{table}", response_model=dataModels.exportTableDetailsRead, tags=["Exports"])
 async def get_export_table_details(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getExportTableDetails(connection = connection, schema = schema, table = table)
 
-@app.delete("/export/table/{connection}/{schema}/{table}")
+@app.delete("/export/table/{connection}/{schema}/{table}", tags=["Exports"])
 async def delete_export_table(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteExportTable(connection, schema, table, current_user["username"])
 	return returnMsg
 
-@app.post("/export/table")
+@app.post("/export/table", tags=["Exports"])
 async def create_or_update_export_table(table: dataModels.exportTableDetailsWrite, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateExportTable(table, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags", response_model=List[dataModels.airflowAllDags])
+@app.get("/airflow/dags", response_model=List[dataModels.airflowAllDags], tags=["Airflow"])
 async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllAirflowDags()
 
-@app.get("/airflow/dags/import", response_model=List[dataModels.airflowImportDags])
+@app.get("/airflow/dags/import", response_model=List[dataModels.airflowImportDags], tags=["Airflow"])
 async def get_import_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowImportDags()
 
-@app.post("/airflow/dags/import")
+@app.post("/airflow/dags/import", tags=["Airflow"])
 async def create_or_update_import_airflow_dag(airflowDag: dataModels.airflowImportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateImportAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags/import/{dagname}", response_model=dataModels.airflowImportDag)
+@app.get("/airflow/dags/import/{dagname}", response_model=dataModels.airflowImportDag, tags=["Airflow"])
 async def get_import_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowImportDag(dagname)
 
-@app.delete("/airflow/dags/import/{dagname}")
+@app.delete("/airflow/dags/import/{dagname}", tags=["Airflow"])
 async def delete_import_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteImportAirflowDag(dagname, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags/export", response_model=List[dataModels.airflowExportDags])
+@app.get("/airflow/dags/export", response_model=List[dataModels.airflowExportDags], tags=["Airflow"])
 async def get_export_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowExportDags()
 
-@app.post("/airflow/dags/export")
+@app.post("/airflow/dags/export", tags=["Airflow"])
 async def create_or_update_export_airflow_dag(airflowDag: dataModels.airflowExportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateExportAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags/export/{dagname}", response_model=dataModels.airflowExportDag)
+@app.get("/airflow/dags/export/{dagname}", response_model=dataModels.airflowExportDag, tags=["Airflow"])
 async def get_export_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowExportDag(dagname)
 
-@app.delete("/airflow/dags/export/{dagname}")
+@app.delete("/airflow/dags/export/{dagname}", tags=["Airflow"])
 async def delete_export_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteExportAirflowDag(dagname, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags/custom", response_model=List[dataModels.airflowCustomDags])
+@app.get("/airflow/dags/custom", response_model=List[dataModels.airflowCustomDags], tags=["Airflow"])
 async def get_custom_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowCustomDags()
 
-@app.post("/airflow/dags/custom")
+@app.post("/airflow/dags/custom", tags=["Airflow"])
 async def create_or_update_custom_airflow_dag(airflowDag: dataModels.airflowCustomDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateCustomAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
-@app.get("/airflow/dags/custom/{dagname}", response_model=dataModels.airflowCustomDag)
+@app.get("/airflow/dags/custom/{dagname}", response_model=dataModels.airflowCustomDag, tags=["Airflow"])
 async def get_custom_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowCustomDag(dagname)
 
-@app.delete("/airflow/dags/custom/{dagname}")
+@app.delete("/airflow/dags/custom/{dagname}", tags=["Airflow"])
 async def delete_custom_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteCustomAirflowDag(dagname, current_user["username"])
 	return returnMsg

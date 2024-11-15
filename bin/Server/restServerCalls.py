@@ -33,6 +33,7 @@ import json
 import bcrypt
 from urllib.parse import quote
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi import HTTPException, status
 from ConfigReader import configuration
 from datetime import date, datetime, timedelta
@@ -48,6 +49,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select, func, update, delete
+from sqlalchemy.sql.operators import like_op
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.orm import aliased, sessionmaker, scoped_session, Query
 import sqlalchemy.orm.exc
@@ -77,6 +79,8 @@ class dbCalls:
 
 		self.logdir = configuration.get("Server", "logdir")
 		self.adminUser = self.common_config.getConfigValue("restserver_admin_user")
+
+		self.contentMaxRows = 1000
 
 		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
 
@@ -542,11 +546,13 @@ class dbCalls:
 				)
 				.select_from(tableJDBCconnections)
 				.order_by(tableJDBCconnections.dbalias)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
 		listOfConnections = []
+		count = 0
 		for row in jdbcConnections:
+			count = count + 1
 			resultDict = {}
 			resultDict["name"] = row[0]
 			if listOnlyName == False:
@@ -573,11 +579,15 @@ class dbCalls:
 
 			listOfConnections.append(resultDict)
 
+			if count == self.contentMaxRows:
+				break
+
 		jsonResult = json.loads(json.dumps(listOfConnections))
-		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
+
 
 	def updateConnection(self, connection, currentUser):
 		""" Update or create a Connections """
@@ -806,11 +816,13 @@ class dbCalls:
 				)
 				.select_from(importTables)
 				.group_by(importTables.hive_db)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
 		listOfDBs = []
+		count = 0
 		for row in importTableDBs:
+			count = count + 1
 			resultDict = {}
 			resultDict["name"] = row[0]
 			resultDict["tables"] = row[1]
@@ -830,15 +842,17 @@ class dbCalls:
 				resultDict["lastRows"] = int(row[4])
 			listOfDBs.append(resultDict)
 
+			if count == self.contentMaxRows:
+				break
+
 		jsonResult = json.loads(json.dumps(listOfDBs))
-		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
-
-	def getImportTablesInDatabase(self, database):
-		""" Returns all import tables in a specific database """
+	def searchImportTables(self, searchValues, currentUser):
+		""" Search for import tables """
 		log = logging.getLogger(self.logger)
 
 		try:
@@ -848,7 +862,18 @@ class dbCalls:
 			return None
 
 		importTables = aliased(configSchema.importTables)
-		listOfTables = []
+
+		attributeToColumn = {}
+		attributeToColumn["database"] = importTables.hive_db
+		attributeToColumn["table"] = importTables.hive_table
+		attributeToColumn["connection"] = importTables.dbalias
+		attributeToColumn["sourceSchema"] = importTables.source_schema
+		attributeToColumn["sourceTable"] = importTables.source_table
+		attributeToColumn["importPhaseType"] = importTables.import_phase_type
+		attributeToColumn["etlPhaseType"] = importTables.etl_phase_type
+		attributeToColumn["importTool"] = importTables.import_tool
+		attributeToColumn["etlEngine"] = importTables.etl_engine
+		attributeToColumn["includeInAirflow"] = importTables.include_in_airflow
 
 		# Return a list of Hive tables with details
 		importTablesData = (session.query(
@@ -861,14 +886,42 @@ class dbCalls:
 					importTables.etl_phase_type,
 					importTables.import_tool,
 					importTables.etl_engine,
-					importTables.last_update_from_source
+					importTables.last_update_from_source,
+					importTables.include_in_airflow
 				)
 				.select_from(importTables)
-				.filter(importTables.hive_db == database)
-				.all()
 			)
 
+		# Add the filters for the specific column that we search on
+		for items in searchValues:
+			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
+				# If it's None, empty or search *, it means we dont need to search on that value. So lets skip it
+				continue
+
+			column = items[0]
+			value = items[1]
+			likeSearch = False
+
+			if type(value) is str:
+				if "%" in value or "*" in value:
+					value = value.replace("*", "%")
+					likeSearch = True
+
+			log.debug("search filter: %s = %s"%(column, value))
+
+			if likeSearch == True:
+				importTablesData = importTablesData.filter(like_op(attributeToColumn[column], value))
+			else:
+				importTablesData = importTablesData.filter(attributeToColumn[column] == value)
+
+		# Fetch all rows matching the filter
+		importTablesData = importTablesData.limit(self.contentMaxRows)
+
+		# Loop through result and create the return dict
+		count = 0
+		listOfTables = []
 		for row in importTablesData:
+			count = count + 1
 			resultDict = {}
 			resultDict['database'] = row[0]
 			resultDict['table'] = row[1]
@@ -883,16 +936,105 @@ class dbCalls:
 				resultDict['lastUpdateFromSource'] = row[9].strftime("%Y-%m-%d %H:%M:%S")
 			except AttributeError:
 				resultDict['lastUpdateFromSource'] = None
+			if row[10] == 1:
+				resultDict['includeInAirflow'] = True
+			else:
+				resultDict['includeInAirflow'] = False
 
 			listOfTables.append(resultDict)
+
+			if count == self.contentMaxRows:
+				break
 
 
 		jsonResult = json.loads(json.dumps(listOfTables))
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
+
+	def getImportTablesOnConnection(self, connection, currentUser):
+		""" Returns all import tables in a specific database """
+		log = logging.getLogger(self.logger)
+
+		searchValues = dataModels.importTableSearch(database="*", table="*", connection=connection)
+		
+		return self.searchImportTables(searchValues, currentUser) 
+
+
+	def getImportTablesInDatabase(self, database, currentUser):
+		""" Returns all import tables in a specific database """
+		log = logging.getLogger(self.logger)
+
+		searchValues = dataModels.importTableSearch(database=database, table="*")
+		
+		return self.searchImportTables(searchValues, currentUser) 
+
+#		try:
+#			session = self.getDBImportSession()
+#		except SQLerror:
+#			self.disconnectDBImportDB()
+#			return None
+#
+#		importTables = aliased(configSchema.importTables)
+#		listOfTables = []
+#
+#		# Return a list of Hive tables with details
+#		importTablesData = (session.query(
+#					importTables.hive_db,
+#					importTables.hive_table,
+#					importTables.dbalias,
+#					importTables.source_schema,
+#					importTables.source_table,
+#					importTables.import_phase_type,
+#					importTables.etl_phase_type,
+#					importTables.import_tool,
+#					importTables.etl_engine,
+#					importTables.last_update_from_source,
+#					importTables.include_in_airflow
+#				)
+#				.select_from(importTables)
+#				.filter(importTables.hive_db == database)
+#				.all()
+#			)
+#
+#		count = 0
+#		for row in importTablesData:
+#			count = count + 1
+#			resultDict = {}
+#			resultDict['database'] = row[0]
+#			resultDict['table'] = row[1]
+#			resultDict['connection'] = row[2]
+#			resultDict['sourceSchema'] = row[3]
+#			resultDict['sourceTable'] = row[4]
+#			resultDict['importPhaseType'] = row[5]
+#			resultDict['etlPhaseType'] = row[6]
+#			resultDict['importTool'] = row[7]
+#			resultDict['etlEngine'] = row[8]
+#			try:
+#				resultDict['lastUpdateFromSource'] = row[9].strftime("%Y-%m-%d %H:%M:%S")
+#			except AttributeError:
+#				resultDict['lastUpdateFromSource'] = None
+#			if row[10] == 1:
+#				resultDict['includeInAirflow'] = True
+#			else:
+#				resultDict['includeInAirflow'] = False
+#
+#			listOfTables.append(resultDict)
+#
+#			if count == self.contentMaxRows:
+#				break
+#
+#
+#		jsonResult = json.loads(json.dumps(listOfTables))
+#		# session.close()
+#		session.remove()
+#
+#		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+#		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
+#	
 
 	def getImportTableDetails(self, database, table):
 		""" Returns all import table details """
@@ -1489,11 +1631,13 @@ class dbCalls:
 				)
 				.select_from(exportTables)
 				.group_by(exportTables.dbalias)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
 		listOfConnections = []
+		count = 0
 		for row in exportTableDBs:
+			count = count + 1
 			connection = {}
 			connection["name"] = row[0]
 			connection["tables"] = row[1]
@@ -1508,15 +1652,19 @@ class dbCalls:
 				connection["lastRows"] = int(row[3])
 			listOfConnections.append(connection)
 
+			if count == self.contentMaxRows:
+				break
+
 		jsonResult = json.loads(json.dumps(listOfConnections))
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
-	def getExportTables(self, connection, schema = None):
-		""" Returns all connections that have exports configured in them """
+	def searchExportTables(self, searchValues, currentUser):
+		""" Search for import tables """
 		log = logging.getLogger(self.logger)
 
 		try:
@@ -1527,59 +1675,174 @@ class dbCalls:
 
 		exportTables = aliased(configSchema.exportTables)
 
-		if schema == None:
-			exportTableDBs = (session.query(
-						exportTables.dbalias,
-						exportTables.target_schema,
-						exportTables.target_table,
-						exportTables.hive_db,
-						exportTables.hive_table,
-						exportTables.export_type,
-						exportTables.export_tool,
-						exportTables.last_update_from_hive
-					)
-					.select_from(exportTables)
-					.filter(exportTables.dbalias == connection)
-					.all()
-				)
-		else:
-			exportTableDBs = (session.query(
-						exportTables.dbalias,
-						exportTables.target_schema,
-						exportTables.target_table,
-						exportTables.hive_db,
-						exportTables.hive_table,
-						exportTables.export_type,
-						exportTables.export_tool,
-						exportTables.last_update_from_hive
-					)
-					.select_from(exportTables)
-					.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema))
-					.all()
-				)
+		attributeToColumn = {}
+		attributeToColumn["connection"] = exportTables.dbalias
+		attributeToColumn["targetSchema"] = exportTables.target_schema
+		attributeToColumn["targetTable"] = exportTables.target_table
+		attributeToColumn["database"] = exportTables.hive_db
+		attributeToColumn["table"] = exportTables.hive_table
+		attributeToColumn["exportType"] = exportTables.export_type
+		attributeToColumn["exportTool"] = exportTables.export_tool
+		attributeToColumn["includeInAirflow"] = exportTables.include_in_airflow
 
-		listOfExports = []
-		for row in exportTableDBs:
-			exportTable = {}
-			exportTable["connection"] = row[0]
-			exportTable["targetSchema"] = row[1]
-			exportTable["targetTable"] = row[2]
-			exportTable["database"] = row[3]
-			exportTable["table"] = row[4]
-			exportTable["exportType"] = row[5]
-			exportTable["exportTool"] = row[6]
+		# Return a list of Hive tables with details
+		exportTablesData = (session.query(
+					exportTables.dbalias,
+					exportTables.target_schema,
+					exportTables.target_table,
+					exportTables.hive_db,
+					exportTables.hive_table,
+					exportTables.export_type,
+					exportTables.export_tool,
+					exportTables.last_update_from_hive,
+					exportTables.include_in_airflow
+				)
+				.select_from(exportTables)
+			)
+
+		# Add the filters for the specific column that we search on
+		for items in searchValues:
+			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
+				# If it's None, empty or search *, it means we dont need to search on that value. So lets skip it
+				continue
+
+			column = items[0]
+			value = items[1]
+			likeSearch = False
+
+			if type(value) is str:
+				if "%" in value or "*" in value:
+					value = value.replace("*", "%")
+					likeSearch = True
+
+			log.debug("search filter: %s = %s"%(column, value))
+
+			if likeSearch == True:
+				exportTablesData = exportTablesData.filter(like_op(attributeToColumn[column], value))
+			else:
+				exportTablesData = exportTablesData.filter(attributeToColumn[column] == value)
+
+		# Fetch all rows matching the filter
+		exportTablesData = exportTablesData.limit(self.contentMaxRows)
+
+		# Loop through result and create the return dict
+		count = 0
+		listOfTables = []
+		for row in exportTablesData:
+			count = count + 1
+			resultDict = {}
+			resultDict['connection'] = row[0]
+			resultDict['targetSchema'] = row[1]
+			resultDict['targetTable'] = row[2]
+			resultDict['database'] = row[3]
+			resultDict['table'] = row[4]
+			resultDict['exportType'] = row[5]
+			resultDict['exportTool'] = row[6]
 			try:
-				exportTable['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
+				resultDict['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
 			except AttributeError:
-				exportTable['lastUpdateFromHive'] = None
-			listOfExports.append(exportTable)
+				resultDict['lastUpdateFromHive'] = None
+			if row[8] == 1:
+				resultDict['includeInAirflow'] = True
+			else:
+				resultDict['includeInAirflow'] = False
 
-		jsonResult = json.loads(json.dumps(listOfExports))
-		# session.close()
+			listOfTables.append(resultDict)
+
+			if count == self.contentMaxRows:
+				break
+
+
+		jsonResult = json.loads(json.dumps(listOfTables))
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
+
+
+	def getExportTables(self, connection, schema, currentUser):
+		""" Returns all connections that have exports configured in them """
+		log = logging.getLogger(self.logger)
+
+		if schema == None:	schema = "*"
+		searchValues = dataModels.exportTableSearch(connection=connection, targetSchema=schema, targetTable="*")
+		
+		return self.searchExportTables(searchValues, currentUser) 
+
+#		try:
+#			session = self.getDBImportSession()
+#		except SQLerror:
+#			self.disconnectDBImportDB()
+#			return None
+#
+#		exportTables = aliased(configSchema.exportTables)
+#
+#		if schema == None:
+#			exportTableDBs = (session.query(
+#						exportTables.dbalias,
+#						exportTables.target_schema,
+#						exportTables.target_table,
+#						exportTables.hive_db,
+#						exportTables.hive_table,
+#						exportTables.export_type,
+#						exportTables.export_tool,
+#						exportTables.last_update_from_hive,
+#						exportTables.include_in_airflow
+#					)
+#					.select_from(exportTables)
+#					.filter(exportTables.dbalias == connection)
+#					.limit(self.contentMaxRows)
+#				)
+#		else:
+#			exportTableDBs = (session.query(
+#						exportTables.dbalias,
+#						exportTables.target_schema,
+#						exportTables.target_table,
+#						exportTables.hive_db,
+#						exportTables.hive_table,
+#						exportTables.export_type,
+#						exportTables.export_tool,
+#						exportTables.last_update_from_hive,
+#						exportTables.include_in_airflow
+#					)
+#					.select_from(exportTables)
+#					.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema))
+#					.limit(self.contentMaxRows)
+#				)
+#
+#		listOfExports = []
+#		count = 0
+#		for row in exportTableDBs:
+#			count = count + 1
+#			resultDict = {}
+#			resultDict["connection"] = row[0]
+#			resultDict["targetSchema"] = row[1]
+#			resultDict["targetTable"] = row[2]
+#			resultDict["database"] = row[3]
+#			resultDict["table"] = row[4]
+#			resultDict["exportType"] = row[5]
+#			resultDict["exportTool"] = row[6]
+#			try:
+#				resultDict['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
+#			except AttributeError:
+#				resultDict['lastUpdateFromHive'] = None
+#			if row[8] == 1:
+#				resultDict['includeInAirflow'] = True
+#			else:
+#				resultDict['includeInAirflow'] = False
+#			listOfExports.append(resultDict)
+#
+#			if count == self.contentMaxRows:
+#				break
+#
+#		jsonResult = json.loads(json.dumps(listOfExports))
+#		# session.close()
+#		session.remove()
+
+#		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+#		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
+#	
 
 	def getExportTableDetails(self, connection, schema, table):
 		""" Returns all connections that have exports configured in them """
@@ -2070,10 +2333,11 @@ class dbCalls:
 				.select_from(airflowExportDags)
 			)
 
-		airflowDagsData = airflowCustomDagsQuery.union(airflowImportDagsQuery, airflowExportDagsQuery).all()
+		airflowDagsData = airflowCustomDagsQuery.union(airflowImportDagsQuery, airflowExportDagsQuery).limit(self.contentMaxRows)
 
-
+		count = 0
 		for row in airflowDagsData:
+			count = count + 1
 			resultDict = {}
 
 			# Just to make sure that two DAGs dont exists with the same name in different tables
@@ -2092,12 +2356,16 @@ class dbCalls:
 #			resultDict['applicationNotes'] = row[5]
 			listOfDAGs.append(resultDict)
 
+			if count == self.contentMaxRows:
+				break
+
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
 	def getAirflowImportDags(self): 
@@ -2121,10 +2389,12 @@ class dbCalls:
 					airflowImportDags.filter_hive
 				)
 				.select_from(airflowImportDags)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
+		count = 0
 		for row in airflowDagsData:
+			count = count + 1
 			resultDict = {}
 
 			resultDict['name'] = row[0]
@@ -2133,12 +2403,16 @@ class dbCalls:
 			resultDict['filterTable'] = row[3]
 			listOfDAGs.append(resultDict)
 
+			if count == self.contentMaxRows:
+				break
+
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
 	def getAirflowExportDags(self): 
@@ -2164,10 +2438,12 @@ class dbCalls:
 					airflowExportDags.filter_target_table 
 				)
 				.select_from(airflowExportDags)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
+		count = 0
 		for row in airflowDagsData:
+			count = count + 1
 			resultDict = {}
 
 			resultDict['name'] = row[0]
@@ -2184,7 +2460,8 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
 	def getAirflowCustomDags(self): 
@@ -2207,11 +2484,12 @@ class dbCalls:
 					airflowCustomDags.auto_regenerate_dag
 				)
 				.select_from(airflowCustomDags)
-				.all()
+				.limit(self.contentMaxRows)
 			)
 
-
+		count = 0
 		for row in airflowDagsData:
+			count = count + 1
 			resultDict = {}
 
 			resultDict['name'] = row[0]
@@ -2219,12 +2497,16 @@ class dbCalls:
 			resultDict['autoRegenerateDag'] = row[2]
 			listOfDAGs.append(resultDict)
 
+			if count == self.contentMaxRows:
+				break
+
 
 		jsonResult = json.loads(json.dumps(listOfDAGs))
 		# session.close()
 		session.remove()
 
-		return jsonResult
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 	def getAirflowTasks(self, dagname):
 		""" Returns a list with all airflow dags associated with a specified dag """

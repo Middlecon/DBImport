@@ -161,6 +161,7 @@ class importTable(BaseModel):
 	importTool: str
 	etlEngine: str
 	lastUpdateFromSource: Union[str, None] = None
+	includeInAirflow: bool
 
 class importTableColumnsRead(BaseModel):
 #	database: str
@@ -226,7 +227,6 @@ class importTableDetailsRead(BaseModel):
 	validationCustomQuerySourceSQL: Union[str, None] = None
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: bool
-#	truncateTable: bool
 	sqlSessions: int
 	softDeleteDuringMerge: bool
 	sourceRowcount: Union[int, None] = None
@@ -262,7 +262,6 @@ class importTableDetailsRead(BaseModel):
 	generatedSqoopQuery: Union[str, None] = None
 	generatedSqoopOptions: Union[str, None] = None
 	generatedPkColumns: Union[str, None] = None
-#	generatedForeignKeys: Union[str, None] = None
 	datalakeSource: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	copyFinished: Union[str, None] = None
@@ -300,7 +299,6 @@ class importTableDetailsWrite(BaseModel):
 	validationCustomQuerySourceSQL: Union[str, None] = None
 	validationCustomQueryHiveSQL: Union[str, None] = None
 	validationCustomQueryValidateImportTable: Union[bool, None] = None
-#	truncateTable: Union[bool, None] = None
 	sqlSessions: Union[int, None] = None
 	softDeleteDuringMerge: Union[bool, None] = None
 	incrMode: Union[str, None] = None
@@ -333,65 +331,34 @@ class importTableDetailsWrite(BaseModel):
 	historyTable: Union[str, None] = None
 	columns: List[importTableColumnsWrite] = []
 
-#class importTableDetailsWrite(BaseModel):
-#	database: str
-#	table: str
-#	connection: str
-#	sourceSchema: str
-#	sourceTable: str
-#	importPhaseType: str
-#	etlPhaseType: str
-#	importTool: str
-#	etlEngine: str
-#	lastUpdateFromSource: Union[str, None] = None
-#	sqlWhereAddition: Union[str, None] = None
-#	nomergeIngestionSqlAddition: Union[str, None] = None
-#	includeInAirflow: bool
-#	airflowPriority: Union[int, None] = None
-#	validateImport: bool
-#	validationMethod: str
-#	validateSource: str
-#	validateDiffAllowed: int
-#	validationCustomQuerySourceSQL: Union[str, None] = None
-#	validationCustomQueryHiveSQL: Union[str, None] = None
-#	validationCustomQueryValidateImportTable: bool
-#	truncateTable: bool
-#	sqlSessions: int
-#	softDeleteDuringMerge: bool
-#	incrMode: Union[str, None] = None
-#	incrColumn: Union[str, None] = None
-#	incrValidationMethod: str
-#	pkColumnOverride: Union[str, None] = None
-#	pkColumnOverrideMergeonly: Union[str, None] = None
-#	hiveContainerSize: Union[int, None] = None
-#	splitCount: Union[int, None] = None
-#	sparkExecutorMemory: Union[str, None] = None
-#	sparkExecutors: Union[int, None] = None
-#	splitByColumn: Union[str, None] = None
-#	sqoopCustomQuery: Union[str, None] = None
-#	sqoopOptions: Union[str, None] = None
-#	sqoopUseGeneratedSql: bool
-#	allowTextSplitter: bool
-#	forceString: int
-#	comment: Union[str, None] = None
-#	datalakeSource: Union[str, None] = None
-#	operatorNotes: Union[str, None] = None
-#	createForeignKeys: int
-#	invalidateImpala: int
-#	customMaxQuery: Union[str, None] = None
-#	mergeCompactionMethod: str
-#	sourceTableType: Union[str, None] = None
-#	importDatabase: Union[str, None] = None
-#	importTable: Union[str, None] = None
-#	historyDatabase: Union[str, None] = None
-#	historyTable: Union[str, None] = None
-#	columns: List[importTableColumnsWrite] = []
+class importTableSearch(BaseModel):
+	database: str
+	table: str
+	connection: Union[str, None] = None
+	sourceSchema: Union[str, None] = None
+	sourceTable: Union[str, None] = None
+	importPhaseType: Union[str, None] = None
+	etlPhaseType: Union[str, None] = None
+	importTool: Union[str, None] = None
+	etlEngine: Union[str, None] = None
+	includeInAirflow: Union[bool, None] = None
+
 
 class exportConnections(BaseModel):
 	name: str
 	tables: int
 	lastExport: Union[str, None] = None
 	lastRows: Union[int, None] = None
+
+class exportTableSearch(BaseModel):
+	connection: str
+	targetSchema: str
+	targetTable: str
+	database: Union[str, None] = None
+	table: Union[str, None] = None
+	exportType: Union[str, None] = None
+	exportTool: Union[str, None] = None
+	includeInAirflow: Union[bool, None] = None
 
 class exportTable(BaseModel):
 	connection: str
@@ -402,6 +369,7 @@ class exportTable(BaseModel):
 	exportType: str
 	exportTool: str
 	lastUpdateFromHive: Union[str, None] = None
+	includeInAirflow: bool
 
 class exportTableColumnsRead(BaseModel):
 #	connection: str
