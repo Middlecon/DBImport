@@ -364,6 +364,11 @@ async def update_global_configuration(configuration: dataModels.configuration, c
 async def get_all_connections(current_user: Annotated[dataModels.User, Depends(get_current_user)], listOnlyName: bool=False):
 	return dbCalls.getAllConnections(listOnlyName)
 
+@app.post("/connection", tags=["Connections"])
+async def update_connection(connection: dataModels.connectionDetails, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateConnection(connection, current_user["username"])
+	return returnMsg
+
 @app.get("/connection/{connection}", response_model=dataModels.connectionDetails, tags=["Connections"])
 async def get_connection_details(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getConnection(connection)
@@ -373,10 +378,9 @@ async def delete_connection(connection: str, current_user: Annotated[dataModels.
 	returnMsg, response.status_code =  dbCalls.deleteConnection(connection, current_user["username"])
 	return returnMsg
 
-@app.post("/connection", tags=["Connections"])
-async def update_connection(connection: dataModels.connectionDetails, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.updateConnection(connection, current_user["username"])
-	return returnMsg
+@app.post("/connection/search", response_model=List[dataModels.connection], tags=["Connections"])
+async def search_connections(searchValues: dataModels.connectionSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	return dbCalls.searchConnections(searchValues, current_user["username"])
 
 @app.get("/import/db", response_model=List[dataModels.importDBs], tags=["Imports"])
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):

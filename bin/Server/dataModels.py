@@ -41,6 +41,15 @@ class importDBs(BaseModel):
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
 
+class connectionSearch(BaseModel):
+	name: Union[str, None] = None
+	connectionString: Union[str, None] = None
+	timeWindowTimezone: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	contactInformation: Union[str, None] = None
+	description: Union[str, None] = None
+	owner: Union[str, None] = None
+
 class connection(BaseModel):
 	name: str
 	connectionString: Union[str, None] = None
@@ -342,6 +351,7 @@ class importTableSearch(BaseModel):
 	importTool: Union[str, None] = None
 	etlEngine: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
+	operatorNotes: Union[str, None] = None
 
 
 class exportConnections(BaseModel):
@@ -359,6 +369,7 @@ class exportTableSearch(BaseModel):
 	exportType: Union[str, None] = None
 	exportTool: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
+	operatorNotes: Union[str, None] = None
 
 class exportTable(BaseModel):
 	connection: str

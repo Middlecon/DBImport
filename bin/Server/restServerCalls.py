@@ -529,6 +529,29 @@ class dbCalls:
 		# return jsonResult
 		return (result, returnCode)
 
+
+	def getJDBCserverType(self, name, connectionString):
+		""" Return the server type based on the connection string """
+		self.common_config.lookupConnectionAlias(name, decryptCredentials=False, jdbcURL=connectionString)
+
+		serverType = None
+		if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"
+		if self.common_config.jdbc_servertype == constant.ORACLE:			serverType = "Oracle"	
+		if self.common_config.jdbc_servertype == constant.MSSQL:			serverType = "MSSQL Server"
+		if self.common_config.jdbc_servertype == constant.POSTGRESQL:		serverType = "PostgreSQL"
+		if self.common_config.jdbc_servertype == constant.PROGRESS:			serverType = "Progress"
+		if self.common_config.jdbc_servertype == constant.DB2_UDB:			serverType = "DB2 UDB"
+		if self.common_config.jdbc_servertype == constant.DB2_AS400:		serverType = "DB2 AS400"
+		if self.common_config.jdbc_servertype == constant.MONGO:			serverType = "MongoDB"
+		if self.common_config.jdbc_servertype == constant.CACHEDB:			serverType = "Cache"
+		if self.common_config.jdbc_servertype == constant.SNOWFLAKE:		serverType = "Snowflake"
+		if self.common_config.jdbc_servertype == constant.AWS_S3:			serverType = "AWS S3"
+		if self.common_config.jdbc_servertype == constant.INFORMIX:			serverType = "Informix"
+		if self.common_config.jdbc_servertype == constant.SQLANYWHERE:		serverType = "SQL Anywhere"
+
+		return serverType
+
+
 	def getAllConnections(self, listOnlyName):
 		""" Returns all Connections """
 		log = logging.getLogger(self.logger)
@@ -557,24 +580,25 @@ class dbCalls:
 			resultDict["name"] = row[0]
 			if listOnlyName == False:
 				resultDict["connectionString"] = row[1]
+				resultDict["serverType"] = self.getJDBCserverType(name=row[0], connectionString=row[1])
 
-				self.common_config.lookupConnectionAlias(row[0], decryptCredentials=False, jdbcURL=row[1])
-
-				serverType = None
-				if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"
-				if self.common_config.jdbc_servertype == constant.ORACLE:			serverType = "Oracle"	
-				if self.common_config.jdbc_servertype == constant.MSSQL:			serverType = "MSSQL Server"
-				if self.common_config.jdbc_servertype == constant.POSTGRESQL:		serverType = "PostgreSQL"
-				if self.common_config.jdbc_servertype == constant.PROGRESS:			serverType = "Progress"
-				if self.common_config.jdbc_servertype == constant.DB2_UDB:			serverType = "DB2 UDB"
-				if self.common_config.jdbc_servertype == constant.DB2_AS400:		serverType = "DB2 AS400"
-				if self.common_config.jdbc_servertype == constant.MONGO:			serverType = "MongoDB"
-				if self.common_config.jdbc_servertype == constant.CACHEDB:			serverType = "Cache"
-				if self.common_config.jdbc_servertype == constant.SNOWFLAKE:		serverType = "Snowflake"
-				if self.common_config.jdbc_servertype == constant.AWS_S3:			serverType = "AWS S3"
-				if self.common_config.jdbc_servertype == constant.INFORMIX:			serverType = "Informix"
-				if self.common_config.jdbc_servertype == constant.SQLANYWHERE:		serverType = "SQL Anywhere"
-				resultDict["serverType"] = serverType
+#				self.common_config.lookupConnectionAlias(row[0], decryptCredentials=False, jdbcURL=row[1])
+#
+#				serverType = None
+#				if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"
+#				if self.common_config.jdbc_servertype == constant.ORACLE:			serverType = "Oracle"	
+#				if self.common_config.jdbc_servertype == constant.MSSQL:			serverType = "MSSQL Server"
+#				if self.common_config.jdbc_servertype == constant.POSTGRESQL:		serverType = "PostgreSQL"
+#				if self.common_config.jdbc_servertype == constant.PROGRESS:			serverType = "Progress"
+#				if self.common_config.jdbc_servertype == constant.DB2_UDB:			serverType = "DB2 UDB"
+#				if self.common_config.jdbc_servertype == constant.DB2_AS400:		serverType = "DB2 AS400"
+#				if self.common_config.jdbc_servertype == constant.MONGO:			serverType = "MongoDB"
+#				if self.common_config.jdbc_servertype == constant.CACHEDB:			serverType = "Cache"
+#				if self.common_config.jdbc_servertype == constant.SNOWFLAKE:		serverType = "Snowflake"
+#				if self.common_config.jdbc_servertype == constant.AWS_S3:			serverType = "AWS S3"
+#				if self.common_config.jdbc_servertype == constant.INFORMIX:			serverType = "Informix"
+#				if self.common_config.jdbc_servertype == constant.SQLANYWHERE:		serverType = "SQL Anywhere"
+#				resultDict["serverType"] = serverType
 
 
 			listOfConnections.append(resultDict)
@@ -587,6 +611,86 @@ class dbCalls:
 
 		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
+
+
+	def searchConnections(self, searchValues, currentUser):
+		""" Search for import tables """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		jdbcConnections = aliased(configSchema.jdbcConnections)
+
+		attributeToColumn = {}
+		attributeToColumn["name"] = jdbcConnections.dbalias
+		attributeToColumn["connectionString"] = jdbcConnections.jdbc_url
+		attributeToColumn["timeWindowTimezone"] = jdbcConnections.timewindow_timezone
+		attributeToColumn["operatorNotes"] = jdbcConnections.operator_notes
+		attributeToColumn["contactInformation"] = jdbcConnections.contact_info
+		attributeToColumn["description"] = jdbcConnections.description
+		attributeToColumn["owner"] = jdbcConnections.owner
+
+
+		# Return a list of connections 
+		jdbcConnectionsData = (session.query(
+					jdbcConnections.dbalias,
+					jdbcConnections.jdbc_url
+				)
+				.select_from(jdbcConnections)
+			)
+
+		# Add the filters for the specific column that we search on
+		for items in searchValues:
+			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
+				# If it's None, empty or search *, it means we dont need to search on that value. So lets skip it
+				continue
+
+			column = items[0]
+			value = items[1]
+			likeSearch = False
+
+			if type(value) is str:
+				if "%" in value or "*" in value:
+					value = value.replace("*", "%")
+					likeSearch = True
+
+			log.debug("search filter: %s = %s"%(column, value))
+
+			if likeSearch == True:
+				jdbcConnectionsData = jdbcConnectionsData.filter(like_op(attributeToColumn[column], value))
+			else:
+				jdbcConnectionsData = jdbcConnectionsData.filter(attributeToColumn[column] == value)
+
+		# Fetch all rows matching the filter
+		jdbcConnectionsData = jdbcConnectionsData.limit(self.contentMaxRows)
+
+		# Loop through result and create the return dict
+		count = 0
+		listOfConnections = []
+		for row in jdbcConnectionsData:
+			count = count + 1
+			resultDict = {}
+			resultDict["name"] = row[0]
+			resultDict["connectionString"] = row[1]
+			resultDict["serverType"] = self.getJDBCserverType(name=row[0], connectionString=row[1])
+
+			listOfConnections.append(resultDict)
+
+			if count == self.contentMaxRows:
+				break
+
+
+		jsonResult = json.loads(json.dumps(listOfConnections))
+		# session.close()
+		session.remove()
+
+		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
+	
 
 
 	def updateConnection(self, connection, currentUser):
@@ -874,6 +978,7 @@ class dbCalls:
 		attributeToColumn["importTool"] = importTables.import_tool
 		attributeToColumn["etlEngine"] = importTables.etl_engine
 		attributeToColumn["includeInAirflow"] = importTables.include_in_airflow
+		attributeToColumn["operatorNotes"] = importTables.operator_notes
 
 		# Return a list of Hive tables with details
 		importTablesData = (session.query(
@@ -1684,6 +1789,7 @@ class dbCalls:
 		attributeToColumn["exportType"] = exportTables.export_type
 		attributeToColumn["exportTool"] = exportTables.export_tool
 		attributeToColumn["includeInAirflow"] = exportTables.include_in_airflow
+		attributeToColumn["operatorNotes"] = exportTables.operator_notes
 
 		# Return a list of Hive tables with details
 		exportTablesData = (session.query(
