@@ -341,8 +341,8 @@ class importTableDetailsWrite(BaseModel):
 	columns: List[importTableColumnsWrite] = []
 
 class importTableSearch(BaseModel):
-	database: str
-	table: str
+	database: Union[str, None] = None
+	table: Union[str, None] = None
 	connection: Union[str, None] = None
 	sourceSchema: Union[str, None] = None
 	sourceTable: Union[str, None] = None
@@ -361,9 +361,9 @@ class exportConnections(BaseModel):
 	lastRows: Union[int, None] = None
 
 class exportTableSearch(BaseModel):
-	connection: str
-	targetSchema: str
-	targetTable: str
+	connection: Union[str, None] = None
+	targetSchema: Union[str, None] = None
+	targetTable: Union[str, None] = None
 	database: Union[str, None] = None
 	table: Union[str, None] = None
 	exportType: Union[str, None] = None
