@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './Dropdown.scss'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import ChevronDown from '../assets/icons/ChevronDown'
@@ -65,36 +65,136 @@ function Dropdown<T>({
     (initialTitle as T) || null
   )
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (disabled || !isOpen) return
+  const handleSelect = useCallback(
+    (item: T | null) => {
+      if (disabled) return
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        onToggle(false)
+      setSelectedItem(item)
+
+      if (keyLabel) {
+        onSelect(item, keyLabel)
+      } else {
+        onSelect(item)
+      }
+
+      setHighlightedIndex(-1)
+      onToggle(false)
+      setSearchTerm('')
+    },
+    [disabled, keyLabel, onSelect, onToggle]
+  )
+
+  const getItemLabel = (item: T): string => {
+    if (typeof item === 'string') {
+      return item
+    }
+    return (item as EditSetting).label
+  }
+
+  const filteredItems = (
+    items?.filter((item) =>
+      getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
+    ) ?? []
+  ).filter((item) => item !== selectedItem)
+
+  useEffect(() => {
+    if (textInputMode) {
+      if (items.length > 0) {
+        setHighlightedIndex((prevIndex) =>
+          prevIndex >= items.length || prevIndex < 0 ? -1 : prevIndex
+        )
+      } else {
+        setHighlightedIndex(-1)
+      }
+    } else {
+      if (filteredItems.length > 0) {
+        setHighlightedIndex((prevIndex) =>
+          prevIndex >= filteredItems.length || prevIndex < 0 ? -1 : prevIndex
+        )
+      } else {
+        setHighlightedIndex(-1)
       }
     }
+  }, [filteredItems, highlightedIndex, items.length, textInputMode])
+
+  useEffect(() => {
+    if (disabled) return
+
+    if (!isOpen) {
+      setHighlightedIndex(-1)
+      return
+    }
+
+    // const handleClickOutside = (event: MouseEvent) => {
+    //   if (
+    //     dropdownRef.current &&
+    //     !dropdownRef.current.contains(event.target as Node)
+    //   ) {
+    //     setTimeout(() => {
+    //       onToggle(false)
+    //       setHighlightedIndex(-1)
+    //     }, 0)
+    //     // onToggle(false)
+    //     // setHighlightedIndex(-1)
+    //   }
+    // }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onToggle(false)
+        setHighlightedIndex(-1)
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setHighlightedIndex((prev) =>
+          textInputMode
+            ? Math.min(prev + 1, items.length - 1)
+            : Math.min(prev + 1, filteredItems.length - 1)
+        )
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setHighlightedIndex((prev) =>
+          textInputMode ? Math.max(prev - 1, 0) : Math.max(prev - 1, 0)
+        )
+      }
+
+      if (event.key === 'Enter' && highlightedIndex >= 0) {
+        const selected = textInputMode
+          ? items[highlightedIndex]
+          : filteredItems[highlightedIndex]
+
+        handleSelect(selected)
+        setHighlightedIndex(-1)
+        onToggle(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    // document.addEventListener('mouseup', handleClickOutside)
     document.addEventListener('keydown', handleKeyDown)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      // document.removeEventListener('mouseup', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [disabled, isOpen, onToggle])
+  }, [
+    disabled,
+    filteredItems,
+    handleSelect,
+    highlightedIndex,
+    isOpen,
+    items,
+    items.length,
+    onToggle,
+    textInputMode
+  ])
 
   useEffect(() => {
     if (isOpen && searchFilter && searchInputRef.current) {
@@ -117,33 +217,8 @@ function Dropdown<T>({
     }
 
     setSearchTerm(value)
+    setHighlightedIndex(value ? 0 : -1)
   }
-
-  const handleSelect = (item: T | null) => {
-    if (disabled) return
-    setSelectedItem(item)
-
-    if (keyLabel) {
-      onSelect(item, keyLabel)
-    } else {
-      onSelect(item)
-    }
-    onToggle(false)
-    setSearchTerm('')
-  }
-
-  const getItemLabel = (item: T): string => {
-    if (typeof item === 'string') {
-      return item
-    }
-    return (item as EditSetting).label
-  }
-
-  const filteredItems = (
-    items?.filter((item) =>
-      getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
-    ) ?? []
-  ).filter((item) => item !== selectedItem)
 
   const dropdownStyle: React.CSSProperties = {
     backgroundColor,
@@ -162,6 +237,8 @@ function Dropdown<T>({
     height: dropdownStyle.height
       ? `calc(${dropdownStyle.height} + 5px)`
       : undefined
+    // backgroundColor: 'blue',
+    // border: '1px solid red'
   }
 
   const heightStyle: React.CSSProperties = {
@@ -171,7 +248,7 @@ function Dropdown<T>({
   }
 
   const dropdownPositionStyle: React.CSSProperties = {
-    top: textInputMode ? 0 : undefined
+    top: textInputMode ? -3 : undefined
   }
 
   return (
@@ -241,9 +318,19 @@ function Dropdown<T>({
           {textInputMode ? (
             <ul>
               {Array.isArray(items) &&
-                items.length &&
                 items.map((item, index) => (
-                  <li key={index} onClick={() => handleSelect(item)}>
+                  <li
+                    key={index}
+                    onClick={() => {
+                      setHighlightedIndex(index)
+                      handleSelect(item)
+                    }}
+                    style={
+                      index === highlightedIndex
+                        ? { backgroundColor: 'lightgrey' }
+                        : {}
+                    }
+                  >
                     <div className="item-content" style={itemContentStyle}>
                       <span className="item-text">{getItemLabel(item)}</span>
                       {chevron && !leftwards && <ChevronRight />}
@@ -255,7 +342,15 @@ function Dropdown<T>({
             <ul>
               {Array.isArray(filteredItems) && filteredItems.length ? (
                 filteredItems.map((item, index) => (
-                  <li key={index} onClick={() => handleSelect(item)}>
+                  <li
+                    key={index}
+                    onClick={() => handleSelect(item)}
+                    style={
+                      index === highlightedIndex
+                        ? { backgroundColor: 'lightgrey' }
+                        : {}
+                    }
+                  >
                     <div className="item-content" style={itemContentStyle}>
                       <span className="item-text">{getItemLabel(item)}</span>
                       {chevron && !leftwards && <ChevronRight />}

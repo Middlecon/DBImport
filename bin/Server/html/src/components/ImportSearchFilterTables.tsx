@@ -6,10 +6,10 @@ import Dropdown from './Dropdown'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import FilterFunnel from '../assets/icons/FilterFunnel'
-import './ImportSearchFilterTables.scss'
+import './SearchFilterTables.scss'
 import Button from './Button'
 
-interface serchFilterProps {
+interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
   onShow: (database: string | null, table: string | null) => void
@@ -19,7 +19,7 @@ function ImportSearchFilterTables({
   isSearchFilterOpen,
   onToggle,
   onShow
-}: serchFilterProps) {
+}: ImportSearchFilterProps) {
   const query = new URLSearchParams(location.search)
   const database = query.get('database') || null
   const table = query.get('table') || null
@@ -31,6 +31,7 @@ function ImportSearchFilterTables({
   )
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<{
@@ -64,7 +65,11 @@ function ImportSearchFilterTables({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onToggle(false)
+        if (openDropdown === 'dbSearch') {
+          setOpenDropdown(null)
+        } else {
+          onToggle(false)
+        }
       }
     }
 
@@ -75,7 +80,21 @@ function ImportSearchFilterTables({
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isSearchFilterOpen, onToggle])
+  }, [isSearchFilterOpen, onToggle, openDropdown])
+
+  // const handleKeyDownOnInput = (
+  //   event: React.KeyboardEvent<HTMLInputElement>
+  // ) => {
+  //   if (event.key === 'Enter') {
+  //     buttonRef.current?.classList.add('active')
+  //   }
+  // }
+
+  // const handleKeyUpOnInput = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  //   if (event.key === 'Enter') {
+  //     buttonRef.current?.classList.remove('active')
+  //   }
+  // }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -121,10 +140,16 @@ function ImportSearchFilterTables({
   }, [formValues.database, databaseNames])
 
   return (
-    <div className="import-search-filter-container" ref={containerRef}>
+    <div className="search-filter-container" ref={containerRef}>
       <div
         className="search-filter-button"
         onClick={() => onToggle(!isSearchFilterOpen)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            onToggle(!isSearchFilterOpen)
+          }
+        }}
+        tabIndex={0}
       >
         <div className="search-filter-funnel">
           <FilterFunnel />
@@ -135,7 +160,7 @@ function ImportSearchFilterTables({
         </div>
       </div>
       {isSearchFilterOpen && (
-        <div className="import-search-filter-dropdown">
+        <div className="search-filter-dropdown">
           <h3>Search and show tables</h3>
           <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
           <form
@@ -153,6 +178,13 @@ function ImportSearchFilterTables({
                     type="text"
                     value={formValues.database || ''}
                     onChange={(event) => handleInputChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
                   />
                   <Dropdown
                     id="searchFilterDatabase"
@@ -175,7 +207,6 @@ function ImportSearchFilterTables({
                     height="21.5px"
                     padding="8px 4px"
                     lightStyle={true}
-                    placeholder="Search for db..."
                   />
                 </>
               )}
@@ -192,10 +223,17 @@ function ImportSearchFilterTables({
                     table: event.target.value
                   }))
                 }
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault() // Prevents Enter from triggering form submission
+                  }
+                }}
+                // onKeyDown={handleKeyDownOnInput}
+                // onKeyUp={handleKeyUpOnInput}
               />
             </label>
             <div className="submit-button-container">
-              <Button type="submit" title="Show" />
+              <Button type="submit" title="Show" ref={buttonRef} />
             </div>
           </form>
         </div>

@@ -7,18 +7,44 @@
   justify-content: center;
   align-items: center;
   cursor: pointer;
+
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 .light-button {
   background-color: rgb(228, 228, 228);
   color: rgb(40, 39, 39);
   border: 0.3px solid rgb(201, 201, 201);
+  &:hover {
+    background-color: rgb(211, 211, 211);
+  }
+
+  &:active {
+    background-color: rgb(200, 200, 200);
+  }
+
+  &.active {
+    background-color: rgb(200, 200, 200);
+  }
 }
 
 .dark-button {
   background-color: rgb(43, 62, 111);
   color: rgb(255, 255, 255);
   border: none;
+  &:hover {
+    background-color: rgb(36, 53, 96);
+  }
+
+  &:active {
+    background-color: rgb(30, 45, 82);
+  }
+
+  &.active {
+    background-color: rgb(30, 45, 82);
+  }
 }
 
 .button-title {

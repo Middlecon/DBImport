@@ -1,10 +1,10 @@
+import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import './Button.scss'
-import React from 'react'
 
 interface ButtonProps {
   title: string
   onClick?: () => void
-  type?: 'button' | 'reset' | 'submit' | undefined
+  type?: 'button' | 'reset' | 'submit'
   lightStyle?: boolean
   fontFamily?: string
   fontSize?: string
@@ -12,33 +12,32 @@ interface ButtonProps {
   marginRight?: string
 }
 
-function Button({
-  title,
-  type = 'button',
-  onClick,
-  lightStyle = false,
-  fontFamily,
-  fontSize,
-  padding,
-  marginRight
-}: ButtonProps) {
-  const style: React.CSSProperties = {}
-  if (fontFamily) {
-    style.fontFamily = fontFamily
-  }
-  if (fontSize) {
-    style.fontSize = fontSize
-  }
+function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
+  const {
+    title,
+    type = 'button',
+    onClick,
+    lightStyle = false,
+    fontFamily,
+    fontSize,
+    padding,
+    marginRight
+  } = props
+
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useImperativeHandle(ref, () => buttonRef.current!)
 
   const buttonStyle: React.CSSProperties = {
-    fontFamily: fontFamily,
-    fontSize: fontSize,
-    padding: padding,
-    marginRight: marginRight
+    fontFamily,
+    fontSize,
+    padding,
+    marginRight
   }
 
   return (
     <button
+      ref={buttonRef}
       type={type}
       className={lightStyle ? 'light-button' : 'dark-button'}
       onClick={onClick}
@@ -49,4 +48,4 @@ function Button({
   )
 }
 
-export default Button
+export default forwardRef(Button)
