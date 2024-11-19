@@ -61,7 +61,6 @@ function TableList<T>({
     } else {
       console.error('Expected data to be an array but got:', data)
     }
-    // setVisibleData(data.slice(0, chunkSize)) // Loads the first 50 rows initially
   }, [data])
 
   // Automatically loads more rows in chunks in the background after the initial render

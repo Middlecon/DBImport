@@ -757,6 +757,7 @@ function TableInputFields({
             className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
           >
             {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
           </label>
 
           <Dropdown
@@ -772,7 +773,7 @@ function TableInputFields({
               handleDropdownToggle(dropdownId, isOpen)
             }
             searchFilter={true}
-            initialTitle={String(setting.value)}
+            initialTitle={setting.value ? String(setting.value) : 'Select...'}
             backgroundColor="inherit"
             textColor="black"
             fontSize="14px"

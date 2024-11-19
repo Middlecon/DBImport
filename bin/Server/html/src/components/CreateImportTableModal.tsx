@@ -16,13 +16,13 @@ import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
 
 interface CreateTableModalProps {
-  database: string
-  prefilledConnection: string
+  database: string | null
+  prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
-function CreateTableModal({
+function CreateImportTableModal({
   database,
   prefilledConnection,
   onSave,
@@ -53,9 +53,11 @@ function CreateTableModal({
     const requiredLabels = [
       'Database',
       'Table',
+      'Connection',
       'Source Schema',
       'Source Table'
     ]
+
     return editedSettings.some(
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
@@ -184,7 +186,7 @@ function CreateTableModal({
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                     connectionNames={connectionNames}
-                  />{' '}
+                  />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
                       label={setting.label}
@@ -217,4 +219,4 @@ function CreateTableModal({
   )
 }
 
-export default CreateTableModal
+export default CreateImportTableModal

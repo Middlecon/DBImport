@@ -1,8 +1,8 @@
 import { getDefaultStore } from 'jotai'
 import { atomWithStorage, RESET } from 'jotai/utils'
 import {
-  selectedImportDatabaseAtom,
-  importDbListFiltersAtom,
+  importPersistStateAtom,
+  importTableListFiltersAtom,
   connectionFilterAtom,
   airflowImportFilterAtom,
   airflowExportFilterAtom,
@@ -36,9 +36,9 @@ export function atomWithSessionStorage<T>(key: string, initialValue: T) {
 export const clearSessionStorageAtoms = () => {
   const store = getDefaultStore()
 
-  store.set(selectedImportDatabaseAtom, RESET)
+  store.set(importPersistStateAtom, RESET)
   store.set(selectedExportConnectionAtom, RESET)
-  store.set(importDbListFiltersAtom, RESET)
+  store.set(importTableListFiltersAtom, RESET)
   store.set(exportCnListFiltersAtom, RESET)
   store.set(connectionFilterAtom, RESET)
   store.set(airflowImportFilterAtom, RESET)

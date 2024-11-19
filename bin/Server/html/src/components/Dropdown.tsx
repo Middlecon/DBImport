@@ -13,6 +13,7 @@ interface DropdownProps<T> {
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
   searchFilter: boolean
+  textInputMode?: boolean
   keyLabel?: string
   chevron?: boolean
   cross?: boolean
@@ -30,6 +31,7 @@ interface DropdownProps<T> {
   chevronHeight?: string
   lightStyle?: boolean
   disabled?: boolean
+  id?: string
 }
 
 function Dropdown<T>({
@@ -38,6 +40,7 @@ function Dropdown<T>({
   isOpen,
   onToggle,
   searchFilter = true,
+  textInputMode,
   keyLabel,
   chevron = false,
   cross = false,
@@ -54,7 +57,8 @@ function Dropdown<T>({
   chevronWidth,
   chevronHeight,
   lightStyle,
-  disabled = false
+  disabled = false,
+  id
 }: DropdownProps<T>): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedItem, setSelectedItem] = useState<T | null>(
@@ -117,7 +121,6 @@ function Dropdown<T>({
 
   const handleSelect = (item: T | null) => {
     if (disabled) return
-
     setSelectedItem(item)
 
     if (keyLabel) {
@@ -167,35 +170,44 @@ function Dropdown<T>({
       : undefined
   }
 
-  return (
-    <div className="dropdown" ref={dropdownRef}>
-      <div
-        className="dropdown-selected-item"
-        style={dropdownStyle}
-        onClick={() => !disabled && onToggle(!isOpen)}
-      >
-        {selectedItem ? getItemLabel(selectedItem) : initialTitle}
+  const dropdownPositionStyle: React.CSSProperties = {
+    top: textInputMode ? 0 : undefined
+  }
 
-        <div className="chevron-container">
-          {cross && selectedItem && selectedItem !== 'Select...' && !isOpen ? (
-            <CloseIcon
-              onClick={() => {
-                handleSelect(null)
-              }}
-            />
-          ) : isOpen ? (
-            <ChevronUp
-              width={chevronWidth || ''}
-              height={chevronHeight || ''}
-            />
-          ) : (
-            <ChevronDown
-              width={chevronWidth || ''}
-              height={chevronHeight || ''}
-            />
-          )}
+  return (
+    <div className="dropdown" ref={dropdownRef} id={id}>
+      {!textInputMode && (
+        <div
+          className="dropdown-selected-item"
+          style={dropdownStyle}
+          onClick={() => !disabled && onToggle(!isOpen)}
+        >
+          {selectedItem ? getItemLabel(selectedItem) : initialTitle}
+
+          <div className="chevron-container">
+            {cross &&
+            selectedItem &&
+            selectedItem !== 'Select...' &&
+            !isOpen ? (
+              <CloseIcon
+                onClick={() => {
+                  handleSelect(null)
+                }}
+              />
+            ) : isOpen ? (
+              <ChevronUp
+                width={chevronWidth || ''}
+                height={chevronHeight || ''}
+              />
+            ) : (
+              <ChevronDown
+                width={chevronWidth || ''}
+                height={chevronHeight || ''}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {!disabled && isOpen && (
         <div
@@ -209,6 +221,7 @@ function Dropdown<T>({
               ? 'light-menu'
               : 'menu'
           }
+          style={dropdownPositionStyle}
         >
           {searchFilter && (
             <div className="search" style={heightStyle}>
@@ -225,22 +238,37 @@ function Dropdown<T>({
             </div>
           )}
 
-          <ul>
-            {Array.isArray(filteredItems) && filteredItems.length ? (
-              filteredItems.map((item, index) => (
-                <li key={index} onClick={() => handleSelect(item)}>
-                  <div className="item-content" style={itemContentStyle}>
-                    <span className="item-text">{getItemLabel(item)}</span>
-                    {chevron && !leftwards && <ChevronRight />}
-                  </div>
+          {textInputMode ? (
+            <ul>
+              {Array.isArray(items) &&
+                items.length &&
+                items.map((item, index) => (
+                  <li key={index} onClick={() => handleSelect(item)}>
+                    <div className="item-content" style={itemContentStyle}>
+                      <span className="item-text">{getItemLabel(item)}</span>
+                      {chevron && !leftwards && <ChevronRight />}
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <ul>
+              {Array.isArray(filteredItems) && filteredItems.length ? (
+                filteredItems.map((item, index) => (
+                  <li key={index} onClick={() => handleSelect(item)}>
+                    <div className="item-content" style={itemContentStyle}>
+                      <span className="item-text">{getItemLabel(item)}</span>
+                      {chevron && !leftwards && <ChevronRight />}
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li className="no-results" no-hover>
+                  No results found
                 </li>
-              ))
-            ) : (
-              <li className="no-results" no-hover>
-                No results found
-              </li>
-            )}
-          </ul>
+              )}
+            </ul>
+          )}
         </div>
       )}
     </div>

@@ -10,7 +10,6 @@ import {
   Connections,
   CustomAirflowDAG,
   Database,
-  DbTable,
   ExportAirflowDAG,
   ExportCnTables,
   ExportConnections,
@@ -84,7 +83,7 @@ export const useConnection = (
 
 // IMPORT
 
-// Get databases
+// Get databases for databases dropdown
 
 const getDatabases = async () => {
   const response = await axiosInstance.get('/import/db')
@@ -100,20 +99,33 @@ export const useDatabases = (): UseQueryResult<Database[], Error> => {
   })
 }
 
-// Get database tables
+// Get search filter import tables
 
-const getDbTables = async (database: string) => {
-  const response = await axiosInstance.get(`/import/table/${database}`)
-  return response.data
+const getSearchImportTables = async (
+  database: string | null,
+  table: string | null
+) => {
+  const response = await axiosInstance.post('/import/search', {
+    database,
+    table
+  })
+  console.log('response.data', response.data)
+  return {
+    data: response.data,
+    headers: response.headers
+  }
 }
 
-export const useDbTables = (
-  database: string | null
+export const useSearchImportTables = (
+  database: string | null,
+  table: string | null
 ): UseQueryResult<UiDbTable[], Error> => {
+  console.log('useSearchImportTables database', database)
+  console.log('useSearchImportTables table', table)
   return useQuery({
-    queryKey: ['import', database],
+    queryKey: ['import', 'search', database, table],
     queryFn: async () => {
-      const data: DbTable[] = await getDbTables(database!) // We are sure that database is not null here because of the enabled flag
+      const { data, headers } = await getSearchImportTables(database, table)
       const enumMappedData = data.map(
         (row: {
           etlPhaseType: string
@@ -134,15 +146,15 @@ export const useDbTables = (
           etlEngineDisplay: mapDisplayValue('etlEngine', row.etlEngine)
         })
       )
+      console.log('Headers:', headers)
 
       return enumMappedData
     },
-    enabled: !!database,
     refetchOnWindowFocus: false
   })
 }
 
-// Get table
+// Get detailed table
 
 const getTable = async (database: string, table: string) => {
   const response = await axiosInstance.get(`/import/table/${database}/${table}`)

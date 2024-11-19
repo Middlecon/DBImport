@@ -1,8 +1,8 @@
 import { atom, getDefaultStore } from 'jotai'
 import { atomWithSessionStorage } from './utils'
 
-export const selectedImportDatabaseAtom = atomWithSessionStorage<string | null>(
-  'selectedImportDatabase',
+export const importPersistStateAtom = atomWithSessionStorage<string | null>(
+  'importPersistState',
   null
 )
 
@@ -12,7 +12,7 @@ export const selectedExportConnectionAtom = atomWithSessionStorage<
 
 export const isDbDropdownReadyAtom = atom(false)
 
-export const importDbListFiltersAtom = atomWithSessionStorage<{
+export const importTableListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
 }>('importDbListFilters', {})
 

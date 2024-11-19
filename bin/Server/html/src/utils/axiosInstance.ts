@@ -32,7 +32,9 @@ axiosInstance.interceptors.response.use(
     console.log('error.response AXIOS', error.response)
 
     if (error.response && error.response.status === 401) {
-      setLatestPath(window.location.pathname)
+      const latestPath = `${window.location.pathname}${window.location.search}`
+
+      setLatestPath(latestPath)
       deleteCookie('DBI_auth_token')
 
       window.location.href = '/login'

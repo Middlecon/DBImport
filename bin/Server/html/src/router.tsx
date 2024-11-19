@@ -4,7 +4,6 @@ import MainLayout from './components/MainLayout'
 import Export from './routes/export/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
-import DbTables from './routes/import/DbTables'
 import TableDetailedView from './routes/_shared/TableDetailedView'
 import TableSettings from './routes/import/tableDetailed/settings/TableSettings'
 import TableColumns from './routes/import/tableDetailed/columns/TableColumns'
@@ -49,13 +48,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/import',
-        element: <Import />,
-        children: [
-          {
-            path: ':database',
-            element: <DbTables />
-          }
-        ]
+        element: <Import />
       },
       {
         path: '/import/:database/:table',

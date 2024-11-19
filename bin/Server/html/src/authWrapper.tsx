@@ -20,7 +20,8 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   }, [isAuth, location.pathname])
 
   if (!isAuth && location.pathname !== '/login') {
-    setLatestPath(location.pathname)
+    const fullPath = `${location.pathname}${location.search}`
+    setLatestPath(fullPath)
     return <Navigate to="/login" replace />
   }
 

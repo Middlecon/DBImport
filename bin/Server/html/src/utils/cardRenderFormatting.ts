@@ -1479,8 +1479,8 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
 }
 
 export function initialCreateImportTableSettings(
-  database: string,
-  prefilledConnection: string
+  database: string | null,
+  prefilledConnection: string | null
 ) {
   const settings: EditSetting[] = [
     {
@@ -1506,7 +1506,8 @@ export function initialCreateImportTableSettings(
       label: 'Connection',
       value: prefilledConnection,
       type: SettingType.ConnectionReferenceRequired,
-      infoText: infoTexts.table.import.connection
+      infoText: infoTexts.table.import.connection,
+      isRequired: true
     }, // Reference to /connection
     {
       label: 'Source Schema',

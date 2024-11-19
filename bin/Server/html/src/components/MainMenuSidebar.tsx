@@ -12,10 +12,10 @@ import './MainMenuSidebar.scss'
 import LogoWithText from './LogoWithText'
 import { useAtom } from 'jotai'
 import {
+  importPersistStateAtom,
   isAirflowSubmenuActiveAtom,
   isConfigurationSubmenuActiveAtom,
   selectedExportConnectionAtom,
-  selectedImportDatabaseAtom,
   usernameAtom
 } from '../atoms/atoms'
 import { useState } from 'react'
@@ -37,7 +37,7 @@ interface MainSidebarProps {
 function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const { data: statusData } = useGetStatusAndVersion()
   const navigate = useNavigate()
-  const [selectedDatabase] = useAtom(selectedImportDatabaseAtom)
+  const [importPersistState] = useAtom(importPersistStateAtom)
   const [selectedExportConnection] = useAtom(selectedExportConnectionAtom)
 
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
@@ -101,9 +101,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
           <ul>
             <li className="mainsidebar-menu-li">
               <NavLink
-                to={
-                  selectedDatabase ? `/import/${selectedDatabase}` : '/import'
-                }
+                to={importPersistState ? `${importPersistState}` : '/import'}
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }

@@ -4,20 +4,20 @@ import ChevronRight from '../assets/icons/ChevronRight'
 import { useAtom } from 'jotai'
 import {
   exportCnListFiltersAtom,
-  importDbListFiltersAtom,
+  importTableListFiltersAtom,
   isAirflowSubmenuActiveAtom,
   isDbDropdownReadyAtom,
   selectedExportConnectionAtom,
-  selectedImportDatabaseAtom
+  importPersistStateAtom
 } from '../atoms/atoms'
 import './Breadcrumbs.scss'
 
 const Breadcrumbs = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const [, setSelectedDatabase] = useAtom(selectedImportDatabaseAtom)
+  const [, setImportPersistState] = useAtom(importPersistStateAtom)
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
-  const [, setSelectedImportFilters] = useAtom(importDbListFiltersAtom)
+  const [, setSelectedImportFilters] = useAtom(importTableListFiltersAtom)
 
   const [, setSelectedExportConnection] = useAtom(selectedExportConnectionAtom)
   const [, setSelectedExportFilters] = useAtom(exportCnListFiltersAtom)
@@ -55,7 +55,7 @@ const Breadcrumbs = () => {
   const handleBreadcrumbClick = (path: string) => {
     if (path === '/import') {
       setIsDbDropdownReady(false)
-      setSelectedDatabase(null)
+      setImportPersistState(null)
       setSelectedImportFilters({})
     }
     if (path === '/') {
@@ -80,10 +80,14 @@ const Breadcrumbs = () => {
               idx === crumbs.length - 1 ? 'active' : ''
             }`}
           >
-            {idx > 0 && <ChevronRight />}
             {/* Only shows chevron after the first item */}
-            {idx === crumbs.length - 1 || idx >= 3 ? (
-              <span>{crumb.label}</span> /* Current/last item is not a link */
+            {idx > 0 && <ChevronRight />}
+            {/* Current/last item is not a link */}
+            {idx === crumbs.length - 1 ||
+            idx >= 3 ||
+            (crumb.path.startsWith('/import') && idx >= 2) ||
+            (crumb.path.startsWith('/export') && idx >= 2) ? (
+              <span>{crumb.label}</span>
             ) : crumb.label === 'Airflow' || crumb.label === 'Configuration' ? (
               <span>{crumb.label}</span>
             ) : (
