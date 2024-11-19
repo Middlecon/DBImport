@@ -17,7 +17,6 @@ import AirflowCustom from './routes/airflowCustom/AirflowCustom'
 import AirflowTasks from './routes/_airflowShared/AirflowTasks'
 import AirflowDetailedView from './routes/_airflowShared/AirflowDetailedView'
 import AirflowSettings from './routes/_airflowShared/AirflowSettings'
-import ExportCnTables from './routes/export/ExportCnTables'
 import ExportTableSettings from './routes/export/settings/ExportTableSettings'
 import ExportTableColumns from './routes/export/columns/ExportTableColumns'
 import ConfigGlobalBase from './routes/configGlobal/ConfigGlobalBase'
@@ -70,13 +69,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/export',
-        element: <Export />,
-        children: [
-          {
-            path: ':connection',
-            element: <ExportCnTables />
-          }
-        ]
+        element: <Export />
       },
       {
         path: '/export/:connection/:schema/:table',

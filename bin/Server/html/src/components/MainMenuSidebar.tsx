@@ -15,7 +15,7 @@ import {
   importPersistStateAtom,
   isAirflowSubmenuActiveAtom,
   isConfigurationSubmenuActiveAtom,
-  selectedExportConnectionAtom,
+  exportPersistStateAtom,
   usernameAtom
 } from '../atoms/atoms'
 import { useState } from 'react'
@@ -38,7 +38,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
   const { data: statusData } = useGetStatusAndVersion()
   const navigate = useNavigate()
   const [importPersistState] = useAtom(importPersistStateAtom)
-  const [selectedExportConnection] = useAtom(selectedExportConnectionAtom)
+  const [exportPersistState] = useAtom(exportPersistStateAtom)
 
   const [toggleAirflowActive, setToggleAirflowActive] = useState(false)
   const [toggleConfigurationActive, setToggleConfigurationActive] =
@@ -116,11 +116,7 @@ function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
             </li>
             <li className="mainsidebar-menu-li">
               <NavLink
-                to={
-                  selectedExportConnection
-                    ? `/export/${selectedExportConnection}`
-                    : '/export'
-                }
+                to={exportPersistState ? `${exportPersistState}` : '/export'}
                 className={({ isActive }) =>
                   `mainsidebar-menu-link ${isActive ? 'active' : ''}`
                 }

@@ -6,9 +6,10 @@ export const importPersistStateAtom = atomWithSessionStorage<string | null>(
   null
 )
 
-export const selectedExportConnectionAtom = atomWithSessionStorage<
-  string | null
->('selectedExportConnection', null)
+export const exportPersistStateAtom = atomWithSessionStorage<string | null>(
+  'exportPersistState',
+  null
+)
 
 export const isDbDropdownReadyAtom = atom(false)
 

@@ -15,7 +15,7 @@ import InfoText from './InfoText'
 import { initialCreateExportTableSettings } from '../utils/cardRenderFormatting'
 
 interface CreateTableModalProps {
-  connection: string
+  connection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }

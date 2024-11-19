@@ -1,6 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import DropdownCheckbox from '../../components/DropdownCheckbox'
-import DropdownRadio from '../../components/DropdownRadio'
+import { useState, useMemo, useEffect } from 'react'
 import TableList from '../../components/TableList'
 import {
   Column,
@@ -9,56 +7,27 @@ import {
   UIExportCnTables,
   UIExportTable
 } from '../../utils/interfaces'
-import { fetchExportTableData, useExportTables } from '../../utils/queries'
+import { fetchExportTableData } from '../../utils/queries'
 import '../import/DbTables.scss'
-import { useParams } from 'react-router-dom'
 import EditTableModal from '../../components/EditTableModal'
 import { updateExportTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
-import { useAtom } from 'jotai'
-import { exportCnListFiltersAtom } from '../../atoms/atoms'
+
 import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
 
-const checkboxFilters = [
-  {
-    title: 'Export Type',
-    accessor: 'exportType',
-    values: ['Full', 'Incremental']
-  },
-  {
-    title: 'Export Tool',
-    accessor: 'exportTool',
-    values: ['Spark', 'Sqoop']
-  }
-]
-
-const radioFilters = [
-  {
-    title: 'Last update from source',
-    accessor: 'lastUpdateFromHive  ',
-    radioName: 'timestamp',
-    badgeContent: ['D', 'W', 'M', 'Y'],
-    values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-  },
-  {
-    title: 'Include In Airflow',
-    accessor: 'includeInAirflow',
-    radioName: 'includeInAirflow',
-    badgeContent: ['t', 'f'],
-    values: ['True', 'False']
-  }
-]
-
-function ExportCnTables() {
-  const { connection } = useParams<{ connection: string }>()
-  const { data, isLoading } = useExportTables(connection ? connection : null)
+function ExportCnTables({
+  data,
+  isLoading
+}: {
+  data: UIExportCnTables[]
+  isLoading: boolean
+}) {
   const { mutate: updateTable } = useUpdateTable()
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
@@ -92,8 +61,6 @@ function ExportCnTables() {
     }
   }, [scrollbarMarginTop])
 
-  const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
-
   const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
       { header: 'Target Table', accessor: 'targetTable' },
@@ -115,85 +82,6 @@ function ExportCnTables() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scrollbarRefresh]
   )
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
-
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
-  }
-
-  const parseTimestamp = (timestamp: string | null): Date | null => {
-    if (!timestamp) {
-      return null
-    }
-
-    try {
-      const isoDateString = timestamp.replace(' ', 'T') + 'Z'
-      return new Date(isoDateString)
-    } catch (error) {
-      console.error('Failed to parse timestamp:', error)
-      return null
-    }
-  }
-
-  const getDateRange = useCallback((selection: string) => {
-    const now = new Date()
-    switch (selection) {
-      case 'Last Day':
-        return new Date(now.setDate(now.getDate() - 1))
-      case 'Last Week':
-        return new Date(now.setDate(now.getDate() - 7))
-      case 'Last Month':
-        return new Date(now.setMonth(now.getMonth() - 1))
-      case 'Last Year':
-        return new Date(now.setFullYear(now.getFullYear() - 1))
-      default:
-        return new Date(0)
-    }
-  }, [])
-
-  const filteredData = useMemo(() => {
-    if (!Array.isArray(data)) return []
-    return data.filter((row) => {
-      const rowDate = parseTimestamp(row.lastUpdateFromHive)
-
-      return [...checkboxFilters, ...radioFilters].every((filter) => {
-        const selectedItems =
-          selectedFilters[filter.accessor]?.map((value) => value) || []
-
-        if (selectedItems.length === 0) return true
-
-        // Handling the date filter separately
-        if (filter.accessor === 'lastUpdateFromHive') {
-          const selectedRange = selectedItems[0]
-          const startDate = getDateRange(selectedRange)
-
-          if (!rowDate) return false
-          return rowDate >= startDate
-        }
-
-        if (filter.accessor === 'includeInAirflow') {
-          const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
-          return selectedItems.includes(airflowValue)
-        }
-
-        const accessorKey = filter.accessor as keyof typeof row
-        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
-
-        return selectedItems.includes(rowValue)
-      })
-    })
-  }, [data, selectedFilters, getDateRange])
 
   const handleEditClick = async (row: UIExportCnTables) => {
     const { connection, targetSchema, targetTable } = row
@@ -231,7 +119,13 @@ function ExportCnTables() {
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['export', tableData.connection]
+            queryKey: [
+              'export',
+              'search',
+              tableData.connection,
+              tableData.targetSchema,
+              tableData.targetTable
+            ]
           })
           console.log('Update successful', response)
           setModalOpen(false)
@@ -245,37 +139,10 @@ function ExportCnTables() {
 
   return (
     <div className="db-table-root">
-      <div className="filters">
-        {checkboxFilters.map((filter, index) => (
-          <DropdownCheckbox
-            key={index}
-            items={filter.values}
-            title={filter.title}
-            selectedItems={selectedFilters[filter.accessor] || []}
-            onSelect={(items) => handleSelect(filter.accessor, items)}
-            isOpen={openDropdown === filter.accessor}
-            onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
-          />
-        ))}
-        {radioFilters.map((filter, index) => (
-          <DropdownRadio
-            key={index}
-            items={filter.values}
-            title={filter.title}
-            radioName={filter.radioName}
-            badgeContent={filter.badgeContent}
-            selectedItem={selectedFilters[filter.accessor]?.[0] || null}
-            onSelect={(items) => handleSelect(filter.accessor, items)}
-            isOpen={openDropdown === filter.accessor}
-            onToggle={(isOpen) => handleDropdownToggle(filter.accessor, isOpen)}
-          />
-        ))}
-      </div>
-
-      {filteredData ? (
+      {data ? (
         <TableList
           columns={columns}
-          data={filteredData}
+          data={data}
           onEdit={handleEditClick}
           isLoading={isLoading}
           scrollbarMarginTop={scrollbarMarginTop}

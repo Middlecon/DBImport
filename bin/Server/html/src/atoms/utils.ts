@@ -10,7 +10,7 @@ import {
   isAirflowSubmenuActiveAtom,
   usernameAtom,
   exportCnListFiltersAtom,
-  selectedExportConnectionAtom,
+  exportPersistStateAtom,
   isConfigurationSubmenuActiveAtom,
   latestPathAtom
 } from './atoms'
@@ -37,7 +37,7 @@ export const clearSessionStorageAtoms = () => {
   const store = getDefaultStore()
 
   store.set(importPersistStateAtom, RESET)
-  store.set(selectedExportConnectionAtom, RESET)
+  store.set(exportPersistStateAtom, RESET)
   store.set(importTableListFiltersAtom, RESET)
   store.set(exportCnListFiltersAtom, RESET)
   store.set(connectionFilterAtom, RESET)
@@ -50,8 +50,8 @@ export const clearSessionStorageAtoms = () => {
   store.set(latestPathAtom, RESET)
 
   const sessionKeys = [
-    'selectedImportDatabase',
-    'selectedExportConnection',
+    'importPersistState',
+    'exportPersistState',
     'importDbListFilters',
     'exportCnListFilters',
     'connectionFilters',

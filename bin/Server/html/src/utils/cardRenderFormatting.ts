@@ -1990,7 +1990,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
   return rowData
 }
 
-export function initialCreateExportTableSettings(connection: string) {
+export function initialCreateExportTableSettings(connection: string | null) {
   const settings: EditSetting[] = [
     {
       label: 'Connection',

@@ -7,7 +7,7 @@ import {
   importTableListFiltersAtom,
   isAirflowSubmenuActiveAtom,
   isDbDropdownReadyAtom,
-  selectedExportConnectionAtom,
+  exportPersistStateAtom,
   importPersistStateAtom
 } from '../atoms/atoms'
 import './Breadcrumbs.scss'
@@ -19,7 +19,7 @@ const Breadcrumbs = () => {
   const [, setIsDbDropdownReady] = useAtom(isDbDropdownReadyAtom)
   const [, setSelectedImportFilters] = useAtom(importTableListFiltersAtom)
 
-  const [, setSelectedExportConnection] = useAtom(selectedExportConnectionAtom)
+  const [, setExportPersistState] = useAtom(exportPersistStateAtom)
   const [, setSelectedExportFilters] = useAtom(exportCnListFiltersAtom)
 
   const [, setIsAirflowSubmenuActive] = useAtom(isAirflowSubmenuActiveAtom)
@@ -64,7 +64,7 @@ const Breadcrumbs = () => {
 
     if (path === '/export') {
       setIsDbDropdownReady(false)
-      setSelectedExportConnection(null)
+      setExportPersistState(null)
       setSelectedExportFilters({})
     }
     navigate(path)

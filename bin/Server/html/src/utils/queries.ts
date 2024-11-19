@@ -41,6 +41,11 @@ import {
   ValidateSource,
   ValidationMethod
 } from './enums'
+import {
+  AxiosResponseHeaders,
+  AxiosHeaderValue,
+  RawAxiosResponseHeaders
+} from 'axios'
 
 // CONNECTION
 
@@ -237,18 +242,49 @@ export const useExportConnections = (): UseQueryResult<
 
 // Get export tables of a connection
 
-const getExportTables = async (connection: string) => {
-  const response = await axiosInstance.get(`/export/table/${connection}`)
-  return response.data
+interface ExportTablesResponse {
+  data: ExportCnTables[]
+  headers:
+    | AxiosResponseHeaders
+    | Partial<
+        RawAxiosResponseHeaders & {
+          Server: AxiosHeaderValue
+          [key: string]: AxiosHeaderValue // Dynamic headers
+        }
+      >
 }
 
-export const useExportTables = (
-  connection?: string | null
+const getSearchExportTables = async (
+  connection: string | null,
+  targetSchema: string | null,
+  targetTable: string | null
+) => {
+  const response: ExportTablesResponse = await axiosInstance.post(
+    '/export/search',
+    {
+      connection,
+      targetSchema,
+      targetTable
+    }
+  )
+  console.log('response.data', response.data)
+  return {
+    data: response.data,
+    headers: response.headers
+  }
+}
+
+export const useSearchExportTables = (
+  connection: string | null,
+  targetSchema: string | null,
+  targetTable: string | null
 ): UseQueryResult<UIExportCnTables[], Error> => {
   return useQuery({
-    queryKey: ['export', connection],
+    queryKey: ['export', 'search', connection, targetSchema, targetTable],
     queryFn: async () => {
-      const data: ExportCnTables[] = await getExportTables(connection!) // We are sure that database is not null here because of the enabled flag
+      const { data, headers }: ExportTablesResponse =
+        await getSearchExportTables(connection, targetSchema, targetTable)
+
       const enumMappedData = data.map((row) => ({
         ...row,
         exportTypeDisplay: mapDisplayValue(
@@ -261,14 +297,15 @@ export const useExportTables = (
         )
       }))
 
+      console.log('Headers:', headers)
+
       return enumMappedData
     },
-    enabled: !!connection,
     refetchOnWindowFocus: false
   })
 }
 
-// Get export table
+// Get detailed export table
 
 const getExportTable = async (
   connection: string,
