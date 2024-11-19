@@ -10,8 +10,9 @@ import {
   Connections,
   CustomAirflowDAG,
   Database,
+  DbTable,
   ExportAirflowDAG,
-  ExportCnTables,
+  ExportCnTable,
   ExportConnections,
   ExportTable,
   ImportAirflowDAG,
@@ -106,6 +107,18 @@ export const useDatabases = (): UseQueryResult<Database[], Error> => {
 
 // Get search filter import tables
 
+interface ImportTablesResponse {
+  data: DbTable[]
+  headers:
+    | AxiosResponseHeaders
+    | Partial<
+        RawAxiosResponseHeaders & {
+          Server: AxiosHeaderValue
+          [key: string]: AxiosHeaderValue // Dynamic headers
+        }
+      >
+}
+
 const getSearchImportTables = async (
   database: string | null,
   table: string | null
@@ -130,7 +143,8 @@ export const useSearchImportTables = (
   return useQuery({
     queryKey: ['import', 'search', database, table],
     queryFn: async () => {
-      const { data, headers } = await getSearchImportTables(database, table)
+      const { data, headers }: ImportTablesResponse =
+        await getSearchImportTables(database, table)
       const enumMappedData = data.map(
         (row: {
           etlPhaseType: string
@@ -243,7 +257,7 @@ export const useExportConnections = (): UseQueryResult<
 // Get export tables of a connection
 
 interface ExportTablesResponse {
-  data: ExportCnTables[]
+  data: ExportCnTable[]
   headers:
     | AxiosResponseHeaders
     | Partial<

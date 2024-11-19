@@ -563,7 +563,7 @@ export interface ExportCnTablesWithoutEnum {
   includeInAirflow: boolean
 }
 
-export interface ExportCnTables {
+export interface ExportCnTable {
   connection: string
   targetSchema: string
   targetTable: string
