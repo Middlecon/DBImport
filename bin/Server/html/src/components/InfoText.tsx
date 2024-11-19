@@ -23,6 +23,8 @@ function InfoText({
   const infoTextRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (openInfoDropdown !== label) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
@@ -32,11 +34,20 @@ function InfoText({
       }
     }
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenInfoDropdown(null)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [])
+  }, [label, openInfoDropdown])
 
   useEffect(() => {
     const handleSelectAll = (event: KeyboardEvent) => {

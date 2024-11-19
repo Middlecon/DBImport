@@ -66,7 +66,7 @@ function Dropdown<T>({
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (disabled) return
+    if (disabled || !isOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -77,11 +77,20 @@ function Dropdown<T>({
       }
     }
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onToggle(false)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [disabled, onToggle])
+  }, [disabled, isOpen, onToggle])
 
   useEffect(() => {
     if (isOpen && searchFilter && searchInputRef.current) {

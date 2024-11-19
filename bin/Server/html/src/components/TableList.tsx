@@ -92,17 +92,20 @@ function TableList<T>({
   }, [visibleData, data, isLoadingMore, allDataLoaded])
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        !event.target ||
-        !(event.target as HTMLElement).closest('.custom-table-root')
-      ) {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isComponentFocused =
+        document.activeElement?.closest('.tables-container')
+
+      if (event.key === 'Escape' && isComponentFocused) {
         setSelectedRowIndex(null)
       }
     }
 
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [])
 
   // Sets loading state and checks if each table cell is overflowing to determine if a tooltip should be displayed for that cell
@@ -316,7 +319,7 @@ function TableList<T>({
   )
 
   return (
-    <div className="tables-container">
+    <div className="tables-container" tabIndex={0}>
       {loading ? (
         <div className="loading-container">
           <p>Loading tables...</p>

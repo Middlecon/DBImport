@@ -31,6 +31,8 @@ function DropdownCheckbox({
   }
 
   useEffect(() => {
+    if (!isOpen) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -40,17 +42,33 @@ function DropdownCheckbox({
       }
     }
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onToggle(false)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onToggle])
+  }, [isOpen, onToggle])
 
   return (
     <div className="checkbox-dropdown" ref={dropdownRef}>
       <div
         className="checkbox-dropdown-selected-item"
+        tabIndex={0} // For focusability
         onClick={() => onToggle(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggle(!isOpen)
+          }
+        }}
       >
         {title}
         {Array.isArray(selectedItems) && selectedItems.length > 0 ? (

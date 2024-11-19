@@ -35,6 +35,8 @@ function DropdownRadio({
   }
 
   useEffect(() => {
+    if (!isOpen) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -44,17 +46,33 @@ function DropdownRadio({
       }
     }
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onToggle(false)
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onToggle])
+  }, [isOpen, onToggle])
 
   return (
     <div className="radio-dropdown" ref={dropdownRef}>
       <div
         className="radio-dropdown-selected-item"
+        tabIndex={0} // For focusability
         onClick={() => onToggle(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggle(!isOpen)
+          }
+        }}
       >
         {title}
         {badgeContent && selectedItem ? (
