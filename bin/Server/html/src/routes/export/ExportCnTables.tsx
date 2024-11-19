@@ -71,7 +71,12 @@ function ExportCnTables() {
 
     const handleResize = () => {
       if (viewLayout) {
-        const newMarginTop = viewLayout.offsetWidth <= 1158 ? '50px' : '35px'
+        const newMarginTop =
+          viewLayout.offsetWidth <= 1173
+            ? '65px'
+            : viewLayout.offsetWidth <= 1307
+            ? '50px'
+            : '35px'
         if (newMarginTop !== scrollbarMarginTop) {
           setScrollbarMarginTop(newMarginTop)
           setScrollbarRefresh((prev) => prev + 1) // Triggers refresh

@@ -90,7 +90,12 @@ function DbTables() {
 
     const handleResize = () => {
       if (viewLayout) {
-        const newMarginTop = viewLayout.offsetWidth <= 1217 ? '50px' : '35px'
+        const newMarginTop =
+          viewLayout.offsetWidth <= 1474
+            ? '64px'
+            : viewLayout.offsetWidth <= 1589
+            ? '50px'
+            : '35px'
         if (newMarginTop !== scrollbarMarginTop) {
           setScrollbarMarginTop(newMarginTop)
           setScrollbarRefresh((prev) => prev + 1) // Triggers refresh
