@@ -90,7 +90,7 @@ function Import() {
 
   const cleanDatabase = database ? database.replace(/\*/g, '') : null
 
-  const { data: tables, isLoading: isSearchLoading } = useSearchImportTables(
+  const { data, isLoading: isSearchLoading } = useSearchImportTables(
     database,
     table
   )
@@ -141,8 +141,8 @@ function Import() {
   }
 
   const mostCommonConnection = useMemo(() => {
-    if (!tables || tables.length < 1) return null
-    const connectionCounts = tables.reduce((acc, row) => {
+    if (!data || !data.tables || data.tables.length === 0) return null
+    const connectionCounts = data.tables.reduce((acc, row) => {
       const connection = row.connection
       if (connection) {
         acc[connection] = (acc[connection] || 0) + 1
@@ -153,7 +153,7 @@ function Import() {
     return Object.keys(connectionCounts).reduce((a, b) =>
       connectionCounts[a] > connectionCounts[b] ? a : b
     )
-  }, [tables])
+  }, [data])
 
   const handleSave = (newTableData: EditSetting[]) => {
     console.log('newTableData', newTableData)
@@ -220,8 +220,8 @@ function Import() {
   }, [])
 
   const filteredData = useMemo(() => {
-    if (!Array.isArray(tables)) return []
-    return tables.filter((row) => {
+    if (!data || !Array.isArray(data.tables)) return []
+    return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 
       return [...checkboxFilters, ...radioFilters].every((filter) => {
@@ -250,7 +250,7 @@ function Import() {
         return selectedItems.includes(rowValue)
       })
     })
-  }, [tables, selectedFilters, getDateRange])
+  }, [data, selectedFilters, getDateRange])
 
   return (
     <>
@@ -316,8 +316,13 @@ function Import() {
           />
         )}
 
-        {Array.isArray(tables) ? (
-          <DbTables data={filteredData} isLoading={isSearchLoading} />
+        {data && Array.isArray(data.tables) ? (
+          <>
+            <p className="list-rows-info">
+              {`Showing ${filteredData.length} (of ${data.headersRowInfo.contentRows}) rows`}
+            </p>
+            <DbTables data={filteredData} isLoading={isSearchLoading} />
+          </>
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (

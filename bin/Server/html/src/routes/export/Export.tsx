@@ -73,7 +73,7 @@ function Export() {
 
   const cleanConnection = connection ? connection.replace(/\*/g, '') : null
 
-  const { data: tables, isLoading: isSearchLoading } = useSearchExportTables(
+  const { data, isLoading: isSearchLoading } = useSearchExportTables(
     connection,
     targetSchema,
     targetTable
@@ -166,8 +166,8 @@ function Export() {
   }
 
   const mostCommonConnection = useMemo(() => {
-    if (!tables || tables.length < 1) return null
-    const connectionCounts = tables.reduce((acc, row) => {
+    if (!data || !data.tables || data.tables.length === 0) return null
+    const connectionCounts = data.tables.reduce((acc, row) => {
       const connection = row.connection
       if (connection) {
         acc[connection] = (acc[connection] || 0) + 1
@@ -178,7 +178,7 @@ function Export() {
     return Object.keys(connectionCounts).reduce((a, b) =>
       connectionCounts[a] > connectionCounts[b] ? a : b
     )
-  }, [tables])
+  }, [data])
 
   const handleSave = (newTableData: EditSetting[]) => {
     console.log('newTableData', newTableData)
@@ -236,8 +236,8 @@ function Export() {
   }, [])
 
   const filteredData = useMemo(() => {
-    if (!Array.isArray(tables)) return []
-    return tables.filter((row) => {
+    if (!data || !Array.isArray(data.tables)) return []
+    return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromHive)
 
       return [...checkboxFilters, ...radioFilters].every((filter) => {
@@ -267,7 +267,7 @@ function Export() {
         return selectedItems.includes(rowValue)
       })
     })
-  }, [tables, selectedFilters, getDateRange])
+  }, [data, selectedFilters, getDateRange])
 
   return (
     <>
@@ -332,8 +332,13 @@ function Export() {
           />
         )}
 
-        {Array.isArray(tables) ? (
-          <ExportCnTables data={filteredData} isLoading={isSearchLoading} />
+        {data && Array.isArray(data.tables) ? (
+          <>
+            <p className="list-rows-info">
+              {`Showing ${filteredData.length} (of ${data.headersRowInfo.contentRows}) rows`}
+            </p>
+            <ExportCnTables data={filteredData} isLoading={isSearchLoading} />
+          </>
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (

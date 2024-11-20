@@ -119,6 +119,15 @@ interface ImportTablesResponse {
       >
 }
 
+interface SearchImportTablesResult {
+  tables: UiDbTable[]
+  headersRowInfo: {
+    contentLength?: string
+    contentMaxRows?: string
+    contentRows?: string
+  }
+}
+
 const getSearchImportTables = async (
   database: string | null,
   table: string | null
@@ -137,7 +146,7 @@ const getSearchImportTables = async (
 export const useSearchImportTables = (
   database: string | null,
   table: string | null
-): UseQueryResult<UiDbTable[], Error> => {
+): UseQueryResult<SearchImportTablesResult, Error> => {
   console.log('useSearchImportTables database', database)
   console.log('useSearchImportTables table', table)
   return useQuery({
@@ -165,9 +174,16 @@ export const useSearchImportTables = (
           etlEngineDisplay: mapDisplayValue('etlEngine', row.etlEngine)
         })
       )
-      console.log('Headers:', headers)
 
-      return enumMappedData
+      const headersRowInfo = {
+        contentLength: headers['content-length'],
+        contentMaxRows: headers['content-max-rows'],
+        contentRows: headers['content-rows']
+      }
+      console.log('Headers:', headers)
+      console.log('headersRowInfo', headersRowInfo)
+
+      return { tables: enumMappedData, headersRowInfo }
     },
     refetchOnWindowFocus: false
   })
@@ -268,6 +284,15 @@ interface ExportTablesResponse {
       >
 }
 
+interface SearchExportTablesResult {
+  tables: UIExportCnTables[]
+  headersRowInfo: {
+    contentLength?: string
+    contentMaxRows?: string
+    contentRows?: string
+  }
+}
+
 const getSearchExportTables = async (
   connection: string | null,
   targetSchema: string | null,
@@ -292,7 +317,7 @@ export const useSearchExportTables = (
   connection: string | null,
   targetSchema: string | null,
   targetTable: string | null
-): UseQueryResult<UIExportCnTables[], Error> => {
+): UseQueryResult<SearchExportTablesResult, Error> => {
   return useQuery({
     queryKey: ['export', 'search', connection, targetSchema, targetTable],
     queryFn: async () => {
@@ -311,9 +336,15 @@ export const useSearchExportTables = (
         )
       }))
 
+      const headersRowInfo = {
+        contentLength: headers['content-length'],
+        contentMaxRows: headers['content-max-rows'],
+        contentRows: headers['content-rows']
+      }
       console.log('Headers:', headers)
+      console.log('headersRowInfo', headersRowInfo)
 
-      return enumMappedData
+      return { tables: enumMappedData, headersRowInfo }
     },
     refetchOnWindowFocus: false
   })
