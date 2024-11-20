@@ -72,6 +72,7 @@ function ExportCnTables({
     () => [
       { header: 'Target Table', accessor: 'targetTable' },
       { header: 'Target Schema', accessor: 'targetSchema' },
+      { header: 'Connection', accessor: 'connection' },
       { header: 'Database', accessor: 'database' },
       { header: 'Table', accessor: 'table' },
       { header: 'Export Type', accessor: 'exportType' },

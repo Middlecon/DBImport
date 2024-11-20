@@ -70,6 +70,7 @@ function DbTables({
     () => [
       { header: 'Table', accessor: 'table' },
       { header: 'Connection', accessor: 'connection' },
+      { header: 'Database', accessor: 'database' },
       { header: 'Source Schema', accessor: 'sourceSchema' },
       { header: 'Source Table', accessor: 'sourceTable' },
       { header: 'Import Type', accessor: 'importPhaseType' },

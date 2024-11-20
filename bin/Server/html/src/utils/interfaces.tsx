@@ -76,7 +76,7 @@ export interface DbTable {
   includeInAirflow: boolean
 }
 
-export interface UiDbTable extends Table {
+export interface UiDbTable extends DbTable {
   importPhaseTypeDisplay: string
   etlPhaseTypeDisplay: string
   importToolDisplay: string
