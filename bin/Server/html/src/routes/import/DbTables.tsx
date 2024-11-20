@@ -14,6 +14,7 @@ import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
 import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
+import { useLocation } from 'react-router-dom'
 
 function DbTables({
   data,
@@ -22,6 +23,11 @@ function DbTables({
   data: UiDbTable[]
   isLoading: boolean
 }) {
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const database = query.get('database') || null
+  const table = query.get('table') || null
+
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
@@ -114,7 +120,7 @@ function DbTables({
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['import', 'search', tableData.database, tableData.table]
+            queryKey: ['import', 'search', database, table]
           })
           console.log('Update successful', response)
           setModalOpen(false)

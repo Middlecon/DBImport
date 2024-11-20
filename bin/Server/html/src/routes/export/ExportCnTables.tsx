@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
 
 import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
+import { useLocation } from 'react-router-dom'
 
 function ExportCnTables({
   data,
@@ -23,6 +24,12 @@ function ExportCnTables({
   data: UIExportCnTables[]
   isLoading: boolean
 }) {
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const connection = query.get('connection') || null
+  const targetTable = query.get('targetTable') || null
+  const targetSchema = query.get('targetSchema') || null
+
   const { mutate: updateTable } = useUpdateTable()
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
@@ -122,9 +129,9 @@ function ExportCnTables({
             queryKey: [
               'export',
               'search',
-              tableData.connection,
-              tableData.targetSchema,
-              tableData.targetTable
+              connection,
+              targetSchema,
+              targetTable
             ]
           })
           console.log('Update successful', response)
