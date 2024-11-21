@@ -17,38 +17,55 @@ import {
   importTableListFiltersAtom,
   importPersistStateAtom
 } from '../../atoms/atoms'
-import DropdownCheckbox from '../../components/DropdownCheckbox'
+// import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 
-const checkboxFilters = [
-  {
-    title: 'Import Type',
-    accessor: 'importPhaseType',
-    values: ['Full', 'Incremental', 'Oracle Flashback', 'MSSQL Change Tracking']
-  },
-  {
-    title: 'ETL Type',
-    accessor: 'etlPhaseType',
-    values: [
-      'Truncate and Insert',
-      'Insert only',
-      'Merge',
-      'Merge with History Audit',
-      'Only create external table',
-      'None'
-    ]
-  },
-  {
-    title: 'Import Tool',
-    accessor: 'importTool',
-    values: ['Spark', 'Sqoop']
-  },
-  {
-    title: 'ETL Engine',
-    accessor: 'etlEngine',
-    values: ['Hive', 'Spark']
-  }
-]
+// const checkboxFilters = [
+//   {
+//     title: 'Import Type',
+//     accessor: 'importPhaseType',
+//     values: ['Full', 'Incremental', 'Oracle Flashback', 'MSSQL Change Tracking']
+//   },
+//   {
+//     title: 'ETL Type',
+//     accessor: 'etlPhaseType',
+//     values: [
+//       'Truncate and Insert',
+//       'Insert only',
+//       'Merge',
+//       'Merge with History Audit',
+//       'Only create external table',
+//       'None'
+//     ]
+//   },
+//   {
+//     title: 'Import Tool',
+//     accessor: 'importTool',
+//     values: ['Spark', 'Sqoop']
+//   },
+//   {
+//     title: 'ETL Engine',
+//     accessor: 'etlEngine',
+//     values: ['Hive', 'Spark']
+//   }
+// ]
+
+// const radioFilters = [
+//   {
+//     title: 'Last update from source',
+//     accessor: 'lastUpdateFromSource',
+//     radioName: 'timestamp',
+//     badgeContent: ['D', 'W', 'M', 'Y'],
+//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+//   },
+//   {
+//     title: 'Include in Airflow',
+//     accessor: 'includeInAirflow',
+//     radioName: 'includeInAirflow',
+//     badgeContent: ['t', 'f'],
+//     values: ['True', 'False']
+//   }
+// ]
 
 const radioFilters = [
   {
@@ -57,13 +74,6 @@ const radioFilters = [
     radioName: 'timestamp',
     badgeContent: ['D', 'W', 'M', 'Y'],
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-  },
-  {
-    title: 'Include in Airflow',
-    accessor: 'includeInAirflow',
-    radioName: 'includeInAirflow',
-    badgeContent: ['t', 'f'],
-    values: ['True', 'False']
   }
 ]
 
@@ -224,7 +234,8 @@ function Import() {
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 
-      return [...checkboxFilters, ...radioFilters].every((filter) => {
+      // return [...checkboxFilters, ...radioFilters].every((filter) => {
+      return [...radioFilters].every((filter) => {
         const selectedItems =
           selectedFilters[filter.accessor]?.map((value) => value) || []
 
@@ -238,10 +249,10 @@ function Import() {
           return rowDate >= startDate
         }
 
-        if (filter.accessor === 'includeInAirflow') {
-          const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
-          return selectedItems.includes(airflowValue)
-        }
+        // if (filter.accessor === 'includeInAirflow') {
+        //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+        //   return selectedItems.includes(airflowValue)
+        // }
 
         const accessorKey = filter.accessor as keyof typeof row
         const displayKey = `${String(accessorKey)}Display` as keyof typeof row
@@ -275,7 +286,7 @@ function Import() {
           </div>
         </div>
         <div className="filters">
-          {checkboxFilters.map((filter, index) => (
+          {/* {checkboxFilters.map((filter, index) => (
             <DropdownCheckbox
               key={index}
               items={filter.values}
@@ -287,7 +298,7 @@ function Import() {
                 handleDropdownToggle(filter.accessor, isOpen)
               }
             />
-          ))}
+          ))} */}
           {radioFilters.map((filter, index) => (
             <DropdownRadio
               key={index}

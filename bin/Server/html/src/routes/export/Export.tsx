@@ -14,23 +14,40 @@ import CreateExportTableModal from '../../components/CreateExportTableModal'
 import { createExportTableData } from '../../utils/dataFunctions'
 import { useCreateExportTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-import DropdownCheckbox from '../../components/DropdownCheckbox'
+// import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 import ExportCnTables from './ExportCnTables'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
 
-const checkboxFilters = [
-  {
-    title: 'Export Type',
-    accessor: 'exportType',
-    values: ['Full', 'Incremental']
-  },
-  {
-    title: 'Export Tool',
-    accessor: 'exportTool',
-    values: ['Spark', 'Sqoop']
-  }
-]
+// const checkboxFilters = [
+//   {
+//     title: 'Export Type',
+//     accessor: 'exportType',
+//     values: ['Full', 'Incremental']
+//   },
+//   {
+//     title: 'Export Tool',
+//     accessor: 'exportTool',
+//     values: ['Spark', 'Sqoop']
+//   }
+// ]
+
+// const radioFilters = [
+//   {
+//     title: 'Last update from source',
+//     accessor: 'lastUpdateFromHive  ',
+//     radioName: 'timestamp',
+//     badgeContent: ['D', 'W', 'M', 'Y'],
+//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+//   },
+//   {
+//     title: 'Include in Airflow',
+//     accessor: 'includeInAirflow',
+//     radioName: 'includeInAirflow',
+//     badgeContent: ['t', 'f'],
+//     values: ['True', 'False']
+//   }
+// ]
 
 const radioFilters = [
   {
@@ -39,13 +56,6 @@ const radioFilters = [
     radioName: 'timestamp',
     badgeContent: ['D', 'W', 'M', 'Y'],
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-  },
-  {
-    title: 'Include in Airflow',
-    accessor: 'includeInAirflow',
-    radioName: 'includeInAirflow',
-    badgeContent: ['t', 'f'],
-    values: ['True', 'False']
   }
 ]
 
@@ -240,7 +250,8 @@ function Export() {
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromHive)
 
-      return [...checkboxFilters, ...radioFilters].every((filter) => {
+      // return [...checkboxFilters, ...radioFilters].every((filter) => {
+      return [...radioFilters].every((filter) => {
         const selectedItems =
           selectedFilters[filter.accessor]?.map((value) => value) || []
 
@@ -255,10 +266,10 @@ function Export() {
           return rowDate >= startDate
         }
 
-        if (filter.accessor === 'includeInAirflow') {
-          const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
-          return selectedItems.includes(airflowValue)
-        }
+        // if (filter.accessor === 'includeInAirflow') {
+        //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+        //   return selectedItems.includes(airflowValue)
+        // }
 
         const accessorKey = filter.accessor as keyof typeof row
         const displayKey = `${String(accessorKey)}Display` as keyof typeof row
@@ -294,7 +305,7 @@ function Export() {
         </div>
 
         <div className="filters">
-          {checkboxFilters.map((filter, index) => (
+          {/* {checkboxFilters.map((filter, index) => (
             <DropdownCheckbox
               key={index}
               items={filter.values}
@@ -306,7 +317,7 @@ function Export() {
                 handleDropdownToggle(filter.accessor, isOpen)
               }
             />
-          ))}
+          ))} */}
           {radioFilters.map((filter, index) => (
             <DropdownRadio
               key={index}
