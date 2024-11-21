@@ -189,6 +189,8 @@ function ExportSearchFilterTables({
                         event.preventDefault() // Prevents Enter from triggering form submission
                       }
                     }}
+                    autoComplete="off"
+
                     // onKeyDown={handleKeyDownOnInput}
                     // onKeyUp={handleKeyUpOnInput}
                   />
@@ -234,6 +236,8 @@ function ExportSearchFilterTables({
                     event.preventDefault() // Prevents Enter from triggering form submission
                   }
                 }}
+                autoComplete="off"
+
                 // onKeyDown={handleKeyDownOnInput}
                 // onKeyUp={handleKeyUpOnInput}
               />
@@ -255,6 +259,8 @@ function ExportSearchFilterTables({
                     event.preventDefault() // Prevents Enter from triggering form submission
                   }
                 }}
+                autoComplete="off"
+
                 // onKeyDown={handleKeyDownOnInput}
                 // onKeyUp={handleKeyUpOnInput}
               />
