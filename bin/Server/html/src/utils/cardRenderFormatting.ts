@@ -116,17 +116,17 @@ export function airflowCardRenderSettings(
         dagData.emailOnRetries === true || dagData.emailOnFailure === true
     }, // Free-text, varchar(256), Email to send message to in case email_on_retry or email_on_failure is set to True
     {
-      label: 'Email On Failure',
+      label: 'Email on Failure',
       value: dagData.emailOnFailure ? dagData.emailOnFailure : false,
       type: SettingType.Boolean,
       infoText: infoTexts.airflow[airflowType].emailOnFailure
-    }, // Boolean, if not set pre-set default value: false, Send email on failures, required
+    }, // Boolean, if not set pre-set default value: false, Send Email on failures, required
     {
-      label: 'Email On Retries',
+      label: 'Email on Retries',
       value: dagData.emailOnRetries ? dagData.emailOnRetries : false,
       type: SettingType.Boolean,
       infoText: infoTexts.airflow[airflowType].emailOnRetries
-    }, // Boolean, if not set pre-set default value: false, Send email on retries, required
+    }, // Boolean, if not set pre-set default value: false, Send Email on retries, required
     {
       label: '',
       value: '',
@@ -422,7 +422,7 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       infoText: infoTexts.airflow.tasks.airflowPriority
     }, // Free-text, varchar(64)
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: row.includeInAirflow ? row.includeInAirflow : true,
       type: SettingType.Boolean,
       infoText: infoTexts.airflow.tasks.includeInAirflow
@@ -537,7 +537,7 @@ export function initialCreateAirflowTaskSettings() {
       infoText: infoTexts.airflow.tasks.airflowPriority
     }, // Free-text, varchar(64)
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: true,
       type: SettingType.Boolean,
       infoText: infoTexts.airflow.tasks.includeInAirflow,
@@ -813,7 +813,7 @@ export function importDbTablesEditSettings(row: UiDbTable) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: row.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.includeInAirflow
@@ -906,7 +906,7 @@ export function importCardRenderSettings(table: UITable) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Last Update From Source',
+      label: 'Last update from source',
       value: table.lastUpdateFromSource,
       type: SettingType.Readonly,
       infoText: infoTexts.table.import.lastUpdateFromSource
@@ -963,7 +963,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.forceString
     }, //  Boolean, (1, 0) or Default from Config (-1)
     {
-      label: 'Split By Column',
+      label: 'Split by Column',
       value: table.splitByColumn,
       type: SettingType.Text,
       infoText: infoTexts.table.import.splitByColumn
@@ -1159,7 +1159,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.invalidateImpala
     }, // Boolean, (1, 0) or Default from Config (-1)
     {
-      label: 'Soft Delete During Merge',
+      label: 'Soft Delete during Merge',
       value: table.softDeleteDuringMerge,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.softDeleteDuringMerge,
@@ -1330,7 +1330,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.airflowPriority
     }, // Integer (should not be string in API)
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: table.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.includeInAirflow
@@ -1437,7 +1437,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       infoText: infoTexts.table.import.columns.forceString
     }, // Boolean or Auto (-1)
     {
-      label: 'Include In Import',
+      label: 'Include in Import',
       value: row.includeInImport,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.columns.includeInImport
@@ -1449,7 +1449,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       infoText: infoTexts.table.import.columns.sourcePrimaryKey
     }, // Read-only, Boolean
     {
-      label: 'Last Update From Source',
+      label: 'Last update from source',
       value: row.lastUpdateFromSource,
       type: SettingType.Readonly,
       infoText: infoTexts.table.import.columns.lastUpdateFromSource
@@ -1562,7 +1562,7 @@ export function initialCreateImportTableSettings(
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: true,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.includeInAirflow
@@ -1614,7 +1614,7 @@ export function exportCnTablesEditSettings(row: UIExportCnTables) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: row.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.export.includeInAirflow
@@ -1679,7 +1679,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.exportTool
     }, // Enum mapping for 'Export Tool', required
     {
-      label: 'Last Update From Hive',
+      label: 'Last update from Hive',
       value: table.lastUpdateFromHive,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.lastUpdateFromHive
@@ -1904,7 +1904,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.airflowPriority
     }, // Integer, tinyint(4) (should not be string in API)
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: table.includeInAirflow,
       type: SettingType.Boolean,
       infoText: infoTexts.table.export.includeInAirflow
@@ -1962,13 +1962,13 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
       infoText: infoTexts.table.export.columns.targetColumnType
     }, // Free-text, varchar(256)
     {
-      label: 'Last Update From Hive',
+      label: 'Last update from Hive',
       value: row.lastUpdateFromHive,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.columns.lastUpdateFromHive
     }, // Read-only, Timestamp, required
     {
-      label: 'Include In Export',
+      label: 'Include in Export',
       value: row.includeInExport,
       type: SettingType.Boolean,
       infoText: infoTexts.table.export.columns.includeInExport
@@ -2058,7 +2058,7 @@ export function initialCreateExportTableSettings(connection: string | null) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Include In Airflow',
+      label: 'Include in Airflow',
       value: true,
       type: SettingType.Boolean,
       infoText: infoTexts.table.import.includeInAirflow
@@ -2147,7 +2147,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       isRequired: true
     }, // Free-text, varchar (256), username, required
     {
-      label: 'Create Pool With Task',
+      label: 'Create Pool with Task',
       value: config.airflow_create_pool_with_task,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.airflow_create_pool_with_task,
@@ -2271,7 +2271,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
 
   const sqlServersConfigData: EditSetting[] = [
     {
-      label: 'Hive Acid With Clusteredby',
+      label: 'Hive Acid with Clusteredby',
       value: config.hive_acid_with_clusteredby,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.hive_acid_with_clusteredby,
@@ -2285,7 +2285,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       isHidden: config.hive_insert_only_tables === null
     }, // Boolean, true or false, required
     {
-      label: 'Hive Major Compact After Merge',
+      label: 'Hive Major Compact after Merge',
       value: config.hive_major_compact_after_merge,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.hive_major_compact_after_merge,
@@ -2299,14 +2299,14 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       isHidden: config.hive_print_messages === null
     }, // Boolean, true or false, required
     {
-      label: 'Hive Remove Locks By Force',
+      label: 'Hive Remove Locks by force',
       value: config.hive_remove_locks_by_force,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.hive_remove_locks_by_force,
       isHidden: config.hive_remove_locks_by_force === null
     }, // Boolean, true or false, required
     {
-      label: 'Hive Validate Before Execution',
+      label: 'Hive Validate before execution',
       value: config.hive_validate_before_execution,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.hive_validate_before_execution,
@@ -2478,14 +2478,14 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       isHidden: config.post_airflow_dag_operations === null
     }, // Boolean, true or false, required
     {
-      label: 'Post Data To AWS SNS',
+      label: 'Post Data to AWS SNS',
       value: config.post_data_to_awssns,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_awssns,
       isHidden: config.post_data_to_awssns === null
     }, // Boolean, true or false, required
     {
-      label: 'Post Data To AWS SNS Extended',
+      label: 'Post Data to AWS SNS Extended',
       value: config.post_data_to_awssns_extended,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_awssns_extended,
@@ -2493,28 +2493,28 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
     }, // Boolean, true or false, required
 
     {
-      label: 'Post Data To Kafka',
+      label: 'Post Data to Kafka',
       value: config.post_data_to_kafka,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_kafka,
       isHidden: config.post_data_to_kafka === null
     }, // Boolean, true or false, required
     {
-      label: 'Post Data To Kafka Extended',
+      label: 'Post Data to Kafka Extended',
       value: config.post_data_to_kafka_extended,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_kafka_extended,
       isHidden: config.post_data_to_kafka_extended === null
     }, // Boolean, true or false, required
     {
-      label: 'Post Data To Rest',
+      label: 'Post Data to Rest',
       value: config.post_data_to_rest,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_rest,
       isHidden: config.post_data_to_rest === null
     }, // Boolean, true or false, required
     {
-      label: 'Post Data To Rest Extended',
+      label: 'Post Data to Rest Extended',
       value: config.post_data_to_rest_extended,
       type: SettingType.Boolean,
       infoText: infoTexts.configuration.global.post_data_to_rest_extended,
@@ -2526,7 +2526,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Post Data To AWS SNS Topic',
+      label: 'Post Data to AWS SNS Topic',
       value: config.post_data_to_awssns_topic,
       type: SettingType.Text,
       infoText: infoTexts.configuration.global.post_data_to_awssns_topic,

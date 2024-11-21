@@ -57,7 +57,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       { header: 'Airflow Pool', accessor: 'airflowPool' },
       { header: 'Airflow Priority', accessor: 'airflowPriority' },
       {
-        header: 'Include In Airflow',
+        header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
       {

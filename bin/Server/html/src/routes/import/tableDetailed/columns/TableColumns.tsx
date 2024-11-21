@@ -44,9 +44,9 @@ function TableColumns() {
         accessor: 'sqoopColumnTypeOverride'
       },
       { header: 'Force String', accessor: 'forceString' },
-      { header: 'Include In Import', accessor: 'includeInImport' },
+      { header: 'Include in Import', accessor: 'includeInImport' },
       { header: 'Source Primary Key', accessor: 'sourcePrimaryKey' },
-      { header: 'Last Update From Source', accessor: 'lastUpdateFromSource' },
+      { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
       { header: 'Comment', accessor: 'comment' },
       { header: 'Operator Notes', accessor: 'operatorNotes' },
       { header: 'Anonymization Function', accessor: 'anonymizationFunction' }

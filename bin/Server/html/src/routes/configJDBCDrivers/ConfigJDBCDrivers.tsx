@@ -49,7 +49,7 @@ function ConfigJDBCDrivers() {
       { header: 'Database Type', accessor: 'databaseType' },
       { header: 'Version', accessor: 'version' },
       { header: 'Driver', accessor: 'driver' },
-      { header: 'Classpath', accessor: 'classpath' }
+      { header: 'Class Path', accessor: 'classpath' }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scrollbarRefresh]

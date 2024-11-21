@@ -79,7 +79,7 @@ function DbTables({
       { header: 'ETL Engine', accessor: 'etlEngine' },
       { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
       {
-        header: 'Include In Airflow',
+        header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
       { header: 'Actions', isAction: 'both' }

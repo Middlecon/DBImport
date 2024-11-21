@@ -240,7 +240,7 @@ function updateColumnData(
     'Column Type Override': 'columnTypeOverride',
     'Sqoop Column Type Override': 'sqoopColumnTypeOverride',
     'Force String': 'forceString',
-    'Include In Import': 'includeInImport',
+    'Include in Import': 'includeInImport',
     Comment: 'comment',
     'Operator Notes': 'operatorNotes',
     'Anonymization Function': 'anonymizationFunction'
@@ -391,7 +391,7 @@ export function createTableData(
     'ETL Type': 'etlPhaseType',
     'Import Tool': 'importTool',
     'ETL Engine': 'etlEngine',
-    'Include In Airflow': 'includeInAirflow'
+    'Include in Airflow': 'includeInAirflow'
   }
 
   const filteredSettings = newTableSettings.filter(
@@ -457,7 +457,7 @@ function updateExportColumnData(
   const labelToColumnMap: Record<string, keyof typeof part1> = {
     'Target Column Name': 'targetColumnName',
     'Target Column Type': 'targetColumnType',
-    'Include In Export': 'includeInExport',
+    'Include in Export': 'includeInExport',
     'Operator Notes': 'operatorNotes'
   }
 
@@ -588,7 +588,7 @@ export function createExportTableData(
     Table: 'table',
     'Export Type': 'exportType',
     'Export Tool': 'exportTool',
-    'Include In Airflow': 'includeInAirflow'
+    'Include in Airflow': 'includeInAirflow'
   }
 
   const filteredSettings = newTableSettings.filter(
@@ -670,7 +670,7 @@ function updateTasksData(
     Placement: 'placement',
     Connection: 'connection',
     'Airflow Priority': 'airflowPriority',
-    'Include In Airflow': 'includeInAirflow',
+    'Include in Airflow': 'includeInAirflow',
     'Task Dependency Downstream': 'taskDependencyDownstream',
     'Task Dependency Upstream': 'taskDependencyUpstream',
     'Task Config': 'taskConfig',
@@ -743,7 +743,7 @@ export function updateImportDagData(
       Placement: 'placement',
       Connection: 'connection',
       'Airflow Priority': 'airflowPriority',
-      'Include In Airflow': 'includeInAirflow',
+      'Include in Airflow': 'includeInAirflow',
       'Task Dependency Downstream': 'taskDependencyDownstream',
       'Task Dependency Upstream': 'taskDependencyUpstream',
       'Task Config': 'taskConfig',
@@ -839,7 +839,7 @@ export function updateExportDagData(
       Placement: 'placement',
       Connection: 'connection',
       'Airflow Priority': 'airflowPriority',
-      'Include In Airflow': 'includeInAirflow',
+      'Include in Airflow': 'includeInAirflow',
       'Task Dependency Downstream': 'taskDependencyDownstream',
       'Task Dependency Upstream': 'taskDependencyUpstream',
       'Task Config': 'taskConfig',
@@ -933,7 +933,7 @@ export function updateCustomDagData(
       Placement: 'placement',
       Connection: 'connection',
       'Airflow Priority': 'airflowPriority',
-      'Include In Airflow': 'includeInAirflow',
+      'Include in Airflow': 'includeInAirflow',
       'Task Dependency Downstream': 'taskDependencyDownstream',
       'Task Dependency Upstream': 'taskDependencyUpstream',
       'Task Config': 'taskConfig',

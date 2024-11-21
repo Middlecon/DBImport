@@ -59,7 +59,7 @@ const radioFilters = [
     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
   },
   {
-    title: 'Include In Airflow',
+    title: 'Include in Airflow',
     accessor: 'includeInAirflow',
     radioName: 'includeInAirflow',
     badgeContent: ['t', 'f'],

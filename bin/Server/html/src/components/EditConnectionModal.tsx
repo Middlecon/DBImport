@@ -73,10 +73,10 @@ function EditConnectionModal({
   }, [editedSettings])
 
   const airflowEmailOnFailure = editedSettings.find(
-    (s) => s.label === 'Email On Failure'
+    (s) => s.label === 'Email on Failure'
   )
   const airflowEmailOnRetries = editedSettings.find(
-    (s) => s.label === 'Email On Retries'
+    (s) => s.label === 'Email on Retries'
   )
   const isAirflowEmailDisabled =
     airflowEmailOnFailure?.value === false &&

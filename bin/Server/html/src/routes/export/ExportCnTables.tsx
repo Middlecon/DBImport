@@ -78,11 +78,11 @@ function ExportCnTables({
       { header: 'Export Type', accessor: 'exportType' },
       { header: 'Export Tool', accessor: 'exportTool' },
       {
-        header: 'Last Update From Hive',
+        header: 'Last update from Hive',
         accessor: 'lastUpdateFromHive'
       },
       {
-        header: 'Include In Airflow',
+        header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
       { header: 'Actions', isAction: 'both' }
