@@ -582,25 +582,6 @@ class dbCalls:
 				resultDict["connectionString"] = row[1]
 				resultDict["serverType"] = self.getJDBCserverType(name=row[0], connectionString=row[1])
 
-#				self.common_config.lookupConnectionAlias(row[0], decryptCredentials=False, jdbcURL=row[1])
-#
-#				serverType = None
-#				if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"
-#				if self.common_config.jdbc_servertype == constant.ORACLE:			serverType = "Oracle"	
-#				if self.common_config.jdbc_servertype == constant.MSSQL:			serverType = "MSSQL Server"
-#				if self.common_config.jdbc_servertype == constant.POSTGRESQL:		serverType = "PostgreSQL"
-#				if self.common_config.jdbc_servertype == constant.PROGRESS:			serverType = "Progress"
-#				if self.common_config.jdbc_servertype == constant.DB2_UDB:			serverType = "DB2 UDB"
-#				if self.common_config.jdbc_servertype == constant.DB2_AS400:		serverType = "DB2 AS400"
-#				if self.common_config.jdbc_servertype == constant.MONGO:			serverType = "MongoDB"
-#				if self.common_config.jdbc_servertype == constant.CACHEDB:			serverType = "Cache"
-#				if self.common_config.jdbc_servertype == constant.SNOWFLAKE:		serverType = "Snowflake"
-#				if self.common_config.jdbc_servertype == constant.AWS_S3:			serverType = "AWS S3"
-#				if self.common_config.jdbc_servertype == constant.INFORMIX:			serverType = "Informix"
-#				if self.common_config.jdbc_servertype == constant.SQLANYWHERE:		serverType = "SQL Anywhere"
-#				resultDict["serverType"] = serverType
-
-
 			listOfConnections.append(resultDict)
 
 			if count == self.contentMaxRows:
@@ -609,7 +590,7 @@ class dbCalls:
 		jsonResult = json.loads(json.dumps(listOfConnections))
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
@@ -643,6 +624,8 @@ class dbCalls:
 				.select_from(jdbcConnections)
 			)
 
+		jdbcConnectionsDataCount = session.query(func.count(1)).select_from(jdbcConnections)
+
 		# Add the filters for the specific column that we search on
 		for items in searchValues:
 			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
@@ -662,11 +645,14 @@ class dbCalls:
 
 			if likeSearch == True:
 				jdbcConnectionsData = jdbcConnectionsData.filter(like_op(attributeToColumn[column], value))
+				jdbcConnectionsDataCount = jdbcConnectionsDataCount.filter(like_op(attributeToColumn[column], value))
 			else:
 				jdbcConnectionsData = jdbcConnectionsData.filter(attributeToColumn[column] == value)
+				jdbcConnectionsDataCount = jdbcConnectionsDataCount.filter(attributeToColumn[column] == value)
 
 		# Fetch all rows matching the filter
 		jdbcConnectionsData = jdbcConnectionsData.limit(self.contentMaxRows)
+		jdbcConnectionsDataCount = jdbcConnectionsDataCount.one()
 
 		# Loop through result and create the return dict
 		count = 0
@@ -688,7 +674,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows), "content-total-rows": str(importTablesDataCount[0])}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
@@ -952,7 +938,7 @@ class dbCalls:
 		jsonResult = json.loads(json.dumps(listOfDBs))
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 	def searchImportTables(self, searchValues, currentUser):
@@ -997,6 +983,8 @@ class dbCalls:
 				.select_from(importTables)
 			)
 
+		importTablesDataCount = session.query(func.count(1)).select_from(importTables)
+
 		# Add the filters for the specific column that we search on
 		for items in searchValues:
 			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
@@ -1016,11 +1004,14 @@ class dbCalls:
 
 			if likeSearch == True:
 				importTablesData = importTablesData.filter(like_op(attributeToColumn[column], value))
+				importTablesDataCount = importTablesDataCount.filter(like_op(attributeToColumn[column], value))
 			else:
 				importTablesData = importTablesData.filter(attributeToColumn[column] == value)
+				importTablesDataCount = importTablesDataCount.filter(attributeToColumn[column] == value)
 
 		# Fetch all rows matching the filter
 		importTablesData = importTablesData.limit(self.contentMaxRows)
+		importTablesDataCount = importTablesDataCount.one()
 
 		# Loop through result and create the return dict
 		count = 0
@@ -1056,7 +1047,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows), "content-total-rows": str(importTablesDataCount[0])}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
@@ -1077,69 +1068,6 @@ class dbCalls:
 		
 		return self.searchImportTables(searchValues, currentUser) 
 
-#		try:
-#			session = self.getDBImportSession()
-#		except SQLerror:
-#			self.disconnectDBImportDB()
-#			return None
-#
-#		importTables = aliased(configSchema.importTables)
-#		listOfTables = []
-#
-#		# Return a list of Hive tables with details
-#		importTablesData = (session.query(
-#					importTables.hive_db,
-#					importTables.hive_table,
-#					importTables.dbalias,
-#					importTables.source_schema,
-#					importTables.source_table,
-#					importTables.import_phase_type,
-#					importTables.etl_phase_type,
-#					importTables.import_tool,
-#					importTables.etl_engine,
-#					importTables.last_update_from_source,
-#					importTables.include_in_airflow
-#				)
-#				.select_from(importTables)
-#				.filter(importTables.hive_db == database)
-#				.all()
-#			)
-#
-#		count = 0
-#		for row in importTablesData:
-#			count = count + 1
-#			resultDict = {}
-#			resultDict['database'] = row[0]
-#			resultDict['table'] = row[1]
-#			resultDict['connection'] = row[2]
-#			resultDict['sourceSchema'] = row[3]
-#			resultDict['sourceTable'] = row[4]
-#			resultDict['importPhaseType'] = row[5]
-#			resultDict['etlPhaseType'] = row[6]
-#			resultDict['importTool'] = row[7]
-#			resultDict['etlEngine'] = row[8]
-#			try:
-#				resultDict['lastUpdateFromSource'] = row[9].strftime("%Y-%m-%d %H:%M:%S")
-#			except AttributeError:
-#				resultDict['lastUpdateFromSource'] = None
-#			if row[10] == 1:
-#				resultDict['includeInAirflow'] = True
-#			else:
-#				resultDict['includeInAirflow'] = False
-#
-#			listOfTables.append(resultDict)
-#
-#			if count == self.contentMaxRows:
-#				break
-#
-#
-#		jsonResult = json.loads(json.dumps(listOfTables))
-#		# session.close()
-#		session.remove()
-#
-#		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
-#		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
-#	
 
 	def getImportTableDetails(self, database, table):
 		""" Returns all import table details """
@@ -1764,7 +1692,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
@@ -1806,6 +1734,8 @@ class dbCalls:
 				.select_from(exportTables)
 			)
 
+		exportTablesDataCount = session.query(func.count(1)).select_from(exportTables)
+
 		# Add the filters for the specific column that we search on
 		for items in searchValues:
 			if items[1] == None or items[1] == "" or items[1] == "*" or items[1] == "%":
@@ -1825,11 +1755,14 @@ class dbCalls:
 
 			if likeSearch == True:
 				exportTablesData = exportTablesData.filter(like_op(attributeToColumn[column], value))
+				exportTablesDataCount = exportTablesDataCount.filter(like_op(attributeToColumn[column], value))
 			else:
 				exportTablesData = exportTablesData.filter(attributeToColumn[column] == value)
+				exportTablesDataCount = exportTablesDataCount.filter(attributeToColumn[column] == value)
 
 		# Fetch all rows matching the filter
 		exportTablesData = exportTablesData.limit(self.contentMaxRows)
+		exportTablesDataCount = exportTablesDataCount.one()
 
 		# Loop through result and create the return dict
 		count = 0
@@ -1862,7 +1795,7 @@ class dbCalls:
 		jsonResult = json.loads(json.dumps(listOfTables))
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows), "content-total-rows": str(exportTablesDataCount[0])}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
@@ -1876,79 +1809,7 @@ class dbCalls:
 		
 		return self.searchExportTables(searchValues, currentUser) 
 
-#		try:
-#			session = self.getDBImportSession()
-#		except SQLerror:
-#			self.disconnectDBImportDB()
-#			return None
-#
-#		exportTables = aliased(configSchema.exportTables)
-#
-#		if schema == None:
-#			exportTableDBs = (session.query(
-#						exportTables.dbalias,
-#						exportTables.target_schema,
-#						exportTables.target_table,
-#						exportTables.hive_db,
-#						exportTables.hive_table,
-#						exportTables.export_type,
-#						exportTables.export_tool,
-#						exportTables.last_update_from_hive,
-#						exportTables.include_in_airflow
-#					)
-#					.select_from(exportTables)
-#					.filter(exportTables.dbalias == connection)
-#					.limit(self.contentMaxRows)
-#				)
-#		else:
-#			exportTableDBs = (session.query(
-#						exportTables.dbalias,
-#						exportTables.target_schema,
-#						exportTables.target_table,
-#						exportTables.hive_db,
-#						exportTables.hive_table,
-#						exportTables.export_type,
-#						exportTables.export_tool,
-#						exportTables.last_update_from_hive,
-#						exportTables.include_in_airflow
-#					)
-#					.select_from(exportTables)
-#					.filter((exportTables.dbalias == connection) & (exportTables.target_schema == schema))
-#					.limit(self.contentMaxRows)
-#				)
-#
-#		listOfExports = []
-#		count = 0
-#		for row in exportTableDBs:
-#			count = count + 1
-#			resultDict = {}
-#			resultDict["connection"] = row[0]
-#			resultDict["targetSchema"] = row[1]
-#			resultDict["targetTable"] = row[2]
-#			resultDict["database"] = row[3]
-#			resultDict["table"] = row[4]
-#			resultDict["exportType"] = row[5]
-#			resultDict["exportTool"] = row[6]
-#			try:
-#				resultDict['lastUpdateFromHive'] = row[7].strftime("%Y-%m-%d %H:%M:%S")
-#			except AttributeError:
-#				resultDict['lastUpdateFromHive'] = None
-#			if row[8] == 1:
-#				resultDict['includeInAirflow'] = True
-#			else:
-#				resultDict['includeInAirflow'] = False
-#			listOfExports.append(resultDict)
-#
-#			if count == self.contentMaxRows:
-#				break
-#
-#		jsonResult = json.loads(json.dumps(listOfExports))
-#		# session.close()
-#		session.remove()
 
-#		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
-#		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
-#	
 
 	def getExportTableDetails(self, connection, schema, table):
 		""" Returns all connections that have exports configured in them """
@@ -2470,7 +2331,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
@@ -2517,7 +2378,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
@@ -2566,7 +2427,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 
@@ -2611,7 +2472,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-rows": str(self.contentMaxRows)}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 
 	def getAirflowTasks(self, dagname):
