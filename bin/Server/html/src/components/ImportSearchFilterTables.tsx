@@ -1,18 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useDatabases } from '../utils/queries'
+import { useConnections, useDatabases } from '../utils/queries'
 import { useAtom } from 'jotai'
-import { isDbDropdownReadyAtom } from '../atoms/atoms'
+import { isCnDropdownReadyAtom, isDbDropdownReadyAtom } from '../atoms/atoms'
 import Dropdown from './Dropdown'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import './SearchFilterTables.scss'
 import Button from './Button'
+import {
+  EditSetting,
+  EditSettingValueTypes,
+  UiImportSearchFilter
+} from '../utils/interfaces'
+import { getKeyFromLabel } from '../utils/nameMappings'
+import { initEnumDropdownFilters } from '../utils/cardRenderFormatting'
 
 interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
-  onShow: (database: string | null, table: string | null) => void
+  onShow: (filters: UiImportSearchFilter) => void
 }
 
 function ImportSearchFilterTables({
@@ -21,35 +28,75 @@ function ImportSearchFilterTables({
   onShow
 }: ImportSearchFilterProps) {
   const query = new URLSearchParams(location.search)
+  const connection = query.get('connection') || null
   const database = query.get('database') || null
   const table = query.get('table') || null
+  const includeInAirflow = query.get('includeInAirflow') || null
+  const importType = query.get('importType') || null
+  const importTool = query.get('importTool') || null
+  const etlType = query.get('etlType') || null
+  const etlEngine = query.get('etlEngine') || null
 
-  const { data, isLoading } = useDatabases()
+  const [enumDropdownFilters, setEnumDropdownFilters] = useState<EditSetting[]>(
+    initEnumDropdownFilters(importType, importTool, etlType, etlEngine)
+  )
+
+  const [includeInAirflowFilter, setIncludeInAirflowFilter] = useState({
+    label: 'Include in Airflow',
+    keyLabel: 'includeInAirflow',
+    value: includeInAirflow,
+    items: ['True', 'False']
+  })
 
   const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
     isDbDropdownReadyAtom
+  )
+
+  const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
+    isCnDropdownReadyAtom
+  )
+
+  const { data, isLoading } = useDatabases()
+  const databaseNames = useMemo(() => {
+    return Array.isArray(data) ? data.map((database) => database.name) : []
+  }, [data])
+
+  const { data: connectionsData } = useConnections(true)
+  const connectionNames = useMemo(
+    () =>
+      Array.isArray(connectionsData)
+        ? connectionsData?.map((connection) => connection.name)
+        : [],
+    [connectionsData]
   )
 
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [formValues, setFormValues] = useState<{
-    database: string | null
-    table: string | null
-  }>({
+
+  const [formValues, setFormValues] = useState<UiImportSearchFilter>({
+    connection: connection ? connection : null,
     database: database ? database : null,
-    table: table ? table : null
+    table: table ? table : null,
+    includeInAirflow: includeInAirflow ? includeInAirflow : null,
+    importPhaseType: importType ? importType : null,
+    importTool: importTool ? importTool : null,
+    etlPhaseType: etlType ? etlType : null,
+    etlEngine: etlEngine ? etlEngine : null
   })
 
-  const databaseNames = useMemo(() => {
-    return Array.isArray(data) ? data.map((database) => database.name) : []
-  }, [data])
-
   useEffect(() => {
-    if (isLoading || !databaseNames.length) return
+    if (isLoading || !databaseNames.length || !connectionNames.length) return
+    setIsCnDropdownReady(true)
     setIsDbDropdownReady(true)
-  }, [databaseNames.length, isLoading, setIsDbDropdownReady])
+  }, [
+    connectionNames.length,
+    databaseNames.length,
+    isLoading,
+    setIsCnDropdownReady,
+    setIsDbDropdownReady
+  ])
 
   useEffect(() => {
     if (!isSearchFilterOpen) return
@@ -105,21 +152,27 @@ function ImportSearchFilterTables({
   }
 
   const handleShow = () => {
-    onShow(
-      formValues.database ? `${formValues.database}` : null,
-      formValues.table ? `${formValues.table}` : null
-    )
+    onShow(formValues)
   }
 
-  const handleInputChange = (value: string) => {
-    setFormValues((prev) => ({ ...prev, database: value }))
+  const handleInputDropdownChange = (
+    key: 'database' | 'connection',
+    value: string | null
+  ) => {
+    setFormValues((prev) => ({ ...prev, [key]: value }))
 
-    if (value.length > 0) {
-      const matches = databaseNames.some((name) =>
-        name.toLowerCase().startsWith(value.toLowerCase())
-      )
+    if (value && value.length > 0) {
+      const matches =
+        key === 'database'
+          ? databaseNames.some((name) =>
+              name.toLowerCase().startsWith(value.toLowerCase())
+            )
+          : connectionNames.some((name) =>
+              name.toLowerCase().startsWith(value.toLowerCase())
+            )
+
       if (matches) {
-        setOpenDropdown('dbSearch')
+        setOpenDropdown(key === 'database' ? 'dbSearch' : 'cnSearch')
       } else {
         setOpenDropdown(null)
       }
@@ -128,8 +181,12 @@ function ImportSearchFilterTables({
     }
   }
 
-  const handleDropdownSelect = (item: string | null) => {
-    setFormValues((prev) => ({ ...prev, database: item }))
+  const handleInputDropdownSelect = (
+    item: string | null,
+    keyLabel: string | undefined
+  ) => {
+    if (!keyLabel) return
+    setFormValues((prev) => ({ ...prev, [keyLabel]: item }))
   }
 
   const filteredDatabaseNames = useMemo(() => {
@@ -138,6 +195,57 @@ function ImportSearchFilterTables({
       name.toLowerCase().includes(formValues.database!.toLowerCase())
     )
   }, [formValues.database, databaseNames])
+
+  const filteredConnectionNames = useMemo(() => {
+    if (!formValues.connection) return connectionNames
+    return connectionNames.filter((name) =>
+      name.toLowerCase().includes(formValues.connection!.toLowerCase())
+    )
+  }, [formValues.connection, connectionNames])
+
+  const handleSelect = (
+    item: EditSettingValueTypes | null,
+    keyLabel?: string,
+    settingType?: string
+  ) => {
+    console.log('keyLabel', keyLabel)
+    console.log('item', item)
+    console.log('settingType', settingType)
+    if (!keyLabel) return
+
+    if (keyLabel === 'includeInAirflow') {
+      const value = typeof item === 'string' ? item : null
+
+      setIncludeInAirflowFilter((prev) => ({
+        ...prev,
+        value: value
+      }))
+
+      setFormValues((prev) => ({
+        ...prev,
+        includeInAirflow: item as string | null
+      }))
+    } else if (settingType === 'enum') {
+      const updatedFilters = enumDropdownFilters.map((filter) =>
+        filter.label === keyLabel ? { ...filter, value: item } : filter
+      )
+      setEnumDropdownFilters(updatedFilters)
+
+      const key = getKeyFromLabel(keyLabel)
+
+      console.log('key', key)
+
+      setFormValues((prev) => ({
+        ...prev,
+        [key as string]: item
+      }))
+    } else {
+      setFormValues((prev) => ({
+        ...prev,
+        [keyLabel]: item
+      }))
+    }
+  }
 
   return (
     <div className="search-filter-container" ref={containerRef}>
@@ -155,7 +263,7 @@ function ImportSearchFilterTables({
           <FilterFunnel />
         </div>
         Filter
-        <div className="chevron-container">
+        <div className="search-filter-chevron-container">
           {isSearchFilterOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
       </div>
@@ -169,72 +277,205 @@ function ImportSearchFilterTables({
               handleShow()
             }}
           >
-            <label htmlFor="searchFilterDatabase">
-              Database:
-              {isDbDropdownReady && (
-                <>
+            <div className="filter-container">
+              <div className="filter-first-container">
+                <label htmlFor="searchFilterConnection">
+                  Connection:
+                  {isCnDropdownReady && (
+                    <>
+                      <input
+                        id="searchFilterConnection"
+                        type="text"
+                        value={formValues.connection || ''}
+                        onChange={(event) =>
+                          handleInputDropdownChange(
+                            'connection',
+                            event.target.value
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault() // Prevents Enter from triggering form submission
+                          }
+                        }}
+                        autoComplete="off"
+                        // onKeyDown={handleKeyDownOnInput}
+                        // onKeyUp={handleKeyUpOnInput}
+                      />
+                      <Dropdown
+                        id="searchFilterConnection"
+                        keyLabel="connection"
+                        items={
+                          filteredConnectionNames.length > 0
+                            ? filteredConnectionNames
+                            : ['No Connection yet']
+                        }
+                        onSelect={handleInputDropdownSelect}
+                        isOpen={openDropdown === 'cnSearch'}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle('cnSearch', isOpen)
+                        }
+                        searchFilter={false}
+                        textInputMode={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        lightStyle={true}
+                      />
+                    </>
+                  )}
+                </label>
+                <label htmlFor="searchFilterDatabase">
+                  Database:
+                  {isDbDropdownReady && (
+                    <>
+                      <input
+                        id="searchFilterDatabase"
+                        type="text"
+                        value={formValues.database || ''}
+                        onChange={(event) =>
+                          handleInputDropdownChange(
+                            'database',
+                            event.target.value
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault() // Prevents Enter from triggering form submission
+                          }
+                        }}
+                        autoComplete="off"
+                        // onKeyDown={handleKeyDownOnInput}
+                        // onKeyUp={handleKeyUpOnInput}
+                      />
+                      <Dropdown
+                        id="searchFilterDatabase"
+                        keyLabel="database"
+                        items={
+                          filteredDatabaseNames.length > 0
+                            ? filteredDatabaseNames
+                            : ['No DB yet']
+                        }
+                        onSelect={handleInputDropdownSelect}
+                        isOpen={openDropdown === 'dbSearch'}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle('dbSearch', isOpen)
+                        }
+                        searchFilter={false}
+                        textInputMode={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        lightStyle={true}
+                      />
+                    </>
+                  )}
+                </label>
+                <label htmlFor="searchFilterTable">
+                  Table:
                   <input
-                    id="searchFilterDatabase"
+                    id="searchFilterTable"
                     type="text"
-                    value={formValues.database || ''}
-                    onChange={(event) => handleInputChange(event.target.value)}
+                    value={formValues.table || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        table: event.target.value
+                      }))
+                    }
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
                       }
                     }}
                     autoComplete="off"
+
                     // onKeyDown={handleKeyDownOnInput}
                     // onKeyUp={handleKeyUpOnInput}
                   />
+                </label>
+                <label
+                  htmlFor={`dropdown-includeInAirflow`}
+                  key={`dropdown-includeInAirflow`}
+                >
+                  {includeInAirflowFilter.label}:
                   <Dropdown
-                    id="searchFilterDatabase"
-                    items={
-                      filteredDatabaseNames.length > 0
-                        ? filteredDatabaseNames
-                        : ['No DB yet']
-                    }
-                    onSelect={handleDropdownSelect}
-                    isOpen={openDropdown === 'dbSearch'}
+                    id={`dropdown-includeInAirflow`}
+                    keyLabel={includeInAirflowFilter.keyLabel}
+                    items={includeInAirflowFilter.items}
+                    onSelect={handleSelect}
+                    isOpen={openDropdown === `dropdown-includeInAirflow`}
                     onToggle={(isOpen: boolean) =>
-                      handleDropdownToggle('dbSearch', isOpen)
+                      handleDropdownToggle(`dropdown-includeInAirflow`, isOpen)
                     }
                     searchFilter={false}
-                    textInputMode={true}
+                    initialTitle={
+                      includeInAirflowFilter.value
+                        ? String(includeInAirflowFilter.value)
+                        : 'Select...'
+                    }
+                    cross={true}
                     backgroundColor="inherit"
                     textColor="black"
+                    fontSize="14px"
                     border="0.5px solid rgb(42, 42, 42)"
                     borderRadius="3px"
                     height="21.5px"
-                    padding="8px 4px"
+                    width="212px"
+                    chevronWidth="11"
+                    chevronHeight="7"
                     lightStyle={true}
                   />
-                </>
-              )}
-            </label>
-            <label htmlFor="searchFilterTable">
-              Table:
-              <input
-                id="searchFilterTable"
-                type="text"
-                value={formValues.table || ''}
-                onChange={(event) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    table: event.target.value
-                  }))
-                }
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault() // Prevents Enter from triggering form submission
-                  }
-                }}
-                autoComplete="off"
-
-                // onKeyDown={handleKeyDownOnInput}
-                // onKeyUp={handleKeyUpOnInput}
-              />
-            </label>
+                </label>
+              </div>
+              <div className="filter-select-dropdown">
+                {enumDropdownFilters.map((filter, index) => {
+                  // console.log('enumOptions', filter.enumOptions)
+                  const dropdownOptions = filter.enumOptions
+                    ? Object.values(filter.enumOptions)
+                    : []
+                  // console.log('dropdownOptions', dropdownOptions)
+                  return (
+                    <label
+                      htmlFor={`dropdown-${index}`}
+                      key={`dropdown-${index}`}
+                    >
+                      {filter.label}:
+                      <Dropdown
+                        id={`dropdown-${index}`}
+                        keyLabel={filter.label}
+                        settingType={filter.type}
+                        items={dropdownOptions}
+                        onSelect={handleSelect}
+                        isOpen={openDropdown === `dropdown-${index}`}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle(`dropdown-${index}`, isOpen)
+                        }
+                        searchFilter={false}
+                        initialTitle={
+                          filter.value ? String(filter.value) : 'Select...'
+                        }
+                        cross={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        fontSize="14px"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        width="212px"
+                        chevronWidth="11"
+                        chevronHeight="7"
+                        lightStyle={true}
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             <div className="submit-button-container">
               <Button type="submit" title="Show" ref={buttonRef} />
             </div>

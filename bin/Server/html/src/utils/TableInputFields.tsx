@@ -697,7 +697,6 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -739,7 +738,6 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -780,7 +778,6 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}
@@ -1362,7 +1359,6 @@ function TableInputFields({
             border="0.5px solid rgb(42, 42, 42)"
             borderRadius="3px"
             height="21.5px"
-            padding="8px 4px"
             chevronWidth="11"
             chevronHeight="7"
             lightStyle={true}

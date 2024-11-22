@@ -10,6 +10,7 @@ interface DropdownCheckboxProps {
   onSelect: (selectedItems: string[]) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
+  lightStyle?: boolean
 }
 
 function DropdownCheckbox({
@@ -18,7 +19,8 @@ function DropdownCheckbox({
   selectedItems,
   onSelect,
   isOpen,
-  onToggle
+  onToggle,
+  lightStyle
 }: DropdownCheckboxProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -60,7 +62,11 @@ function DropdownCheckbox({
   return (
     <div className="checkbox-dropdown" ref={dropdownRef}>
       <div
-        className="checkbox-dropdown-selected-item"
+        className={
+          lightStyle
+            ? 'light-checkbox-dropdown-selected-item'
+            : 'checkbox-dropdown-selected-item'
+        }
         tabIndex={0} // For focusability
         onClick={() => onToggle(!isOpen)}
         onKeyDown={(e) => {
@@ -72,7 +78,16 @@ function DropdownCheckbox({
       >
         {title}
         {Array.isArray(selectedItems) && selectedItems.length > 0 ? (
-          <span className="count-badge">{selectedItems.length}</span>
+          <span
+            className="count-badge"
+            style={
+              lightStyle
+                ? { backgroundColor: '#ffffff', border: '1px solid darkGrey' }
+                : undefined
+            }
+          >
+            {selectedItems.length}{' '}
+          </span>
         ) : (
           <span className="count-badge-placeholder" />
         )}
@@ -83,7 +98,7 @@ function DropdownCheckbox({
       </div>
 
       {isOpen && (
-        <div className="menu">
+        <div className={lightStyle ? 'light-menu' : 'menu'}>
           <ul>
             {Array.isArray(items) && items.length ? (
               items.map((item, index) => (

@@ -14,20 +14,16 @@ import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../utils/mutations'
 import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
-import { useLocation } from 'react-router-dom'
 
 function DbTables({
   data,
+  queryKey,
   isLoading
 }: {
   data: UiDbTable[]
+  queryKey: (string | boolean | null)[]
   isLoading: boolean
 }) {
-  const location = useLocation()
-  const query = new URLSearchParams(location.search)
-  const database = query.get('database') || null
-  const table = query.get('table') || null
-
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
@@ -74,8 +70,8 @@ function DbTables({
       { header: 'Source Schema', accessor: 'sourceSchema' },
       { header: 'Source Table', accessor: 'sourceTable' },
       { header: 'Import Type', accessor: 'importPhaseType' },
-      { header: 'ETL Type', accessor: 'etlPhaseType' },
       { header: 'Import Tool', accessor: 'importTool' },
+      { header: 'ETL Type', accessor: 'etlPhaseType' },
       { header: 'ETL Engine', accessor: 'etlEngine' },
       { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
       {
@@ -121,7 +117,7 @@ function DbTables({
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['import', 'search', database, table]
+            queryKey: queryKey
           })
           console.log('Update successful', response)
           setModalOpen(false)

@@ -9,12 +9,13 @@ import CloseIcon from '../assets/icons/CloseIcon'
 
 interface DropdownProps<T> {
   items: T[]
-  onSelect: (item: T | null, keyLabel?: string) => void
+  onSelect: (item: T | null, keyLabel?: string, settingType?: string) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
   searchFilter: boolean
   textInputMode?: boolean
   keyLabel?: string
+  settingType?: string
   chevron?: boolean
   cross?: boolean
   initialTitle?: string
@@ -26,7 +27,7 @@ interface DropdownProps<T> {
   border?: string
   borderRadius?: string
   height?: string
-  padding?: string
+  width?: string
   chevronWidth?: string
   chevronHeight?: string
   lightStyle?: boolean
@@ -42,6 +43,7 @@ function Dropdown<T>({
   searchFilter = true,
   textInputMode,
   keyLabel,
+  settingType,
   chevron = false,
   cross = false,
   initialTitle,
@@ -53,7 +55,7 @@ function Dropdown<T>({
   border,
   borderRadius,
   height,
-  padding,
+  width,
   chevronWidth,
   chevronHeight,
   lightStyle,
@@ -76,7 +78,9 @@ function Dropdown<T>({
 
       setSelectedItem(item)
 
-      if (keyLabel) {
+      if (settingType) {
+        onSelect(item, keyLabel, settingType)
+      } else if (keyLabel) {
         onSelect(item, keyLabel)
       } else {
         onSelect(item)
@@ -86,7 +90,7 @@ function Dropdown<T>({
       onToggle(false)
       setSearchTerm('')
     },
-    [disabled, keyLabel, onSelect, onToggle]
+    [disabled, keyLabel, onSelect, onToggle, settingType]
   )
 
   const getItemLabel = (item: T): string => {
@@ -130,19 +134,15 @@ function Dropdown<T>({
       return
     }
 
-    // const handleClickOutside = (event: MouseEvent) => {
-    //   if (
-    //     dropdownRef.current &&
-    //     !dropdownRef.current.contains(event.target as Node)
-    //   ) {
-    //     setTimeout(() => {
-    //       onToggle(false)
-    //       setHighlightedIndex(-1)
-    //     }, 0)
-    //     // onToggle(false)
-    //     // setHighlightedIndex(-1)
-    //   }
-    // }
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        onToggle(false)
+        setHighlightedIndex(-1)
+      }
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -166,22 +166,31 @@ function Dropdown<T>({
         )
       }
 
-      if (event.key === 'Enter' && highlightedIndex >= 0) {
-        const selected = textInputMode
-          ? items[highlightedIndex]
-          : filteredItems[highlightedIndex]
+      if (event.key === 'Enter') {
+        if (!isOpen) {
+          onToggle(true)
+        } else if (highlightedIndex >= 0) {
+          const selected = textInputMode
+            ? items[highlightedIndex]
+            : filteredItems[highlightedIndex]
 
-        handleSelect(selected)
-        setHighlightedIndex(-1)
-        onToggle(false)
+          // if (event.key === 'Enter' && highlightedIndex >= 0) {
+          //   const selected = textInputMode
+          //     ? items[highlightedIndex]
+          //     : filteredItems[highlightedIndex]
+
+          handleSelect(selected)
+          setHighlightedIndex(-1)
+          // onToggle(false)
+        }
       }
     }
 
-    // document.addEventListener('mouseup', handleClickOutside)
+    document.addEventListener('mouseup', handleClickOutside)
     document.addEventListener('keydown', handleKeyDown)
 
     return () => {
-      // document.removeEventListener('mouseup', handleClickOutside)
+      document.removeEventListener('mouseup', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [
@@ -227,7 +236,7 @@ function Dropdown<T>({
     border,
     borderRadius,
     height,
-    padding,
+    width,
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1
   }
@@ -252,7 +261,7 @@ function Dropdown<T>({
   }
 
   return (
-    <div className="dropdown" ref={dropdownRef} id={id}>
+    <div className="dropdown" ref={dropdownRef} id={id} tabIndex={0}>
       {!textInputMode && (
         <div
           className="dropdown-selected-item"
@@ -261,26 +270,34 @@ function Dropdown<T>({
         >
           {selectedItem ? getItemLabel(selectedItem) : initialTitle}
 
-          <div className="chevron-container">
+          <div>
             {cross &&
             selectedItem &&
             selectedItem !== 'Select...' &&
             !isOpen ? (
-              <CloseIcon
-                onClick={() => {
+              <div
+                className="close-icon-container"
+                onClick={(event) => {
+                  event.stopPropagation()
                   handleSelect(null)
                 }}
-              />
+              >
+                <CloseIcon />
+              </div>
             ) : isOpen ? (
-              <ChevronUp
-                width={chevronWidth || ''}
-                height={chevronHeight || ''}
-              />
+              <div className="chevron-container">
+                <ChevronUp
+                  width={chevronWidth || ''}
+                  height={chevronHeight || ''}
+                />
+              </div>
             ) : (
-              <ChevronDown
-                width={chevronWidth || ''}
-                height={chevronHeight || ''}
-              />
+              <div className="chevron-container">
+                <ChevronDown
+                  width={chevronWidth || ''}
+                  height={chevronHeight || ''}
+                />
+              </div>
             )}
           </div>
         </div>

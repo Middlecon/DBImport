@@ -1,4 +1,8 @@
-export default function CloseIcon({ onClick }: { onClick?: () => void }) {
+export default function CloseIcon({
+  onClick
+}: {
+  onClick?: (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => void
+}) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

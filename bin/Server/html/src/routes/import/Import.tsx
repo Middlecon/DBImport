@@ -6,7 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
 import CreateImportTableModal from '../../components/CreateImportTableModal'
-import { EditSetting } from '../../utils/interfaces'
+import {
+  EditSetting,
+  ImportSearchFilter,
+  UiImportSearchFilter
+} from '../../utils/interfaces'
 import { createTableData } from '../../utils/dataFunctions'
 import { useCreateImportTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
@@ -19,6 +23,7 @@ import {
 } from '../../atoms/atoms'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
+import { reverseMapEnumValue } from '../../utils/nameMappings'
 
 // const checkboxFilters = [
 //   {
@@ -82,7 +87,16 @@ function Import() {
   const navigate = useNavigate()
   const query = new URLSearchParams(location.search)
 
-  const validParams = ['database', 'table']
+  const validParams = [
+    'connection',
+    'database',
+    'table',
+    'includeInAirflow',
+    'importType',
+    'importTool',
+    'etlType',
+    'etlEngine'
+  ]
   const allParams = Array.from(query.keys())
 
   useEffect(() => {
@@ -95,15 +109,75 @@ function Import() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParams, navigate])
 
+  const connection = query.get('connection') || null
   const database = query.get('database') || null
   const table = query.get('table') || null
+  const includeInAirflow = query.has('includeInAirflow')
+    ? query.get('includeInAirflow') === 'True'
+      ? true
+      : query.get('includeInAirflow') === 'False'
+      ? false
+      : null
+    : null
 
-  const cleanDatabase = database ? database.replace(/\*/g, '') : null
+  const importPhaseType = query.get('importType')
+    ? reverseMapEnumValue(
+        'import',
+        'importType',
+        query.get('importType') as string,
+        true
+      )
+    : null
+  const importTool = query.get('importTool')
+    ? reverseMapEnumValue(
+        'import',
+        'importTool',
+        query.get('importTool') as string,
+        true
+      )
+    : null
+  const etlPhaseType = query.get('etlType')
+    ? reverseMapEnumValue(
+        'import',
+        'etlType',
+        query.get('etlType') as string,
+        true
+      )
+    : null
+  const etlEngine = query.get('etlEngine')
+    ? reverseMapEnumValue(
+        'import',
+        'etlEngine',
+        query.get('etlEngine') as string,
+        true
+      )
+    : null
 
-  const { data, isLoading: isSearchLoading } = useSearchImportTables(
+  const filters: ImportSearchFilter = {
+    connection,
     database,
-    table
-  )
+    table,
+    includeInAirflow,
+    importPhaseType,
+    importTool,
+    etlPhaseType,
+    etlEngine
+  }
+
+  const queryKey = [
+    'import',
+    'search',
+    connection,
+    database,
+    table,
+    includeInAirflow,
+    importPhaseType,
+    importTool,
+    etlPhaseType,
+    etlEngine
+  ]
+
+  const { data, isLoading: isSearchLoading } = useSearchImportTables(filters)
 
   const { mutate: createTable } = useCreateImportTable()
   const queryClient = useQueryClient()
@@ -114,27 +188,112 @@ function Import() {
     importTableListFiltersAtom
   )
 
-  const handleShow = (database: string | null, table: string | null) => {
+  const handleShow = (filters: UiImportSearchFilter) => {
+    console.log('Import handleShow filters', filters)
+    console.log('filters.importPhaseType', filters.importPhaseType)
+    console.log('includeInAirflowShow', filters.includeInAirflow)
+
     const params = new URLSearchParams(location.search)
 
-    if (database && database !== null) {
-      params.set('database', database)
+    if (
+      filters.connection &&
+      filters.connection !== null &&
+      filters.connection.length > 0
+    ) {
+      params.set('connection', filters.connection)
+    } else {
+      params.delete('connection')
+    }
+
+    if (
+      filters.database &&
+      filters.database !== null &&
+      filters.database.length > 0
+    ) {
+      params.set('database', filters.database)
     } else {
       params.delete('database')
     }
 
-    if (table && table !== null) {
-      params.set('table', table)
+    if (filters.table && filters.table !== null && filters.table.length > 0) {
+      params.set('table', filters.table)
     } else {
       params.delete('table')
     }
 
-    const databaseUrlString =
-      database !== null ? `database=${params.get('database') || null}` : null
-    const tableUrlString =
-      table !== null ? `table=${params.get('table') || null}` : null
+    if (filters.includeInAirflow !== null) {
+      params.set('includeInAirflow', filters.includeInAirflow)
+    } else {
+      params.delete('includeInAirflow')
+    }
 
-    const orderedSearch = [databaseUrlString, tableUrlString]
+    if (filters.importPhaseType !== null) {
+      params.set('importType', filters.importPhaseType)
+    } else {
+      params.delete('importType')
+    }
+
+    if (filters.importTool !== null) {
+      params.set('importTool', filters.importTool)
+    } else {
+      params.delete('importTool')
+    }
+
+    if (filters.etlPhaseType !== null) {
+      params.set('etlType', filters.etlPhaseType)
+    } else {
+      params.delete('etlType')
+    }
+
+    if (filters.etlEngine !== null) {
+      params.set('etlEngine', filters.etlEngine)
+    } else {
+      params.delete('etlEngine')
+    }
+
+    const connectionUrlString =
+      filters.connection !== null && filters.connection.length > 0
+        ? `connection=${params.get('connection') || null}`
+        : null
+    const databaseUrlString =
+      filters.database !== null && filters.database.length > 0
+        ? `database=${params.get('database') || null}`
+        : null
+    const tableUrlString =
+      filters.table !== null && filters.table.length > 0
+        ? `table=${params.get('table') || null}`
+        : null
+    const includeInAirflowUrlString =
+      filters.includeInAirflow !== null
+        ? `includeInAirflow=${params.get('includeInAirflow') || null}`
+        : null
+    const importTypeUrlString =
+      filters.importPhaseType !== null
+        ? `importType=${params.get('importType') || null}`
+        : null
+    const importToolUrlString =
+      filters.importTool !== null
+        ? `importTool=${params.get('importTool') || null}`
+        : null
+    const etlTypeUrlString =
+      filters.etlPhaseType !== null
+        ? `etlType=${params.get('etlType') || null}`
+        : null
+    const etlEngineUrlString =
+      filters.etlEngine !== null
+        ? `etlEngine=${params.get('etlEngine') || null}`
+        : null
+
+    const orderedSearch = [
+      connectionUrlString,
+      databaseUrlString,
+      tableUrlString,
+      includeInAirflowUrlString,
+      importTypeUrlString,
+      importToolUrlString,
+      etlTypeUrlString,
+      etlEngineUrlString
+    ]
       .filter((param) => param !== null) // Remove null values
       .join('&')
 
@@ -143,10 +302,6 @@ function Import() {
       setImportPersistState(`/import?${orderedSearch}`)
 
       navigate(`/import?${orderedSearch}`, { replace: true })
-
-      queryClient.invalidateQueries({
-        queryKey: ['import', 'search', database, table]
-      })
     }
   }
 
@@ -165,6 +320,21 @@ function Import() {
     )
   }, [data])
 
+  const mostCommonDatabase = useMemo(() => {
+    if (!data || !data.tables || data.tables.length === 0) return null
+    const databaseCounts = data.tables.reduce((acc, row) => {
+      const database = row.database
+      if (database) {
+        acc[database] = (acc[database] || 0) + 1
+      }
+      return acc
+    }, {} as { [key: string]: number })
+
+    return Object.keys(databaseCounts).reduce((a, b) =>
+      databaseCounts[a] > databaseCounts[b] ? a : b
+    )
+  }, [data])
+
   const handleSave = (newTableData: EditSetting[]) => {
     console.log('newTableData', newTableData)
     const newTable = createTableData(newTableData)
@@ -173,7 +343,18 @@ function Import() {
     createTable(newTable, {
       onSuccess: (response) => {
         queryClient.invalidateQueries({
-          queryKey: ['import', 'search', database, table]
+          queryKey: [
+            'import',
+            'search',
+            connection,
+            database,
+            table,
+            includeInAirflow,
+            importPhaseType,
+            importTool,
+            etlPhaseType,
+            etlEngine
+          ]
         })
         console.log('Create successful', response)
         setCreateModalOpen(false)
@@ -318,7 +499,7 @@ function Import() {
 
         {isCreateModalOpen && (
           <CreateImportTableModal
-            database={cleanDatabase ? cleanDatabase : null}
+            database={mostCommonDatabase ? mostCommonDatabase : null}
             prefilledConnection={
               mostCommonConnection ? mostCommonConnection : null
             }
@@ -332,7 +513,11 @@ function Import() {
             <p className="list-rows-info">
               {`Showing ${filteredData.length} (of ${data.headersRowInfo.contentRows}) rows`}
             </p>
-            <DbTables data={filteredData} isLoading={isSearchLoading} />
+            <DbTables
+              data={filteredData}
+              isLoading={isSearchLoading}
+              queryKey={queryKey}
+            />
           </>
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>

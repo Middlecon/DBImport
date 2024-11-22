@@ -16,6 +16,7 @@ import {
   ExportConnections,
   ExportTable,
   ImportAirflowDAG,
+  ImportSearchFilter,
   JDBCdrivers,
   Table,
   UIExportCnTables,
@@ -128,14 +129,8 @@ interface SearchImportTablesResult {
   }
 }
 
-const getSearchImportTables = async (
-  database: string | null,
-  table: string | null
-) => {
-  const response = await axiosInstance.post('/import/search', {
-    database,
-    table
-  })
+const getSearchImportTables = async (filters: ImportSearchFilter) => {
+  const response = await axiosInstance.post('/import/search', filters)
   console.log('response.data', response.data)
   return {
     data: response.data,
@@ -144,16 +139,24 @@ const getSearchImportTables = async (
 }
 
 export const useSearchImportTables = (
-  database: string | null,
-  table: string | null
+  filters: ImportSearchFilter
 ): UseQueryResult<SearchImportTablesResult, Error> => {
-  console.log('useSearchImportTables database', database)
-  console.log('useSearchImportTables table', table)
   return useQuery({
-    queryKey: ['import', 'search', database, table],
+    queryKey: [
+      'import',
+      'search',
+      filters.connection,
+      filters.database,
+      filters.table,
+      filters.includeInAirflow,
+      filters.importPhaseType,
+      filters.importTool,
+      filters.etlPhaseType,
+      filters.etlEngine
+    ],
     queryFn: async () => {
       const { data, headers }: ImportTablesResponse =
-        await getSearchImportTables(database, table)
+        await getSearchImportTables(filters)
       const enumMappedData = data.map(
         (row: {
           etlPhaseType: string

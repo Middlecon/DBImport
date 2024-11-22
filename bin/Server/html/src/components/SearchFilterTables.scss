@@ -1,7 +1,7 @@
 .search-filter-container {
   position: relative;
 
-  .chevron-container {
+  .search-filter-chevron-container {
     margin-right: 5px;
     margin-left: 15px;
     flex-shrink: 0;
@@ -35,7 +35,7 @@
   position: absolute;
   top: 33px;
   right: 0;
-  width: 207px;
+  width: 463px;
   background-color: white;
   box-shadow: rgba(50, 50, 93, 0.25) 1px 0px 27px -5px,
     rgba(0, 0, 0, 0.3) 1px 8px 16px -8px;
@@ -58,9 +58,38 @@
     gap: 5px;
   }
 
+  input {
+    padding-left: 3px;
+  }
+
+  .filter-first-container {
+    input {
+      width: 203px;
+    }
+    label:last-child {
+      margin-top: 22px;
+    }
+  }
+
   .submit-button-container {
     display: flex;
     justify-content: center;
-    margin-top: 20px;
+    margin: 3px 0;
   }
+
+  .filter-select-dropdown {
+    margin-top: 17px;
+    margin-bottom: 25px;
+    label {
+      margin-top: 22px;
+    }
+    label:first-child {
+      margin-top: 0;
+    }
+  }
+}
+
+.filter-container {
+  display: flex;
+  gap: 40px;
 }

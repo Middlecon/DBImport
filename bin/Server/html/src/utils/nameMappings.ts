@@ -377,6 +377,33 @@ export function getKeyFromJDBCdriversLabel(
   return labelToUIJDBCdriversKey[label]
 }
 
+export const keyNameReverseMappings: {
+  [category: string]: { [key: string]: string }
+} = {
+  importType: {
+    Full: ImportType.Full,
+    Incremental: ImportType.Incremental,
+    'Oracle Flashback': ImportType.OracleFlashback,
+    'MSSQL Change Tracking': ImportType.MSSQLChangeTracking
+  },
+  etlType: {
+    'Truncate and Insert': EtlType.TruncateAndInsert,
+    'Insert only': EtlType.InsertOnly,
+    Merge: EtlType.Merge,
+    'Merge with History Audit': EtlType.MergeHistoryAudit,
+    'Only create external table': EtlType.External,
+    None: EtlType.None
+  },
+  importTool: {
+    Spark: ImportTool.Spark,
+    Sqoop: ImportTool.Sqoop
+  },
+  etlEngine: {
+    Hive: EtlEngine.Hive,
+    Spark: EtlEngine.Spark
+  }
+}
+
 export const nameReverseMappings: {
   [category: string]: { [key: string]: string }
 } = {
@@ -484,14 +511,23 @@ export function mapEnumValue<T extends string>(
 export const reverseMapEnumValue = (
   type: 'import' | 'export' | 'config',
   category: string,
-  displayValue: string
+  displayValue: string,
+  keyMapping?: boolean
 ): string => {
-  const categoryMappings =
-    type === 'import'
-      ? nameReverseMappings[category]
-      : type === 'export'
-      ? exportNameReverseMappings[category]
-      : configNameReverseMappings[category]
+  let categoryMappings: {
+    [key: string]: string
+  }
+
+  if (keyMapping === true) {
+    categoryMappings = keyNameReverseMappings[category]
+  } else {
+    categoryMappings =
+      type === 'import'
+        ? nameReverseMappings[category]
+        : type === 'export'
+        ? exportNameReverseMappings[category]
+        : configNameReverseMappings[category]
+  }
 
   if (!categoryMappings) {
     throw new Error(`No mappings found for category: ${category}`)

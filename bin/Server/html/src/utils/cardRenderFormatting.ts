@@ -760,6 +760,42 @@ export function connectionCardRenderSettings(connection: Connection) {
 
 // Import
 
+export function initEnumDropdownFilters(
+  importType: string | null,
+  importTool: string | null,
+  etlType: string | null,
+  etlEngine: string | null
+) {
+  const filterData: EditSetting[] = [
+    {
+      label: 'Import Type',
+      value: importType,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importPhaseType')
+    },
+    {
+      label: 'Import Tool',
+      value: importTool,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('importTool')
+    },
+    {
+      label: 'ETL Type',
+      value: etlType,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType')
+    },
+    {
+      label: 'ETL Engine',
+      value: etlEngine,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlEngine')
+    }
+  ]
+
+  return filterData
+}
+
 export function importDbTablesEditSettings(row: UiDbTable) {
   const rowData: EditSetting[] = [
     {
@@ -787,19 +823,19 @@ export function importDbTablesEditSettings(row: UiDbTable) {
       infoText: infoTexts.table.import.importPhaseType
     }, // Enum mapping for 'Import Type'
     {
-      label: 'ETL Type',
-      value: mapDisplayValue('etlPhaseType', row.etlPhaseType),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlPhaseType'),
-      infoText: infoTexts.table.import.etlPhaseType
-    }, // Enum mapping for 'ETL Type'
-    {
       label: 'Import Tool',
       value: mapDisplayValue('importTool', row.importTool),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool'),
       infoText: infoTexts.table.import.importTool
     }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', row.etlPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType'),
+      infoText: infoTexts.table.import.etlPhaseType
+    }, // Enum mapping for 'ETL Type'
     {
       label: 'ETL Engine',
       value: mapDisplayValue('etlEngine', row.etlEngine),
@@ -880,19 +916,19 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.importPhaseType
     }, // Enum mapping for 'Import Type'
     {
-      label: 'ETL Type',
-      value: mapDisplayValue('etlPhaseType', table.etlPhaseType),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlPhaseType'),
-      infoText: infoTexts.table.import.etlPhaseType
-    }, // Enum mapping for 'ETL Type'
-    {
       label: 'Import Tool',
       value: mapDisplayValue('importTool', table.importTool),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool'),
       infoText: infoTexts.table.import.importTool
     }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', table.etlPhaseType),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType'),
+      infoText: infoTexts.table.import.etlPhaseType
+    }, // Enum mapping for 'ETL Type'
     {
       label: 'ETL Engine',
       value: mapDisplayValue('etlEngine', table.etlEngine),
@@ -1536,19 +1572,19 @@ export function initialCreateImportTableSettings(
       infoText: infoTexts.table.import.importPhaseType
     }, // Enum mapping for 'Import Type'
     {
-      label: 'ETL Type',
-      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('etlPhaseType'),
-      infoText: infoTexts.table.import.etlPhaseType
-    }, // Enum mapping for 'ETL Type'
-    {
       label: 'Import Tool',
       value: mapDisplayValue('importTool', ImportTool.Spark),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('importTool'),
       infoText: infoTexts.table.import.importTool
     }, // Enum mapping for 'Import Tool'
+    {
+      label: 'ETL Type',
+      value: mapDisplayValue('etlPhaseType', EtlType.TruncateAndInsert),
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('etlPhaseType'),
+      infoText: infoTexts.table.import.etlPhaseType
+    }, // Enum mapping for 'ETL Type'
     {
       label: 'ETL Engine',
       value: mapDisplayValue('etlEngine', EtlEngine.Spark),
@@ -2044,14 +2080,14 @@ export function initialCreateExportTableSettings(connection: string | null) {
       type: SettingType.Enum,
       enumOptions: getEnumOptions('exportType'),
       infoText: infoTexts.table.export.exportType
-    }, // Enum mapping for 'Import Type'
+    }, // Enum mapping for 'Export Type'
     {
       label: 'Export Tool',
       value: mapDisplayValue('exportTool', ExportTool.Spark),
       type: SettingType.Enum,
       enumOptions: getEnumOptions('exportTool'),
       infoText: infoTexts.table.export.exportTool
-    }, // Enum mapping for 'Import Tool'
+    }, // Enum mapping for 'Export Tool'
     {
       label: '',
       value: '',

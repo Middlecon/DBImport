@@ -13,6 +13,8 @@ export const exportPersistStateAtom = atomWithSessionStorage<string | null>(
 
 export const isDbDropdownReadyAtom = atom(false)
 
+export const isCnDropdownReadyAtom = atom(false)
+
 export const importTableListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
 }>('importDbListFilters', {})

@@ -7,22 +7,24 @@ interface DropdownRadioProps {
   items: string[]
   title: string
   radioName: string
-  badgeContent?: string[]
   selectedItem: string | null
   onSelect: (selectedItems: string[]) => void
   isOpen: boolean
   onToggle: (isOpen: boolean) => void
+  badgeContent?: string[]
+  lightStyle?: boolean
 }
 
 function DropdownRadio({
   items,
   title,
   radioName,
-  badgeContent,
   selectedItem,
   onSelect,
   isOpen,
-  onToggle
+  onToggle,
+  badgeContent,
+  lightStyle = false
 }: DropdownRadioProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -64,7 +66,11 @@ function DropdownRadio({
   return (
     <div className="radio-dropdown" ref={dropdownRef}>
       <div
-        className="radio-dropdown-selected-item"
+        className={
+          lightStyle
+            ? 'light-radio-dropdown-selected-item'
+            : 'radio-dropdown-selected-item'
+        }
         tabIndex={0} // For focusability
         onClick={() => onToggle(!isOpen)}
         onKeyDown={(e) => {
@@ -76,7 +82,14 @@ function DropdownRadio({
       >
         {title}
         {badgeContent && selectedItem ? (
-          <span className="count-badge">
+          <span
+            className="count-badge"
+            style={
+              lightStyle
+                ? { backgroundColor: '#ffffff', border: '1px solid darkGrey' }
+                : undefined
+            }
+          >
             {badgeContent[items.indexOf(selectedItem)]}
           </span>
         ) : (
@@ -89,7 +102,7 @@ function DropdownRadio({
       </div>
 
       {isOpen && (
-        <div className="menu">
+        <div className={lightStyle ? 'light-menu' : 'menu'}>
           <ul>
             {Array.isArray(items) && items.length ? (
               items.map((item, index) => (

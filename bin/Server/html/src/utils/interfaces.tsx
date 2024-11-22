@@ -62,6 +62,28 @@ export interface Connection {
 
 // Table
 
+export interface ImportSearchFilter {
+  connection: string | null
+  database: string | null
+  table: string | null
+  includeInAirflow: boolean | null
+  importPhaseType: string | null
+  etlPhaseType: string | null
+  importTool: string | null
+  etlEngine: string | null
+}
+
+export interface UiImportSearchFilter {
+  connection: string | null
+  database: string | null
+  table: string | null
+  includeInAirflow: string | null
+  importPhaseType: string | null
+  etlPhaseType: string | null
+  importTool: string | null
+  etlEngine: string | null
+}
+
 export interface DbTable {
   connection: string
   database: string
