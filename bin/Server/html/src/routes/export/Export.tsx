@@ -4,7 +4,12 @@ import '../import/Import.scss'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import Button from '../../components/Button'
-import { EditSetting } from '../../utils/interfaces'
+import {
+  EditSetting,
+  ExportSearchFilter,
+  // ExportSearchFilter,
+  UiExportSearchFilter
+} from '../../utils/interfaces'
 import { useAtom } from 'jotai'
 import {
   exportCnListFiltersAtom,
@@ -18,6 +23,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import DropdownRadio from '../../components/DropdownRadio'
 import ExportCnTables from './ExportCnTables'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
+import { reverseMapEnumValue } from '../../utils/nameMappings'
 
 // const checkboxFilters = [
 //   {
@@ -64,7 +70,14 @@ function Export() {
   const navigate = useNavigate()
   const query = new URLSearchParams(location.search)
 
-  const validParams = ['connection', 'targetTable', 'targetSchema']
+  const validParams = [
+    'connection',
+    'targetTable',
+    'targetSchema',
+    'includeInAirflow',
+    'exportType',
+    'exportTool'
+  ]
   const allParams = Array.from(query.keys())
 
   useEffect(() => {
@@ -80,14 +93,51 @@ function Export() {
   const connection = query.get('connection') || null
   const targetTable = query.get('targetTable') || null
   const targetSchema = query.get('targetSchema') || null
+  const includeInAirflow = query.has('includeInAirflow')
+    ? query.get('includeInAirflow') === 'True'
+      ? true
+      : query.get('includeInAirflow') === 'False'
+      ? false
+      : null
+    : null
 
-  const cleanConnection = connection ? connection.replace(/\*/g, '') : null
+  const exportType = query.get('exportType')
+    ? reverseMapEnumValue(
+        'export',
+        'exportType',
+        query.get('exportType') as string,
+        true
+      )
+    : null
+  const exportTool = query.get('exportTool')
+    ? reverseMapEnumValue(
+        'export',
+        'exportTool',
+        query.get('exportTool') as string,
+        true
+      )
+    : null
 
-  const { data, isLoading: isSearchLoading } = useSearchExportTables(
-    connection,
-    targetSchema,
-    targetTable
+  const filters: ExportSearchFilter = useMemo(
+    () => ({
+      connection,
+      targetTable,
+      targetSchema,
+      includeInAirflow,
+      exportType,
+      exportTool
+    }),
+    [
+      connection,
+      targetTable,
+      targetSchema,
+      includeInAirflow,
+      exportType,
+      exportTool
+    ]
   )
+
+  const { data, isLoading: isSearchLoading } = useSearchExportTables(filters)
 
   const { mutate: createTable } = useCreateExportTable()
   const queryClient = useQueryClient()
@@ -102,61 +152,38 @@ function Export() {
   //   navigate(`/export/${item}`)
   // }
 
-  const handleShow = (
-    connection: string | null,
-    targetTable: string | null,
-    targetSchema: string | null
-  ) => {
+  const handleShow = (uiFilters: UiExportSearchFilter) => {
     const params = new URLSearchParams(location.search)
 
-    if (connection && connection !== null) {
-      params.set('connection', connection)
-    } else {
-      params.delete('connection')
-    }
-
-    if (targetTable && targetTable !== null) {
-      params.set('targetTable', targetTable)
-    } else {
-      params.delete('targetTable')
-    }
-
-    if (targetSchema && targetSchema !== null) {
-      params.set('targetSchema', targetSchema)
-    } else {
-      params.delete('targetSchema')
-    }
-
-    const connectionUrlString =
-      connection !== null
-        ? `connection=${params.get('connection') || null}`
-        : null
-    const targetTableUrlString =
-      targetTable !== null
-        ? `targetTable=${params.get('targetTable') || null}`
-        : null
-    const targetSchemaUrlString =
-      targetSchema !== null
-        ? `targetSchema=${params.get('targetSchema') || null}`
-        : null
-
-    const orderedSearch = [
-      connectionUrlString,
-      targetTableUrlString,
-      targetSchemaUrlString
+    const filterKeys: (keyof UiExportSearchFilter)[] = [
+      'connection',
+      'targetTable',
+      'targetSchema',
+      'includeInAirflow',
+      'exportType',
+      'exportTool'
     ]
-      .filter((param) => param !== null) // Remove null values
+
+    filterKeys.forEach((key) => {
+      const value = uiFilters[key]
+      if (value !== null && value !== undefined && String(value).length > 0) {
+        params.set(key, String(value))
+      } else {
+        params.delete(key)
+      }
+    })
+
+    const orderedSearch = filterKeys
+      .map((key) =>
+        params.has(key) ? `${key}=${params.get(key) || ''}` : null
+      )
+      .filter((param) => param !== null)
       .join('&')
 
     // Only updates and navigates if query has changed
     if (orderedSearch !== location.search.slice(1)) {
       setExportPersistState(`/export?${orderedSearch}`)
-
       navigate(`/export?${orderedSearch}`, { replace: true })
-
-      queryClient.invalidateQueries({
-        queryKey: ['export', 'search', connection, targetTable, targetSchema]
-      })
     }
   }
 
@@ -198,13 +225,7 @@ function Export() {
     createTable(newTable, {
       onSuccess: (response) => {
         queryClient.invalidateQueries({
-          queryKey: [
-            'export',
-            'search',
-            newTable.connection,
-            newTable.targetSchema,
-            newTable.targetTable
-          ]
+          queryKey: ['export', 'search', filters]
         })
         console.log('Create successful', response)
         setCreateModalOpen(false)
@@ -337,7 +358,7 @@ function Export() {
 
         {isCreateModalOpen && mostCommonConnection && (
           <CreateExportTableModal
-            connection={cleanConnection ? cleanConnection : null}
+            connection={mostCommonConnection ? mostCommonConnection : null}
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
           />
@@ -348,7 +369,11 @@ function Export() {
             <p className="list-rows-info">
               {`Showing ${filteredData.length} (of ${data.headersRowInfo.contentRows}) rows`}
             </p>
-            <ExportCnTables data={filteredData} isLoading={isSearchLoading} />
+            <ExportCnTables
+              data={filteredData}
+              queryKeyFilters={filters}
+              isLoading={isSearchLoading}
+            />
           </>
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>

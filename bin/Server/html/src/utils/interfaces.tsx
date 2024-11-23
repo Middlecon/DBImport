@@ -601,6 +601,24 @@ export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
   exportToolDisplay: string
 }
 
+export interface ExportSearchFilter {
+  connection: string | null
+  targetSchema: string | null
+  targetTable: string | null
+  includeInAirflow: boolean | null
+  exportType: string | null
+  exportTool: string | null
+}
+
+export interface UiExportSearchFilter {
+  connection: string | null
+  targetSchema: string | null
+  targetTable: string | null
+  includeInAirflow: string | null
+  exportType: string | null
+  exportTool: string | null
+}
+
 export interface ExportTable {
   connection: string
   targetSchema: string

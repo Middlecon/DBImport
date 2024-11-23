@@ -380,6 +380,7 @@ export function getKeyFromJDBCdriversLabel(
 export const keyNameReverseMappings: {
   [category: string]: { [key: string]: string }
 } = {
+  // Import
   importType: {
     Full: ImportType.Full,
     Incremental: ImportType.Incremental,
@@ -401,6 +402,15 @@ export const keyNameReverseMappings: {
   etlEngine: {
     Hive: EtlEngine.Hive,
     Spark: EtlEngine.Spark
+  },
+  // Export
+  exportType: {
+    Full: ExportType.Full,
+    Incremental: ExportType.Incremental
+  },
+  exportTool: {
+    Spark: ExportTool.Spark,
+    Sqoop: ExportTool.Sqoop
   }
 }
 

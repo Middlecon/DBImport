@@ -1609,6 +1609,28 @@ export function initialCreateImportTableSettings(
 
 // Export
 
+export function initExportEnumDropdownFilters(
+  exportType: string | null,
+  exportTool: string | null
+) {
+  const filterData: EditSetting[] = [
+    {
+      label: 'Export Type',
+      value: exportType,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportType')
+    },
+    {
+      label: 'Export Tool',
+      value: exportTool,
+      type: SettingType.Enum,
+      enumOptions: getEnumOptions('exportTool')
+    }
+  ]
+
+  return filterData
+}
+
 export function exportCnTablesEditSettings(row: UIExportCnTables) {
   const rowData: EditSetting[] = [
     {

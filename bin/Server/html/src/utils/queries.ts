@@ -14,6 +14,7 @@ import {
   ExportAirflowDAG,
   ExportCnTable,
   ExportConnections,
+  ExportSearchFilter,
   ExportTable,
   ImportAirflowDAG,
   ImportSearchFilter,
@@ -296,18 +297,10 @@ interface SearchExportTablesResult {
   }
 }
 
-const getSearchExportTables = async (
-  connection: string | null,
-  targetSchema: string | null,
-  targetTable: string | null
-) => {
+const getSearchExportTables = async (filters: ExportSearchFilter) => {
   const response: ExportTablesResponse = await axiosInstance.post(
     '/export/search',
-    {
-      connection,
-      targetSchema,
-      targetTable
-    }
+    filters
   )
   console.log('response.data', response.data)
   return {
@@ -317,15 +310,13 @@ const getSearchExportTables = async (
 }
 
 export const useSearchExportTables = (
-  connection: string | null,
-  targetSchema: string | null,
-  targetTable: string | null
+  filters: ExportSearchFilter
 ): UseQueryResult<SearchExportTablesResult, Error> => {
   return useQuery({
-    queryKey: ['export', 'search', connection, targetSchema, targetTable],
+    queryKey: ['export', 'search', filters],
     queryFn: async () => {
       const { data, headers }: ExportTablesResponse =
-        await getSearchExportTables(connection, targetSchema, targetTable)
+        await getSearchExportTables(filters)
 
       const enumMappedData = data.map((row) => ({
         ...row,

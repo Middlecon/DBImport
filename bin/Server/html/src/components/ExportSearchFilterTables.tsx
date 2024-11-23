@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useExportConnections } from '../utils/queries'
 import { useAtom } from 'jotai'
-import { isDbDropdownReadyAtom } from '../atoms/atoms'
+import { isCnDropdownReadyAtom } from '../atoms/atoms'
 import Dropdown from './Dropdown'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import './SearchFilterTables.scss'
 import Button from './Button'
+import {
+  EditSetting,
+  EditSettingValueTypes,
+  UiExportSearchFilter
+} from '../utils/interfaces'
+import { getKeyFromExportLabel } from '../utils/nameMappings'
+import { initExportEnumDropdownFilters } from '../utils/cardRenderFormatting'
 
 interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
-  onShow: (
-    connection: string | null,
-    targetTable: string | null,
-    targetSchema: string | null
-  ) => void
+  onShow: (filters: UiExportSearchFilter) => void
 }
 
 function ExportSearchFilterTables({
@@ -25,36 +28,52 @@ function ExportSearchFilterTables({
   onShow
 }: ExportSearchFilterProps) {
   const query = new URLSearchParams(location.search)
+
   const connection = query.get('connection') || null
   const targetTable = query.get('targetTable') || null
   const targetSchema = query.get('targetSchema') || null
+  const includeInAirflow = query.get('includeInAirflow') || null
+  const exportType = query.get('exportType') || null
+  const exportTool = query.get('exportTool') || null
+
+  const [enumDropdownFilters, setEnumDropdownFilters] = useState<EditSetting[]>(
+    initExportEnumDropdownFilters(exportType, exportTool)
+  )
+
+  const [includeInAirflowFilter, setIncludeInAirflowFilter] = useState({
+    label: 'Include in Airflow',
+    keyLabel: 'includeInAirflow',
+    value: includeInAirflow,
+    items: ['True', 'False']
+  })
+
+  const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
+    isCnDropdownReadyAtom
+  )
 
   const { data, isLoading } = useExportConnections()
-  const cnNames = useMemo(() => {
+  const connectionNames = useMemo(() => {
     return Array.isArray(data) ? data.map((connection) => connection.name) : []
   }, [data])
-  const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
-    isDbDropdownReadyAtom
-  )
 
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [formValues, setFormValues] = useState<{
-    connection: string | null
-    targetTable: string | null
-    targetSchema: string | null
-  }>({
+
+  const [formValues, setFormValues] = useState<UiExportSearchFilter>({
     connection: connection ? connection : null,
     targetTable: targetTable ? targetTable : null,
-    targetSchema: targetSchema ? targetSchema : null
+    targetSchema: targetSchema ? targetSchema : null,
+    includeInAirflow: includeInAirflow ? includeInAirflow : null,
+    exportType: exportType ? exportType : null,
+    exportTool: exportTool ? exportTool : null
   })
 
   useEffect(() => {
-    if (isLoading || !cnNames.length) return
-    setIsDbDropdownReady(true)
-  }, [cnNames.length, isLoading, setIsDbDropdownReady])
+    if (isLoading || !connectionNames.length) return
+    setIsCnDropdownReady(true)
+  }, [connectionNames.length, isLoading, setIsCnDropdownReady])
 
   useEffect(() => {
     if (!isSearchFilterOpen) return
@@ -110,18 +129,14 @@ function ExportSearchFilterTables({
   }
 
   const handleShow = () => {
-    onShow(
-      formValues.connection ? `${formValues.connection}` : null,
-      formValues.targetTable ? `${formValues.targetTable}` : null,
-      formValues.targetSchema ? `${formValues.targetSchema}` : null
-    )
+    onShow(formValues)
   }
 
-  const handleInputChange = (value: string) => {
+  const handleInputDropdownChange = (value: string | null) => {
     setFormValues((prev) => ({ ...prev, connection: value }))
 
-    if (value.length > 0) {
-      const matches = cnNames.some((name) =>
+    if (value && value.length > 0) {
+      const matches = connectionNames.some((name) =>
         name.toLowerCase().startsWith(value.toLowerCase())
       )
       if (matches) {
@@ -134,16 +149,55 @@ function ExportSearchFilterTables({
     }
   }
 
-  const handleDropdownSelect = (item: string | null) => {
+  const handleInputDropdownSelect = (item: string | null) => {
     setFormValues((prev) => ({ ...prev, connection: item }))
   }
 
   const filteredConnectionNames = useMemo(() => {
-    if (!formValues.connection) return cnNames
-    return cnNames.filter((name) =>
+    if (!formValues.connection) return connectionNames
+    return connectionNames.filter((name) =>
       name.toLowerCase().includes(formValues.connection!.toLowerCase())
     )
-  }, [formValues.connection, cnNames])
+  }, [formValues.connection, connectionNames])
+
+  const handleSelect = (
+    item: EditSettingValueTypes | null,
+    keyLabel?: string,
+    settingType?: string
+  ) => {
+    if (!keyLabel) return
+
+    if (keyLabel === 'includeInAirflow') {
+      const value = typeof item === 'string' ? item : null
+
+      setIncludeInAirflowFilter((prev) => ({
+        ...prev,
+        value: value
+      }))
+
+      setFormValues((prev) => ({
+        ...prev,
+        includeInAirflow: item as string | null
+      }))
+    } else if (settingType === 'enum') {
+      const updatedFilters = enumDropdownFilters.map((filter) =>
+        filter.label === keyLabel ? { ...filter, value: item } : filter
+      )
+      setEnumDropdownFilters(updatedFilters)
+
+      const key = getKeyFromExportLabel(keyLabel)
+
+      setFormValues((prev) => ({
+        ...prev,
+        [key as string]: item
+      }))
+    } else {
+      setFormValues((prev) => ({
+        ...prev,
+        [keyLabel]: item
+      }))
+    }
+  }
 
   return (
     <div className="search-filter-container" ref={containerRef}>
@@ -161,7 +215,7 @@ function ExportSearchFilterTables({
           <FilterFunnel />
         </div>
         Filter
-        <div className="chevron-container">
+        <div className="search-filter-chevron-container">
           {isSearchFilterOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
       </div>
@@ -175,15 +229,65 @@ function ExportSearchFilterTables({
               handleShow()
             }}
           >
-            <label htmlFor="searchFilterConnection">
-              Connection:
-              {isDbDropdownReady && (
-                <>
+            <div className="filter-container">
+              <div className="filter-first-container">
+                <label htmlFor="searchFilterConnection">
+                  Connection:
+                  {isCnDropdownReady && (
+                    <>
+                      <input
+                        id="searchFilterConnection"
+                        type="text"
+                        value={formValues.connection || ''}
+                        onChange={(event) =>
+                          handleInputDropdownChange(event.target.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault() // Prevents Enter from triggering form submission
+                          }
+                        }}
+                        autoComplete="off"
+
+                        // onKeyDown={handleKeyDownOnInput}
+                        // onKeyUp={handleKeyUpOnInput}
+                      />
+                      <Dropdown
+                        id="searchFilterConnection"
+                        items={
+                          filteredConnectionNames.length > 0
+                            ? filteredConnectionNames
+                            : ['No Connection yet']
+                        }
+                        onSelect={handleInputDropdownSelect}
+                        isOpen={openDropdown === 'cnSearch'}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle('cnSearch', isOpen)
+                        }
+                        searchFilter={false}
+                        textInputMode={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        lightStyle={true}
+                      />
+                    </>
+                  )}
+                </label>
+                <label htmlFor="searchFilterTargetTable">
+                  Target Table:
                   <input
-                    id="searchFilterConnection"
+                    id="searchFilterTargetTable"
                     type="text"
-                    value={formValues.connection || ''}
-                    onChange={(event) => handleInputChange(event.target.value)}
+                    value={formValues.targetTable || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        targetTable: event.target.value
+                      }))
+                    }
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
@@ -194,76 +298,106 @@ function ExportSearchFilterTables({
                     // onKeyDown={handleKeyDownOnInput}
                     // onKeyUp={handleKeyUpOnInput}
                   />
-                  <Dropdown
-                    id="searchFilterConnection"
-                    items={
-                      filteredConnectionNames.length > 0
-                        ? filteredConnectionNames
-                        : ['No Connection yet']
+                </label>
+                <label htmlFor="searchFilterTargetSchema">
+                  Target Schema:
+                  <input
+                    id="searchFilterTargetSchema"
+                    type="text"
+                    value={formValues.targetSchema || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        targetSchema: event.target.value
+                      }))
                     }
-                    onSelect={handleDropdownSelect}
-                    isOpen={openDropdown === 'cnSearch'}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
+                </label>
+              </div>
+              <div className="filter-select-dropdown">
+                <label
+                  htmlFor={`dropdown-includeInAirflow`}
+                  key={`dropdown-includeInAirflow`}
+                >
+                  {includeInAirflowFilter.label}:
+                  <Dropdown
+                    id={`dropdown-includeInAirflow`}
+                    keyLabel={includeInAirflowFilter.keyLabel}
+                    items={includeInAirflowFilter.items}
+                    onSelect={handleSelect}
+                    isOpen={openDropdown === `dropdown-includeInAirflow`}
                     onToggle={(isOpen: boolean) =>
-                      handleDropdownToggle('cnSearch', isOpen)
+                      handleDropdownToggle(`dropdown-includeInAirflow`, isOpen)
                     }
                     searchFilter={false}
-                    textInputMode={true}
+                    initialTitle={
+                      includeInAirflowFilter.value
+                        ? String(includeInAirflowFilter.value)
+                        : 'Select...'
+                    }
+                    cross={true}
                     backgroundColor="inherit"
                     textColor="black"
+                    fontSize="14px"
                     border="0.5px solid rgb(42, 42, 42)"
                     borderRadius="3px"
                     height="21.5px"
+                    width="212px"
+                    chevronWidth="11"
+                    chevronHeight="7"
                     lightStyle={true}
                   />
-                </>
-              )}
-            </label>
-            <label htmlFor="searchFilterTargetTable">
-              Target Table:
-              <input
-                id="searchFilterTargetTable"
-                type="text"
-                value={formValues.targetTable || ''}
-                onChange={(event) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    targetTable: event.target.value
-                  }))
-                }
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault() // Prevents Enter from triggering form submission
-                  }
-                }}
-                autoComplete="off"
-
-                // onKeyDown={handleKeyDownOnInput}
-                // onKeyUp={handleKeyUpOnInput}
-              />
-            </label>
-            <label htmlFor="searchFilterTargetSchema">
-              Target Schema:
-              <input
-                id="searchFilterTargetSchema"
-                type="text"
-                value={formValues.targetSchema || ''}
-                onChange={(event) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    targetSchema: event.target.value
-                  }))
-                }
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault() // Prevents Enter from triggering form submission
-                  }
-                }}
-                autoComplete="off"
-
-                // onKeyDown={handleKeyDownOnInput}
-                // onKeyUp={handleKeyUpOnInput}
-              />
-            </label>
+                </label>
+                {enumDropdownFilters.map((filter, index) => {
+                  const dropdownOptions = filter.enumOptions
+                    ? Object.values(filter.enumOptions)
+                    : []
+                  return (
+                    <label
+                      htmlFor={`dropdown-${index}`}
+                      key={`dropdown-${index}`}
+                    >
+                      {filter.label}:
+                      <Dropdown
+                        id={`dropdown-${index}`}
+                        keyLabel={filter.label}
+                        settingType={filter.type}
+                        items={dropdownOptions}
+                        onSelect={handleSelect}
+                        isOpen={openDropdown === `dropdown-${index}`}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle(`dropdown-${index}`, isOpen)
+                        }
+                        searchFilter={false}
+                        initialTitle={
+                          filter.value ? String(filter.value) : 'Select...'
+                        }
+                        cross={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        fontSize="14px"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        width="212px"
+                        chevronWidth="11"
+                        chevronHeight="7"
+                        lightStyle={true}
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             <div className="submit-button-container">
               <Button type="submit" title="Show" ref={buttonRef} />
             </div>
