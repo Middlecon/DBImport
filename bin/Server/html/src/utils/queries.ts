@@ -7,6 +7,7 @@ import {
   AirflowsImportData,
   ConfigGlobal,
   Connection,
+  ConnectionSearchFilter,
   Connections,
   CustomAirflowDAG,
   Database,
@@ -51,6 +52,60 @@ import {
 } from 'axios'
 
 // CONNECTION
+
+interface ConnectionsResponse {
+  data: DbTable[]
+  headers:
+    | AxiosResponseHeaders
+    | Partial<
+        RawAxiosResponseHeaders & {
+          Server: AxiosHeaderValue
+          [key: string]: AxiosHeaderValue // Dynamic headers
+        }
+      >
+}
+
+interface SearchConnectionsResult {
+  tables: Connections[]
+  headersRowInfo: {
+    contentLength?: string
+    contentMaxRows?: string
+    contentRows?: string
+  }
+}
+
+const getSearchConnections = async (filters: ConnectionSearchFilter) => {
+  const response = await axiosInstance.post('/connection/search', filters)
+  console.log('response.data', response.data)
+  return {
+    data: response.data,
+    headers: response.headers
+  }
+}
+
+export const useSearchConnections = (
+  filters: ConnectionSearchFilter
+): UseQueryResult<SearchConnectionsResult, Error> => {
+  return useQuery({
+    queryKey: ['connection', 'search', filters],
+    queryFn: async () => {
+      const { data, headers }: ConnectionsResponse = await getSearchConnections(
+        filters
+      )
+
+      const headersRowInfo = {
+        contentLength: headers['content-length'],
+        contentMaxRows: headers['content-max-rows'],
+        contentRows: headers['content-rows']
+      }
+      console.log('Headers:', headers)
+      console.log('headersRowInfo', headersRowInfo)
+
+      return { data, headersRowInfo }
+    },
+    refetchOnWindowFocus: false
+  })
+}
 
 // Get all connections
 

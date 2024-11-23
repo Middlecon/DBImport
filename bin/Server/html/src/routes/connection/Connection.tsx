@@ -1,12 +1,21 @@
 import '../import/Import.scss'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
-import { useConnections } from '../../utils/queries'
-import { Column, Connections } from '../../utils/interfaces'
+import { useSearchConnections } from '../../utils/queries'
+import {
+  Column,
+  Connections,
+  ConnectionSearchFilter
+} from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
-import { connectionFilterAtom } from '../../atoms/atoms'
+import {
+  connectionFilterAtom,
+  connectionPersistStateAtom
+} from '../../atoms/atoms'
 import { useAtom } from 'jotai'
+import { useLocation, useNavigate } from 'react-router-dom'
+import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
 
 const checkboxFilters = [
   {
@@ -31,25 +40,70 @@ const checkboxFilters = [
 ]
 
 function Connection() {
-  const { data: connectionsData, isLoading } = useConnections()
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = new URLSearchParams(location.search)
 
-  const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
+  const validParams = ['name', 'connectionString']
+  const allParams = Array.from(query.keys())
 
-  const columns: Column<Connections>[] = useMemo(
-    () => [
-      { header: 'Connection Name', accessor: 'name' },
-      { header: 'Server Type', accessor: 'serverType' },
-      { header: 'Connection String', accessor: 'connectionString' }
-    ],
-    []
+  useEffect(() => {
+    const hasInvalidParams = allParams.some(
+      (param) => !validParams.includes(param)
+    )
+    if (hasInvalidParams) {
+      navigate('/import', { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allParams, navigate])
+
+  const name = query.get('name') || null
+  const connectionString = query.get('connectionString') || null
+
+  const filters: ConnectionSearchFilter = useMemo(
+    () => ({
+      name,
+      connectionString
+    }),
+    [name, connectionString]
   )
 
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
+  const { data: searchData, isLoading } = useSearchConnections(filters)
+
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+  const [, setConnectionPersistState] = useAtom(connectionPersistStateAtom)
+  const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
+
+  const handleShow = (uiFilters: ConnectionSearchFilter) => {
+    const params = new URLSearchParams(location.search)
+
+    const filterKeys: (keyof ConnectionSearchFilter)[] = [
+      'name',
+      'connectionString'
+    ]
+
+    filterKeys.forEach((key) => {
+      const value = uiFilters[key]
+      if (value !== null && value !== undefined && String(value).length > 0) {
+        params.set(key, String(value))
+      } else {
+        params.delete(key)
+      }
+    })
+
+    const orderedSearch = filterKeys
+      .map((key) =>
+        params.has(key) ? `${key}=${params.get(key) || ''}` : null
+      )
+      .filter((param) => param !== null)
+      .join('&')
+
+    // Only updates and navigates if query has changed
+    if (orderedSearch !== location.search.slice(1)) {
+      setConnectionPersistState(`/connection?${orderedSearch}`)
+      navigate(`/connection?${orderedSearch}`, { replace: true })
+    }
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -60,9 +114,25 @@ function Connection() {
     }
   }
 
+  const handleSelect = (filterKey: string, items: string[]) => {
+    setSelectedFilters((prevFilters) => ({
+      ...prevFilters,
+      [filterKey]: items
+    }))
+  }
+
+  const columns: Column<Connections>[] = useMemo(
+    () => [
+      { header: 'Connection Name', accessor: 'name' },
+      { header: 'Server Type', accessor: 'serverType' },
+      { header: 'Connection String', accessor: 'connectionString' }
+    ],
+    []
+  )
+
   const filteredData = useMemo(() => {
-    if (!Array.isArray(connectionsData)) return []
-    return connectionsData.filter((row) => {
+    if (!Array.isArray(searchData)) return []
+    return searchData.filter((row) => {
       return [...checkboxFilters].every((filter) => {
         const selectedItems = Array.isArray(selectedFilters[filter.accessor])
           ? selectedFilters[filter.accessor]?.map((value) => value)
@@ -77,13 +147,22 @@ function Connection() {
         return selectedItems.includes(rowValue)
       })
     })
-  }, [connectionsData, selectedFilters])
+  }, [searchData, selectedFilters])
 
   return (
     <>
       <ViewBaseLayout>
         <div className="import-header">
           <h1>Connection</h1>
+          <div className="db-dropdown">
+            <ConnectionSearchFilterCns
+              isSearchFilterOpen={openDropdown === 'searchFilter'}
+              onToggle={(isSearchFilterOpen: boolean) =>
+                handleDropdownToggle('searchFilter', isSearchFilterOpen)
+              }
+              onShow={handleShow}
+            />
+          </div>
         </div>
 
         <div className="filters">

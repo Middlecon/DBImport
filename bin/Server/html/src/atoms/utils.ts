@@ -12,7 +12,8 @@ import {
   exportCnListFiltersAtom,
   exportPersistStateAtom,
   isConfigurationSubmenuActiveAtom,
-  latestPathAtom
+  latestPathAtom,
+  connectionPersistStateAtom
 } from './atoms'
 
 export function atomWithSessionStorage<T>(key: string, initialValue: T) {
@@ -35,9 +36,9 @@ export function atomWithSessionStorage<T>(key: string, initialValue: T) {
 
 export const clearSessionStorageAtoms = () => {
   const store = getDefaultStore()
-
   store.set(importPersistStateAtom, RESET)
   store.set(exportPersistStateAtom, RESET)
+  store.set(connectionPersistStateAtom, RESET)
   store.set(importTableListFiltersAtom, RESET)
   store.set(exportCnListFiltersAtom, RESET)
   store.set(connectionFilterAtom, RESET)
@@ -52,6 +53,7 @@ export const clearSessionStorageAtoms = () => {
   const sessionKeys = [
     'importPersistState',
     'exportPersistState',
+    'connectionPersistState',
     'importDbListFilters',
     'exportCnListFilters',
     'connectionFilters',

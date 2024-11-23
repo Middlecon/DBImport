@@ -26,6 +26,11 @@ export interface Connections extends ConnectionNames {
   serverType: string
 }
 
+export interface ConnectionSearchFilter {
+  name: string | null
+  connectionString: string | null
+}
+
 export interface Database {
   name: string
   tables: number
