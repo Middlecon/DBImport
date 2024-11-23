@@ -153,29 +153,28 @@ function Import() {
       )
     : null
 
-  const filters: ImportSearchFilter = {
-    connection,
-    database,
-    table,
-    includeInAirflow,
-    importPhaseType,
-    importTool,
-    etlPhaseType,
-    etlEngine
-  }
-
-  const queryKey = [
-    'import',
-    'search',
-    connection,
-    database,
-    table,
-    includeInAirflow,
-    importPhaseType,
-    importTool,
-    etlPhaseType,
-    etlEngine
-  ]
+  const filters: ImportSearchFilter = useMemo(
+    () => ({
+      connection,
+      database,
+      table,
+      includeInAirflow,
+      importPhaseType,
+      importTool,
+      etlPhaseType,
+      etlEngine
+    }),
+    [
+      connection,
+      database,
+      table,
+      includeInAirflow,
+      importPhaseType,
+      importTool,
+      etlPhaseType,
+      etlEngine
+    ]
+  )
 
   const { data, isLoading: isSearchLoading } = useSearchImportTables(filters)
 
@@ -188,119 +187,41 @@ function Import() {
     importTableListFiltersAtom
   )
 
-  const handleShow = (filters: UiImportSearchFilter) => {
-    console.log('Import handleShow filters', filters)
-    console.log('filters.importPhaseType', filters.importPhaseType)
-    console.log('includeInAirflowShow', filters.includeInAirflow)
-
+  const handleShow = (uiFilters: UiImportSearchFilter) => {
     const params = new URLSearchParams(location.search)
 
-    if (
-      filters.connection &&
-      filters.connection !== null &&
-      filters.connection.length > 0
-    ) {
-      params.set('connection', filters.connection)
-    } else {
-      params.delete('connection')
-    }
-
-    if (
-      filters.database &&
-      filters.database !== null &&
-      filters.database.length > 0
-    ) {
-      params.set('database', filters.database)
-    } else {
-      params.delete('database')
-    }
-
-    if (filters.table && filters.table !== null && filters.table.length > 0) {
-      params.set('table', filters.table)
-    } else {
-      params.delete('table')
-    }
-
-    if (filters.includeInAirflow !== null) {
-      params.set('includeInAirflow', filters.includeInAirflow)
-    } else {
-      params.delete('includeInAirflow')
-    }
-
-    if (filters.importPhaseType !== null) {
-      params.set('importType', filters.importPhaseType)
-    } else {
-      params.delete('importType')
-    }
-
-    if (filters.importTool !== null) {
-      params.set('importTool', filters.importTool)
-    } else {
-      params.delete('importTool')
-    }
-
-    if (filters.etlPhaseType !== null) {
-      params.set('etlType', filters.etlPhaseType)
-    } else {
-      params.delete('etlType')
-    }
-
-    if (filters.etlEngine !== null) {
-      params.set('etlEngine', filters.etlEngine)
-    } else {
-      params.delete('etlEngine')
-    }
-
-    const connectionUrlString =
-      filters.connection !== null && filters.connection.length > 0
-        ? `connection=${params.get('connection') || null}`
-        : null
-    const databaseUrlString =
-      filters.database !== null && filters.database.length > 0
-        ? `database=${params.get('database') || null}`
-        : null
-    const tableUrlString =
-      filters.table !== null && filters.table.length > 0
-        ? `table=${params.get('table') || null}`
-        : null
-    const includeInAirflowUrlString =
-      filters.includeInAirflow !== null
-        ? `includeInAirflow=${params.get('includeInAirflow') || null}`
-        : null
-    const importTypeUrlString =
-      filters.importPhaseType !== null
-        ? `importType=${params.get('importType') || null}`
-        : null
-    const importToolUrlString =
-      filters.importTool !== null
-        ? `importTool=${params.get('importTool') || null}`
-        : null
-    const etlTypeUrlString =
-      filters.etlPhaseType !== null
-        ? `etlType=${params.get('etlType') || null}`
-        : null
-    const etlEngineUrlString =
-      filters.etlEngine !== null
-        ? `etlEngine=${params.get('etlEngine') || null}`
-        : null
-
-    const orderedSearch = [
-      connectionUrlString,
-      databaseUrlString,
-      tableUrlString,
-      includeInAirflowUrlString,
-      importTypeUrlString,
-      importToolUrlString,
-      etlTypeUrlString,
-      etlEngineUrlString
+    const filterKeys: [keyof UiImportSearchFilter, string][] = [
+      ['connection', 'connection'],
+      ['database', 'database'],
+      ['table', 'table'],
+      ['includeInAirflow', 'includeInAirflow'],
+      ['importPhaseType', 'importType'],
+      ['importTool', 'importTool'],
+      ['etlPhaseType', 'etlType'],
+      ['etlEngine', 'etlEngine']
     ]
-      .filter((param) => param !== null) // Remove null values
+
+    filterKeys.forEach(([key, paramName]) => {
+      const value = uiFilters[key]
+      if (value !== null && value !== undefined && String(value).length > 0) {
+        params.set(paramName, String(value))
+      } else {
+        params.delete(paramName)
+      }
+    })
+
+    const orderedSearch = filterKeys
+      .map(([, paramName]) =>
+        params.has(paramName)
+          ? `${paramName}=${params.get(paramName) || ''}`
+          : null
+      )
+      .filter((param) => param !== null)
       .join('&')
 
     // Only updates and navigates if query has changed
     if (orderedSearch !== location.search.slice(1)) {
       setImportPersistState(`/import?${orderedSearch}`)
-
       navigate(`/import?${orderedSearch}`, { replace: true })
     }
   }
@@ -343,18 +264,7 @@ function Import() {
     createTable(newTable, {
       onSuccess: (response) => {
         queryClient.invalidateQueries({
-          queryKey: [
-            'import',
-            'search',
-            connection,
-            database,
-            table,
-            includeInAirflow,
-            importPhaseType,
-            importTool,
-            etlPhaseType,
-            etlEngine
-          ]
+          queryKey: ['import', 'search', filters]
         })
         console.log('Create successful', response)
         setCreateModalOpen(false)
@@ -515,8 +425,8 @@ function Import() {
             </p>
             <DbTables
               data={filteredData}
+              queryKeyFilters={filters}
               isLoading={isSearchLoading}
-              queryKey={queryKey}
             />
           </>
         ) : isSearchLoading ? (

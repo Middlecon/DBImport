@@ -4,6 +4,7 @@ import {
   Column,
   DbTable,
   EditSetting,
+  ImportSearchFilter,
   UiDbTable,
   UITable
 } from '../../utils/interfaces'
@@ -17,11 +18,11 @@ import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
 
 function DbTables({
   data,
-  queryKey,
+  queryKeyFilters,
   isLoading
 }: {
   data: UiDbTable[]
-  queryKey: (string | boolean | null)[]
+  queryKeyFilters: ImportSearchFilter
   isLoading: boolean
 }) {
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
@@ -117,7 +118,7 @@ function DbTables({
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: queryKey
+            queryKey: ['import', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
           setModalOpen(false)

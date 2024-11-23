@@ -143,18 +143,7 @@ export const useSearchImportTables = (
   filters: ImportSearchFilter
 ): UseQueryResult<SearchImportTablesResult, Error> => {
   return useQuery({
-    queryKey: [
-      'import',
-      'search',
-      filters.connection,
-      filters.database,
-      filters.table,
-      filters.includeInAirflow,
-      filters.importPhaseType,
-      filters.importTool,
-      filters.etlPhaseType,
-      filters.etlEngine
-    ],
+    queryKey: ['import', 'search', filters],
     queryFn: async () => {
       const { data, headers }: ImportTablesResponse =
         await getSearchImportTables(filters)
