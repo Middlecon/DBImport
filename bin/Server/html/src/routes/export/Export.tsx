@@ -24,6 +24,7 @@ import DropdownRadio from '../../components/DropdownRadio'
 import ExportCnTables from './ExportCnTables'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
 import { reverseMapEnumValue } from '../../utils/nameMappings'
+import ListRowsInfo from '../../components/ListRowsInfo'
 
 // const checkboxFilters = [
 //   {
@@ -367,9 +368,11 @@ function Export() {
 
         {data && Array.isArray(data.tables) ? (
           <>
-            <p className="list-rows-info">
-              {`Showing ${filteredData.length} (of ${data.headersRowInfo.contentRows}) rows`}
-            </p>
+            <ListRowsInfo
+              filteredData={filteredData}
+              headersRowInfo={data.headersRowInfo}
+              itemType="table"
+            />
             <ExportCnTables
               data={filteredData}
               queryKeyFilters={filters}

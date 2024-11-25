@@ -16,6 +16,7 @@ import {
 import { useAtom } from 'jotai'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
+import ListRowsInfo from '../../components/ListRowsInfo'
 
 const checkboxFilters = [
   {
@@ -68,7 +69,7 @@ function Connection() {
     [name, connectionString]
   )
 
-  const { data: searchData, isLoading } = useSearchConnections(filters)
+  const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
@@ -132,9 +133,9 @@ function Connection() {
   )
 
   const filteredData = useMemo(() => {
-    console.log('searchData', searchData)
-    if (!searchData || !Array.isArray(searchData.connections)) return []
-    return searchData.connections.filter((row) => {
+    console.log('data', data)
+    if (!data || !Array.isArray(data.connections)) return []
+    return data.connections.filter((row) => {
       return [...checkboxFilters].every((filter) => {
         const selectedItems = Array.isArray(selectedFilters[filter.accessor])
           ? selectedFilters[filter.accessor]?.map((value) => value)
@@ -149,7 +150,7 @@ function Connection() {
         return selectedItems.includes(rowValue)
       })
     })
-  }, [searchData, selectedFilters])
+  }, [data, selectedFilters])
   console.log('filteredData', filteredData)
   return (
     <>
@@ -183,14 +184,24 @@ function Connection() {
               />
             ))}
         </div>
-
-        {filteredData ? (
-          <TableList
-            columns={columns}
-            data={filteredData}
-            isLoading={isLoading}
-            scrollbarMarginTop="34px"
-          />
+        {data && Array.isArray(data.connections) ? (
+          <>
+            <ListRowsInfo
+              filteredData={filteredData}
+              headersRowInfo={data.headersRowInfo}
+              itemType="connection"
+            />
+            {filteredData && (
+              <TableList
+                columns={columns}
+                data={filteredData}
+                isLoading={isSearchLoading}
+                scrollbarMarginTop="34px"
+              />
+            )}
+          </>
+        ) : isSearchLoading ? (
+          <div className="loading">Loading...</div>
         ) : (
           <p
             style={{
@@ -200,7 +211,7 @@ function Connection() {
               textAlign: 'center'
             }}
           >
-            No columns yet in this table.
+            No connections yet.
           </p>
         )}
       </ViewBaseLayout>

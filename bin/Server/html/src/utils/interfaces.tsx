@@ -498,6 +498,13 @@ export type TableCreateMapped = {
   columns: Columns[]
 }
 
+export interface HeadersRowInfo {
+  contentLength: string
+  contentMaxReturnedRows: string
+  contentRows: string
+  contentTotalRows: string
+}
+
 export interface Column<T> {
   header: string
   accessor?: keyof T

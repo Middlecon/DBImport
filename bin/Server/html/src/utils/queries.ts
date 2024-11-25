@@ -17,6 +17,7 @@ import {
   ExportConnections,
   ExportSearchFilter,
   ExportTable,
+  HeadersRowInfo,
   ImportAirflowDAG,
   ImportSearchFilter,
   JDBCdrivers,
@@ -67,12 +68,7 @@ interface ConnectionsResponse {
 
 interface SearchConnectionsResult {
   connections: Connections[]
-  headersRowInfo: {
-    contentLength?: string
-    contentMaxReturnedRows?: string
-    contentRows?: string
-    contentTotalRows?: string
-  }
+  headersRowInfo: HeadersRowInfo
 }
 
 const getSearchConnections = async (filters: ConnectionSearchFilter) => {
@@ -180,12 +176,7 @@ interface ImportTablesResponse {
 
 interface SearchImportTablesResult {
   tables: UiDbTable[]
-  headersRowInfo: {
-    contentLength?: string
-    contentMaxReturnedRows?: string
-    contentRows?: string
-    contentTotalRows?: string
-  }
+  headersRowInfo: HeadersRowInfo
 }
 
 const getSearchImportTables = async (filters: ImportSearchFilter) => {
@@ -338,12 +329,7 @@ interface ExportTablesResponse {
 
 interface SearchExportTablesResult {
   tables: UIExportCnTables[]
-  headersRowInfo: {
-    contentLength?: string
-    contentMaxReturnedRows?: string
-    contentRows?: string
-    contentTotalRows?: string
-  }
+  headersRowInfo: HeadersRowInfo
 }
 
 const getSearchExportTables = async (filters: ExportSearchFilter) => {
