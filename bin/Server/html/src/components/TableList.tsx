@@ -411,11 +411,13 @@ function TableList<T>({
                           className={
                             column.accessor === 'sourceTable'
                               ? 'fixed-width'
+                              : column.isAction === 'connectionLink'
+                              ? 'connection-links'
                               : ''
                           }
                           style={
                             column.isAction === 'connectionLink'
-                              ? { paddingLeft: 5, paddingRight: 5 }
+                              ? { width: 100, paddingLeft: 0, paddingRight: 0 }
                               : {}
                           }
                         >
