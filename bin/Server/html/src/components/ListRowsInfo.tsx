@@ -17,7 +17,13 @@ function ListRowsInfo<T>({
   const itemTypeString = filteredData.length === 1 ? itemType : `${itemType}s`
 
   return (
-    <p className="list-rows-info">
+    <p
+      className={
+        totalRows > maxRows
+          ? `list-rows-info list-rows-limited`
+          : `list-rows-info`
+      }
+    >
       {`Showing ${filteredData.length} ${
         totalRows > maxRows
           ? `(limited to ${headersRowInfo.contentMaxReturnedRows})`
