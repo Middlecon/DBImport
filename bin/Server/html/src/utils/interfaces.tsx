@@ -501,7 +501,7 @@ export type TableCreateMapped = {
 export interface Column<T> {
   header: string
   accessor?: keyof T
-  isAction?: 'edit' | 'delete' | 'both'
+  isAction?: 'edit' | 'delete' | 'editAndDelete' | 'connectionLink'
 }
 
 // Import table Columns, it is different on Export

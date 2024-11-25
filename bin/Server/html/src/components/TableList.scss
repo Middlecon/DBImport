@@ -143,6 +143,17 @@
       color: #e2cece;
       cursor: initial;
     }
+
+    .actions-cn-link-button {
+      margin-right: 5px;
+      svg {
+        height: 17px;
+      }
+    }
+
+    .actions-cn-link-button:first-child {
+      margin-right: 5px;
+    }
   }
   .clickable-table-name {
     font-size: 12px;

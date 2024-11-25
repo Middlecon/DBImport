@@ -79,7 +79,7 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'both' }
+      { header: 'Actions', isAction: 'editAndDelete' }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scrollbarRefresh]

@@ -4,6 +4,8 @@ import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import { Column } from '../utils/interfaces'
 import './TableList.scss'
+import ImportIcon from '../assets/icons/ImportIcon'
+import ExportIcon from '../assets/icons/ExportIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -145,6 +147,17 @@ function TableList<T>({
         targetTable: string
       ) => {
         navigate(`/export/${connection}/${schema}/${targetTable}/settings`)
+      }
+
+      const handleConnectionLinkClick = (
+        type: 'import' | 'export',
+        name: string
+      ) => {
+        if (type === 'import') {
+          navigate(`/import?connection=${name}`)
+        } else {
+          navigate(`/export?connection=${name}`)
+        }
       }
 
       const accessorKey = column.accessor as keyof T
@@ -292,7 +305,8 @@ function TableList<T>({
       if (column.isAction) {
         return (
           <div className="actions-row">
-            {column.isAction === 'edit' || column.isAction === 'both' ? (
+            {column.isAction === 'edit' ||
+            column.isAction === 'editAndDelete' ? (
               <button
                 onClick={() => onEdit && onEdit(row, rowIndex)}
                 disabled={!onEdit}
@@ -300,13 +314,40 @@ function TableList<T>({
                 <EditIcon />
               </button>
             ) : null}
-            {column.isAction === 'delete' || column.isAction === 'both' ? (
+            {column.isAction === 'delete' ||
+            column.isAction === 'editAndDelete' ? (
               <button
                 className="actions-delete-button"
                 onClick={() => console.log('Delete', row)}
               >
                 <DeleteIcon />
               </button>
+            ) : null}
+            {column.isAction === 'connectionLink' ? (
+              <>
+                <button
+                  className="actions-cn-link-button"
+                  onClick={() =>
+                    handleConnectionLinkClick(
+                      'import',
+                      String(row['name' as keyof T])
+                    )
+                  }
+                >
+                  <ImportIcon />
+                </button>
+                <button
+                  className="actions-cn-link-button"
+                  onClick={() =>
+                    handleConnectionLinkClick(
+                      'export',
+                      String(row['name' as keyof T])
+                    )
+                  }
+                >
+                  <ExportIcon />
+                </button>
+              </>
             ) : null}
           </div>
         )
@@ -367,6 +408,11 @@ function TableList<T>({
                             column.accessor === 'sourceTable'
                               ? 'fixed-width'
                               : ''
+                          }
+                          style={
+                            column.isAction === 'connectionLink'
+                              ? { paddingLeft: 5, paddingRight: 5 }
+                              : {}
                           }
                         >
                           {renderCellContent(row, column, rowIndex)}

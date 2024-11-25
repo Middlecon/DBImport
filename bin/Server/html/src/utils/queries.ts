@@ -66,11 +66,12 @@ interface ConnectionsResponse {
 }
 
 interface SearchConnectionsResult {
-  tables: Connections[]
+  connections: Connections[]
   headersRowInfo: {
     contentLength?: string
-    contentMaxRows?: string
+    contentMaxReturnedRows?: string
     contentRows?: string
+    contentTotalRows?: string
   }
 }
 
@@ -95,13 +96,14 @@ export const useSearchConnections = (
 
       const headersRowInfo = {
         contentLength: headers['content-length'],
-        contentMaxRows: headers['content-max-rows'],
-        contentRows: headers['content-rows']
+        contentMaxReturnedRows: headers['content-max-returned-rows'],
+        contentRows: headers['content-rows'],
+        contentTotalRows: headers['content-total-rows']
       }
       console.log('Headers:', headers)
       console.log('headersRowInfo', headersRowInfo)
 
-      return { data, headersRowInfo }
+      return { connections: data, headersRowInfo }
     },
     refetchOnWindowFocus: false
   })
@@ -180,8 +182,9 @@ interface SearchImportTablesResult {
   tables: UiDbTable[]
   headersRowInfo: {
     contentLength?: string
-    contentMaxRows?: string
+    contentMaxReturnedRows?: string
     contentRows?: string
+    contentTotalRows?: string
   }
 }
 
@@ -225,8 +228,9 @@ export const useSearchImportTables = (
 
       const headersRowInfo = {
         contentLength: headers['content-length'],
-        contentMaxRows: headers['content-max-rows'],
-        contentRows: headers['content-rows']
+        contentMaxReturnedRows: headers['content-max-returned-rows'],
+        contentRows: headers['content-rows'],
+        contentTotalRows: headers['content-total-rows']
       }
       console.log('Headers:', headers)
       console.log('headersRowInfo', headersRowInfo)
@@ -336,8 +340,9 @@ interface SearchExportTablesResult {
   tables: UIExportCnTables[]
   headersRowInfo: {
     contentLength?: string
-    contentMaxRows?: string
+    contentMaxReturnedRows?: string
     contentRows?: string
+    contentTotalRows?: string
   }
 }
 
@@ -376,8 +381,9 @@ export const useSearchExportTables = (
 
       const headersRowInfo = {
         contentLength: headers['content-length'],
-        contentMaxRows: headers['content-max-rows'],
-        contentRows: headers['content-rows']
+        contentMaxReturnedRows: headers['content-max-returned-rows'],
+        contentRows: headers['content-rows'],
+        contentTotalRows: headers['content-total-rows']
       }
       console.log('Headers:', headers)
       console.log('headersRowInfo', headersRowInfo)

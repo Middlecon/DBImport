@@ -125,14 +125,16 @@ function Connection() {
     () => [
       { header: 'Connection Name', accessor: 'name' },
       { header: 'Server Type', accessor: 'serverType' },
-      { header: 'Connection String', accessor: 'connectionString' }
+      { header: 'Connection String', accessor: 'connectionString' },
+      { header: 'Links', isAction: 'connectionLink' }
     ],
     []
   )
 
   const filteredData = useMemo(() => {
-    if (!Array.isArray(searchData)) return []
-    return searchData.filter((row) => {
+    console.log('searchData', searchData)
+    if (!searchData || !Array.isArray(searchData.connections)) return []
+    return searchData.connections.filter((row) => {
       return [...checkboxFilters].every((filter) => {
         const selectedItems = Array.isArray(selectedFilters[filter.accessor])
           ? selectedFilters[filter.accessor]?.map((value) => value)
@@ -148,7 +150,7 @@ function Connection() {
       })
     })
   }, [searchData, selectedFilters])
-
+  console.log('filteredData', filteredData)
   return (
     <>
       <ViewBaseLayout>
