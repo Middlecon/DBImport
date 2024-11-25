@@ -381,7 +381,11 @@ function TableList<T>({
                     <th
                       key={index}
                       className={
-                        column.accessor === 'sourceTable' ? 'fixed-width' : ''
+                        column.accessor === 'sourceTable'
+                          ? 'fixed-width'
+                          : column.accessor === 'serverType'
+                          ? 'server-type-fixed-width'
+                          : ''
                       }
                     >
                       {column.header}

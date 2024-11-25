@@ -130,6 +130,10 @@
     }
   }
 
+  .server-type-fixed-width {
+    white-space: nowrap;
+  }
+
   .actions-row {
     display: flex;
     justify-content: center;
