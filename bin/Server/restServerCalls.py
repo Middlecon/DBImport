@@ -674,7 +674,7 @@ class dbCalls:
 		# session.close()
 		session.remove()
 
-		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows), "content-total-rows": str(importTablesDataCount[0])}
+		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows), "content-total-rows": str(jdbcConnectionsDataCount[0])}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
 
