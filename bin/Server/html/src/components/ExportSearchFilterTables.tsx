@@ -15,6 +15,7 @@ import {
 } from '../utils/interfaces'
 import { getKeyFromExportLabel } from '../utils/nameMappings'
 import { initExportEnumDropdownFilters } from '../utils/cardRenderFormatting'
+import FavoriteFilterSearch from './FavoriteFilterSearch'
 
 interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -57,6 +58,7 @@ function ExportSearchFilterTables({
   }, [data])
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const favoriteRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -71,6 +73,20 @@ function ExportSearchFilterTables({
   })
 
   useEffect(() => {
+    setEnumDropdownFilters(
+      initExportEnumDropdownFilters(
+        formValues.exportType,
+        formValues.exportTool
+      )
+    )
+
+    setIncludeInAirflowFilter((prevFilter) => ({
+      ...prevFilter,
+      value: formValues.includeInAirflow
+    }))
+  }, [formValues])
+
+  useEffect(() => {
     if (isLoading || !connectionNames.length) return
     setIsCnDropdownReady(true)
   }, [connectionNames.length, isLoading, setIsCnDropdownReady])
@@ -79,17 +95,28 @@ function ExportSearchFilterTables({
     if (!isSearchFilterOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node
+
+      if (containerRef.current && !containerRef.current.contains(target)) {
         onToggle(false)
+        setOpenDropdown(null)
+        return
+      }
+
+      if (
+        openDropdown &&
+        (openDropdown === 'addFavoriteDropdown' ||
+          openDropdown === 'favoritesDropdown') &&
+        favoriteRef.current &&
+        !favoriteRef.current.contains(target)
+      ) {
+        setOpenDropdown(null)
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (openDropdown === 'cnSearch') {
+        if (openDropdown) {
           setOpenDropdown(null)
         } else {
           onToggle(false)
@@ -221,7 +248,18 @@ function ExportSearchFilterTables({
       </div>
       {isSearchFilterOpen && (
         <div className="search-filter-dropdown">
-          <h3>Search and show tables</h3>
+          <div className="search-filter-dropdown-h-ctn">
+            <h3>Search and show tables</h3>
+            <FavoriteFilterSearch<UiExportSearchFilter>
+              ref={favoriteRef}
+              type="export"
+              formValues={formValues}
+              onSelectFavorite={(favoriteState) => setFormValues(favoriteState)}
+              openDropdown={openDropdown}
+              handleDropdownToggle={handleDropdownToggle}
+            />
+          </div>
+
           <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
           <form
             onSubmit={(event) => {

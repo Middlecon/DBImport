@@ -15,6 +15,7 @@ import {
 } from '../utils/interfaces'
 import { getKeyFromLabel } from '../utils/nameMappings'
 import { initEnumDropdownFilters } from '../utils/cardRenderFormatting'
+import FavoriteFilterSearch from './FavoriteFilterSearch'
 
 interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -71,6 +72,7 @@ function ImportSearchFilterTables({
   )
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const favoriteRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -85,6 +87,22 @@ function ImportSearchFilterTables({
     etlPhaseType: etlType ? etlType : null,
     etlEngine: etlEngine ? etlEngine : null
   })
+
+  useEffect(() => {
+    setEnumDropdownFilters(
+      initEnumDropdownFilters(
+        formValues.importPhaseType,
+        formValues.importTool,
+        formValues.etlPhaseType,
+        formValues.etlEngine
+      )
+    )
+
+    setIncludeInAirflowFilter((prevFilter) => ({
+      ...prevFilter,
+      value: formValues.includeInAirflow
+    }))
+  }, [formValues])
 
   useEffect(() => {
     if (isLoading || !databaseNames.length || !connectionNames.length) return
@@ -102,17 +120,28 @@ function ImportSearchFilterTables({
     if (!isSearchFilterOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node
+
+      if (containerRef.current && !containerRef.current.contains(target)) {
         onToggle(false)
+        setOpenDropdown(null)
+        return
+      }
+
+      if (
+        openDropdown &&
+        (openDropdown === 'addFavoriteDropdown' ||
+          openDropdown === 'favoritesDropdown') &&
+        favoriteRef.current &&
+        !favoriteRef.current.contains(target)
+      ) {
+        setOpenDropdown(null)
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (openDropdown === 'dbSearch') {
+        if (openDropdown) {
           setOpenDropdown(null)
         } else {
           onToggle(false)
@@ -269,7 +298,17 @@ function ImportSearchFilterTables({
       </div>
       {isSearchFilterOpen && (
         <div className="search-filter-dropdown">
-          <h3>Search and show tables</h3>
+          <div className="search-filter-dropdown-h-ctn">
+            <h3>Search and show tables</h3>
+            <FavoriteFilterSearch<UiImportSearchFilter>
+              ref={favoriteRef}
+              type="import"
+              formValues={formValues}
+              onSelectFavorite={(favoriteState) => setFormValues(favoriteState)}
+              openDropdown={openDropdown}
+              handleDropdownToggle={handleDropdownToggle}
+            />
+          </div>
           <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
           <form
             onSubmit={(event) => {
@@ -434,11 +473,9 @@ function ImportSearchFilterTables({
               </div>
               <div className="filter-select-dropdown">
                 {enumDropdownFilters.map((filter, index) => {
-                  // console.log('enumOptions', filter.enumOptions)
                   const dropdownOptions = filter.enumOptions
                     ? Object.values(filter.enumOptions)
                     : []
-                  // console.log('dropdownOptions', dropdownOptions)
                   return (
                     <label
                       htmlFor={`dropdown-${index}`}

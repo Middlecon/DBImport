@@ -9,6 +9,7 @@ import FilterFunnel from '../assets/icons/FilterFunnel'
 import './SearchFilterTables.scss'
 import Button from './Button'
 import { ConnectionSearchFilter } from '../utils/interfaces'
+import FavoriteFilterSearch from './FavoriteFilterSearch'
 
 interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -36,6 +37,7 @@ function ConnectionSearchFilterCns({
   }, [data])
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const favoriteRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -54,17 +56,28 @@ function ConnectionSearchFilterCns({
     if (!isSearchFilterOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node
+
+      if (containerRef.current && !containerRef.current.contains(target)) {
         onToggle(false)
+        setOpenDropdown(null)
+        return
+      }
+
+      if (
+        openDropdown &&
+        (openDropdown === 'addFavoriteDropdown' ||
+          openDropdown === 'favoritesDropdown') &&
+        favoriteRef.current &&
+        !favoriteRef.current.contains(target)
+      ) {
+        setOpenDropdown(null)
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (openDropdown === 'cnSearch') {
+        if (openDropdown) {
           setOpenDropdown(null)
         } else {
           onToggle(false)
@@ -156,8 +169,19 @@ function ConnectionSearchFilterCns({
         </div>
       </div>
       {isSearchFilterOpen && (
-        <div className="search-filter-dropdown" style={{ width: '210px' }}>
-          <h3>Search and show connections</h3>
+        <div className="search-filter-dropdown" style={{ width: '212px' }}>
+          <div className="search-filter-dropdown-h-ctn">
+            <h3>Search and show connections</h3>
+            <FavoriteFilterSearch<ConnectionSearchFilter>
+              ref={favoriteRef}
+              type="connection"
+              formValues={formValues}
+              onSelectFavorite={(favoriteState) => setFormValues(favoriteState)}
+              openDropdown={openDropdown}
+              handleDropdownToggle={handleDropdownToggle}
+            />
+          </div>
+
           <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
           <form
             onSubmit={(event) => {

@@ -5,6 +5,7 @@ interface ButtonProps {
   title: string
   onClick?: () => void
   type?: 'button' | 'reset' | 'submit'
+  disabled?: boolean
   lightStyle?: boolean
   fontFamily?: string
   fontSize?: string
@@ -16,6 +17,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
   const {
     title,
     type = 'button',
+    disabled,
     onClick,
     lightStyle = false,
     fontFamily,
@@ -42,6 +44,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
       className={lightStyle ? 'light-button' : 'dark-button'}
       onClick={onClick}
       style={buttonStyle}
+      disabled={disabled}
     >
       <div className="button-title">{title}</div>
     </button>

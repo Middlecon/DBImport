@@ -5,7 +5,7 @@ import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import ChevronRight from '../assets/icons/ChevronRight'
 import { EditSetting } from '../utils/interfaces'
-import CloseIcon from '../assets/icons/CloseIcon'
+import CrossIcon from '../assets/icons/CloseIcon'
 
 interface DropdownProps<T> {
   items: T[]
@@ -105,6 +105,12 @@ function Dropdown<T>({
       getItemLabel(item).toLowerCase().includes(searchTerm.toLowerCase())
     ) ?? []
   ).filter((item) => item !== selectedItem)
+
+  useEffect(() => {
+    if (initialTitle) {
+      setSelectedItem(initialTitle as T)
+    }
+  }, [initialTitle])
 
   useEffect(() => {
     if (textInputMode) {
@@ -276,13 +282,13 @@ function Dropdown<T>({
             selectedItem !== 'Select...' &&
             !isOpen ? (
               <div
-                className="close-icon-container"
+                className="cross-icon-container"
                 onClick={(event) => {
                   event.stopPropagation()
                   handleSelect(null)
                 }}
               >
-                <CloseIcon />
+                <CrossIcon />
               </div>
             ) : isOpen ? (
               <div className="chevron-container">

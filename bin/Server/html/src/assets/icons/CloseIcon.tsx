@@ -1,4 +1,4 @@
-export default function CloseIcon({
+export default function CrossIcon({
   onClick
 }: {
   onClick?: (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => void
