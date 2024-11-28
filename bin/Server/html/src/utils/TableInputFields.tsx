@@ -475,6 +475,51 @@ function TableInputFields({
           </>
         )
       }
+
+      if (
+        setting.label === 'Database' ||
+        setting.label === 'Table' ||
+        setting.label === 'Connection' ||
+        setting.label === 'Target Table' ||
+        setting.label === 'Target Schema' ||
+        setting.label === 'Task Name' ||
+        setting.label === 'DAG Name'
+      ) {
+        return (
+          <>
+            <label
+              className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+              htmlFor={`text-input-${index}`}
+            >
+              {setting.label}:
+              {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+            </label>
+
+            <input
+              className="input-fields-text-input"
+              id={`text-input-${index}`}
+              type="text"
+              value={setting.value ? String(setting.value) : ''}
+              onChange={(event) => {
+                let value = event.target.value
+                if (value.includes('*')) {
+                  value = value.replace(/\*/g, '')
+                }
+                handleInputChange(index, value.trim() === '' ? '' : value)
+              }}
+              onBlur={(event) => {
+                const trimmedValue = event.target.value.trim()
+                handleInputChange(
+                  index,
+                  trimmedValue === '' ? prevValue : trimmedValue
+                )
+              }}
+              required={isRequired}
+              disabled={isFieldDisabled}
+            />
+          </>
+        )
+      }
       if (setting.label === 'Sensor Connection') {
         return (
           <>
