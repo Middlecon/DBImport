@@ -12,6 +12,7 @@ import ChevronUp from '../assets/icons/ChevronUp'
 import './FavoriteFilterSearch.scss'
 import CrossIcon from '../assets/icons/CloseIcon'
 import Button from './Button'
+import { useFocusTrap } from '../utils/hooks'
 
 interface FavoriteFilterSearchProps<T> {
   formValues: T
@@ -33,6 +34,7 @@ function FavoriteFilterSearch<T>(
     handleDropdownToggle
   } = props
   const localRef = useRef<HTMLDivElement>(null)
+  const addFavoriteNameDropdown = useRef<HTMLDivElement>(null)
 
   // Exposes the ref to the parent
   useImperativeHandle(ref, () => localRef.current)
@@ -46,6 +48,7 @@ function FavoriteFilterSearch<T>(
 
   const [favoriteName, setFavoriteName] = useState<string>('')
   const [isNameTaken, setIsNameTaken] = useState<boolean>(false)
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
 
   const [matchingFavorite, setMatchingFavorite] = useState<string | null>(null)
 
@@ -80,21 +83,92 @@ function FavoriteFilterSearch<T>(
   const handleSelectFavorite = (favoriteState: T) => {
     onSelectFavorite(favoriteState)
     handleDropdownToggle('favoritesDropdown', false)
+    setHighlightedIndex(-1)
   }
 
   const handleToggleStar = () => {
     if (matchingFavorite) {
       handleDeleteFavorite(matchingFavorite)
-      handleDropdownToggle('addFavoriteDropdown', false)
+      setMatchingFavorite(null)
+      setHighlightedIndex(-1)
     } else {
       handleDropdownToggle('addFavoriteDropdown', true)
     }
   }
 
+  useFocusTrap(
+    addFavoriteNameDropdown,
+    openDropdown === 'addFavoriteDropdown',
+    false,
+    true
+  )
+
+  useEffect(() => {
+    if (openDropdown !== 'favoritesDropdown') return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (favorites.length === 0) return
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setHighlightedIndex((prev) =>
+          prev === favorites.length - 1 ? 0 : prev + 1
+        )
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setHighlightedIndex((prev) =>
+          prev <= 0 ? favorites.length - 1 : prev - 1
+        )
+      }
+
+      if (event.key === 'Enter' && highlightedIndex >= 0) {
+        event.preventDefault()
+        const selectedFavorite = favorites[highlightedIndex]
+        if (selectedFavorite) {
+          handleSelectFavorite(selectedFavorite.state)
+          setHighlightedIndex(-1)
+        }
+      }
+
+      if (event.key === 'Backspace' && highlightedIndex >= 0) {
+        event.preventDefault()
+        const favoriteToDelete = favorites[highlightedIndex]
+        if (favoriteToDelete) {
+          handleDeleteFavorite(favoriteToDelete.name)
+          setHighlightedIndex((prev) =>
+            favorites.length === 1
+              ? -1
+              : prev >= favorites.length - 1
+              ? prev - 1
+              : prev
+          )
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDropdown, favorites, highlightedIndex])
+
   return (
     <div className="favorite-filter-search" ref={localRef}>
       <div className="favorite-filter-icons-ctn">
-        <div className="favorite-filter-star-icon" onClick={handleToggleStar}>
+        <div
+          className="favorite-filter-star-icon"
+          onClick={handleToggleStar}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              handleToggleStar()
+            }
+          }}
+          tabIndex={0}
+        >
           {matchingFavorite ? <StarFillIcon /> : <StarIcon />}
         </div>
         <div className="favorite-filter-chevron-ctn">
@@ -107,6 +181,15 @@ function FavoriteFilterSearch<T>(
                   openDropdown !== 'favoritesDropdown'
                 )
               }
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  handleDropdownToggle(
+                    'favoritesDropdown',
+                    openDropdown !== 'favoritesDropdown'
+                  )
+                }
+              }}
+              tabIndex={0}
             >
               {openDropdown === 'favoritesDropdown' ? (
                 <ChevronUp />
@@ -120,16 +203,27 @@ function FavoriteFilterSearch<T>(
 
       {openDropdown === 'favoritesDropdown' && (
         <ul className="favorites-dropdown">
-          {favorites.map((fav) => (
-            <div key={fav.name} className="favorite-item">
+          {favorites.map((fav, index) => (
+            <div
+              key={fav.name}
+              className={`favorite-item`}
+              style={
+                index === highlightedIndex
+                  ? { backgroundColor: 'lightgrey' }
+                  : {}
+              }
+            >
               <li
                 className="favorite-item-name"
                 onClick={() => handleSelectFavorite(fav.state)}
               >
                 {fav.name}
               </li>
-              <div className="favorite-cross-icon-container">
-                <CrossIcon onClick={() => handleDeleteFavorite(fav.name)} />
+              <div
+                className="favorite-cross-icon-container"
+                onClick={() => handleDeleteFavorite(fav.name)}
+              >
+                <CrossIcon />
               </div>
             </div>
           ))}
@@ -137,7 +231,10 @@ function FavoriteFilterSearch<T>(
       )}
 
       {openDropdown === 'addFavoriteDropdown' && (
-        <div className="favorite-name-input-dropdown">
+        <div
+          className="favorite-name-input-dropdown"
+          ref={addFavoriteNameDropdown}
+        >
           <div style={{ display: 'flex' }}>
             <input
               type="text"

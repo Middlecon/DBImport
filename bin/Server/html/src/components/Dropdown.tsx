@@ -267,12 +267,23 @@ function Dropdown<T>({
   }
 
   return (
-    <div className="dropdown" ref={dropdownRef} id={id} tabIndex={0}>
+    <div className="dropdown" ref={dropdownRef} id={id}>
       {!textInputMode && (
         <div
           className="dropdown-selected-item"
           style={dropdownStyle}
           onClick={() => !disabled && onToggle(!isOpen)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              onToggle(!isOpen)
+            }
+
+            if (event.key === 'Backspace') {
+              event.stopPropagation()
+              handleSelect(null)
+            }
+          }}
+          tabIndex={0}
         >
           {selectedItem ? getItemLabel(selectedItem) : initialTitle}
 
@@ -348,6 +359,12 @@ function Dropdown<T>({
                       setHighlightedIndex(index)
                       handleSelect(item)
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        setHighlightedIndex(index)
+                        handleSelect(item)
+                      }
+                    }}
                     style={
                       index === highlightedIndex
                         ? { backgroundColor: 'lightgrey' }
@@ -367,7 +384,11 @@ function Dropdown<T>({
                 filteredItems.map((item, index) => (
                   <li
                     key={index}
-                    onClick={() => handleSelect(item)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setHighlightedIndex(index)
+                      handleSelect(item)
+                    }}
                     style={
                       index === highlightedIndex
                         ? { backgroundColor: 'lightgrey' }

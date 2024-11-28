@@ -16,6 +16,7 @@ import {
 import { getKeyFromLabel } from '../utils/nameMappings'
 import { initEnumDropdownFilters } from '../utils/cardRenderFormatting'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
+import { useFocusTrap } from '../utils/hooks'
 
 interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -88,6 +89,12 @@ function ImportSearchFilterTables({
     etlEngine: etlEngine ? etlEngine : null
   })
 
+  useFocusTrap(
+    containerRef,
+    isSearchFilterOpen,
+    openDropdown === 'addFavoriteDropdown'
+  )
+
   useEffect(() => {
     setEnumDropdownFilters(
       initEnumDropdownFilters(
@@ -119,10 +126,12 @@ function ImportSearchFilterTables({
   useEffect(() => {
     if (!isSearchFilterOpen) return
 
+    const containerRefCurrent = containerRef.current
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
 
-      if (containerRef.current && !containerRef.current.contains(target)) {
+      if (containerRefCurrent && !containerRefCurrent.contains(target)) {
         onToggle(false)
         setOpenDropdown(null)
         return
@@ -176,11 +185,14 @@ function ImportSearchFilterTables({
     if (isOpen) {
       setOpenDropdown(dropdownId)
     } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
+      setTimeout(() => {
+        setOpenDropdown(null)
+      }, 0)
     }
   }
 
   const handleShow = () => {
+    setOpenDropdown(null)
     onShow(formValues)
   }
 

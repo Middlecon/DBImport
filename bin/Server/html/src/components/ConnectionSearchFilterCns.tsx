@@ -10,6 +10,7 @@ import './SearchFilterTables.scss'
 import Button from './Button'
 import { ConnectionSearchFilter } from '../utils/interfaces'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
+import { useFocusTrap } from '../utils/hooks'
 
 interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -47,6 +48,12 @@ function ConnectionSearchFilterCns({
     connectionString: connectionString ? connectionString : null
   })
 
+  useFocusTrap(
+    containerRef,
+    isSearchFilterOpen,
+    openDropdown === 'addFavoriteDropdown'
+  )
+
   useEffect(() => {
     if (isLoading || !connectionNames.length) return
     setIsCnDropdownReady(true)
@@ -55,10 +62,12 @@ function ConnectionSearchFilterCns({
   useEffect(() => {
     if (!isSearchFilterOpen) return
 
+    const containerRefCurrent = containerRef.current
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
 
-      if (containerRef.current && !containerRef.current.contains(target)) {
+      if (containerRefCurrent && !containerRefCurrent.contains(target)) {
         onToggle(false)
         setOpenDropdown(null)
         return
@@ -112,11 +121,14 @@ function ConnectionSearchFilterCns({
     if (isOpen) {
       setOpenDropdown(dropdownId)
     } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
+      setTimeout(() => {
+        setOpenDropdown(null)
+      }, 0)
     }
   }
 
   const handleShow = () => {
+    setOpenDropdown(null)
     onShow(formValues)
   }
 
