@@ -189,13 +189,17 @@ const getSearchImportTables = async (filters: ImportSearchFilter) => {
 }
 
 export const useSearchImportTables = (
-  filters: ImportSearchFilter
+  filters: ImportSearchFilter | null,
+  validationMode?: boolean
 ): UseQueryResult<SearchImportTablesResult, Error> => {
   return useQuery({
-    queryKey: ['import', 'search', filters],
+    queryKey:
+      validationMode === true
+        ? ['import', 'validation', filters?.database, filters?.table]
+        : ['import', 'search', filters],
     queryFn: async () => {
       const { data, headers }: ImportTablesResponse =
-        await getSearchImportTables(filters)
+        await getSearchImportTables(filters!) // We are sure that filters is not null here because of the enabled flag
       const enumMappedData = data.map(
         (row: {
           etlPhaseType: string
@@ -228,6 +232,7 @@ export const useSearchImportTables = (
 
       return { tables: enumMappedData, headersRowInfo }
     },
+    enabled: filters !== null, // Prevents query execution when filters is null
     refetchOnWindowFocus: false
   })
 }
@@ -345,13 +350,23 @@ const getSearchExportTables = async (filters: ExportSearchFilter) => {
 }
 
 export const useSearchExportTables = (
-  filters: ExportSearchFilter
+  filters: ExportSearchFilter | null,
+  validationMode?: boolean
 ): UseQueryResult<SearchExportTablesResult, Error> => {
   return useQuery({
-    queryKey: ['export', 'search', filters],
+    queryKey:
+      validationMode === true
+        ? [
+            'export',
+            'validation',
+            filters?.connection,
+            filters?.targetTable,
+            filters?.targetSchema
+          ]
+        : ['export', 'search', filters],
     queryFn: async () => {
       const { data, headers }: ExportTablesResponse =
-        await getSearchExportTables(filters)
+        await getSearchExportTables(filters!) // We are sure that filters is not null here because of the enabled flag
 
       const enumMappedData = data.map((row) => ({
         ...row,
@@ -376,6 +391,7 @@ export const useSearchExportTables = (
 
       return { tables: enumMappedData, headersRowInfo }
     },
+    enabled: filters !== null, // Prevents query execution when filters is null
     refetchOnWindowFocus: false
   })
 }

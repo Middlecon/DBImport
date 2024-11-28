@@ -5,8 +5,12 @@ import {
   useMemo,
   useState
 } from 'react'
-import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
-import { useConnections } from '../utils/queries'
+import {
+  EditSetting,
+  EditSettingValueTypes,
+  ImportSearchFilter
+} from '../utils/interfaces'
+import { useConnections, useSearchImportTables } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
@@ -14,6 +18,8 @@ import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
+import { debounce } from 'lodash'
+import { getUpdatedSettingValue } from '../utils/functions'
 
 interface CreateTableModalProps {
   database: string | null
@@ -41,9 +47,23 @@ function CreateImportTableModal({
     [connectionsData]
   )
 
+  const [filter, setFilter] = useState<ImportSearchFilter>({
+    connection: null,
+    database: null,
+    table: null,
+    includeInAirflow: null,
+    importPhaseType: null,
+    etlPhaseType: null,
+    importTool: null,
+    etlEngine: null
+  })
+
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isValidationError, setIsValidationError] = useState(false)
+  const [validationMessage, setValidationMessage] = useState('')
+
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
@@ -63,6 +83,39 @@ function CreateImportTableModal({
     )
   }, [editedSettings])
 
+  const updateFilter = useMemo(
+    () =>
+      debounce((updatedFilter) => {
+        setFilter(updatedFilter)
+      }, 500),
+    [setFilter]
+  )
+
+  const {
+    data,
+    isLoading: validationIsLoading,
+    isError
+  } = useSearchImportTables(
+    filter.database && filter.table ? filter : null,
+    true
+  )
+
+  useEffect(() => {
+    if (!validationIsLoading && data) {
+      console.log('data', data)
+      if (data.tables.length > 0) {
+        setIsValidationError(true)
+        setValidationMessage('Table name already exists in the given database.')
+      } else {
+        setIsValidationError(false)
+        setValidationMessage('')
+      }
+    } else if (isError) {
+      setIsValidationError(true)
+      setValidationMessage('Error validating table name. Please try again.')
+    }
+  }, [data, isError, validationIsLoading])
+
   const handleInputChange = (
     index: number,
     newValue: EditSettingValueTypes | null
@@ -78,6 +131,17 @@ function CreateImportTableModal({
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
+
+    const updatedDatabase = getUpdatedSettingValue('Database', updatedSettings)
+    const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
+
+    if (updatedDatabase && updatedTable) {
+      updateFilter({
+        ...filter,
+        database: updatedDatabase,
+        table: updatedTable
+      })
+    }
   }
 
   const handleSelect = (
@@ -196,15 +260,23 @@ function CreateImportTableModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
-
+          <RequiredFieldsInfo
+            validation={true}
+            isValidationSad={isValidationError}
+            validationText={validationMessage}
+            isRequiredFieldEmpty={isRequiredFieldEmpty}
+          />
           <div className="table-modal-footer">
             <Button
               title="Cancel"
               onClick={handleCancelClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Save" />
+            <Button
+              type="submit"
+              title="Save"
+              disabled={isRequiredFieldEmpty || isValidationError}
+            />
           </div>
         </form>
       </div>

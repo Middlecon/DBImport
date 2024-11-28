@@ -1,3 +1,5 @@
+import { EditSetting } from './interfaces'
+
 /* eslint-disable no-useless-escape */
 export function validateEmails(input: HTMLInputElement) {
   const emails = input.value.split(',').map((email) => email.trim())
@@ -40,4 +42,14 @@ export function isValidOctal(value: string) {
   const octalPattern = /^[0-7]{3,4}$/
 
   return octalPattern.test(value)
+}
+
+export function getUpdatedSettingValue(
+  label: string,
+  updatedSettings: EditSetting[]
+) {
+  return updatedSettings
+    .find((s) => s.label === label)
+    ?.value?.toString()
+    .trim()
 }
