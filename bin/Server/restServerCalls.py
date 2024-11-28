@@ -78,7 +78,10 @@ class dbCalls:
 		# self.common_config.reconnectConfigDatabase(printReconnectMessage=True, buffered=False)
 
 		self.logdir = configuration.get("Server", "logdir")
-		self.adminUser = self.common_config.getConfigValue("restserver_admin_user")
+		# self.adminUser = self.common_config.getConfigValue("restserver_admin_user")
+		# log.warning(self.adminUser)
+
+		self.adminUser = self.getConfigValue("restserver_admin_user")
 
 		self.contentMaxRows = 1000
 
@@ -150,20 +153,61 @@ class dbCalls:
 			return scoped_session(self.configDBSession)
 
 
+	def getConfigValue(self, key):
+		""" Returns a value from the configuration table based on the supplied key. Value returned can be Int, Str or DateTime""" 
+		log = logging.getLogger(self.logger)
+		returnValue = None
+		boolValue = False
+	
+		valueColumn, boolValue = self.common_config.getConfigValueColumn(key)
 
-#	def disconnectRemoteSession(self, instance):
-#		""" Disconnects from the remote database and removes all sessions and engine """
-#		log = logging.getLogger(self.logger)
-#
-#		try:
-#			engine = self.remoteDBImportEngines.get(instance)
-#			if engine != None:
-#				log.info("Disconnecting from remote DBImport database for '%s'"%(instance))
-#				engine.dispose()
-#			self.remoteDBImportEngines.pop(instance)
-#			self.remoteDBImportSessions.pop(instance)
-#		except KeyError:
-#			log.debug("Cant remove DBImport session or engine. Key does not exist")
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		configurationTable = aliased(configSchema.configuration)
+
+		configuration = (session.query(
+					configurationTable.configKey,
+					configurationTable.valueInt,
+					configurationTable.valueStr,
+					configurationTable.valueDate
+				)
+				.select_from(configurationTable)
+				.filter(configurationTable.configKey == key)
+				.one()
+			)
+
+		session.remove()
+		returnValue = None
+
+		try:
+			if valueColumn == "valueInt":
+				returnValue = int(configuration[1])
+	
+			if valueColumn == "valueStr":
+				returnValue = configuration[2]
+				if returnValue == None or returnValue.strip() == "":
+					log.error("Configuration Key '%s' must have a value in '%s'"%(key, valueColumn))
+					returnValue = None
+
+			if boolValue == True:
+				if returnValue == 1:
+					returnValue = True
+				elif returnValue == 0:
+					returnValue = False
+				else:
+					log.error("Configuration Key '%s' can only have 0 or 1 in column '%s'"%(key, valueColumn))
+					returnValue = None
+		except TypeError:
+			log.error("Configuration key '%s' cant be found. Have you upgraded the database schema to the latest version?"%(key))
+			returnValue = None
+
+		return returnValue
+
+
 
 	def createDefaultAdminUser(self):
 		""" Creates the default admin user in the auth_users table if it doesnt exist """
@@ -175,7 +219,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 		
-		defaultAdminUser = self.common_config.getConfigValue("restserver_admin_user")
+		defaultAdminUser = self.getConfigValue("restserver_admin_user")
 		userObject = self.getUser(defaultAdminUser)
 		if userObject == None:
 			# User does not exists, so lets create it
@@ -3338,5 +3382,6 @@ class dbCalls:
 				return (result, returnCode)
 	
 		return (result, returnCode)
+
 
 

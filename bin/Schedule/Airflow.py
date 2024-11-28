@@ -29,6 +29,7 @@ import botocore
 import random
 from ConfigReader import configuration
 import pendulum
+from urllib.parse import quote
 from datetime import date, datetime, time, timedelta
 import pandas as pd
 from common import constants as constant
@@ -43,7 +44,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy_utils import create_view
 from sqlalchemy_views import CreateView, DropView
 from sqlalchemy.sql import text, alias, select
-from sqlalchemy.orm import aliased, sessionmaker, Query
+from sqlalchemy.orm import aliased, sessionmaker, Query, scoped_session
 
 
 class initialize(object):
@@ -53,6 +54,12 @@ class initialize(object):
 		self.mysql_conn = None
 		self.mysql_cursor = None
 		self.debugLogLevel = False
+
+		self.logger = "root"
+		log = logging.getLogger(self.logger)
+
+		self.configDBSession = None
+		self.configDB = None
 
 		if logging.root.level == 10:        # DEBUG
 			self.debugLogLevel = True
@@ -104,38 +111,8 @@ class initialize(object):
 		except invalidConfiguration:
 			pass
 
-#		# Fetch configuration about MySQL database and how to connect to it
-#		self.databaseCredentials = self.common_config.getMysqlCredentials()
-#		self.configHostname = self.databaseCredentials["mysql_hostname"]
-#		self.configPort =     self.databaseCredentials["mysql_port"]
-#		self.configDatabase = self.databaseCredentials["mysql_database"]
-#		self.configUsername = self.databaseCredentials["mysql_username"]
-#		self.configPassword = self.databaseCredentials["mysql_password"]
-#
-#		# Esablish a SQLAlchemy connection to the DBImport database 
-#		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
-#			self.configUsername, 
-#			self.configPassword, 
-#			self.configHostname, 
-#			self.configPort, 
-#			self.configDatabase)
-#
-#		try:
-#			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel)
-#			self.configDB.connect()
-#			self.configDBSession = sessionmaker(bind=self.configDB)
-#
-#		except sa.exc.OperationalError as err:
-#			logging.error("%s"%err)
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
-#		except:
-#			print("Unexpected error: ")
-#			print(sys.exc_info())
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
 
-		if self.airflowMode == "default":
+		if self.airflowMode == "default" and self.createPoolsWithTasks == False:
 			# Establish a SQLAlchemy connection to the Airflow database
 			airflowConnectStr = configuration.get("Airflow", "airflow_alchemy_conn")
 			try:
@@ -158,16 +135,65 @@ class initialize(object):
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
-		self.common_config.disconnectSQLAlchemy()
-		self.common_config.configDBSession = None
+#		self.common_config.disconnectSQLAlchemy()
+#		self.common_config.configDBSession = None
+
+		log = logging.getLogger(self.logger)
+
+		if self.configDB != None:
+			log.info("Disconnecting from DBImport database")
+			self.configDB.dispose()
+			self.configDB = None
+
+		self.configDBSession = None
+
 
 
 	def getDBImportSession(self):
-		if self.common_config.configDBSession == None:
-			if self.common_config.connectSQLAlchemy(exitIfFailure=False) == False:
-				raise SQLerror("Can't connect to DBImport database")
+#		if self.common_config.configDBSession == None:
+#			if self.common_config.connectSQLAlchemy(exitIfFailure=False) == False:
+#				raise SQLerror("Can't connect to DBImport database")
+#
+#		return self.common_config.configDBSession()
+		""" Connects to the configuration database with SQLAlchemy and return a session """
+		log = logging.getLogger(self.logger)
 
-		return self.common_config.configDBSession()
+		if self.configDBSession != None:
+			# If we already have a connection, we just return the session
+			# return self.configDBSession()
+			return scoped_session(self.configDBSession)
+
+		mysqlCredentials = self.common_config.getMysqlCredentials()
+
+		self.connectStr = "mysql+pymysql://%s:%s@%s:%s/%s"%(
+			mysqlCredentials["mysql_username"],
+			quote(mysqlCredentials["mysql_password"], safe=" +"),
+			mysqlCredentials["mysql_hostname"],
+			mysqlCredentials["mysql_port"],
+			mysqlCredentials["mysql_database"])
+
+		try:
+			self.configDB = sa.create_engine(self.connectStr, echo = self.debugLogLevel, pool_pre_ping=True)
+			self.configDB.connect()
+			self.configDBSession = sessionmaker(bind=self.configDB)
+
+		except sa.exc.OperationalError as err:
+			logging.error("%s"%err)
+			self.configDBSession = None
+			self.configDB = None
+			raise SQLerror("Can't connect to DBImport database")
+
+		except:
+			print("Unexpected error: ")
+			print(sys.exc_info())
+			self.configDBSession = None
+			self.configDB = None
+			raise SQLerror("Can't connect to DBImport database")
+
+		else:
+			# return self.configDBSession()
+			return scoped_session(self.configDBSession)
+
 
 
 	def checkExecution(self):
@@ -330,7 +356,6 @@ class initialize(object):
 		session.close()
 
 	def getAirflowHostPoolName(self):
-		# self.common_config.jdbc_hostname = None
 		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
 			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
 			poolName = self.airflowAWSinstanceIds 
@@ -1588,6 +1613,8 @@ class initialize(object):
 					shutil.chown(self.DAGfilenameInAirflow, group=self.DAGfileGroup)
 				except PermissionError:
 					logging.warning("Could not copy and change permission of file '%s'. Permission Denied"%(self.DAGfilenameInAirflow))
+				except LookupError:
+					pass
 				else:
 					print("DAG file written to %s"%(self.DAGfilenameInAirflow))
 
