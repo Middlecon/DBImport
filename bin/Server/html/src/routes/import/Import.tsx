@@ -237,7 +237,10 @@ function Import() {
       return acc
     }, {} as { [key: string]: number })
 
-    return Object.keys(connectionCounts).reduce((a, b) =>
+    const keys = Object.keys(connectionCounts)
+    if (keys.length === 0) return null
+
+    return keys.reduce((a, b) =>
       connectionCounts[a] > connectionCounts[b] ? a : b
     )
   }, [data])
@@ -252,7 +255,10 @@ function Import() {
       return acc
     }, {} as { [key: string]: number })
 
-    return Object.keys(databaseCounts).reduce((a, b) =>
+    const keys = Object.keys(databaseCounts)
+    if (keys.length === 0) return null
+
+    return keys.reduce((a, b) =>
       databaseCounts[a] > databaseCounts[b] ? a : b
     )
   }, [data])

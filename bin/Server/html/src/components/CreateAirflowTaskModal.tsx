@@ -268,7 +268,11 @@ function CreateAirflowTaskModal({
               onClick={handleCancelClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Save" />
+            <Button
+              type="submit"
+              title="Save"
+              disabled={isRequiredFieldEmpty || duplicateTaskName}
+            />
           </div>
         </form>
       </div>

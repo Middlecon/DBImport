@@ -365,7 +365,11 @@ function EditTableModal({
               onClick={handleCancelClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Save" />
+            <Button
+              type="submit"
+              title="Save"
+              disabled={isRequiredFieldEmpty}
+            />
           </div>
         </form>
       </div>

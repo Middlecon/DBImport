@@ -32,17 +32,15 @@
   right: -19px;
   margin-top: 2px;
   width: min-content;
-
-  svg {
-    margin-bottom: 5px;
-  }
-
   background-color: #fafafa;
   border-radius: 5px;
   box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
     rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
   overflow: auto;
   z-index: 19;
+  svg {
+    margin-bottom: 5px;
+  }
 }
 
 .favorite-name-input-dropdown {

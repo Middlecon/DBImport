@@ -221,7 +221,11 @@ function CreateAirflowModal({
               onClick={handleCancelClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Save" />
+            <Button
+              type="submit"
+              title="Save"
+              disabled={isRequiredFieldEmpty || duplicateDagName}
+            />
           </div>
         </form>
       </div>
