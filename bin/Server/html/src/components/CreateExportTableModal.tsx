@@ -39,6 +39,7 @@ function CreateExportTableModal({
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isValidationError, setIsValidationError] = useState(false)
   const [validationMessage, setValidationMessage] = useState('')
+  const [pendingValidation, setPendingValidation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
@@ -71,6 +72,7 @@ function CreateExportTableModal({
     () =>
       debounce((updatedFilter) => {
         setFilter(updatedFilter)
+        setPendingValidation(false)
       }, 500),
     [setFilter]
   )
@@ -88,6 +90,7 @@ function CreateExportTableModal({
 
   useEffect(() => {
     if (!validationIsLoading && data) {
+      setPendingValidation(false)
       if (data.tables.length > 0) {
         setIsValidationError(true)
         setValidationMessage('Table name already exists in the given database.')
@@ -96,6 +99,7 @@ function CreateExportTableModal({
         setValidationMessage('')
       }
     } else if (isError) {
+      setPendingValidation(false)
       setIsValidationError(true)
       setValidationMessage('Error validating table name. Please try again.')
     }
@@ -116,6 +120,7 @@ function CreateExportTableModal({
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
+    setPendingValidation(true)
 
     const updatedConnection = getUpdatedSettingValue(
       'Connection',
@@ -270,7 +275,12 @@ function CreateExportTableModal({
             <Button
               type="submit"
               title="Save"
-              disabled={isRequiredFieldEmpty || isValidationError}
+              disabled={
+                isRequiredFieldEmpty ||
+                isValidationError ||
+                validationIsLoading ||
+                pendingValidation
+              }
             />
           </div>
         </form>

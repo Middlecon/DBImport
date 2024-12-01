@@ -59,6 +59,8 @@ function CreateAirflowTaskModal({
 
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [pendingValidation, setPendingValidation] = useState(false)
+
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
@@ -118,6 +120,8 @@ function CreateAirflowTaskModal({
     index: number,
     newValue: EditSettingValueTypes | null
   ) => {
+    setPendingValidation(true)
+
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
@@ -131,7 +135,6 @@ function CreateAirflowTaskModal({
       (setting) => setting.label === 'Task Name'
     )
 
-    console.log('airflowNames', airflowNames)
     if (
       taskNameSetting &&
       airflowNames.includes(taskNameSetting.value as string)
@@ -139,6 +142,7 @@ function CreateAirflowTaskModal({
       setDuplicateTaskName(true)
     } else {
       setDuplicateTaskName(false)
+      setPendingValidation(false)
     }
 
     setEditedSettings(updatedSettings)
@@ -218,7 +222,7 @@ function CreateAirflowTaskModal({
         ></div>
         <h2 className="table-modal-h2">{`Create ${
           type.charAt(0).toUpperCase() + type.slice(1)
-        } DAG Task`}</h2>
+        } DAG task`}</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -271,7 +275,9 @@ function CreateAirflowTaskModal({
             <Button
               type="submit"
               title="Save"
-              disabled={isRequiredFieldEmpty || duplicateTaskName}
+              disabled={
+                isRequiredFieldEmpty || duplicateTaskName || pendingValidation
+              }
             />
           </div>
         </form>

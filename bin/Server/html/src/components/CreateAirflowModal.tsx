@@ -43,6 +43,8 @@ function CreateAirflowModal({
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [duplicateDagName, setDuplicateDagName] = useState(false)
+  const [pendingValidation, setPendingValidation] = useState(false)
+
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
@@ -102,6 +104,8 @@ function CreateAirflowModal({
     index: number,
     newValue: EditSettingValueTypes | null
   ) => {
+    setPendingValidation(true)
+
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
@@ -121,6 +125,7 @@ function CreateAirflowModal({
       setDuplicateDagName(true)
     } else {
       setDuplicateDagName(false)
+      setPendingValidation(false)
     }
 
     setEditedSettings(updatedSettings)
@@ -224,7 +229,9 @@ function CreateAirflowModal({
             <Button
               type="submit"
               title="Save"
-              disabled={isRequiredFieldEmpty || duplicateDagName}
+              disabled={
+                isRequiredFieldEmpty || duplicateDagName || pendingValidation
+              }
             />
           </div>
         </form>

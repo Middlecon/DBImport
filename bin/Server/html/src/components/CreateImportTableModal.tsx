@@ -63,6 +63,7 @@ function CreateImportTableModal({
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isValidationError, setIsValidationError] = useState(false)
   const [validationMessage, setValidationMessage] = useState('')
+  const [pendingValidation, setPendingValidation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
@@ -87,6 +88,7 @@ function CreateImportTableModal({
     () =>
       debounce((updatedFilter) => {
         setFilter(updatedFilter)
+        setPendingValidation(false)
       }, 500),
     [setFilter]
   )
@@ -102,7 +104,7 @@ function CreateImportTableModal({
 
   useEffect(() => {
     if (!validationIsLoading && data) {
-      console.log('data', data)
+      setPendingValidation(false)
       if (data.tables.length > 0) {
         setIsValidationError(true)
         setValidationMessage('Table name already exists in the given database.')
@@ -111,6 +113,7 @@ function CreateImportTableModal({
         setValidationMessage('')
       }
     } else if (isError) {
+      setPendingValidation(false)
       setIsValidationError(true)
       setValidationMessage('Error validating table name. Please try again.')
     }
@@ -131,6 +134,7 @@ function CreateImportTableModal({
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
+    setPendingValidation(false)
 
     const updatedDatabase = getUpdatedSettingValue('Database', updatedSettings)
     const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
@@ -275,7 +279,12 @@ function CreateImportTableModal({
             <Button
               type="submit"
               title="Save"
-              disabled={isRequiredFieldEmpty || isValidationError}
+              disabled={
+                isRequiredFieldEmpty ||
+                isValidationError ||
+                validationIsLoading ||
+                pendingValidation
+              }
             />
           </div>
         </form>
