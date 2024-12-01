@@ -291,9 +291,13 @@ function CreateImportTableModal({
       </div>
       {showConfirmation && (
         <ConfirmationModal
+          title="Cancel Create table"
+          message="Any unsaved changes will be lost."
+          buttonTitleCancel="No, Go Back"
+          buttonTitleConfirm="Yes, Cancel"
           onConfirm={handleConfirmCancel}
           onCancel={handleCloseConfirmation}
-          message="Any unsaved changes will be lost."
+          isActive={showConfirmation}
         />
       )}
     </div>

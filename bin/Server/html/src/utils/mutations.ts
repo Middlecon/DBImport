@@ -34,7 +34,26 @@ export const useUpdateConnection = () => {
   })
 }
 
-// Table
+type DeleteConnectionArgs = {
+  connectionName: string
+}
+
+const deleteConnection = async ({ connectionName }: DeleteConnectionArgs) => {
+  const encodedConnection = encodeURIComponent(connectionName)
+
+  const response = await axiosInstance.delete(
+    `/connection/${encodedConnection}`
+  )
+  return response.data
+}
+
+export const useDeleteConnection = () => {
+  return useMutation({
+    mutationFn: (args: DeleteConnectionArgs) => deleteConnection(args)
+  })
+}
+
+// Update table, Import or Export
 
 const postUpdateTable = async (
   type: 'import' | 'export',
@@ -65,7 +84,7 @@ export const useUpdateTable = () => {
   })
 }
 
-// Import table
+// Import create table
 
 const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
   console.log('postTable table', table)
@@ -83,7 +102,33 @@ export const useCreateImportTable = () => {
   })
 }
 
-// Export Table
+// Import delete table
+
+type DeleteImportTableArgs = {
+  database: string
+  table: string
+}
+
+const deleteImportTable = async ({
+  database,
+  table
+}: DeleteImportTableArgs) => {
+  const encodedDatabase = encodeURIComponent(database)
+  const encodedTable = encodeURIComponent(table)
+
+  const response = await axiosInstance.delete(
+    `/import/table/${encodedDatabase}/${encodedTable}`
+  )
+  return response.data
+}
+
+export const useDeleteImportTable = () => {
+  return useMutation({
+    mutationFn: (args: DeleteImportTableArgs) => deleteImportTable(args)
+  })
+}
+
+// Export create table
 
 const postCreateExportTable = async (table: ExportTableCreateWithoutEnum) => {
   console.log('postTable table', table)
@@ -101,10 +146,38 @@ export const useCreateExportTable = () => {
   })
 }
 
+// Export delete table
+
+type DeleteExportTableArgs = {
+  connection: string
+  targetSchema: string
+  targetTable: string
+}
+
+const deleteExportTable = async ({
+  connection,
+  targetSchema,
+  targetTable
+}: DeleteExportTableArgs) => {
+  const encodedConnection = encodeURIComponent(connection)
+  const encodedTargetSchema = encodeURIComponent(targetSchema)
+  const encodedTargetTable = encodeURIComponent(targetTable)
+  const response = await axiosInstance.delete(
+    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
+  )
+  return response.data
+}
+
+export const useDeleteExportTable = () => {
+  return useMutation({
+    mutationFn: (args: DeleteExportTableArgs) => deleteExportTable(args)
+  })
+}
+
 // Airflow
 
 const updateAirflowDag = async (
-  type: string,
+  type: 'import' | 'export' | 'custom',
   dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
 ) => {
   const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
@@ -116,7 +189,7 @@ export const useUpdateAirflowDag = () => {
     ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG,
     Error,
     {
-      type: string
+      type: 'import' | 'export' | 'custom'
       dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
     }
   >({
@@ -125,7 +198,7 @@ export const useUpdateAirflowDag = () => {
 }
 
 const postCreateAirflowDag = async (
-  type: string,
+  type: 'import' | 'export' | 'custom',
   dagData:
     | ImportCreateAirflowDAG
     | ExportCreateAirflowDAG
@@ -140,7 +213,7 @@ export const useCreateAirflowDag = () => {
     ImportCreateAirflowDAG | ExportCreateAirflowDAG | CustomCreateAirflowDAG,
     Error,
     {
-      type: string
+      type: 'import' | 'export' | 'custom'
       dagData:
         | ImportCreateAirflowDAG
         | ExportCreateAirflowDAG
@@ -148,6 +221,27 @@ export const useCreateAirflowDag = () => {
     }
   >({
     mutationFn: ({ type, dagData }) => postCreateAirflowDag(type, dagData)
+  })
+}
+
+// Airflow delete DAG
+
+type DeleteAirflowDAGArgs = {
+  type: 'import' | 'export' | 'custom'
+  dagName: string
+}
+
+const deleteAirflowDAG = async ({ type, dagName }: DeleteAirflowDAGArgs) => {
+  const encodedDagName = encodeURIComponent(dagName)
+  const response = await axiosInstance.delete(
+    `/airflow/dags/${type}/${encodedDagName}`
+  )
+  return response.data
+}
+
+export const useDeleteAirflowDAG = () => {
+  return useMutation({
+    mutationFn: (args: DeleteAirflowDAGArgs) => deleteAirflowDAG(args)
   })
 }
 

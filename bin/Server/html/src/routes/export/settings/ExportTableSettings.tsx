@@ -6,21 +6,19 @@ import { useExportTable } from '../../../utils/queries'
 import { exportCardRenderSettings } from '../../../utils/cardRenderFormatting'
 
 function ExportTableSettings() {
-  const { connection, schema, table } = useParams()
+  const { connection, targetSchema, targetTable } = useParams()
 
-  const { data: exportTableData, isError } = useExportTable(
+  const { data: tableData, isError } = useExportTable(
     connection,
-    schema,
-    table
+    targetSchema,
+    targetTable
   )
 
   if (isError) {
     return <div className="error">Server error occurred.</div>
   }
-  if (!exportTableData && !isError)
-    return <div className="loading">Loading...</div>
-  const exportCards = exportCardRenderSettings(exportTableData)
-  console.log('exportTableData', exportTableData)
+  if (!tableData && !isError) return <div className="loading">Loading...</div>
+  const exportCards = exportCardRenderSettings(tableData)
   return (
     <>
       <div className="block-container">
@@ -31,25 +29,25 @@ function ExportTableSettings() {
                 type="export"
                 title="Main Settings"
                 settings={exportCards.mainSettings}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Performance"
                 settings={exportCards.performance}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Validation"
                 settings={exportCards.validation}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Schedule"
                 settings={exportCards.schedule}
-                tableData={exportTableData}
+                tableData={tableData}
               />
             </div>
             <div className="cards-container">
@@ -57,16 +55,16 @@ function ExportTableSettings() {
                 type="export"
                 title="Export Options"
                 settings={exportCards.exportOptions}
-                tableData={exportTableData}
+                tableData={tableData}
               />
 
               <Card
                 type="export"
                 title="Incremental Exports"
                 settings={exportCards.incrementalExports}
-                tableData={exportTableData}
-                isNotEditable={exportTableData.exportType !== 'incr'}
-                isDisabled={exportTableData.exportType !== 'incr'}
+                tableData={tableData}
+                isNotEditable={tableData.exportType !== 'incr'}
+                isDisabled={tableData.exportType !== 'incr'}
               />
             </div>
           </div>
@@ -76,40 +74,40 @@ function ExportTableSettings() {
                 type="export"
                 title="Main Settings"
                 settings={exportCards.mainSettings}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Export Options"
                 settings={exportCards.exportOptions}
-                tableData={exportTableData}
+                tableData={tableData}
               />
 
               <Card
                 type="export"
                 title="Incremental Exports"
                 settings={exportCards.incrementalExports}
-                tableData={exportTableData}
-                isNotEditable={exportTableData.exportType !== 'incr'}
-                isDisabled={exportTableData.exportType !== 'incr'}
+                tableData={tableData}
+                isNotEditable={tableData.exportType !== 'incr'}
+                isDisabled={tableData.exportType !== 'incr'}
               />
               <Card
                 type="export"
                 title="Performance"
                 settings={exportCards.performance}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Validation"
                 settings={exportCards.validation}
-                tableData={exportTableData}
+                tableData={tableData}
               />
               <Card
                 type="export"
                 title="Schedule"
                 settings={exportCards.schedule}
-                tableData={exportTableData}
+                tableData={tableData}
               />
             </div>
           </div>

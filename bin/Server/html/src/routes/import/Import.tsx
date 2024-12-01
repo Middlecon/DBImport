@@ -273,6 +273,9 @@ function Import() {
         queryClient.invalidateQueries({
           queryKey: ['import', 'search', filters]
         })
+        queryClient.invalidateQueries({
+          queryKey: ['databases']
+        })
         console.log('Create successful', response)
         setCreateModalOpen(false)
       },

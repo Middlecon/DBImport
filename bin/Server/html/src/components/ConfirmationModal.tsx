@@ -1,25 +1,43 @@
+import { useRef } from 'react'
 import Button from './Button'
 import './ConfirmationModal.scss'
+import { useFocusTrap } from '../utils/hooks'
 
-interface ConfirmCancelModalProps {
+interface ConfirmModalProps {
+  title: string
+  message: string
+  buttonTitleCancel: string
+  buttonTitleConfirm: string
   onConfirm: () => void
   onCancel: () => void
-  message: string
+  isActive: boolean
 }
 
 function ConfirmationModal({
+  title,
+  message,
+  buttonTitleCancel,
+  buttonTitleConfirm,
   onConfirm,
   onCancel,
-  message
-}: ConfirmCancelModalProps) {
+  isActive
+}: ConfirmModalProps) {
+  const confirmationModalRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(confirmationModalRef, isActive)
+
   return (
-    <div className="confirmation-modal-backdrop">
+    <div className="confirmation-modal-backdrop" ref={confirmationModalRef}>
       <div className="confirmation-modal-content">
-        <h3 className="confirmation-modal-h3">Cancel Edit</h3>
+        <h3 className="confirmation-modal-h3">{title}</h3>
         <p>{message}</p>
         <div className="confirmation-modal-footer">
-          <Button title="No, Go Back" onClick={onCancel} lightStyle={true} />
-          <Button title="Yes, Cancel" onClick={onConfirm} />
+          <Button
+            title={buttonTitleCancel}
+            onClick={onCancel}
+            lightStyle={true}
+          />
+          <Button title={buttonTitleConfirm} onClick={onConfirm} />
         </div>
       </div>
     </div>

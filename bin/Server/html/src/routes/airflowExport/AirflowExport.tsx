@@ -2,7 +2,12 @@ import '../import/Import.scss'
 import { useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useExportAirflows } from '../../utils/queries'
-import { AirflowsExportData, Column, EditSetting } from '../../utils/interfaces'
+import {
+  AirflowsExportData,
+  Column,
+  EditSetting,
+  UiAirflowsExportData
+} from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import { useAtom } from 'jotai'
@@ -11,7 +16,8 @@ import Button from '../../components/Button'
 import CreateAirflowModal from '../../components/CreateAirflowModal'
 import { createExportDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCreateAirflowDag } from '../../utils/mutations'
+import { useCreateAirflowDag, useDeleteAirflowDAG } from '../../utils/mutations'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 const checkboxFilters = [
   {
@@ -24,7 +30,13 @@ const checkboxFilters = [
 function AirflowExport() {
   const { data, isLoading } = useExportAirflows()
   const { mutate: createDAG } = useCreateAirflowDag()
+  const { mutate: deleteDAG } = useDeleteAirflowDAG()
+
   const queryClient = useQueryClient()
+
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [currentDeleteRow, setCurrentDeleteRow] =
+    useState<UiAirflowsExportData>()
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
@@ -38,7 +50,8 @@ function AirflowExport() {
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
       { header: 'Filter Connection', accessor: 'filterConnection' },
       { header: 'Filter Target Schema', accessor: 'filterTargetSchema' },
-      { header: 'Filter Target Table', accessor: 'filterTargetTable' }
+      { header: 'Filter Target Table', accessor: 'filterTargetTable' },
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
@@ -56,6 +69,36 @@ function AirflowExport() {
     } else if (openDropdown === dropdownId) {
       setOpenDropdown(null)
     }
+  }
+
+  const handleDeleteIconClick = (row: UiAirflowsExportData) => {
+    setShowDeleteConfirmation(true)
+    setCurrentDeleteRow(row)
+  }
+
+  const handleDelete = async (row: UiAirflowsExportData) => {
+    setShowDeleteConfirmation(false)
+
+    const { name: nameDelete } = row
+
+    deleteDAG(
+      {
+        type: 'export',
+        dagName: nameDelete
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', 'export'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            exact: false
+          })
+          console.log('Delete successful')
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
   }
 
   const handleSave = (newExportAirflowSettings: EditSetting[]) => {
@@ -135,6 +178,7 @@ function AirflowExport() {
             columns={columns}
             data={filteredData}
             isLoading={isLoading}
+            onDelete={handleDeleteIconClick}
             scrollbarMarginTop="64px"
             airflowType="export"
           />
@@ -155,6 +199,17 @@ function AirflowExport() {
             type="export"
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
+          />
+        )}
+        {showDeleteConfirmation && currentDeleteRow && (
+          <ConfirmationModal
+            title={`Delete ${currentDeleteRow.name}`}
+            message={`Are you sure that you want to delete \n\n DAG "${currentDeleteRow.name}"? Delete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={() => handleDelete(currentDeleteRow)}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>

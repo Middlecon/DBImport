@@ -19,6 +19,10 @@ axiosInstance.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
+
+    if (config.method === 'delete' && !config.data) {
+      delete config.headers['Content-Type']
+    }
     return config
   },
   (error) => {

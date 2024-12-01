@@ -17,6 +17,9 @@ import { useAtom } from 'jotai'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
 import ListRowsInfo from '../../components/ListRowsInfo'
+import ConfirmationModal from '../../components/ConfirmationModal'
+import { useQueryClient } from '@tanstack/react-query'
+import { useDeleteConnection } from '../../utils/mutations'
 
 const checkboxFilters = [
   {
@@ -70,6 +73,11 @@ function Connection() {
   )
 
   const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
+  const { mutate: deleteConnection } = useDeleteConnection()
+  const queryClient = useQueryClient()
+
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [currentDeleteRow, setCurrentDeleteRow] = useState<Connections>()
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
@@ -122,12 +130,41 @@ function Connection() {
     }))
   }
 
+  const handleDeleteIconClick = (row: Connections) => {
+    console.log('row', row)
+    setShowDeleteConfirmation(true)
+    setCurrentDeleteRow(row)
+  }
+
+  const handleDelete = async (row: Connections) => {
+    setShowDeleteConfirmation(false)
+
+    const { name: connectionDelete } = row
+
+    deleteConnection(
+      { connectionName: connectionDelete },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['connection'], // Matches all related queries that starts the queryKey with 'connection'
+            exact: false
+          })
+          console.log('Delete successful')
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
   const columns: Column<Connections>[] = useMemo(
     () => [
       { header: 'Connection Name', accessor: 'name' },
       { header: 'Server Type', accessor: 'serverType' },
       { header: 'Connection String', accessor: 'connectionString' },
-      { header: 'Links', isAction: 'connectionLink' }
+      { header: 'Links', isLink: 'connectionLink' },
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
@@ -196,6 +233,7 @@ function Connection() {
                 columns={columns}
                 data={filteredData}
                 isLoading={isSearchLoading}
+                onDelete={handleDeleteIconClick}
                 scrollbarMarginTop="34px"
               />
             )}
@@ -213,6 +251,17 @@ function Connection() {
           >
             No connections yet.
           </p>
+        )}
+        {showDeleteConfirmation && currentDeleteRow && (
+          <ConfirmationModal
+            title={`Delete ${currentDeleteRow.name}`}
+            message={`Are you sure that you want to delete connection "${currentDeleteRow.name}"? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={() => handleDelete(currentDeleteRow)}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
+          />
         )}
       </ViewBaseLayout>
     </>

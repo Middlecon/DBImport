@@ -149,11 +149,6 @@ function Export() {
   const [, setExportPersistState] = useAtom(exportPersistStateAtom)
   const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
 
-  // const handleSelect = (item: string | null) => {
-  //   setSelectedFilters({})
-  //   navigate(`/export/${item}`)
-  // }
-
   const handleShow = (uiFilters: UiExportSearchFilter) => {
     const params = new URLSearchParams(location.search)
 
@@ -220,14 +215,14 @@ function Export() {
   }, [data])
 
   const handleSave = (newTableData: EditSetting[]) => {
-    console.log('newTableData', newTableData)
     const newTable = createExportTableData(newTableData)
-    console.log('newTable', newTable)
-
     createTable(newTable, {
       onSuccess: (response) => {
         queryClient.invalidateQueries({
           queryKey: ['export', 'search', filters]
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['export', 'connections']
         })
         console.log('Create successful', response)
         setCreateModalOpen(false)

@@ -13,8 +13,9 @@ import './DbTables.scss'
 import EditTableModal from '../../components/EditTableModal'
 import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateTable } from '../../utils/mutations'
+import { useDeleteImportTable, useUpdateTable } from '../../utils/mutations'
 import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 function DbTables({
   data,
@@ -25,12 +26,16 @@ function DbTables({
   queryKeyFilters: ImportSearchFilter
   isLoading: boolean
 }) {
+  const { mutate: updateTable } = useUpdateTable()
+  const { mutate: deleteTable } = useDeleteImportTable()
+
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [currentDeleteRow, setCurrentDeleteRow] = useState<UiDbTable>()
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isModalOpen, setModalOpen] = useState(false)
   const queryClient = useQueryClient()
-  const { mutate: updateTable } = useUpdateTable()
 
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
   const [scrollbarRefresh, setScrollbarRefresh] = useState(0)
@@ -106,6 +111,33 @@ function DbTables({
     }
   }
 
+  const handleDeleteIconClick = (row: UiDbTable) => {
+    setShowDeleteConfirmation(true)
+    setCurrentDeleteRow(row)
+  }
+
+  const handleDelete = async (row: UiDbTable) => {
+    setShowDeleteConfirmation(false)
+
+    const { database: databaseDelete, table: tableDelete } = row
+
+    deleteTable(
+      { database: databaseDelete, table: tableDelete },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['import'], // Matches all related queries that starts the queryKey with 'import'
+            exact: false
+          })
+          console.log('Delete successful')
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
   const handleSave = (updatedSettings: EditSetting[]) => {
     if (!tableData) {
       console.error('Table data is not available.')
@@ -137,6 +169,7 @@ function DbTables({
           columns={columns}
           data={data}
           onEdit={handleEditClick}
+          onDelete={handleDeleteIconClick}
           isLoading={isLoading}
           scrollbarMarginTop={scrollbarMarginTop}
         />
@@ -149,6 +182,17 @@ function DbTables({
           settings={currentRow}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
+        />
+      )}
+      {showDeleteConfirmation && currentDeleteRow && (
+        <ConfirmationModal
+          title={`Delete ${currentDeleteRow.table}`}
+          message={`Are you sure that you want to delete table "${currentDeleteRow.table}"? \nDelete is irreversable.`}
+          buttonTitleCancel="No, Go Back"
+          buttonTitleConfirm="Yes, Delete"
+          onConfirm={() => handleDelete(currentDeleteRow)}
+          onCancel={() => setShowDeleteConfirmation(false)}
+          isActive={showDeleteConfirmation}
         />
       )}
     </div>

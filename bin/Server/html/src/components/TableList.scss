@@ -144,7 +144,8 @@
     }
     .actions-delete-button {
       padding-left: 15px;
-      color: #e2cece;
+      color: #d86060;
+      // color: #ca6658; // Alternative color, a tiny bit more orange and dull
       cursor: initial;
     }
 
@@ -159,7 +160,7 @@
       margin-right: 5px;
     }
   }
-  .clickable-table-name {
+  .clickable-name {
     font-size: 12px;
     margin: 0;
     color: #2b66ca;

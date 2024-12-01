@@ -2,7 +2,12 @@ import '../import/Import.scss'
 import { useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useCustomAirflows } from '../../utils/queries'
-import { AirflowsCustomData, Column, EditSetting } from '../../utils/interfaces'
+import {
+  AirflowsCustomData,
+  Column,
+  EditSetting,
+  UiAirflowsCustomData
+} from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
 import { useAtom } from 'jotai'
@@ -11,7 +16,8 @@ import CreateAirflowModal from '../../components/CreateAirflowModal'
 import Button from '../../components/Button'
 import { createCustomDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCreateAirflowDag } from '../../utils/mutations'
+import { useCreateAirflowDag, useDeleteAirflowDAG } from '../../utils/mutations'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 const checkboxFilters = [
   {
@@ -24,8 +30,13 @@ const checkboxFilters = [
 function AirflowCustom() {
   const { data, isLoading } = useCustomAirflows()
   const { mutate: createDAG } = useCreateAirflowDag()
+  const { mutate: deleteDAG } = useDeleteAirflowDAG()
+
   const queryClient = useQueryClient()
 
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [currentDeleteRow, setCurrentDeleteRow] =
+    useState<UiAirflowsCustomData>()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
@@ -35,7 +46,8 @@ function AirflowCustom() {
     () => [
       { header: 'DAG Name', accessor: 'name' },
       { header: 'Schedule Interval', accessor: 'scheduleInterval' },
-      { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' }
+      { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
@@ -53,6 +65,36 @@ function AirflowCustom() {
     } else if (openDropdown === dropdownId) {
       setOpenDropdown(null)
     }
+  }
+
+  const handleDeleteIconClick = (row: UiAirflowsCustomData) => {
+    setShowDeleteConfirmation(true)
+    setCurrentDeleteRow(row)
+  }
+
+  const handleDelete = async (row: UiAirflowsCustomData) => {
+    setShowDeleteConfirmation(false)
+
+    const { name: nameDelete } = row
+
+    deleteDAG(
+      {
+        type: 'custom',
+        dagName: nameDelete
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            exact: false
+          })
+          console.log('Delete successful')
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
   }
 
   const handleSave = (newCustomAirflowSettings: EditSetting[]) => {
@@ -134,6 +176,7 @@ function AirflowCustom() {
             columns={columns}
             data={filteredData}
             isLoading={isLoading}
+            onDelete={handleDeleteIconClick}
             scrollbarMarginTop="34px"
             airflowType="custom"
           />
@@ -154,6 +197,17 @@ function AirflowCustom() {
             type="custom"
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
+          />
+        )}
+        {showDeleteConfirmation && currentDeleteRow && (
+          <ConfirmationModal
+            title={`Delete ${currentDeleteRow.name}`}
+            message={`Are you sure that you want to delete \n\n DAG "${currentDeleteRow.name}"? Delete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={() => handleDelete(currentDeleteRow)}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>

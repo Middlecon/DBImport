@@ -508,7 +508,8 @@ export interface HeadersRowInfo {
 export interface Column<T> {
   header: string
   accessor?: keyof T
-  isAction?: 'edit' | 'delete' | 'editAndDelete' | 'connectionLink'
+  isAction?: 'edit' | 'delete' | 'editAndDelete'
+  isLink?: 'connectionLink'
 }
 
 // Import table Columns, it is different on Export

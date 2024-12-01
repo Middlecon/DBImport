@@ -12,6 +12,7 @@ interface TableProps<T> {
   data: T[]
   isLoading: boolean
   onEdit?: (row: T, rowIndex?: number) => void
+  onDelete?: (row: T) => void
   scrollbarMarginTop?: string
   airflowType?: string
   isExport?: boolean
@@ -22,6 +23,7 @@ function TableList<T>({
   data,
   isLoading,
   onEdit,
+  onDelete,
   scrollbarMarginTop,
   airflowType,
   isExport = false
@@ -234,7 +236,7 @@ function TableList<T>({
                 String(row['table' as keyof T])
               )
             }
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
@@ -252,7 +254,7 @@ function TableList<T>({
                 String(row['targetTable' as keyof T])
               )
             }
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
@@ -266,7 +268,7 @@ function TableList<T>({
             onClick={() =>
               handleConnectionNameClick(String(row['name' as keyof T]))
             }
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
@@ -283,7 +285,7 @@ function TableList<T>({
                 String(row['name' as keyof T])
               )
             }
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
@@ -295,7 +297,7 @@ function TableList<T>({
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
             onClick={() => onEdit && onEdit(row, rowIndex)}
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
@@ -307,35 +309,17 @@ function TableList<T>({
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
             onClick={() => onEdit && onEdit(row, rowIndex)}
-            className="clickable-table-name"
+            className="clickable-name"
           >
             {String(cellValue)}
           </p>
         )
       }
 
-      if (column.isAction) {
+      if (column.isLink) {
         return (
           <div className="actions-row">
-            {column.isAction === 'edit' ||
-            column.isAction === 'editAndDelete' ? (
-              <button
-                onClick={() => onEdit && onEdit(row, rowIndex)}
-                disabled={!onEdit}
-              >
-                <EditIcon />
-              </button>
-            ) : null}
-            {column.isAction === 'delete' ||
-            column.isAction === 'editAndDelete' ? (
-              <button
-                className="actions-delete-button"
-                onClick={() => console.log('Delete', row)}
-              >
-                <DeleteIcon />
-              </button>
-            ) : null}
-            {column.isAction === 'connectionLink' ? (
+            {column.isLink === 'connectionLink' ? (
               <>
                 <button
                   className="actions-cn-link-button"
@@ -365,9 +349,35 @@ function TableList<T>({
         )
       }
 
+      if (column.isAction) {
+        return (
+          <div className="actions-row">
+            {column.isAction === 'edit' ||
+            column.isAction === 'editAndDelete' ? (
+              <button
+                onClick={() => onEdit && onEdit(row, rowIndex)}
+                disabled={!onEdit}
+              >
+                <EditIcon />
+              </button>
+            ) : null}
+            {column.isAction === 'delete' ||
+            column.isAction === 'editAndDelete' ? (
+              <button
+                className="actions-delete-button"
+                onClick={() => onDelete && onDelete(row)}
+                style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
+              >
+                <DeleteIcon />
+              </button>
+            ) : null}
+          </div>
+        )
+      }
+
       return String(cellValue)
     },
-    [isExport, airflowType, navigate, overflowState, onEdit]
+    [isExport, airflowType, navigate, overflowState, onEdit, onDelete]
   )
 
   return (
@@ -417,18 +427,20 @@ function TableList<T>({
                     onClick={() => handleRowClick(rowIndex)}
                   >
                     {Array.isArray(columns) &&
-                      columns.map((column) => (
+                      columns.map((column, columnIndex) => (
                         <td
-                          key={`${rowIndex}-${String(column.accessor)}`}
+                          key={`${rowIndex}-${columnIndex}-${String(
+                            column.accessor
+                          )}`}
                           className={
                             column.accessor === 'sourceTable'
                               ? 'fixed-width'
-                              : column.isAction === 'connectionLink'
+                              : column.isLink === 'connectionLink'
                               ? 'connection-links'
                               : ''
                           }
                           style={
-                            column.isAction === 'connectionLink'
+                            column.isLink === 'connectionLink'
                               ? { width: 100, paddingLeft: 0, paddingRight: 0 }
                               : {}
                           }
