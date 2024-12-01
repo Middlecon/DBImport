@@ -117,8 +117,7 @@ const getConnections = async (onlyNames?: boolean) => {
 export const useConnections = (
   onlyNames?: boolean
 ): UseQueryResult<Connections[], Error> => {
-  const queryKey =
-    onlyNames === true ? ['connections', 'names'] : ['connections']
+  const queryKey = onlyNames === true ? ['connection', 'names'] : ['connection']
   return useQuery({
     queryKey: queryKey,
     queryFn: () => getConnections(onlyNames)
@@ -128,7 +127,8 @@ export const useConnections = (
 // Get connection
 
 const getConnection = async (connection: string) => {
-  const response = await axiosInstance.get(`/connection/${connection}`)
+  const encodedConnection = encodeURIComponent(connection)
+  const response = await axiosInstance.get(`/connection/${encodedConnection}`)
   return response.data
 }
 
@@ -240,7 +240,11 @@ export const useSearchImportTables = (
 // Get detailed table
 
 const getTable = async (database: string, table: string) => {
-  const response = await axiosInstance.get(`/import/table/${database}/${table}`)
+  const encodedDatabase = encodeURIComponent(database)
+  const encodedTable = encodeURIComponent(table)
+  const response = await axiosInstance.get(
+    `/import/table/${encodedDatabase}/${encodedTable}`
+  )
   return response.data
 }
 
@@ -253,6 +257,7 @@ export const fetchTableData = async (
       'Cannot fetch table because database or/and table params are not defined'
     )
   }
+  console.log('fetchTableData table', table)
   const data: Table = await getTable(database, table)
 
   const dataWithEnumTypes: UITable = {
@@ -400,21 +405,29 @@ export const useSearchExportTables = (
 
 const getExportTable = async (
   connection: string,
-  schema: string,
-  table: string
+  targetSchema: string,
+  targetTable: string
 ) => {
+  const encodedConnection = encodeURIComponent(connection)
+  const encodedTargetSchema = encodeURIComponent(targetSchema)
+  const encodedTargetTable = encodeURIComponent(targetTable)
+
   const response = await axiosInstance.get(
-    `/export/table/${connection}/${schema}/${table}`
+    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
   )
   return response.data
 }
 
 export const fetchExportTableData = async (
   connection: string,
-  schema: string,
-  table: string
+  targetSchema: string,
+  targetTable: string
 ): Promise<UIExportTable> => {
-  const data: ExportTable = await getExportTable(connection, schema, table)
+  const data: ExportTable = await getExportTable(
+    connection,
+    targetSchema,
+    targetTable
+  )
 
   const dataWithEnumTypes: UIExportTable = {
     ...data,
@@ -441,13 +454,14 @@ export const fetchExportTableData = async (
 
 export const useExportTable = (
   connection?: string,
-  schema?: string,
-  table?: string
+  targetSchema?: string,
+  targetTable?: string
 ): UseQueryResult<UIExportTable, Error> => {
   return useQuery({
-    queryKey: ['export', connection, table],
-    queryFn: () => fetchExportTableData(connection!, schema!, table!), // We are sure that database and table is not null here because of the enabled flag
-    enabled: !!connection && !!schema && !!table
+    queryKey: ['export', connection, targetTable],
+    queryFn: () =>
+      fetchExportTableData(connection!, targetSchema!, targetTable!), // We are sure that database and table is not null here because of the enabled flag
+    enabled: !!connection && !!targetSchema && !!targetTable
   })
 }
 
@@ -590,12 +604,16 @@ export const useCustomAirflows = (): UseQueryResult<
 // Get an airlow DAG
 
 const getAirflowDAG = async (type: string, dagName: string) => {
-  const response = await axiosInstance.get(`/airflow/dags/${type}/${dagName}`)
+  const encodedDagName = encodeURIComponent(dagName)
+
+  const response = await axiosInstance.get(
+    `/airflow/dags/${type}/${encodedDagName}`
+  )
   return response.data
 }
 
 export const useAirflowDAG = (
-  type?: string,
+  type?: 'import' | 'export' | 'custom',
   dagName?: string
 ): UseQueryResult<
   ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG,

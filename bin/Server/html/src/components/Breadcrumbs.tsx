@@ -29,7 +29,10 @@ const Breadcrumbs = () => {
   }
 
   const crumbs = useMemo(() => {
-    const pathnames = location.pathname.split('/').filter((x) => x)
+    const pathnames = location.pathname
+      .split('/')
+      .filter((x) => x)
+      .map((pathname) => decodeURIComponent(pathname))
     const breadcrumbItems = [{ label: 'Home', path: '/' }]
 
     pathnames.forEach((pathname, index) => {

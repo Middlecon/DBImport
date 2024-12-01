@@ -72,7 +72,7 @@ export const router = createBrowserRouter([
         element: <Export />
       },
       {
-        path: '/export/:connection/:schema/:table',
+        path: '/export/:connection/:targetSchema/:targetTable',
         element: <TableDetailedView type="export" />,
         children: [
           {

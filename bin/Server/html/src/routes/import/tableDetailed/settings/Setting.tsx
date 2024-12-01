@@ -130,7 +130,8 @@ function Setting({
   }
 
   const handleArrowClick = () => {
-    navigate(`/connection/${value}`)
+    const encodedValue = encodeURIComponent(value ? value : '')
+    navigate(`/connection/${encodedValue}`)
   }
 
   const renderSetting = () => {

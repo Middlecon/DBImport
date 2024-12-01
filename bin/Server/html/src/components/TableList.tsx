@@ -132,31 +132,43 @@ function TableList<T>({
 
   const renderCellContent = useCallback(
     (row: T, column: Column<T>, rowIndex: number) => {
-      const handleTableClick = (db: string, table: string) => {
-        navigate(`/import/${db}/${table}/settings`)
+      const handleTableClick = (database: string, table: string) => {
+        const encodedDatabase = encodeURIComponent(database)
+        const encodedTable = encodeURIComponent(table)
+        navigate(`/import/${encodedDatabase}/${encodedTable}/settings`)
       }
       const handleConnectionNameClick = (connection: string) => {
-        navigate(`/connection/${connection}`)
+        const encodedConnection = encodeURIComponent(connection)
+        navigate(`/connection/${encodedConnection}`)
       }
       const handleAirflowNameClick = (type: string, dagName: string) => {
-        navigate(`/airflow/${type}/${dagName}/settings`)
+        const encodedType = encodeURIComponent(type)
+        const encodedDagName = encodeURIComponent(dagName)
+        navigate(`/airflow/${encodedType}/${encodedDagName}/settings`)
       }
       const handleExportConnectionClick = (
         connection: string,
-        schema: string,
+        targetSchema: string,
         targetTable: string
       ) => {
-        navigate(`/export/${connection}/${schema}/${targetTable}/settings`)
+        const encodedConnection = encodeURIComponent(connection)
+        const encodedTargetSchema = encodeURIComponent(targetSchema)
+        const encodedTargetTable = encodeURIComponent(targetTable)
+        navigate(
+          `/export/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/settings`
+        )
       }
 
       const handleConnectionLinkClick = (
         type: 'import' | 'export',
         name: string
       ) => {
+        const encodedName = encodeURIComponent(name)
+
         if (type === 'import') {
-          navigate(`/import?connection=${name}`)
+          navigate(`/import?connection=${encodedName}`)
         } else {
-          navigate(`/export?connection=${name}`)
+          navigate(`/export?connection=${encodedName}`)
         }
       }
 

@@ -3,10 +3,17 @@ import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useEffect, useMemo } from 'react'
 import '../_shared/TableDetailedView.scss'
 
-function AirflowDetailedView({ type }: { type: string }) {
+function AirflowDetailedView({
+  type
+}: {
+  type: 'import' | 'export' | 'custom'
+}) {
   const { dagName } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const encodedType = encodeURIComponent(type)
+  const encodedDagName = encodeURIComponent(dagName ? dagName : '')
 
   // const pathSegments = location.pathname.split('/').filter(Boolean)
   const pathSegments =
@@ -20,12 +27,14 @@ function AirflowDetailedView({ type }: { type: string }) {
 
   useEffect(() => {
     if (!validTabs.includes(tab)) {
-      navigate(`/airflow/${type}/${dagName}/settings`, { replace: true })
+      navigate(`/airflow/${encodedType}/${encodedDagName}/settings`, {
+        replace: true
+      })
     }
-  }, [tab, navigate, validTabs, dagName, type])
+  }, [tab, navigate, validTabs, dagName, type, encodedType, encodedDagName])
 
   const handleTabClick = (tabName: string) => {
-    navigate(`/airflow/${type}/${dagName}/${tabName}`)
+    navigate(`/airflow/${encodedType}/${encodedDagName}/${tabName}`)
   }
 
   return (

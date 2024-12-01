@@ -8,7 +8,15 @@ interface TableDetailedViewProps {
 }
 
 function TableDetailedView({ type }: TableDetailedViewProps) {
-  const { database, table, connection, schema } = useParams()
+  const { database, table, connection, targetSchema, targetTable } = useParams()
+  const encodedDatabase = encodeURIComponent(database ? database : '')
+  const encodedTable = encodeURIComponent(table ? table : '')
+  const encodedConnection = encodeURIComponent(connection ? connection : '')
+  const encodedTargetSchema = encodeURIComponent(
+    targetSchema ? targetSchema : ''
+  )
+  const encodedTargetTable = encodeURIComponent(targetTable ? targetTable : '')
+
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -28,20 +36,40 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
   useEffect(() => {
     if (!validTabs.includes(tab)) {
       if (type === 'import') {
-        navigate(`/import/${database}/${table}/settings`, { replace: true })
-      } else if (type === 'export') {
-        navigate(`/export/${connection}/${schema}/${table}/settings`, {
+        navigate(`/import/${encodedDatabase}/${encodedTable}/settings`, {
           replace: true
         })
+      } else if (type === 'export') {
+        navigate(
+          `/export/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/settings`,
+          {
+            replace: true
+          }
+        )
       }
     }
-  }, [tab, database, table, navigate, validTabs, type, schema, connection])
+  }, [
+    tab,
+    database,
+    table,
+    navigate,
+    validTabs,
+    type,
+    connection,
+    encodedDatabase,
+    encodedTable,
+    encodedConnection,
+    encodedTargetSchema,
+    encodedTargetTable
+  ])
 
   const handleTabClick = (tabName: string) => {
     if (type === 'import') {
-      navigate(`/import/${database}/${table}/${tabName}`)
+      navigate(`/import/${encodedDatabase}/${encodedTable}/${tabName}`)
     } else if (type === 'export') {
-      navigate(`/export/${connection}/${schema}/${table}/${tabName}`)
+      navigate(
+        `/export/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/${tabName}`
+      )
     }
   }
 
@@ -50,7 +78,9 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
       <ViewBaseLayout>
         <div className="table-header">
           {type === 'import' && <h1>{`${database}.${table}`}</h1>}
-          {type === 'export' && <h1>{`${connection}.${schema}.${table}`}</h1>}
+          {type === 'export' && (
+            <h1>{`${connection}.${targetSchema}.${targetTable}`}</h1>
+          )}
         </div>
         <div className="tabs">
           <h2

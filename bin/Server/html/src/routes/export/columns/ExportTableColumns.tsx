@@ -11,20 +11,17 @@ import { updateExportTableData } from '../../../utils/dataFunctions'
 import { exportColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 
 function ExportTableColumns() {
-  const {
-    connection,
-    schema,
-    table: tableParam
-  } = useParams<{
+  const { connection, targetSchema, targetTable } = useParams<{
     connection: string
-    schema: string
-    table: string
+    targetSchema: string
+    targetTable: string
   }>()
+
   const {
     data: tableData,
     isLoading,
     isError
-  } = useExportTable(connection, schema, tableParam)
+  } = useExportTable(connection, targetSchema, targetTable)
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -75,7 +72,6 @@ function ExportTableColumns() {
   if (!tableData && !isError) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    console.log('updatedSettings export', updatedSettings)
     const editedTableData = updateExportTableData(
       tableData,
       updatedSettings,
@@ -87,7 +83,7 @@ function ExportTableColumns() {
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['export', connection, tableParam]
+            queryKey: ['export', connection, targetTable]
           })
           setDataRefreshTrigger((prev) => prev + 1)
           console.log('Update successful', response)
@@ -95,7 +91,7 @@ function ExportTableColumns() {
         },
         onError: (error) => {
           queryClient.invalidateQueries({
-            queryKey: ['export', connection, tableParam]
+            queryKey: ['export', connection, targetTable]
           })
           console.error('Error updating table', error)
         }
@@ -119,7 +115,8 @@ function ExportTableColumns() {
             padding: ' 40px 50px 44px 50px',
             backgroundColor: 'white',
             borderRadius: 7,
-            textAlign: 'center'
+            textAlign: 'center',
+            fontSize: 14
           }}
         >
           No columns yet in this table.

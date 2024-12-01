@@ -15,6 +15,7 @@ function TableColumns() {
     database: string
     table: string
   }>()
+
   const { data: tableData, isLoading, isError } = useTable(database, tableParam)
 
   const queryClient = useQueryClient()
@@ -120,7 +121,8 @@ function TableColumns() {
             padding: ' 40px 50px 44px 50px',
             backgroundColor: 'white',
             borderRadius: 7,
-            textAlign: 'center'
+            textAlign: 'center',
+            fontSize: 14
           }}
         >
           No columns yet in this table.
