@@ -69,7 +69,7 @@ pyspnego==0.10.2
 python-dateutil==2.8.2
 python-dotenv==1.0.1
 python-jose==3.3.0
-python-multipart==0.0.9
+python-multipart==0.0.18
 python-pam==2.0.2
 pytz==2024.1
 pytzdata==2020.1
