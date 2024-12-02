@@ -28,6 +28,10 @@ function TableList<T>({
   airflowType,
   isExport = false
 }: TableProps<T>) {
+  const hasAction = columns.some((column) => column.isAction)
+  const hasLink = columns.some((column) => column.isLink)
+  const hasActionAndLink = hasAction && hasLink
+
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
   const [visibleData, setVisibleData] = useState<T[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -39,6 +43,29 @@ function TableList<T>({
   const navigate = useNavigate()
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
   const chunkSize = 50
+
+  const preventBackNavigationOnScroll = (event: WheelEvent) => {
+    const container = event.currentTarget as HTMLElement
+    const isAtLeftEdge = container.scrollLeft === 0 && event.deltaX < 0
+
+    if (isAtLeftEdge) {
+      event.preventDefault() // Prevents the default browser action (back navigation).
+    }
+  }
+
+  const scrollableContainer = document.querySelector(
+    '.scrollable-container'
+  ) as HTMLElement
+
+  if (scrollableContainer) {
+    scrollableContainer.addEventListener(
+      'wheel',
+      preventBackNavigationOnScroll,
+      {
+        passive: false // Allows `preventDefault()` to work
+      }
+    )
+  }
 
   // For preventing TableList out of view when filterswrap on narrowing the view
   useEffect(() => {
@@ -402,15 +429,34 @@ function TableList<T>({
                   columns.map((column, index) => (
                     <th
                       key={index}
-                      className={
-                        column.accessor === 'sourceTable'
-                          ? 'fixed-width'
-                          : column.accessor === 'serverType'
+                      className={`${
+                        column.accessor === 'sourceTable' ? 'fixed-width' : ''
+                      }
+                      ${
+                        column.accessor === 'serverType'
                           ? 'server-type-fixed-width'
                           : ''
                       }
+                      ${column.isAction ? 'sticky-right actions' : ''}
+                      ${column.isLink ? 'sticky-right links' : ''}`}
+                      style={{
+                        boxShadow:
+                          hasActionAndLink && column.isLink
+                            ? '-20px 0 20px -15px rgba(0, 0, 0, .4)'
+                            : hasAction && !hasLink && column.isAction
+                            ? '-20px 0 20px -15px rgba(0, 0, 0, 0.1)'
+                            : undefined
+                      }}
                     >
-                      {column.header}
+                      <div
+                        className={`${
+                          column.isAction || column.isLink
+                            ? 'sticky-th-wrapper'
+                            : ''
+                        }`}
+                      >
+                        {column.header}
+                      </div>
                     </th>
                   ))}
               </tr>
@@ -432,20 +478,47 @@ function TableList<T>({
                           key={`${rowIndex}-${columnIndex}-${String(
                             column.accessor
                           )}`}
-                          className={
+                          className={`${
                             column.accessor === 'sourceTable'
                               ? 'fixed-width'
-                              : column.isLink === 'connectionLink'
-                              ? 'connection-links'
                               : ''
                           }
-                          style={
-                            column.isLink === 'connectionLink'
-                              ? { width: 100, paddingLeft: 0, paddingRight: 0 }
-                              : {}
-                          }
+                           ${column.isAction ? 'sticky-right actions' : ''}
+                           ${column.isLink ? 'sticky-right links' : ''}`}
+                          style={{
+                            ...(column.isLink === 'connectionLink'
+                              ? {
+                                  width: 100,
+                                  paddingLeft: 0,
+                                  paddingRight: 0,
+                                  border: 'none'
+                                }
+                              : column.isAction || column.isLink
+                              ? {
+                                  borderRight: 'none',
+                                  borderLeft: 'none'
+                                }
+                              : {
+                                  borderTop: '1px solid #ddd',
+                                  borderRight: 'none'
+                                }),
+                            boxShadow:
+                              hasActionAndLink && column.isLink
+                                ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
+                                : hasAction && !hasLink && column.isAction
+                                ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
+                                : undefined
+                          }}
                         >
-                          {renderCellContent(row, column, rowIndex)}
+                          <div
+                            className={`${
+                              column.isAction || column.isLink
+                                ? 'sticky-wrapper'
+                                : ''
+                            }`}
+                          >
+                            {renderCellContent(row, column, rowIndex)}
+                          </div>
                         </td>
                       ))}
                   </tr>
@@ -460,7 +533,7 @@ function TableList<T>({
                   >
                     <p
                       style={{
-                        padding: ' 40px 50px 44px 50px',
+                        padding: '40px 50px 44px 50px',
                         margin: 0,
                         backgroundColor: 'white',
                         textAlign: 'center'

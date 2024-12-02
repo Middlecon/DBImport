@@ -7,9 +7,11 @@
 }
 
 .custom-table-root {
+  box-sizing: border-box;
   width: calc(100% - 2px);
   max-height: 70vh;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin: 0;
   font-size: 12px;
   text-align: left;
@@ -24,10 +26,10 @@
   th {
     margin: 0;
     padding: 10px 16px 8px 12px;
-    background-color: rgb(171, 171, 172);
+    background-color: #ababac;
     font-weight: bold;
     outline: 0.3px solid #abaeb8;
-    z-index: 14;
+    z-index: 12;
   }
 
   p {
@@ -58,40 +60,95 @@
 
   td {
     padding: 9px 12px;
-    border: 1px solid #ddd;
+    border: 0.5px solid #ddd;
     white-space: nowrap;
     z-index: 13;
   }
 
-  .dbtables-row {
-    background-color: rgb(250, 248, 248);
+  th.sticky-right,
+  td.sticky-right {
+    position: sticky;
+    right: 0;
+    background-color: inherit;
+    z-index: 20;
   }
 
-  .dbtables-row:nth-child(even) {
+  th.sticky-right {
+    background-color: #ababac;
+    padding: 0;
+    height: 100%;
+    border-bottom: 1px solid #b4b2b2;
+  }
+
+  td.sticky-right {
+    z-index: 5;
+    overflow: hidden;
+
+    background-color: inherit;
+    padding: 0;
+    height: 0px;
+    border: none;
+  }
+
+  th.sticky-right.links,
+  td.sticky-right.links {
+    right: 72px;
+    z-index: 14;
+  }
+
+  th.sticky-right.actions,
+  td.sticky-right.actions {
+    right: 0;
+    border-left: none !important;
+  }
+
+  th.sticky-right.links,
+  th.sticky-right.actions {
+    z-index: 14 !important;
+
+    height: 100% !important;
+  }
+
+  td.sticky-right.links,
+  td.sticky-right.actions {
+    z-index: 13;
+    overflow: hidden;
+  }
+
+  .sticky-wrapper {
+    z-index: 13;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    width: 72px;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+  }
+
+  .sticky-th-wrapper {
+    box-sizing: border-box;
+    height: 100%;
+    width: 72px;
+    padding: 10px 17px 8px 12px;
+    border-left: 1px solid #abaeb8;
+    border-bottom: 1px solid #abaeb8;
+  }
+
+  .dbtables-row {
+    background-color: #faf8f8;
+  }
+
+  .dbtables-row:nth-child(even),
+  .dbtables-row:nth-child(even) td.sticky-right {
     background-color: #eeeeee;
   }
 
-  .dbtables-row.selected {
-    // Some colors to choose from
-
-    // A nice light blue:
-    // background-color: #e0f7fa;
-
-    // Icon-green:
-    // background-color: #70ac47;
-
-    // background-color: #d9ebcd;
-    // background-color: #d5e3cc;
-    // background-color: #d3ecc2;
+  .dbtables-row.selected,
+  .dbtables-row.selected td.sticky-right {
     background-color: #ceeabc;
-    // background-color: #d1eec1;
-    // background-color: #d6edc8;
-
-    // Icon-yellow:
-    // background-color: #fec000;
-
-    // Icon-orangered:
-    // background-color: #ec7d31;
   }
 
   .tooltip {
@@ -150,14 +207,14 @@
     }
 
     .actions-cn-link-button {
-      margin-right: 5px;
+      margin-right: 7px;
       svg {
         height: 17px;
       }
     }
 
     .actions-cn-link-button:first-child {
-      margin-right: 5px;
+      margin-left: 5px;
     }
   }
   .clickable-name {
