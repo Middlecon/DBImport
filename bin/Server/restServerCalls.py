@@ -93,8 +93,6 @@ class dbCalls:
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
 		log = logging.getLogger(self.logger)
-#		self.common_config.disconnectSQLAlchemy(logger=self.logger)
-#		self.common_config.configDBSession = None
 
 		if self.configDB != None:
 			log.info("Disconnecting from DBImport database")
@@ -108,13 +106,6 @@ class dbCalls:
 	def getDBImportSession(self):
 		""" Connects to the configuration database with SQLAlchemy and return a session """
 		log = logging.getLogger(self.logger)
-#		if self.common_config.configDBSession == None:
-#			if self.common_config.connectSQLAlchemy(exitIfFailure=False, logger=self.logger) == False:
-#				raise SQLerror("Can't connect to DBImport database")
-#
-#		return self.common_config.configDBSession()
-#	def connectSQLAlchemy(self, exitIfFailure=True, logger=""):
-#		log = logging.getLogger(logger)
 
 		if self.configDBSession != None:
 			# If we already have a connection, we just return the session
@@ -1113,7 +1104,7 @@ class dbCalls:
 		return self.searchImportTables(searchValues, currentUser) 
 
 
-	def getImportTableDetails(self, database, table):
+	def getImportTableDetails(self, database, table, includeColumns):
 		""" Returns all import table details """
 		log = logging.getLogger(self.logger)
 
@@ -1299,7 +1290,8 @@ class dbCalls:
 		resultDict['historyDatabase'] = row[69]
 		resultDict['historyTable'] = row[70]
 
-		resultDict["columns"] = self.getImportTableColumns(database, table)
+		if includeColumns == True:
+			resultDict["columns"] = self.getImportTableColumns(database, table)
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		# session.close()
@@ -1855,7 +1847,7 @@ class dbCalls:
 
 
 
-	def getExportTableDetails(self, connection, schema, table):
+	def getExportTableDetails(self, connection, schema, table, includeColumns):
 		""" Returns all connections that have exports configured in them """
 		log = logging.getLogger(self.logger)
 
@@ -1961,7 +1953,8 @@ class dbCalls:
 		resultDict['createTargetTableSql'] = row[35]
 		resultDict['operatorNotes'] = row[36]
 
-		resultDict["columns"] = self.getExportTableColumns(connection, schema, table)
+		if includeColumns == True:
+			resultDict["columns"] = self.getExportTableColumns(connection, schema, table)
 
 		jsonResult = json.loads(json.dumps(resultDict))
 		# session.close()

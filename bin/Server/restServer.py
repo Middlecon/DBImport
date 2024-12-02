@@ -399,8 +399,8 @@ async def get_import_tables_in_database(database: str, current_user: Annotated[d
 	return dbCalls.getImportTablesInDatabase(database, current_user["username"])
 
 @app.get("/import/table/{database}/{table}", response_model=dataModels.importTableDetailsRead, tags=["Imports"])
-async def get_import_table_details(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getImportTableDetails(database = database, table = table)
+async def get_import_table_details(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], includeColumns: bool=True):
+	return dbCalls.getImportTableDetails(database = database, table = table, includeColumns = includeColumns)
 
 @app.delete("/import/table/{database}/{table}", tags=["Imports"])
 async def delete_import_table(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
@@ -429,8 +429,8 @@ async def get_export_tables_on_connection_and_schema(connection: str, schema: st
 	return dbCalls.getExportTables(connection = connection, schema = schema, currentUser = current_user["username"])
 
 @app.get("/export/table/{connection}/{schema}/{table}", response_model=dataModels.exportTableDetailsRead, tags=["Exports"])
-async def get_export_table_details(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
-	return dbCalls.getExportTableDetails(connection = connection, schema = schema, table = table)
+async def get_export_table_details(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], includeColumns: bool=True):
+	return dbCalls.getExportTableDetails(connection = connection, schema = schema, table = table, includeColumns = includeColumns)
 
 @app.delete("/export/table/{connection}/{schema}/{table}", tags=["Exports"])
 async def delete_export_table(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):

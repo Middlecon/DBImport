@@ -65,21 +65,21 @@ class initialize(object):
 			self.debugLogLevel = True
 
 		self.common_config = common_config.config()
-		self.sendStatistics = sendStatistics.sendStatistics()
+#		self.sendStatistics = sendStatistics.sendStatistics()
 
-		self.dbimportCommandPath = self.common_config.getConfigValue("airflow_dbimport_commandpath")
-		self.defaultSudoUser = self.common_config.getConfigValue("airflow_sudo_user")
-		self.DAGdirectory = self.common_config.getConfigValue("airflow_dag_directory")
-		self.DAGstagingDirectory = self.common_config.getConfigValue("airflow_dag_staging_directory")
-		self.DAGfileGroup = self.common_config.getConfigValue("airflow_dag_file_group")
-		self.DAGfilePermission = self.common_config.getConfigValue("airflow_dag_file_permission")
-		self.TaskQueueForDummy = self.common_config.getConfigValue("airflow_dummy_task_queue")
-		self.airflowMajorVersion = self.common_config.getConfigValue("airflow_major_version")
-		self.defaultTimeZone = self.common_config.getConfigValue("timezone")
-		self.airflowAWSinstanceIds = self.common_config.getConfigValue("airflow_aws_instanceids")
-		self.airflowAWSpoolToInstanceId = self.common_config.getConfigValue("airflow_aws_pool_to_instanceid")
-		self.airflowDefaultPoolSize = self.common_config.getConfigValue("airflow_default_pool_size")
-		self.createPoolsWithTasks = self.common_config.getConfigValue("airflow_create_pool_with_task")
+		self.dbimportCommandPath = self.getConfigValue("airflow_dbimport_commandpath")
+		self.defaultSudoUser = self.getConfigValue("airflow_sudo_user")
+		self.DAGdirectory = self.getConfigValue("airflow_dag_directory")
+		self.DAGstagingDirectory = self.getConfigValue("airflow_dag_staging_directory")
+		self.DAGfileGroup = self.getConfigValue("airflow_dag_file_group")
+		self.DAGfilePermission = self.getConfigValue("airflow_dag_file_permission")
+		self.TaskQueueForDummy = self.getConfigValue("airflow_dummy_task_queue")
+		self.airflowMajorVersion = self.getConfigValue("airflow_major_version")
+		self.defaultTimeZone = self.getConfigValue("timezone")
+		self.airflowAWSinstanceIds = self.getConfigValue("airflow_aws_instanceids")
+		self.airflowAWSpoolToInstanceId = self.getConfigValue("airflow_aws_pool_to_instanceid")
+		self.airflowDefaultPoolSize = self.getConfigValue("airflow_default_pool_size")
+		self.createPoolsWithTasks = self.getConfigValue("airflow_create_pool_with_task")
 		
 		self.DAGfile = None
 		self.DAGfilename = None
@@ -104,9 +104,10 @@ class initialize(object):
 		try:
 			self.airflowMode = configuration.get("Airflow", "airflow_mode", exitOnError=False)
 			if self.airflowMode != "default" and self.airflowMode != "aws_mwaa":
-				logging.error("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				raise invalidConfiguration("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
+#				logging.error("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 
 		except invalidConfiguration:
 			pass
@@ -135,9 +136,6 @@ class initialize(object):
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
-#		self.common_config.disconnectSQLAlchemy()
-#		self.common_config.configDBSession = None
-
 		log = logging.getLogger(self.logger)
 
 		if self.configDB != None:
@@ -150,11 +148,6 @@ class initialize(object):
 
 
 	def getDBImportSession(self):
-#		if self.common_config.configDBSession == None:
-#			if self.common_config.connectSQLAlchemy(exitIfFailure=False) == False:
-#				raise SQLerror("Can't connect to DBImport database")
-#
-#		return self.common_config.configDBSession()
 		""" Connects to the configuration database with SQLAlchemy and return a session """
 		log = logging.getLogger(self.logger)
 
@@ -194,12 +187,66 @@ class initialize(object):
 			# return self.configDBSession()
 			return scoped_session(self.configDBSession)
 
+	def getConfigValue(self, key):
+		""" Returns a value from the configuration table based on the supplied key. Value returned can be Int, Str or DateTime""" 
+		log = logging.getLogger(self.logger)
+		returnValue = None
+		boolValue = False
+	
+		valueColumn, boolValue = self.common_config.getConfigValueColumn(key)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		configurationTable = aliased(configSchema.configuration)
+
+		configuration = (session.query(
+					configurationTable.configKey,
+					configurationTable.valueInt,
+					configurationTable.valueStr,
+					configurationTable.valueDate
+				)
+				.select_from(configurationTable)
+				.filter(configurationTable.configKey == key)
+				.one()
+			)
+
+		session.remove()
+		returnValue = None
+
+		try:
+			if valueColumn == "valueInt":
+				returnValue = int(configuration[1])
+	
+			if valueColumn == "valueStr":
+				returnValue = configuration[2]
+				if returnValue == None or returnValue.strip() == "":
+					log.error("Configuration Key '%s' must have a value in '%s'"%(key, valueColumn))
+					returnValue = None
+
+			if boolValue == True:
+				if returnValue == 1:
+					returnValue = True
+				elif returnValue == 0:
+					returnValue = False
+				else:
+					log.error("Configuration Key '%s' can only have 0 or 1 in column '%s'"%(key, valueColumn))
+					returnValue = None
+		except TypeError:
+			log.error("Configuration key '%s' cant be found. Have you upgraded the database schema to the latest version?"%(key))
+			returnValue = None
+
+		return returnValue
+
 
 
 	def checkExecution(self):
 		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
 
-		airflowExecutionDisabled = self.common_config.getConfigValue("airflow_disable")
+		airflowExecutionDisabled = self.getConfigValue("airflow_disable")
 		if airflowExecutionDisabled == False:
 			print("Airflow execution is enabled")
 #			self.common_config.remove_temporary_files()
@@ -2267,38 +2314,40 @@ class initialize(object):
 
 		session.close()
 
-	def sendJSON(self, airflowDAG, status): 
-		""" Sends a start JSON document to REST and/or Kafka """
-		logging.debug("Executing Airflow.sendStartJSON()")
-
-		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
-		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
-		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
-
-#		self.postDataToREST = True
-
-		if airflowDAG == None:
-			return
-
-		if self.postAirflowDAGoperations == False:
-			logging.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
-			return
-
-		jsonData = {}
-		jsonData["type"] = "airflow_dag"
-		jsonData["status"] = status
-		jsonData["dag"] = airflowDAG
-		jsonData["airflow_timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-
-		if self.postDataToKafka == True:
-			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
-			if result == False:
-				logging.warning("Kafka publish failed! No start message posted")
-
-		if self.postDataToREST == True:
-			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
-			if response != 200:
-				logging.warn("REST call failed! No start message posted")
-
-		logging.debug("Executing Airflow.sendStartJSON() - Finished")
+#	def sendJSON(self, airflowDAG, status): 
+#		""" Sends a start JSON document to REST and/or Kafka """
+#		logging.debug("Executing Airflow.sendStartJSON()")
+#
+#		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
+#		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+#		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+#
+##		self.postDataToREST = True
+#
+#		if airflowDAG == None:
+#			return
+#
+#		if self.postAirflowDAGoperations == False:
+#			logging.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
+#			return
+#
+#		jsonData = {}
+#		jsonData["type"] = "airflow_dag"
+#		jsonData["status"] = status
+#		jsonData["dag"] = airflowDAG
+#		jsonData["airflow_timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+#
+#		if self.postDataToKafka == True:
+#			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
+#			if result == False:
+#				logging.warning("Kafka publish failed! No start message posted")
+#
+#		if self.postDataToREST == True:
+#			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
+#			if response != 200:
+#				logging.warn("REST call failed! No start message posted")
+#
+#		logging.debug("Executing Airflow.sendStartJSON() - Finished")
 	
+
+
