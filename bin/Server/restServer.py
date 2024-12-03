@@ -412,6 +412,11 @@ async def create_or_update_import_table(table: dataModels.importTableDetailsWrit
 	returnMsg, response.status_code = dbCalls.updateImportTable(table, current_user["username"])
 	return returnMsg
 
+@app.post("/import/table/bulk", tags=["Imports"])
+async def bulk_update_import_table(bulkData: dataModels.importTableBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateImportTable(bulkData, current_user["username"])
+	return returnMsg
+
 @app.get("/export/connection", response_model=List[dataModels.exportConnections], tags=["Exports"])
 async def get_all_connections_with_exports(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getExportConnections()

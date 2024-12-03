@@ -43,7 +43,7 @@ from common.Exceptions import *
 from DBImportConfig import configSchema
 from DBImportConfig import common_config
 import sqlalchemy as sa
-from sqlalchemy import func
+from sqlalchemy import func, bindparam
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_view
@@ -1338,6 +1338,60 @@ class dbCalls:
 		# session.close()
 		session.remove()
 		return (result, returnCode)
+
+	def bulkUpdateImportTable(self, bulkData, currentUser):
+		""" Bulk update of import tables """
+		log = logging.getLogger(self.logger)
+
+		if len(getattr(bulkData, "importTables")) == 0:
+			result = "importTables must contain a list of database/tables to update"
+			returnCode = 422
+			return (result, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		importTables = aliased(configSchema.importTables)
+		updateStatement = update(importTables) 
+		updateStatement = updateStatement.where((importTables.hive_db == bindparam("database")) & (importTables.hive_table == bindparam("table")))
+#		updateStatement = updateStatement.values(import_phase_type = "full")
+#		updateStatement = updateStatement.values(etl_phase_type = "truncate_insert")
+
+#		tableList.append({"database": "dbimport", "table": "mssql_changetracking_merge_spark"})
+#		tableList.append({"database": "dbimport", "table": "mssql_changetracking_history_spark"})
+#		print(tableList)
+
+		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
+		# that field wont be part of this loop
+		for updateField in bulkData.__pydantic_fields_set__:
+			if updateField == "connection":				updateStatement = updateStatement.values(dbalias = getattr(bulkData, "connection")) 
+			elif updateField == "importPhaseType":		updateStatement = updateStatement.values(import_phase_type = getattr(bulkData, "importPhaseType"))
+			elif updateField == "etlPhaseType":			updateStatement = updateStatement.values(etl_phase_type = getattr(bulkData, "etlPhaseType"))
+			elif updateField == "importTool":			updateStatement = updateStatement.values(import_tool = getattr(bulkData, "importTool"))
+			elif updateField == "etlEngine":			updateStatement = updateStatement.values(etl_engine = getattr(bulkData, "etlEngine"))
+			elif updateField == "includeInAirflow":		updateStatement = updateStatement.values(include_in_airflow = getattr(bulkData, "includeInAirflow"))
+			elif updateField == "operatorNotes":		updateStatement = updateStatement.values(operator_notes = getattr(bulkData, "operatorNotes"))
+
+		# Create a list of dicts that contain all the databas/table combinations that will be updated
+		tableList = []
+		for tables in getattr(bulkData, "importTables"):
+			tableList.append({"database": tables.database, "table": tables.table})
+
+		updateStatement = updateStatement.execution_options(synchronize_session=False)
+#		print(updateStatement)
+
+		session.connection().execute(updateStatement, tableList)
+		session.commit()
+
+
+		session.remove()
+		result = "Ok"
+		returnCode = 200
+		return (result, returnCode)
+
 
 	def updateImportTable(self, table, currentUser):
 		""" Update or create an import table """

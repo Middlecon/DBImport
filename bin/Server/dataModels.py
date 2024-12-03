@@ -353,6 +353,20 @@ class importTableSearch(BaseModel):
 	includeInAirflow: Union[bool, None] = None
 	operatorNotes: Union[str, None] = None
 
+class importTableBulkUpdatePK(BaseModel):
+	database: str
+	table: str
+
+class importTableBulkUpdate(BaseModel):
+	connection: Union[str, None] = None
+	importPhaseType: Union[str, None] = None
+	etlPhaseType: Union[str, None] = None
+	importTool: Union[str, None] = None
+	etlEngine: Union[str, None] = None
+	includeInAirflow: Union[bool, None] = None
+	operatorNotes: Union[str, None] = None
+	importTables: List[importTableBulkUpdatePK] 
+
 
 class exportConnections(BaseModel):
 	name: str
