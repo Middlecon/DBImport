@@ -44,6 +44,26 @@ function TableList<T>({
   const cellRefs = useRef<(HTMLParagraphElement | null)[]>([])
   const chunkSize = 50
 
+  const [isAtRightEnd, setIsAtRightEnd] = useState(false)
+  const scrollableRef = useRef<HTMLDivElement | null>(null)
+
+  const handleScroll = () => {
+    if (scrollableRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollableRef.current
+
+      const atRightEnd = scrollLeft + clientWidth >= scrollWidth
+      setIsAtRightEnd(atRightEnd)
+    }
+  }
+
+  useEffect(() => {
+    const container = scrollableRef.current
+    if (container) {
+      container.addEventListener('scroll', handleScroll)
+      return () => container.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
   const preventBackNavigationOnScroll = (event: WheelEvent) => {
     const container = event.currentTarget as HTMLElement
     const isAtLeftEdge = container.scrollLeft === 0 && event.deltaX < 0
@@ -415,6 +435,7 @@ function TableList<T>({
         </div>
       ) : (
         <div
+          ref={scrollableRef}
           className="scrollable-container"
           style={
             {
@@ -440,12 +461,13 @@ function TableList<T>({
                       ${column.isAction ? 'sticky-right actions' : ''}
                       ${column.isLink ? 'sticky-right links' : ''}`}
                       style={{
-                        boxShadow:
-                          hasActionAndLink && column.isLink
-                            ? '-20px 0 20px -15px rgba(0, 0, 0, .4)'
-                            : hasAction && !hasLink && column.isAction
-                            ? '-20px 0 20px -15px rgba(0, 0, 0, 0.1)'
-                            : undefined
+                        boxShadow: isAtRightEnd
+                          ? 'none'
+                          : hasActionAndLink && column.isLink
+                          ? '-20px 0 20px -15px rgba(0, 0, 0, .4)'
+                          : hasAction && !hasLink && column.isAction
+                          ? '-20px 0 20px -15px rgba(0, 0, 0, 0.1)'
+                          : undefined
                       }}
                     >
                       <div
@@ -502,12 +524,13 @@ function TableList<T>({
                                   borderTop: '1px solid #ddd',
                                   borderRight: 'none'
                                 }),
-                            boxShadow:
-                              hasActionAndLink && column.isLink
-                                ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
-                                : hasAction && !hasLink && column.isAction
-                                ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
-                                : undefined
+                            boxShadow: isAtRightEnd
+                              ? 'none'
+                              : hasActionAndLink && column.isLink
+                              ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
+                              : hasAction && !hasLink && column.isAction
+                              ? '-20px 0 20px -15px rgba(0, 0, 0, .8)'
+                              : undefined
                           }}
                         >
                           <div
