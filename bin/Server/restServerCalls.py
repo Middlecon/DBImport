@@ -1357,12 +1357,6 @@ class dbCalls:
 		importTables = aliased(configSchema.importTables)
 		updateStatement = update(importTables) 
 		updateStatement = updateStatement.where((importTables.hive_db == bindparam("database")) & (importTables.hive_table == bindparam("table")))
-#		updateStatement = updateStatement.values(import_phase_type = "full")
-#		updateStatement = updateStatement.values(etl_phase_type = "truncate_insert")
-
-#		tableList.append({"database": "dbimport", "table": "mssql_changetracking_merge_spark"})
-#		tableList.append({"database": "dbimport", "table": "mssql_changetracking_history_spark"})
-#		print(tableList)
 
 		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
 		# that field wont be part of this loop
@@ -2089,11 +2083,9 @@ class dbCalls:
 
 			listOfColumns.append(resultDict)
 	
-		# jsonResult = json.loads(json.dumps(listOfColumns))
 		# session.close()
 		session.remove()
 
-		# return jsonResult
 		return listOfColumns
 
 
@@ -2130,7 +2122,6 @@ class dbCalls:
 			returnCode = 404
 		else:
 			tableID = row[0]
-#			result = str(tableID)
 
 			(session.query(configSchema.exportTables)
 				.filter(configSchema.exportTables.table_id == tableID)
@@ -2140,6 +2131,55 @@ class dbCalls:
 		# session.close()
 		session.remove()
 		return (result, returnCode)
+
+
+	def bulkUpdateExportTable(self, bulkData, currentUser):
+		""" Bulk update of export tables """
+		log = logging.getLogger(self.logger)
+
+		if len(getattr(bulkData, "exportTables")) == 0:
+			result = "exportTables must contain a list of connections/targetSchema/targetDatabase to update"
+			returnCode = 422
+			return (result, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+		updateStatement = update(exportTables) 
+		updateStatement = updateStatement.where(
+							(exportTables.dbalias == bindparam("connection")) & 
+							(exportTables.target_schema == bindparam("targetSchema")) &
+							(exportTables.target_table == bindparam("targetTable"))
+						)
+
+		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
+		# that field wont be part of this loop
+		for updateField in bulkData.__pydantic_fields_set__:
+			if updateField == "exportType":				updateStatement = updateStatement.values(export_type = getattr(bulkData, "exportType"))
+			elif updateField == "exportTool":			updateStatement = updateStatement.values(export_tool = getattr(bulkData, "exportTool"))
+			elif updateField == "includeInAirflow":		updateStatement = updateStatement.values(include_in_airflow = getattr(bulkData, "includeInAirflow"))
+			elif updateField == "operatorNotes":		updateStatement = updateStatement.values(operator_notes = getattr(bulkData, "operatorNotes"))
+
+		# Create a list of dicts that contain all the databas/table combinations that will be updated
+		tableList = []
+		for tables in getattr(bulkData, "exportTables"):
+			tableList.append({"connection": tables.connection, "targetSchema": tables.targetSchema, "targetTable": tables.targetTable})
+
+		updateStatement = updateStatement.execution_options(synchronize_session=False)
+#		print(updateStatement)
+
+		session.connection().execute(updateStatement, tableList)
+		session.commit()
+
+		session.remove()
+		result = "Ok"
+		returnCode = 200
+		return (result, returnCode)
+
 
 
 	def updateExportTable(self, table, currentUser):
@@ -3043,6 +3083,57 @@ class dbCalls:
 		session.remove()
 		return (result, returnCode)
 
+	def bulkUpdateImportAirflowDag(self, bulkData, currentUser):
+		""" Bulk update of Airflow import Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(getattr(bulkData, "dags")) == 0:
+			result = "dags must contain a list of Airflow dags to update"
+			returnCode = 422
+			return (result, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		updateStatement = update(airflowImportDags) 
+		updateStatement = updateStatement.where(airflowImportDags.dag_name == bindparam("dag"))
+
+		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
+		# that field wont be part of this loop
+		for updateField in bulkData.__pydantic_fields_set__:
+			if updateField == "scheduleInterval":		updateStatement = updateStatement.values(schedule_interval = getattr(bulkData, "scheduleInterval"))
+			elif updateField == "operatorNotes":		updateStatement = updateStatement.values(operator_notes = getattr(bulkData, "operatorNotes"))
+			elif updateField == "autoRegenerateDag":	updateStatement = updateStatement.values(auto_regenerate_dag = getattr(bulkData, "autoRegenerateDag"))
+			elif updateField == "sudoUser":				updateStatement = updateStatement.values(sudo_user = getattr(bulkData, "sudoUser"))
+			elif updateField == "timezone":				updateStatement = updateStatement.values(timezone = getattr(bulkData, "timezone"))
+			elif updateField == "email":				updateStatement = updateStatement.values(email = getattr(bulkData, "email"))
+			elif updateField == "emailOnFailure":		updateStatement = updateStatement.values(email_on_failure = getattr(bulkData, "emailOnFailure"))
+			elif updateField == "emailOnRetries":		updateStatement = updateStatement.values(email_on_retries = getattr(bulkData, "emailOnRetries"))
+			elif updateField == "slaWarningTime":		updateStatement = updateStatement.values(sla_warning_time = getattr(bulkData, "slaWarningTime"))
+			elif updateField == "concurrency":			updateStatement = updateStatement.values(concurrency = getattr(bulkData, "concurrency"))
+
+
+		# Create a list of dicts that contain all the databas/table combinations that will be updated
+		tableList = []
+		for tables in getattr(bulkData, "dags"):
+			tableList.append({"dag": tables.name})
+
+		updateStatement = updateStatement.execution_options(synchronize_session=False)
+#		print(updateStatement)
+
+		session.connection().execute(updateStatement, tableList)
+		session.commit()
+
+		session.remove()
+		result = "Ok"
+		returnCode = 200
+		return (result, returnCode)
+
 
 	def updateImportAirflowDag(self, airflowDag, currentUser):
 		""" Update or create an Airflow import DAG """
@@ -3197,6 +3288,60 @@ class dbCalls:
 		return (result, returnCode)
 
 
+
+	def bulkUpdateExportAirflowDag(self, bulkData, currentUser):
+		""" Bulk update of Airflow export Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(getattr(bulkData, "dags")) == 0:
+			result = "dags must contain a list of Airflow dags to update"
+			returnCode = 422
+			return (result, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+		airflowExportDags = aliased(configSchema.airflowExportDags)
+		updateStatement = update(airflowExportDags) 
+		updateStatement = updateStatement.where(airflowExportDags.dag_name == bindparam("dag"))
+
+		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
+		# that field wont be part of this loop
+		for updateField in bulkData.__pydantic_fields_set__:
+			if updateField == "scheduleInterval":		updateStatement = updateStatement.values(schedule_interval = getattr(bulkData, "scheduleInterval"))
+			elif updateField == "operatorNotes":		updateStatement = updateStatement.values(operator_notes = getattr(bulkData, "operatorNotes"))
+			elif updateField == "autoRegenerateDag":	updateStatement = updateStatement.values(auto_regenerate_dag = getattr(bulkData, "autoRegenerateDag"))
+			elif updateField == "sudoUser":				updateStatement = updateStatement.values(sudo_user = getattr(bulkData, "sudoUser"))
+			elif updateField == "timezone":				updateStatement = updateStatement.values(timezone = getattr(bulkData, "timezone"))
+			elif updateField == "email":				updateStatement = updateStatement.values(email = getattr(bulkData, "email"))
+			elif updateField == "emailOnFailure":		updateStatement = updateStatement.values(email_on_failure = getattr(bulkData, "emailOnFailure"))
+			elif updateField == "emailOnRetries":		updateStatement = updateStatement.values(email_on_retries = getattr(bulkData, "emailOnRetries"))
+			elif updateField == "slaWarningTime":		updateStatement = updateStatement.values(sla_warning_time = getattr(bulkData, "slaWarningTime"))
+			elif updateField == "concurrency":			updateStatement = updateStatement.values(concurrency = getattr(bulkData, "concurrency"))
+
+
+		# Create a list of dicts that contain all the databas/table combinations that will be updated
+		tableList = []
+		for tables in getattr(bulkData, "dags"):
+			tableList.append({"dag": tables.name})
+
+		updateStatement = updateStatement.execution_options(synchronize_session=False)
+#		print(updateStatement)
+
+		session.connection().execute(updateStatement, tableList)
+		session.commit()
+
+		session.remove()
+		result = "Ok"
+		returnCode = 200
+		return (result, returnCode)
+
+
+
 	def updateExportAirflowDag(self, airflowDag, currentUser):
 		""" Update or create an Airflow export DAG """
 		log = logging.getLogger(self.logger)
@@ -3335,6 +3480,58 @@ class dbCalls:
 		# session.close()
 		session.remove()
 		return (result, returnCode)
+
+	def bulkUpdateCustomAirflowDag(self, bulkData, currentUser):
+		""" Bulk update of Airflow custom Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(getattr(bulkData, "dags")) == 0:
+			result = "dags must contain a list of Airflow dags to update"
+			returnCode = 422
+			return (result, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		exportTables = aliased(configSchema.exportTables)
+		airflowCustomDags = aliased(configSchema.airflowCustomDags)
+		updateStatement = update(airflowCustomDags) 
+		updateStatement = updateStatement.where(airflowCustomDags.dag_name == bindparam("dag"))
+
+		# This will loop through only the fields specified in the Posted JSON. So if a field have got a default None value in dataModel validation,
+		# that field wont be part of this loop
+		for updateField in bulkData.__pydantic_fields_set__:
+			if updateField == "scheduleInterval":		updateStatement = updateStatement.values(schedule_interval = getattr(bulkData, "scheduleInterval"))
+			elif updateField == "operatorNotes":		updateStatement = updateStatement.values(operator_notes = getattr(bulkData, "operatorNotes"))
+			elif updateField == "autoRegenerateDag":	updateStatement = updateStatement.values(auto_regenerate_dag = getattr(bulkData, "autoRegenerateDag"))
+			elif updateField == "sudoUser":				updateStatement = updateStatement.values(sudo_user = getattr(bulkData, "sudoUser"))
+			elif updateField == "timezone":				updateStatement = updateStatement.values(timezone = getattr(bulkData, "timezone"))
+			elif updateField == "email":				updateStatement = updateStatement.values(email = getattr(bulkData, "email"))
+			elif updateField == "emailOnFailure":		updateStatement = updateStatement.values(email_on_failure = getattr(bulkData, "emailOnFailure"))
+			elif updateField == "emailOnRetries":		updateStatement = updateStatement.values(email_on_retries = getattr(bulkData, "emailOnRetries"))
+			elif updateField == "slaWarningTime":		updateStatement = updateStatement.values(sla_warning_time = getattr(bulkData, "slaWarningTime"))
+			elif updateField == "concurrency":			updateStatement = updateStatement.values(concurrency = getattr(bulkData, "concurrency"))
+
+
+		# Create a list of dicts that contain all the databas/table combinations that will be updated
+		tableList = []
+		for tables in getattr(bulkData, "dags"):
+			tableList.append({"dag": tables.name})
+
+		updateStatement = updateStatement.execution_options(synchronize_session=False)
+#		print(updateStatement)
+
+		session.connection().execute(updateStatement, tableList)
+		session.commit()
+
+		session.remove()
+		result = "Ok"
+		returnCode = 200
+		return (result, returnCode)
+
 
 
 	def updateCustomAirflowDag(self, airflowDag, currentUser):

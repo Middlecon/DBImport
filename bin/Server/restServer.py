@@ -447,6 +447,11 @@ async def create_or_update_export_table(table: dataModels.exportTableDetailsWrit
 	returnMsg, response.status_code = dbCalls.updateExportTable(table, current_user["username"])
 	return returnMsg
 
+@app.post("/export/table/bulk", tags=["Exports"])
+async def bulk_update_export_table(bulkData: dataModels.exportTableBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateExportTable(bulkData, current_user["username"])
+	return returnMsg
+
 @app.get("/airflow/dags", response_model=List[dataModels.airflowAllDags], tags=["Airflow"])
 async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllAirflowDags()
@@ -458,6 +463,11 @@ async def get_import_airflow_dags(current_user: Annotated[dataModels.User, Depen
 @app.post("/airflow/dags/import", tags=["Airflow"])
 async def create_or_update_import_airflow_dag(airflowDag: dataModels.airflowImportDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateImportAirflowDag(airflowDag, current_user["username"])
+	return returnMsg
+
+@app.post("/airflow/dags/import/bulk", tags=["Airflow"])
+async def bulk_update_import_airflow_dag(bulkData: dataModels.airflowDagBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateImportAirflowDag(bulkData, current_user["username"])
 	return returnMsg
 
 @app.get("/airflow/dags/import/{dagname}", response_model=dataModels.airflowImportDag, tags=["Airflow"])
@@ -478,6 +488,11 @@ async def create_or_update_export_airflow_dag(airflowDag: dataModels.airflowExpo
 	returnMsg, response.status_code = dbCalls.updateExportAirflowDag(airflowDag, current_user["username"])
 	return returnMsg
 
+@app.post("/airflow/dags/export/bulk", tags=["Airflow"])
+async def bulk_update_export_airflow_dag(bulkData: dataModels.airflowDagBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateExportAirflowDag(bulkData, current_user["username"])
+	return returnMsg
+
 @app.get("/airflow/dags/export/{dagname}", response_model=dataModels.airflowExportDag, tags=["Airflow"])
 async def get_export_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAirflowExportDag(dagname)
@@ -494,6 +509,11 @@ async def get_custom_airflow_dags(current_user: Annotated[dataModels.User, Depen
 @app.post("/airflow/dags/custom", tags=["Airflow"])
 async def create_or_update_custom_airflow_dag(airflowDag: dataModels.airflowCustomDag, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateCustomAirflowDag(airflowDag, current_user["username"])
+	return returnMsg
+
+@app.post("/airflow/dags/custom/bulk", tags=["Airflow"])
+async def bulk_update_custom_airflow_dag(bulkData: dataModels.airflowDagBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateCustomAirflowDag(bulkData, current_user["username"])
 	return returnMsg
 
 @app.get("/airflow/dags/custom/{dagname}", response_model=dataModels.airflowCustomDag, tags=["Airflow"])

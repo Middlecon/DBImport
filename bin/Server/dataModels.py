@@ -367,7 +367,6 @@ class importTableBulkUpdate(BaseModel):
 	operatorNotes: Union[str, None] = None
 	importTables: List[importTableBulkUpdatePK] 
 
-
 class exportConnections(BaseModel):
 	name: str
 	tables: int
@@ -468,10 +467,10 @@ class exportTableDetailsWrite(BaseModel):
 	connection: str
 	targetSchema: str
 	targetTable: str
-	exportType:str
-	exportTool:str
-	database:str
-	table:str
+	exportType: str
+	exportTool: str
+	database: str
+	table: str
 	lastUpdateFromHive: Union[str, None] = None
 	sqlWhereAddition: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
@@ -503,6 +502,18 @@ class exportTableDetailsWrite(BaseModel):
 	createTargetTableSql: Union[str, None] = None
 	operatorNotes: Union[str, None] = None
 	columns: List[exportTableColumnsWrite] = []
+
+class exportTableBulkUpdatePK(BaseModel):
+	connection: str
+	targetSchema: str
+	targetTable: str
+
+class exportTableBulkUpdate(BaseModel):
+	exportType: Union[str, None] = None
+	exportTool: Union[str, None] = None
+	includeInAirflow: Union[bool, None] = None
+	operatorNotes: Union[str, None] = None
+	exportTables: List[exportTableBulkUpdatePK] 
 
 class airflowAllDags(BaseModel):
 	name: str
@@ -625,7 +636,21 @@ class airflowImportDag(BaseModel):
 	concurrency: Union[int, None] = None
 	tasks: List[airflowTask] = []
 
+class airflowDagBulkUpdatePK(BaseModel):
+	name: str
 
+class airflowDagBulkUpdate(BaseModel):
+	scheduleInterval: Union[str, None] = None
+	autoRegenerateDag: Union[bool, None] = None
+	operatorNotes: Union[str, None] = None
+	sudoUser: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
+	slaWarningTime: Union[str, None] = None
+	concurrency: Union[int, None] = None
+	dags: List[airflowDagBulkUpdatePK] 
 
 
 
