@@ -100,6 +100,7 @@ class configuration(BaseModel):
 	airflow_dummy_task_queue: Union[str, None] = None
 	airflow_major_version: Union[int, None] = None
 	airflow_sudo_user: Union[str, None] = None
+	airflow_url: Union[str, None] = None
 	atlas_discovery_interval: Union[int, None] = None
 	cluster_name: Union[str, None] = None
 	export_default_sessions: Union[int, None] = None
@@ -528,6 +529,7 @@ class airflowImportDags(BaseModel):
 	filterTable: Union[str, None] = None
 	scheduleInterval: Union[str, None] = None
 	autoRegenerateDag: bool
+	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
 
@@ -538,6 +540,7 @@ class airflowExportDags(BaseModel):
 	filterTargetTable: Union[str, None] = None
 	scheduleInterval: Union[str, None] = None
 	autoRegenerateDag: bool
+	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
 
@@ -545,6 +548,7 @@ class airflowCustomDags(BaseModel):
 	name: str
 	scheduleInterval: Union[str, None] = None
 	autoRegenerateDag: bool
+	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
 
@@ -583,6 +587,7 @@ class airflowCustomDag(BaseModel):
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
 	concurrency: Union[int, None] = None
+	airflowLink: Union[str, None] = None
 	tasks: List[airflowTask] = []
 
 
@@ -606,6 +611,7 @@ class airflowExportDag(BaseModel):
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[int, None] = None
 	concurrency: Union[int, None] = None
+	airflowLink: Union[str, None] = None
 	tasks: List[airflowTask] = []
 
 
@@ -634,6 +640,7 @@ class airflowImportDag(BaseModel):
 	slaWarningTime: Union[str, None] = None
 	retryExponentialBackoff: Union[bool, None] = None
 	concurrency: Union[int, None] = None
+	airflowLink: Union[str, None] = None
 	tasks: List[airflowTask] = []
 
 class airflowDagBulkUpdatePK(BaseModel):

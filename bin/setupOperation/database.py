@@ -665,6 +665,14 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'airflow_url' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='airflow_url', 
+				valueStr='http://localhost:8080', 
+				description='URL to Airflow webUI')
+			session.execute(query)
+			session.commit()
+
 		if 'timezone' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='timezone', 

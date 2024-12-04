@@ -85,7 +85,7 @@ class dbCalls:
 
 		self.contentMaxRows = 1000
 
-		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
+		self.allConfigKeys = [ "airflow_aws_instanceids", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "airflow_dag_directory", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dag_staging_directory", "airflow_dbimport_commandpath", "airflow_default_pool_size", "airflow_disable", "airflow_dummy_task_queue", "airflow_major_version", "airflow_sudo_user", "airflow_url", "atlas_discovery_interval", "cluster_name", "export_default_sessions", "export_max_sessions", "export_stage_disable", "export_staging_database", "export_start_disable", "hdfs_address", "hdfs_basedir", "hdfs_blocksize", "hive_acid_with_clusteredby", "hive_insert_only_tables", "hive_major_compact_after_merge", "hive_print_messages", "hive_remove_locks_by_force", "hive_validate_before_execution", "hive_validate_table", "impala_invalidate_metadata", "import_columnname_delete", "import_columnname_histtime", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_source", "import_columnname_update", "import_default_sessions", "import_history_database", "import_history_table", "import_max_sessions", "import_process_empty", "import_stage_disable", "import_staging_database", "import_staging_table", "import_start_disable", "import_work_database", "import_work_table", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "post_airflow_dag_operations", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_data_to_awssns_topic", "restserver_admin_user", "restserver_authentication_method", "restserver_token_ttl", "rest_timeout", "rest_trustcafile", "rest_url", "rest_verifyssl", "spark_max_executors", "timezone" ]
 
 		self.createDefaultAdminUser()
 
@@ -2476,6 +2476,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowImportDags = aliased(configSchema.airflowImportDags)
 		listOfDAGs = []
@@ -2499,6 +2500,7 @@ class dbCalls:
 			resultDict['scheduleInterval'] = row[1]
 			resultDict['autoRegenerateDag'] = row[2]
 			resultDict['filterTable'] = row[3]
+			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 			listOfDAGs.append(resultDict)
 
 			if count == self.contentMaxRows:
@@ -2523,6 +2525,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowExportDags = aliased(configSchema.airflowExportDags)
 		listOfDAGs = []
@@ -2550,6 +2553,7 @@ class dbCalls:
 			resultDict['filterConnection'] = row[3]
 			resultDict['filterTargetSchema'] = row[4]
 			resultDict['filterTargetTable'] = row[5]
+			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 
 			listOfDAGs.append(resultDict)
 
@@ -2572,6 +2576,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowCustomDags = aliased(configSchema.airflowCustomDags)
 		listOfDAGs = []
@@ -2593,6 +2598,7 @@ class dbCalls:
 			resultDict['name'] = row[0]
 			resultDict['scheduleInterval'] = row[1]
 			resultDict['autoRegenerateDag'] = row[2]
+			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 			listOfDAGs.append(resultDict)
 
 			if count == self.contentMaxRows:
@@ -2679,6 +2685,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowCustomDags = aliased(configSchema.airflowCustomDags)
 
@@ -2732,6 +2739,7 @@ class dbCalls:
 			resultDict["slaWarningTime"] = None
 		resultDict["retryExponentialBackoff"] = row[14]
 		resultDict["concurrency"] = row[15]
+		resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 		
@@ -2868,6 +2876,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowExportDags = aliased(configSchema.airflowExportDags)
 
@@ -2927,6 +2936,7 @@ class dbCalls:
 			resultDict["slaWarningTime"] = None
 		resultDict["retryExponentialBackoff"] = row[17]
 		resultDict["concurrency"] = row[18]
+		resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 
@@ -2947,6 +2957,7 @@ class dbCalls:
 			self.disconnectDBImportDB()
 			return None
 
+		airflowURL = self.getConfigValue("airflow_url")
 
 		airflowImportDags = aliased(configSchema.airflowImportDags)
 
@@ -3016,6 +3027,7 @@ class dbCalls:
 			resultDict["slaWarningTime"] = None
 		resultDict["retryExponentialBackoff"] = row[22]
 		resultDict["concurrency"] = row[23]
+		resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
 
 		resultDict["tasks"] = self.getAirflowTasks(dagname)
 

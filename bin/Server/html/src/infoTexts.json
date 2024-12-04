@@ -265,6 +265,7 @@
       "airflow_dummy_task_queue": "Queue to use for dummy tasks (stop, stage_one_complete and more)",
       "airflow_major_version": "What is the major version of Airflow? 1 or 2 is valid options. Controls how the DAG files are generated",
       "airflow_sudo_user": "What user will Airflow sudo to for executing DBImport. This value will replace the ${SUDO_USER} variable in 'DBImport CommandPath' setting",
+      "airflow_url": "URL to Airflow WebUI. This will be used to create the link to the Airflow DAG direct from the DAG configuration page",
       "atlas_discovery_interval": "How many hours there should pass between each Atlas discovery of a jdbc connection",
       "cluster_name": "Name of Hadoop cluster. Same as 'dfs.nameservices' in hdfs-site.xml",
       "export_default_sessions": "How many SQL sessions should be used for tables that have never been exported before. After the initial export, DBImport will calculate based on previous export size how many sessions that will be used",
