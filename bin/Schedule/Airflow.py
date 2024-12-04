@@ -105,7 +105,7 @@ class initialize(object):
 			self.airflowMode = configuration.get("Airflow", "airflow_mode", exitOnError=False)
 			if self.airflowMode != "default" and self.airflowMode != "aws_mwaa":
 				raise invalidConfiguration("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
-#				logging.error("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
+#				log.error("Invalid option specified for [Airflow][airflow_mode] in the configuration file.")
 #				self.common_config.remove_temporary_files()
 #				sys.exit(1)
 
@@ -122,17 +122,19 @@ class initialize(object):
 				self.airflowDBSession = sessionmaker(bind=self.airflowDB)
 
 			except sa.exc.OperationalError as err:
-				logging.error("%s"%err)
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				raise SQLerror(err)
+#				log.error("%s"%err)
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 			except:
-				print("Unexpected error: ")
-				print(sys.exc_info())
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				raise SQLerror(sys.exc_info())
+#				print("Unexpected error: ")
+#				print(sys.exc_info())
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 
 
-		logging.debug("Executing Airflow.__init__() - Finished")
+		log.debug("Executing Airflow.__init__() - Finished")
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
@@ -171,7 +173,7 @@ class initialize(object):
 			self.configDBSession = sessionmaker(bind=self.configDB)
 
 		except sa.exc.OperationalError as err:
-			logging.error("%s"%err)
+			log.error("%s"%err)
 			self.configDBSession = None
 			self.configDB = None
 			raise SQLerror("Can't connect to DBImport database")
@@ -190,6 +192,7 @@ class initialize(object):
 	def getConfigValue(self, key):
 		""" Returns a value from the configuration table based on the supplied key. Value returned can be Int, Str or DateTime""" 
 		log = logging.getLogger(self.logger)
+
 		returnValue = None
 		boolValue = False
 	
@@ -243,18 +246,18 @@ class initialize(object):
 
 
 
-	def checkExecution(self):
-		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
-
-		airflowExecutionDisabled = self.getConfigValue("airflow_disable")
-		if airflowExecutionDisabled == False:
-			print("Airflow execution is enabled")
+#	def checkExecution(self):
+#		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
+#
+#		airflowExecutionDisabled = self.getConfigValue("airflow_disable")
+#		if airflowExecutionDisabled == False:
+#			print("Airflow execution is enabled")
+##			self.common_config.remove_temporary_files()
+##			sys.exit(0)
+#		else:
+#			print("Airflow execution is disabled")
 #			self.common_config.remove_temporary_files()
-#			sys.exit(0)
-		else:
-			print("Airflow execution is disabled")
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+#			sys.exit(1)
 
 	def getDBImportCommandPath(self, sudoUser=""):
 
@@ -263,7 +266,27 @@ class initialize(object):
 
 		return self.dbimportCommandPath.replace("${SUDO_USER}", sudoUser)
 
+	def generateDAGfromREST(self, name, currentUser):
+		log = logging.getLogger(self.logger)
+
+		try:
+			self.generateDAG(name=name, writeDAG=True)
+		except (invalidConfiguration, SQLerror, RuntimeError) as errMsg:
+			result = str(errMsg)
+			returnCode = 500
+		except:
+			log.error(sys.exc_info())
+			result = str(sys.exc_info())
+			returnCode = 500
+		else:
+			result = "Airflow DAG generated"
+			returnCode = 200
+
+		return (result, returnCode)
+
+
 	def generateDAG(self, name=None, writeDAG=False, autoDAGonly=False, DAGFolder=None):
+		log = logging.getLogger(self.logger)
 
 		self.writeDAG = writeDAG
 		self.DAGFolder = DAGFolder
@@ -396,13 +419,16 @@ class initialize(object):
 				self.generateCustomDAG(DAG=row)
 
 		if dagFound == False and name != None:
-			logging.error("Can't find DAG with that name")
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			raise invalidConfiguration("Can't find DAG with that name")
+#			log.error("Can't find DAG with that name")
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
 
 		session.close()
 
 	def getAirflowHostPoolName(self):
+		log = logging.getLogger(self.logger)
+
 		if self.airflowMode == "aws_mwaa" and self.airflowAWSpoolToInstanceId == True:
 			# We can choice to override the poolname and set it to the instance ID if we are running on AWS
 			poolName = self.airflowAWSinstanceIds 
@@ -411,13 +437,14 @@ class initialize(object):
 				hostname = self.common_config.jdbc_hostname.lower().split("/")[0].split("\\")[0] 
 				poolName = "DBImport_server_%s"%(hostname)
 			except (TypeError, AttributeError):
-				logging.warning("Cant find hostname in jdbc_connections table. Setting pool to 'default'")
+				log.warning("Cant find hostname in jdbc_connections table. Setting pool to 'default'")
 				poolName = "default"	
 			
 		return poolName[0:50]
 
 	def AWSappendInstanceIDasPools(self):
 		# This will split the instanceID configration setting based on , and append them all as pool names
+		log = logging.getLogger(self.logger)
 
 		usedPools = []
 
@@ -429,6 +456,7 @@ class initialize(object):
 
 	def getAWSInstanceID(self, configObject):
 		# Return one instanceID from a comma seperated list. 
+		log = logging.getLogger(self.logger)
 
 		if configObject in self.AWSinstanceIdAssignedPools:
 			return self.AWSinstanceIdAssignedPools[configObject]
@@ -442,6 +470,7 @@ class initialize(object):
 
 	def generateExportDAG(self, DAG):
 		""" Generates a Import DAG """
+		log = logging.getLogger(self.logger)
 
 		usedPools = []
 		tableFilters = []
@@ -463,15 +492,15 @@ class initialize(object):
 		filterTargetSchema = DAG['filter_target_schema'].strip().replace(r'*', '%')
 		filterTargetTable = DAG['filter_target_table'].strip().replace(r'*', '%')
 
-		if filterDBAlias == '':
-			logging.error("'filter_dbalias' in airflow_export_dags cant be empty")
-			self.DAGfile.close()
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+#		if filterDBAlias == '':
+#			log.error("'filter_dbalias' in airflow_export_dags cant be empty")
+#			self.DAGfile.close()
+#			self.common_config.remove_temporary_files()
+#			sys.exit(1)
 
-		exportTablesQuery = exportTablesQuery.filter(exportTables.dbalias.like(filterDBAlias))
-		if filterTargetSchema != '': exportTablesQuery = exportTablesQuery.filter(exportTables.target_schema.like(filterTargetSchema))
-		if filterTargetTable  != '': exportTablesQuery = exportTablesQuery.filter(exportTables.target_table.like(filterTargetTable))
+		if filterDBAlias != '':			exportTablesQuery = exportTablesQuery.filter(exportTables.dbalias.like(filterDBAlias))
+		if filterTargetSchema != '':	exportTablesQuery = exportTablesQuery.filter(exportTables.target_schema.like(filterTargetSchema))
+		if filterTargetTable  != '':	exportTablesQuery = exportTablesQuery.filter(exportTables.target_table.like(filterTargetTable))
 		tables = pd.DataFrame(exportTablesQuery.with_session(session).all()).fillna('')
 
 		if DAG['retries'] == None or DAG['retries'] == '':
@@ -490,7 +519,7 @@ class initialize(object):
 					previousConnectionAlias = row['dbalias']
 
 				except invalidConfiguration as errMsg:
-					logging.warning("The connection alias '%s' cant be found in the configuration database"%(row['dbalias']))
+					log.warning("The connection alias '%s' cant be found in the configuration database"%(row['dbalias']))
 					previousConnectionAlias = None
 					continue
 		
@@ -552,6 +581,7 @@ class initialize(object):
 
 	def generateImportDAG(self, DAG):
 		""" Generates a Import DAG """
+		log = logging.getLogger(self.logger)
 
 		importPhaseFinishFirst = False
 		if DAG['finish_all_stage1_first'] == 1:
@@ -586,10 +616,12 @@ class initialize(object):
 			hiveDB = hiveTarget.split(".")[0].strip().replace(r'*', '%')
 			hiveTable = hiveTarget.split(".")[1].strip().replace(r'*', '%')
 			if hiveDB == None or hiveTable == None or hiveDB == "" or hiveTable == "":
-				logging.error("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
 				self.DAGfile.close()
-				self.common_config.remove_temporary_files()
-				sys.exit(1)
+				raise invalidConfiguration("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
+#				log.error("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
+#				self.DAGfile.close()
+#				self.common_config.remove_temporary_files()
+#				sys.exit(1)
 
 			tableFilters.append((importTables.hive_db.like(hiveDB)) & (importTables.hive_table.like(hiveTable)))
 
@@ -861,6 +893,7 @@ class initialize(object):
 
 	def createAirflowPools(self, pools): 
 		""" Creates the pools in Airflow database """
+		log = logging.getLogger(self.logger)
 
 		if self.airflowMode == "default" and self.createPoolsWithTasks == False:
 			session = self.airflowDBSession()
@@ -882,12 +915,12 @@ class initialize(object):
 
 				if len(airflowPools) == 0 or len(airflowPools.loc[airflowPools['pool'] == pool]) == 0:
 					try:
-						logging.info("Creating the Airflow pool '%s' with %s slots"%(pool, self.airflowDefaultPoolSize))
+						log.info("Creating the Airflow pool '%s' with %s slots"%(pool, self.airflowDefaultPoolSize))
 						newPool = airflowSchema.slotPool(pool=pool, slots=self.airflowDefaultPoolSize, include_deferred=0)
 						session.add(newPool)
 						session.commit()
 					except sa.exc.IntegrityError:
-						logging.warning("Cant create pool '%s' as there is a duplicate pool already in the Airflow database."%(pool))
+						log.warning("Cant create pool '%s' as there is a duplicate pool already in the Airflow database."%(pool))
 						session.rollback()
 
 			session.close()
@@ -919,6 +952,7 @@ class initialize(object):
 
 	def generateCustomDAG(self, DAG):
 		""" Generates a Custom DAG """
+		log = logging.getLogger(self.logger)
 
 		# session = self.configDBSession()
 		session = self.getDBImportSession()
@@ -932,7 +966,7 @@ class initialize(object):
 				.count())
 
 		if tasks == 0:
-			logging.warning("There are no tasks defined 'in main' for DAG '%s'. This is required for a custom DAG"%(DAG["dag_name"]))
+			log.warning("There are no tasks defined 'in main' for DAG '%s'. This is required for a custom DAG"%(DAG["dag_name"]))
 			session.close()
 			return
 
@@ -961,6 +995,7 @@ class initialize(object):
 
 	def convertTimeToCron(self, time):
 		""" Converts a string in format HH:MM to a CRON time string based on 'minute hour day month weekday' """
+		log = logging.getLogger(self.logger)
 		returnValue = time
 
 		if re.search('^[0-2][0-9]:[0-5][0-9]$', time):
@@ -971,6 +1006,7 @@ class initialize(object):
 		return returnValue
 
 	def validateTimeZone(self, timeZone):
+		log = logging.getLogger(self.logger)
 		try:
 			pendulum.timezone(timeZone)
 		except pendulum.tz.zoneinfo.exceptions.InvalidTimezone:
@@ -982,6 +1018,7 @@ class initialize(object):
 
 
 	def createDAGfileWithHeader(self, dagName, cronSchedule, defaultPool, importPhaseFinishFirst=False, sudoUser="", dagTimeZone=None, email=None, email_on_failure=None, email_on_retries=None, tags=None, slaWarningTime=None, retryExponentialBackoff=None, concurrency=None):
+		log = logging.getLogger(self.logger)
 		# session = self.configDBSession()
 		session = self.getDBImportSession()
 
@@ -1004,15 +1041,15 @@ class initialize(object):
 		tasksSensorsExists = False
 
 		if dagTimeZone != None and dagTimeZone != "" and self.validateTimeZone(dagTimeZone) == False:
-			logging.warning("Time zone value specified for DAG is not valid, (%s)" %(dagTimeZone))
-			logging.warning("Using default time zone value instead")
+			log.warning("Time zone value specified for DAG is not valid, (%s)" %(dagTimeZone))
+			log.warning("Using default time zone value instead")
 			dagTimeZone=None
 
 		if self.DAGFolder == None: 
 			self.DAGfilename = "%s/%s.py"%(self.DAGstagingDirectory, dagName)
 			if not os.path.exists(self.DAGstagingDirectory):
 				try:
-					logging.info("Creating DAG staging directory (%s)"%(self.DAGstagingDirectory))
+					log.info("Creating DAG staging directory (%s)"%(self.DAGstagingDirectory))
 					os.makedirs(self.DAGstagingDirectory)
 				except:
 					pass
@@ -1025,9 +1062,10 @@ class initialize(object):
 		try:
 			self.DAGfile = open(self.DAGfilename, "w")
 		except FileNotFoundError:
-			logging.error("Cant open file '%s'. Please verify that the directory exists and that the configuration 'airflow_dbimport_commandpath' is correct"%(self.DAGfilename))
-			self.common_config.remove_temporary_files()
-			sys.exit(1)
+			log.error("Cant open file '%s'. Please verify that the directory exists and that the configuration 'airflow_dbimport_commandpath' is correct"%(self.DAGfilename))
+			raise RuntimeError
+			# self.common_config.remove_temporary_files()
+			# sys.exit(1)
 			
 		self.DAGfile.write("# -*- coding: utf-8 -*-\n")
 		self.DAGfile.write("import airflow\n")
@@ -1628,29 +1666,30 @@ class initialize(object):
 
 		session.close()
 
-		logging.debug("sensorStartTask = %s"%(self.sensorStartTask))
-		logging.debug("sensorStopTask = %s"%(self.sensorStopTask))
-		logging.debug("preStartTask = %s"%(self.preStartTask))
-		logging.debug("preStopTask = %s"%(self.preStopTask))
-		logging.debug("mainStartTask = %s"%(self.mainStartTask))
-		logging.debug("mainStopTask = %s"%(self.mainStopTask))
-		logging.debug("postStartTask = %s"%(self.postStartTask))
-		logging.debug("postStopTask = %s"%(self.postStopTask))
+		log.debug("sensorStartTask = %s"%(self.sensorStartTask))
+		log.debug("sensorStopTask = %s"%(self.sensorStopTask))
+		log.debug("preStartTask = %s"%(self.preStartTask))
+		log.debug("preStopTask = %s"%(self.preStopTask))
+		log.debug("mainStartTask = %s"%(self.mainStartTask))
+		log.debug("mainStopTask = %s"%(self.mainStopTask))
+		log.debug("postStartTask = %s"%(self.postStartTask))
+		log.debug("postStopTask = %s"%(self.postStopTask))
 
 	def closeDAGfile(self):
+		log = logging.getLogger(self.logger)
 		self.DAGfile.close()
 
 		try:
 			os.chmod(self.DAGfilename, int(self.DAGfilePermission, 8))	
 		except PermissionError:
-			logging.warning("Could not change file mode to '%s'"%(self.DAGfilePermission))
+			log.warning("Could not change file mode to '%s'"%(self.DAGfilePermission))
 
 		try:
 			shutil.chown(self.DAGfilename, group=self.DAGfileGroup)
 		except PermissionError:
-			logging.warning("Could not change group owner of file to '%s'. Permission Denied"%(self.DAGfileGroup))
+			log.warning("Could not change group owner of file to '%s'. Permission Denied"%(self.DAGfileGroup))
 		except LookupError:
-			logging.warning("Could not change group owner of file to '%s'. Group does not exists"%(self.DAGfileGroup))
+			log.warning("Could not change group owner of file to '%s'. Group does not exists"%(self.DAGfileGroup))
 
 		if self.writeDAG == True:
 			if self.airflowMode == "default":
@@ -1659,7 +1698,7 @@ class initialize(object):
 					os.chmod(self.DAGfilenameInAirflow, int(self.DAGfilePermission, 8))	
 					shutil.chown(self.DAGfilenameInAirflow, group=self.DAGfileGroup)
 				except PermissionError:
-					logging.warning("Could not copy and change permission of file '%s'. Permission Denied"%(self.DAGfilenameInAirflow))
+					log.warning("Could not copy and change permission of file '%s'. Permission Denied"%(self.DAGfilenameInAirflow))
 				except LookupError:
 					pass
 				else:
@@ -1671,17 +1710,18 @@ class initialize(object):
 					# response = s3client.upload_file(self.DAGfilename, "dl-mwaa-artifacts-uat-eu-west-1-176686534647", self.DAGfilenameInAwsMWAA)
 					response = s3client.upload_file(self.DAGfilename, self.DAGdirectory, self.DAGfilenameInAwsMWAA)
 				except botocore.exceptions.ClientError as err:
-					logging.error(err)
+					log.error(err)
 				except boto3.exceptions.S3UploadFailedError as err:
-					logging.error(err)
+					log.error(err)
 				except botocore.exceptions.ParamValidationError as err:
-					logging.error(err)
+					log.error(err)
 
 		else:
 			print("DAG file written to %s"%(self.DAGfilename))
 
 
 	def addFailureTask(self, taskName):
+		log = logging.getLogger(self.logger)
 		self.DAGfile.write("%s = BashOperator(\n"%(taskName))
 		self.DAGfile.write("    task_id='%s',\n"%(taskName))
 		self.DAGfile.write("    bash_command='exit 1 ',\n")
@@ -1691,6 +1731,7 @@ class initialize(object):
 		self.DAGfile.write("\n")
 
 	def addTasksToDAGfile(self, dagName, mainDagSchedule, defaultRetries=0, defaultSudoUser=""):
+		log = logging.getLogger(self.logger)
 
 		# session = self.configDBSession()
 		session = self.getDBImportSession()
@@ -1779,15 +1820,15 @@ class initialize(object):
 					waitDagSchedule = etlSensorSchedule[0]
 
 				if waitDagSchedule == '':
-					logging.warning("Issue on DAG '%s'"%(dagName))
-					logging.warning("There is no schedule interval for DAG to wait for")
-					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+					log.warning("Issue on DAG '%s'"%(dagName))
+					log.warning("There is no schedule interval for DAG to wait for")
+					log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 
 					row['task_name'] = "%s_FAILURE"%(row['task_name'])
 					self.addFailureTask(row['task_name'])
 					addDagSensor = False
 #					continue
-#					logging.error("Cant find schedule interval for DAG to wait for")
+#					log.error("Cant find schedule interval for DAG to wait for")
 #					self.DAGfile.close()
 #					self.common_config.remove_temporary_files()
 #					sys.exit(1)
@@ -1798,9 +1839,9 @@ class initialize(object):
 				timeDiff = "0"
 	
 				if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
-					logging.warning("Issue on DAG '%s'"%(dagName))
-					logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
-					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+					log.warning("Issue on DAG '%s'"%(dagName))
+					log.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
+					log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 					row['task_name'] = "%s_FAILURE"%(row['task_name'])
 					self.addFailureTask(row['task_name'])
 					addDagSensor = False
@@ -1832,9 +1873,9 @@ class initialize(object):
 					timeDiff = str(minusText + str(timeDiff.seconds))
 				elif addDagSensor == True:
 					if mainDagSchedule != waitDagSchedule:
-						logging.warning("Issue on DAG '%s'"%(dagName))
-						logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
-						logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+						log.warning("Issue on DAG '%s'"%(dagName))
+						log.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
+						log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 						row['task_name'] = "%s_FAILURE"%(row['task_name'])
 						self.addFailureTask(row['task_name'])
 						addDagSensor = False
@@ -1864,35 +1905,36 @@ class initialize(object):
 
 			if row['task_type'] == "SQL Sensor":
 				if row['sensor_connection'] == '':
-					logging.error("SQL Sensors requires a valid Airflow Connection ID in column 'sensor_connection'")
-					self.DAGfile.close()
-					self.common_config.remove_temporary_files()
-					sys.exit(1)
-
-				sensorPokeInterval = row['sensor_poke_interval']
-				if sensorPokeInterval == '':
-					# Default to 5 minutes
-					sensorPokeInterval = 300
-
-				self.DAGfile.write("%s = SqlSensor(\n"%(row['task_name']))
-				self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
-				self.DAGfile.write("    conn_id='%s',\n"%(row['sensor_connection']))
-				self.DAGfile.write("    sql=\"\"\"%s\"\"\",\n"%(row['task_config']))
-				if row['airflow_pool'] != '':
-					self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
-				if row['airflow_priority'] != '':
-					self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
-					self.DAGfile.write("    weight_rule='absolute',\n")
+					log.error("SQL Sensors requires a valid Airflow Connection ID in column 'sensor_connection'")
 				else:
-					self.DAGfile.write("    priority_weight=100,\n")
-					self.DAGfile.write("    weight_rule='absolute',\n")
-				self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
-				self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
-				self.DAGfile.write("    mode='reschedule',\n")
-				if row['sensor_soft_fail'] is not None and row['sensor_soft_fail'] == 1:
-					self.DAGfile.write("    soft_fail=True,\n")
-				self.DAGfile.write("    dag=dag)\n")
-				self.DAGfile.write("\n")
+#					self.DAGfile.close()
+#					self.common_config.remove_temporary_files()
+#					sys.exit(1)
+
+					sensorPokeInterval = row['sensor_poke_interval']
+					if sensorPokeInterval == '':
+						# Default to 5 minutes
+						sensorPokeInterval = 300
+
+					self.DAGfile.write("%s = SqlSensor(\n"%(row['task_name']))
+					self.DAGfile.write("    task_id='%s',\n"%(row['task_name']))
+					self.DAGfile.write("    conn_id='%s',\n"%(row['sensor_connection']))
+					self.DAGfile.write("    sql=\"\"\"%s\"\"\",\n"%(row['task_config']))
+					if row['airflow_pool'] != '':
+						self.DAGfile.write("    pool='%s',\n"%(row['airflow_pool']))
+					if row['airflow_priority'] != '':
+						self.DAGfile.write("    priority_weight=%s,\n"%(int(row['airflow_priority'])))
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					else:
+						self.DAGfile.write("    priority_weight=100,\n")
+						self.DAGfile.write("    weight_rule='absolute',\n")
+					self.DAGfile.write("    timeout=%s,\n"%(int(sensorTimeoutSeconds)))
+					self.DAGfile.write("    poke_interval=%s,\n"%(int(sensorPokeInterval)))
+					self.DAGfile.write("    mode='reschedule',\n")
+					if row['sensor_soft_fail'] is not None and row['sensor_soft_fail'] == 1:
+						self.DAGfile.write("    soft_fail=True,\n")
+					self.DAGfile.write("    dag=dag)\n")
+					self.DAGfile.write("\n")
 
 			if row['task_type'] == "Trigger DAG":
 				self.DAGfile.write("%s = TriggerDagRunOperator(\n"%(row['task_name']))
@@ -2037,8 +2079,8 @@ class initialize(object):
 			for depIndex, depRow in allTaskDependencies.iterrows():
 				if ( row['task_name'] == depRow['task_dependency_upstream'] or row['task_name'] == depRow['task_dependency_downstream'] ) and row['placement'] != depRow['placement']: 
 					if taskDependencyWarningPrinted == False:
-						logging.warning("Issue on DAG '%s'"%(dagName))
-						logging.warning("There are custom tasks that have dependencies between 'in_main' and 'after_main'. This is not supported and the dependencies will be incorrect in Airflow")
+						log.warning("Issue on DAG '%s'"%(dagName))
+						log.warning("There are custom tasks that have dependencies between 'in_main' and 'after_main'. This is not supported and the dependencies will be incorrect in Airflow")
 						taskDependencyWarningPrinted = True
 				
 			# if row['placement'] == "in main" or row['placement'] == "after main":
@@ -2092,7 +2134,7 @@ class initialize(object):
 							taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], dep)
 							downStreamFound = True
 						else:
-							logging.warning("Downstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
+							log.warning("Downstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
 					else:
 						# The depRow dataframe is empty. So the dependent task is not a customTask, but instead from import_tables or export_tables. So we just add it as a dependency
 						taskDependencies += "%s.set_downstream(%s)\n"%(row['task_name'], dep)
@@ -2112,7 +2154,7 @@ class initialize(object):
 							taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], dep)
 							upStreamFound = True
 						else:
-							logging.warning("Upstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
+							log.warning("Upstream dependency against '%s' wont work as it's not in the same placement as '%s'."%(dep, row['task_name']))
 					else:
 						# The depRow dataframe is empty. So the dependent task is not a customTask, but instead from import_tables or export_tables. So we just add it as a dependency
 						taskDependencies += "%s.set_upstream(%s)\n"%(row['task_name'], dep)
@@ -2163,6 +2205,7 @@ class initialize(object):
 		session.close()
 			
 	def addSensorsToDAGfile(self, dagName, mainDagSchedule):
+		log = logging.getLogger(self.logger)
 		# session = self.configDBSession()
 		session = self.getDBImportSession()
 
@@ -2204,15 +2247,15 @@ class initialize(object):
 				waitDagSchedule = row["etl_schedule"]
 
 			if waitDagSchedule == '':
-				logging.warning("Issue on DAG '%s'"%(dagName))
-				logging.warning("There is no schedule interval for DAG to wait for")
-				logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+				log.warning("Issue on DAG '%s'"%(dagName))
+				log.warning("There is no schedule interval for DAG to wait for")
+				log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 				self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
 				self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
 				self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
 				self.DAGfile.write("\n")
 				continue
-#				logging.error("Cant find schedule interval for DAG to wait for")
+#				log.error("Cant find schedule interval for DAG to wait for")
 #				self.DAGfile.close()
 #				self.common_config.remove_temporary_files()
 #				sys.exit(1)
@@ -2239,9 +2282,9 @@ class initialize(object):
 			timeDiff = "0"
 
 			if ( mainDagMatchHourMin == None and waitDagMatchHourMin != None ) or (mainDagMatchHourMin != None and waitDagMatchHourMin == None):
-				logging.warning("Issue on DAG '%s'"%(dagName))
-				logging.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
-				logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+				log.warning("Issue on DAG '%s'"%(dagName))
+				log.warning("Both the current DAG and the DAG the sensor is waiting for must have the same scheduling format (HH:MM or cron)")
+				log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 				self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
 				self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
 				self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
@@ -2282,9 +2325,9 @@ class initialize(object):
 #				print (timeDiff)
 			else:
 				if mainDagSchedule != waitDagSchedule:
-					logging.warning("Issue on DAG '%s'"%(dagName))
-					logging.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
-					logging.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
+					log.warning("Issue on DAG '%s'"%(dagName))
+					log.warning("When using cron or cron alias schedules for DAG sensors, the schedule time in both DAG's must match")
+					log.warning("The DAG Sensor will not be added to the DAG. Instead, there will be a Task that always failes. The DAG will never execute")
 					self.addFailureTask("%s_FAILURE"%(row['sensor_name']))
 					self.DAGfile.write("%s.set_downstream(%s_FAILURE)\n"%(self.sensorStartTask, row['sensor_name']))
 					self.DAGfile.write("%s_FAILURE.set_downstream(%s)\n"%(row['sensor_name'], self.sensorStopTask))
@@ -2316,7 +2359,7 @@ class initialize(object):
 
 #	def sendJSON(self, airflowDAG, status): 
 #		""" Sends a start JSON document to REST and/or Kafka """
-#		logging.debug("Executing Airflow.sendStartJSON()")
+#		log.debug("Executing Airflow.sendStartJSON()")
 #
 #		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
 #		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
@@ -2328,7 +2371,7 @@ class initialize(object):
 #			return
 #
 #		if self.postAirflowDAGoperations == False:
-#			logging.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
+#			log.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
 #			return
 #
 #		jsonData = {}
@@ -2340,14 +2383,14 @@ class initialize(object):
 #		if self.postDataToKafka == True:
 #			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
 #			if result == False:
-#				logging.warning("Kafka publish failed! No start message posted")
+#				log.warning("Kafka publish failed! No start message posted")
 #
 #		if self.postDataToREST == True:
 #			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
 #			if response != 200:
-#				logging.warn("REST call failed! No start message posted")
+#				log.warn("REST call failed! No start message posted")
 #
-#		logging.debug("Executing Airflow.sendStartJSON() - Finished")
+#		log.debug("Executing Airflow.sendStartJSON() - Finished")
 	
 
 

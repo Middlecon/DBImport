@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from typing_extensions import Annotated
 from Server import restServerCalls
 from Server import dataModels
+from Schedule import Airflow
 from common import constants as constant
 from common.Exceptions import *
 from DBImportConfig import common_config
@@ -85,6 +86,8 @@ tags_metadata = [
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/oauth2/access_token")
 app = FastAPI(openapi_tags=tags_metadata)
 dbCalls = restServerCalls.dbCalls()
+airflow = Airflow.initialize()
+airflow.logger = logger
 
 
 def get_user(username: str, format_password: bool = True):
@@ -455,6 +458,11 @@ async def bulk_update_export_table(bulkData: dataModels.exportTableBulkUpdate, c
 @app.get("/airflow/dags", response_model=List[dataModels.airflowAllDags], tags=["Airflow"])
 async def get_all_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllAirflowDags()
+
+@app.get("/airflow/generate_dag", tags=["Airflow"])
+async def generate_airflow_dag(dagname: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = airflow.generateDAGfromREST(dagname, current_user["username"])
+	return returnMsg
 
 @app.get("/airflow/dags/import", response_model=List[dataModels.airflowImportDags], tags=["Airflow"])
 async def get_import_airflow_dags(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
