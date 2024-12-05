@@ -1,4 +1,6 @@
 .scrollable-container {
+  position: relative;
+  will-change: transform;
   flex: 1 1 auto;
   overflow-x: auto;
   overflow-y: auto;
@@ -6,234 +8,258 @@
   height: calc(100vh - 214px - var(--filters-height));
 }
 
-.custom-table-root {
-  box-sizing: border-box;
-  width: calc(100% - 2px);
-  max-height: 70vh;
+.divTable {
+  display: table;
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: 0;
-  font-size: 12px;
-  text-align: left;
-  border-radius: 20px;
-
-  thead {
-    position: sticky;
-    top: 0;
-    z-index: 14;
-  }
-
-  th {
-    margin: 0;
-    padding: 10px 16px 8px 12px;
-    background-color: #ababac;
-    font-weight: bold;
-    outline: 0.3px solid #abaeb8;
-    z-index: 12;
-  }
-
   p {
     font-size: 12px;
     margin: 0;
   }
+}
 
-  // To make table header borders stay filled with the right color when scroll across browsers, for Chrome (update: does not seem to be needed anymore, keep it here for a while longer if turns out to be needed again):
-  // th:after,
-  // th:before {
-  //   content: '';
-  //   position: absolute;
-  //   left: 0;
-  //   width: 100%;
-  // }
-  // th:before {
-  //   top: 0;
-  //   border: 1px solid #abaeb8;
-  // }
-  // th:after {
-  //   bottom: 0;
-  //   border: 1px solid #abaeb8;
-  // }
-  // th:last-child {
-  //   left: 0;
-  //   border-right: 3px solid #abaeb8;
-  // }
+.thead {
+  display: table-header-group;
+  position: sticky;
+  border-collapse: separate;
+  border-spacing: 0;
+  top: 0;
+  z-index: 14;
+}
 
-  td {
-    padding: 9px 12px;
-    border: 0.5px solid #ddd;
-    white-space: nowrap;
-    z-index: 13;
+.tbody {
+  display: table-row-group;
+}
+
+.tr {
+  display: table-row;
+  position: relative;
+}
+
+.th,
+.td {
+  font-size: 12px;
+  display: table-cell;
+  padding: 8px;
+  vertical-align: middle;
+  position: relative; /* Needed for the resizer */
+}
+
+.th {
+  position: relative;
+  margin: 0;
+  padding: 10px 16px 8px 12px;
+  background-color: #ababac;
+  font-weight: bold;
+  outline: 0.3px solid #abaeb8;
+  z-index: 12;
+}
+
+.td {
+  position: relative;
+  padding: 9px 12px;
+  border: 0.5px solid #ddd;
+  white-space: nowrap;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.td:hover {
+  overflow: visible;
+  z-index: 2;
+}
+
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  background-color: transparent;
+}
+
+.resizer:hover {
+  background-color: #ccc;
+}
+
+.td.resizable {
+  resize: horizontal;
+  min-width: 20px;
+  max-width: 700px; // Optional maximum width
+}
+
+.sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 13;
+  background-color: inherit;
+}
+
+.sticky-container {
+  overflow: visible;
+  position: relative;
+}
+
+.th.has-shadow {
+  box-shadow: -20px 0 20px -14px rgba(0, 0, 0, 0.1);
+}
+
+.th.sticky-right.links.has-shadow {
+  box-shadow: -20px 0 20px -14px rgba(0, 0, 0, 0.7);
+}
+
+.td.has-shadow {
+  box-shadow: -20px 0 20px -15px rgba(0, 0, 0, 0.7);
+}
+
+@-moz-document url-prefix() {
+  .td.has-shadow,
+  .th.sticky-right.links.has-shadow {
+    box-shadow: -20px 0 20px -13px rgba(0, 0, 0, 0.4);
   }
 
-  th.sticky-right,
-  td.sticky-right {
-    position: sticky;
-    right: 0;
-    background-color: inherit;
-    z-index: 20;
+  .scrollable-container {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #dbdbde;
   }
+}
 
-  th.sticky-right {
-    background-color: #ababac;
-    padding: 0;
-    height: 100%;
-    border-bottom: 1px solid #b4b2b2;
-  }
+.th.sticky-right {
+  background-color: #ababac;
+  padding: 0;
+  height: 100%;
+  min-width: 72px;
+  max-width: 72px;
+  border-bottom: 1px solid #b4b2b2;
+  text-align: center;
+}
 
-  td.sticky-right {
-    z-index: 5;
-    overflow: hidden;
+.td.sticky-right {
+  z-index: 5;
+  background-color: inherit;
+  padding: 0 5px;
+  height: 0px;
+  outline: 0.3px solid #ccc;
+  border: none;
+  z-index: 13;
+}
 
-    background-color: inherit;
-    padding: 0;
-    height: 0px;
+.th.sticky-right.links,
+.td.sticky-right.links {
+  right: 72px;
+}
+
+.th.sticky-right.actions,
+.td.sticky-right.actions {
+  right: 0;
+}
+
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 5px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.resizer.isResizing {
+  background-color: rgb(144, 144, 144);
+}
+
+.dbtables-row {
+  background-color: #faf8f8;
+}
+
+.dbtables-row:nth-child(even),
+.dbtables-row:nth-child(even) td.sticky-right {
+  background-color: #eeeeee;
+}
+
+.dbtables-row.selected {
+  // background-color: #e0f7fa;
+  background-color: #ceeabc;
+}
+
+.clickable-name {
+  cursor: pointer;
+  font-size: 12px;
+  margin: 0;
+  color: #2b66ca;
+  width: fit-content;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: center;
+  button {
     border: none;
+    background-color: inherit;
+    padding: 0;
   }
-
-  th.sticky-right.links,
-  td.sticky-right.links {
-    right: 72px;
-    z-index: 14;
-  }
-
-  th.sticky-right.actions,
-  td.sticky-right.actions {
-    right: 0;
-    border-left: none !important;
-  }
-
-  th.sticky-right.links,
-  th.sticky-right.actions {
-    z-index: 14 !important;
-
-    height: 100% !important;
-  }
-
-  td.sticky-right.links,
-  td.sticky-right.actions {
-    z-index: 13;
-    overflow: hidden;
-  }
-
-  .sticky-wrapper {
-    z-index: 13;
-    overflow: hidden;
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    height: 100%;
-    width: 72px;
-    border-top: 1px solid #ddd;
-    border-left: 1px solid #ddd;
-  }
-
-  .sticky-th-wrapper {
-    box-sizing: border-box;
-    height: 100%;
-    width: 72px;
-    padding: 10px 17px 8px 12px;
-    border-left: 1px solid #abaeb8;
-    border-bottom: 1px solid #abaeb8;
-  }
-
-  .dbtables-row {
-    background-color: #faf8f8;
-  }
-
-  .dbtables-row:nth-child(even),
-  .dbtables-row:nth-child(even) td.sticky-right {
-    background-color: #eeeeee;
-  }
-
-  .dbtables-row.selected,
-  .dbtables-row.selected td.sticky-right {
-    background-color: #ceeabc;
-  }
-
-  .tooltip {
-    width: max-content;
-    height: min-content;
-    overflow: visible;
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform: translateY(6px) translateX(2px);
-    background-color: #6e6e8c;
-
-    color: #fcfcfc;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 15;
-    transition: opacity 0.1s;
-  }
-
-  .fixed-width {
-    position: relative;
-    max-width: 80px;
-    white-space: nowrap;
-    p {
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-    }
-    &:hover .tooltip {
-      visibility: visible;
-      opacity: 1;
-      overflow: visible;
-    }
-  }
-
-  .server-type-fixed-width {
-    white-space: nowrap;
-  }
-
-  .actions-row {
-    display: flex;
-    justify-content: center;
-    button {
-      border: none;
-      background-color: inherit;
-      padding: 0;
-    }
-    .actions-delete-button {
-      padding-left: 15px;
-      color: #d86060;
-      // color: #ca6658; // Alternative color, a tiny bit more orange and dull
-      cursor: initial;
-    }
-
-    .actions-cn-link-button {
-      margin-right: 7px;
-      svg {
-        height: 17px;
-      }
-    }
-
-    .actions-cn-link-button:first-child {
-      margin-left: 5px;
-    }
-  }
-  .clickable-name {
-    font-size: 12px;
-    margin: 0;
-    color: #2b66ca;
+  .actions-delete-button {
     cursor: pointer;
-    width: fit-content;
+    padding-left: 15px;
+    color: #d86060;
+    // color: #ca6658; // Alternative color, a tiny bit more orange and dull
+  }
+
+  .actions-cn-link-button {
+    cursor: pointer;
+    margin-right: 7px;
+    svg {
+      height: 17px;
+    }
+  }
+
+  .actions-cn-link-button:first-child {
+    margin-left: 5px;
   }
 }
 
-.connection-links {
-  width: 71px !important;
-  min-width: 71px !important;
-  max-width: 71px !important;
+.tooltip {
+  position: absolute;
+  width: max-content;
+  height: min-content;
+  overflow: visible;
+  visibility: hidden;
+  opacity: 0;
+  top: 0;
+  left: 0;
+  transform: translateY(6px) translateX(2px);
+  background-color: #6e6e8c;
+
+  color: #fcfcfc;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 300;
+  transition: opacity 0.1s;
 }
 
-.columns-container {
-  padding-bottom: 20px;
+.fixed-width {
+  position: relative;
+  max-width: 80px;
+  white-space: nowrap;
+  p {
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+  }
+  &:hover .tooltip {
+    visibility: visible;
+    opacity: 7;
+    overflow: visible;
+  }
+}
+
+.server-type-fixed-width {
+  white-space: nowrap;
 }
 
 @media screen and (max-width: 600px) {

@@ -177,7 +177,6 @@ function AirflowImport() {
             data={filteredData}
             isLoading={isLoading}
             onDelete={handleDeleteIconClick}
-            scrollbarMarginTop="64px"
             airflowType="import"
           />
         ) : (

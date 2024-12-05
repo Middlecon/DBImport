@@ -234,7 +234,6 @@ function Connection() {
                 data={filteredData}
                 isLoading={isSearchLoading}
                 onDelete={handleDeleteIconClick}
-                scrollbarMarginTop="34px"
               />
             )}
           </>

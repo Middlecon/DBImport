@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.55.4",
     "@tanstack/react-query-devtools": "^5.55.4",
+    "@tanstack/react-table": "^8.20.5",
     "@types/lodash": "^4.17.10",
     "axios": "^1.7.7",
     "countries-and-timezones": "^3.7.1",

@@ -179,7 +179,6 @@ function AirflowExport() {
             data={filteredData}
             isLoading={isLoading}
             onDelete={handleDeleteIconClick}
-            scrollbarMarginTop="64px"
             airflowType="export"
           />
         ) : (

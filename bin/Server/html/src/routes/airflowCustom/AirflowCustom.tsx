@@ -177,7 +177,6 @@ function AirflowCustom() {
             data={filteredData}
             isLoading={isLoading}
             onDelete={handleDeleteIconClick}
-            scrollbarMarginTop="34px"
             airflowType="custom"
           />
         ) : (

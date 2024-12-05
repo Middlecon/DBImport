@@ -107,7 +107,6 @@ function ExportTableColumns() {
           data={columnsData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="78px"
         />
       ) : (
         <p

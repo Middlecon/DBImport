@@ -256,7 +256,6 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           data={tasksData}
           onEdit={handleEditClick}
           isLoading={isLoading}
-          scrollbarMarginTop="64px"
         />
       ) : (
         <p

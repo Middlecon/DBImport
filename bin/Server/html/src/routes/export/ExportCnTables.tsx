@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import TableList from '../../components/TableList'
 import {
   Column,
@@ -37,37 +37,6 @@ function ExportCnTables({
   const [isModalOpen, setModalOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const [scrollbarMarginTop, setScrollbarMarginTop] = useState('35px')
-  const [scrollbarRefresh, setScrollbarRefresh] = useState(0)
-
-  useEffect(() => {
-    const viewLayout = document.querySelector(
-      '.view-layout-root'
-    ) as HTMLElement
-
-    const handleResize = () => {
-      if (viewLayout) {
-        const newMarginTop =
-          viewLayout.offsetWidth <= 1173
-            ? '65px'
-            : viewLayout.offsetWidth <= 1307
-            ? '50px'
-            : '35px'
-        if (newMarginTop !== scrollbarMarginTop) {
-          setScrollbarMarginTop(newMarginTop)
-          setScrollbarRefresh((prev) => prev + 1) // Triggers refresh
-        }
-      }
-    }
-
-    const resizeObserver = new ResizeObserver(handleResize)
-    if (viewLayout) resizeObserver.observe(viewLayout)
-
-    return () => {
-      if (viewLayout) resizeObserver.unobserve(viewLayout)
-    }
-  }, [scrollbarMarginTop])
-
   const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
       { header: 'Target Table', accessor: 'targetTable' },
@@ -87,8 +56,7 @@ function ExportCnTables({
       },
       { header: 'Actions', isAction: 'editAndDelete' }
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scrollbarRefresh]
+    []
   )
 
   const handleEditClick = async (row: UIExportCnTables) => {
@@ -181,7 +149,6 @@ function ExportCnTables({
           onEdit={handleEditClick}
           onDelete={handleDeleteIconClick}
           isLoading={isLoading}
-          scrollbarMarginTop={scrollbarMarginTop}
           isExport={true}
         />
       ) : (
