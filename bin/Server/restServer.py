@@ -390,6 +390,11 @@ async def generate_a_jdbc_connection_string(connectionValues: dataModels.generat
 async def search_connections(searchValues: dataModels.connectionSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	return dbCalls.searchConnections(searchValues, current_user["username"])
 
+@app.get("/connection/testConnection/{connection}", tags=["Connections"])
+async def test_a_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.testConnection(connection, current_user["username"])
+	return returnMsg
+
 @app.get("/import/db", response_model=List[dataModels.importDBs], tags=["Imports"])
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()

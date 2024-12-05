@@ -445,6 +445,7 @@ class dbCalls:
 			else:
 				jdbcConnectionString = "jdbc:sybase:Tds://%s:%s/%s"%(hostname, port, database)
 
+
 		returnCode = 200
 		return (jdbcConnectionString, returnCode)
 
@@ -1016,6 +1017,19 @@ class dbCalls:
 		# session.close()
 		session.remove()
 		return (result, returnCode)
+
+
+	def testConnection(self, connection, currentUser):
+		""" Make a test connection to a JDBC source and return result """
+		log = logging.getLogger(self.logger)
+
+		result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, check=False)
+		if result.returncode != 0:
+			returnCode = 500
+		else:
+			returnCode = 200
+
+		return (result.stdout, returnCode)
 
 
 	def getAllImportDatabases(self):

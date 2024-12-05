@@ -1462,6 +1462,15 @@ class config(object, metaclass=Singleton):
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
+			except TypeError as exception:
+				if printError == True:
+					log.error("Connection to database over JDBC failed with the following error:")
+					log.error(str(exception))
+				if exitIfFailure == True:
+					self.remove_temporary_files()
+					sys.exit(1)
+				else:
+					return False
 			except Exception as exception:
 				if printError == True:
 					log.error("Connection to database over JDBC failed with the following error:")
