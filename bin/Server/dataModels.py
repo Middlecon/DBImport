@@ -80,6 +80,13 @@ class connectionDetails(BaseModel):
 	atlasExcludeFilter: Union[str, None] = None
 	atlasLastDiscovery: Union[str, None] = None
 
+class generateJDBCconnectionString(BaseModel):
+	databaseType: str
+	version: str
+	hostname: str
+	port: Union[int, None] = None
+	database: str
+
 class jdbcDriver(BaseModel):
 	databaseType: str
 	version: str

@@ -381,6 +381,11 @@ async def delete_connection(connection: str, current_user: Annotated[dataModels.
 	returnMsg, response.status_code =  dbCalls.deleteConnection(connection, current_user["username"])
 	return returnMsg
 
+@app.post("/connection/generateJDBCconnectionString", tags=["Connections"])
+async def generate_a_jdbc_connection_string(connectionValues: dataModels.generateJDBCconnectionString, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.generateJDBCconnectionString(connectionValues, current_user["username"])
+	return returnMsg
+
 @app.post("/connection/search", response_model=List[dataModels.connection], tags=["Connections"])
 async def search_connections(searchValues: dataModels.connectionSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	return dbCalls.searchConnections(searchValues, current_user["username"])

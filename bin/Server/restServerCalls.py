@@ -350,6 +350,104 @@ class dbCalls:
 		session.remove()
 
 
+	def generateJDBCconnectionString(self, connectionValues, currentUser): 
+		""" Generates a JDBC connection string """
+		log = logging.getLogger(self.logger)
+
+		databaseType = getattr(connectionValues, "databaseType")
+		databaseVersion = getattr(connectionValues, "version")
+		hostname = getattr(connectionValues, "hostname")
+		port = getattr(connectionValues, "port")
+		database = getattr(connectionValues, "database")
+		jdbcConnectionString = ""
+
+		# Validate to make sure we have a valid combination of databaseType and version
+		correctDriverVersion = False
+		for driver in self.getJDBCdrivers():
+			if databaseType == driver["databaseType"] and databaseVersion == driver["version"]:		
+				correctDriverVersion = True
+
+		if correctDriverVersion == False:
+			result = "Not a valid combination of databaseType and version"
+			returnCode = 404
+			return (result, returnCode)
+
+		# Generate the connection string for each combo of databaseType and databaseVersion
+		if databaseType == "DB2 AS400" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:as400://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:as400://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "DB2 UDB" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:db2://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:db2://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "MySQL" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:mysql://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:mysql://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "Oracle" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)))(CONNECT_DATA=(SERVICE_NAME=%s)))"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%s)))(CONNECT_DATA=(SERVICE_NAME=%s)))"%(hostname, port, database) 
+
+		if databaseType == "PostgreSQL" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:postgresql://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:postgresql://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "Progress DB" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:datadirect:openedge://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:datadirect:openedge://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "SQL Server" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:sqlserver://%s;database=%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:sqlserver://%s:%s;database=%s"%(hostname, port, database)
+
+		if databaseType == "SQL Server" and databaseVersion == "jTDS":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:jtds:sqlserver://%s;useNTLMv2=true;databaseName=%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:jtds:sqlserver://%s:%s;useNTLMv2=true;databaseName=%s"%(hostname, port, database)
+
+		if databaseType == "CacheDB" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:Cache://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:Cache://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "Snowflake" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:snowflake://%s/?db=%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:snowflake://%s:%s/?db=%s"%(hostname, port, database)
+
+		if databaseType == "Informix" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:informix-sqli://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:informix-sqli://%s:%s/%s"%(hostname, port, database)
+
+		if databaseType == "SQL Anywhere" and databaseVersion == "default":
+			if getattr(connectionValues, "port") == None:
+				jdbcConnectionString = "jdbc:sybase:Tds://%s/%s"%(hostname, database) 
+			else:
+				jdbcConnectionString = "jdbc:sybase:Tds://%s:%s/%s"%(hostname, port, database)
+
+		returnCode = 200
+		return (jdbcConnectionString, returnCode)
+
 	def getJDBCdrivers(self):
 		""" Returns all JDBC Driver configuration """
 		log = logging.getLogger(self.logger)
