@@ -20,6 +20,7 @@ import io
 import re
 import sys
 import pty
+import ast
 import errno
 import time
 import logging
@@ -1023,7 +1024,9 @@ class dbCalls:
 		""" Make a test connection to a JDBC source and return result """
 		log = logging.getLogger(self.logger)
 
-		result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, check=False)
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		result = subprocess.run([manageCmd, '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, check=False)
 		if result.returncode != 0:
 			returnCode = 500
 		else:
@@ -1088,6 +1091,56 @@ class dbCalls:
 		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
+
+	def discoverImportTables(self, data, currentUser):
+		""" Search for import tables """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--addImportTable')
+		commandArg.append('-a')
+		commandArg.append(getattr(data, "connection"))
+		commandArg.append('-h')
+		commandArg.append(getattr(data, "database"))
+		commandArg.append('--quiet')
+		commandArg.append('--jsonOutput')
+#		print(commandArg)
+#		print(type(commandArg))
+		connection = getattr(data, "connection")
+		database = getattr(data, "database")
+		
+		# ./manage --addImportTable -a dbimport -h dbimport --quiet --jsonOutput
+		# ['manage', '--addImportTable', '-a', 'dbimport', '-h', 'user_boszkk', '--quiet', '--jsonOutput']
+
+#		result = subprocess.run(['manage', '--addImportTable', '-a', 'dbimport', '-h', 'dbimport', '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+#		result = subprocess.run("./manage --addImportTable -a dbimport -h dbimport --quiet", stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+#		result = subprocess.run([manageCmd, '--addImportTable', '-a', 'dbimport', '-h', 'dbimport', '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+		# result = subprocess.run(['manage', '--addImportTable', '-a', connection, '-h', database, '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, check=False)
+		# result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+		# result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, check=False)
+		result = subprocess.run(commandArg, stdout=subprocess.PIPE, check=False)
+		print(result.stdout.decode())
+		print(type(result.stdout.decode()))
+		#print(result.stderr)
+		#print(result.args)
+		#print(result)
+
+		if result.returncode != 0:
+			returnCode = 500
+			returnMsg = "result.stdout"
+		else:
+			returnCode = 200
+			# returnMsg = ast.literal_eval(json.dumps(result.stdout.decode('utf-8')))
+			returnMsg = json.loads(json.dumps(result.stdout.decode('utf-8').replace("\n", "")))
+
+		# jsonResult = json.loads(json.dumps(listOfTables))
+		return (returnMsg, returnCode)
+
+
+
 	def searchImportTables(self, searchValues, currentUser):
 		""" Search for import tables """
 		log = logging.getLogger(self.logger)

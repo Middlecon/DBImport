@@ -167,6 +167,17 @@ class configuration(BaseModel):
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
 
+class discoverImportTable(BaseModel):
+	database: str
+	table: str
+	connection: str
+	sourceSchema: str
+	sourceTable: str
+
+class discoverImportTableOptions(BaseModel):
+	database: str
+	connection: str
+
 class importTable(BaseModel):
 	database: str
 	table: str

@@ -399,6 +399,12 @@ async def test_a_connection(connection: str, current_user: Annotated[dataModels.
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()
 
+# @app.post("/import/discover", tags=["Imports"])
+@app.post("/import/discover", response_model=List[dataModels.discoverImportTable], tags=["Imports"])
+async def discover_new_import_tables(data: dataModels.discoverImportTableOptions, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.discoverImportTables(data, current_user["username"])
+	return returnMsg
+
 @app.post("/import/search", response_model=List[dataModels.importTable], tags=["Imports"])
 async def search_import_tables(searchValues: dataModels.importTableSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	return dbCalls.searchImportTables(searchValues, current_user["username"])

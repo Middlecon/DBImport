@@ -515,7 +515,7 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def discoverAndAddTablesFromSource(self, dbalias, hiveDB, schemaFilter=None, tableFilter=None, addSchemaToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None):
+	def discoverAndAddTablesFromSource(self, dbalias, hiveDB, schemaFilter=None, tableFilter=None, addSchemaToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None, onlyJsonOutput=False):
 		""" This is the main function to search for tables/view on source database and add them to import_tables """
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource()")
 		errorDuringAdd = False
@@ -581,47 +581,67 @@ class operation(object, metaclass=Singleton):
 			sys.exit(0)
 
 		# At this stage, we have discovered tables in the source system that we dont know about in DBImport
-		print("The following tables and/or views have been discovered in the source database and not found in DBImport")
-		print("")
-		print("%-20s%-40s%-30s%-20s%s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
-		print("=============================================================================================================================")
 
-		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
-
-		answer = input("Do you want to add these imports to DBImport? (y/N): ")
-		if answer == "y":
+		if onlyJsonOutput == False:
+			print("The following tables and/or views have been discovered in the source database and not found in DBImport")
 			print("")
+			print("%-20s%-40s%-30s%-20s%s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
+			print("=============================================================================================================================")
+
 			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
-					addResult = self.import_config.addImportTable(
-			    		hiveDB=hiveDB, 
-			    		hiveTable=row['hiveTable'].lower(),
-			    		dbalias=dbalias,
-			    		schema=row['schema'].strip(),
-			    		table=row['table'].strip(),
-						catalog=constant.CATALOG_HIVE_DIRECT)
+				print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
 
-				elif self.common_operations.metastore_type == constant.CATALOG_GLUE:
-					addResult = self.import_config.addImportTable(
-			    		hiveDB=hiveDB, 
-			    		hiveTable=row['hiveTable'].lower(),
-			    		dbalias=dbalias,
-			    		schema=row['schema'].strip(),
-			    		table=row['table'].strip(),
-						catalog=constant.CATALOG_GLUE)
-
-				if addResult == False:
-					errorDuringAdd = True
-
-			if errorDuringAdd == False:
-				print("All tables saved successfully in DBImport")
+			answer = input("Do you want to add these imports to DBImport? (y/N): ")
+#			answer = "N"
+			if answer == "y":
+				print("")
+				for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+						addResult = self.import_config.addImportTable(
+				    		hiveDB=hiveDB, 
+				    		hiveTable=row['hiveTable'].lower(),
+				    		dbalias=dbalias,
+				    		schema=row['schema'].strip(),
+				    		table=row['table'].strip(),
+							catalog=constant.CATALOG_HIVE_DIRECT)
+	
+					elif self.common_operations.metastore_type == constant.CATALOG_GLUE:
+						addResult = self.import_config.addImportTable(
+				    		hiveDB=hiveDB, 
+				    		hiveTable=row['hiveTable'].lower(),
+				    		dbalias=dbalias,
+				    		schema=row['schema'].strip(),
+				    		table=row['table'].strip(),
+							catalog=constant.CATALOG_GLUE)
+	
+					if addResult == False:
+						errorDuringAdd = True
+	
+				if errorDuringAdd == False:
+					print("All tables saved successfully in DBImport")
+				else:
+					print("")
+					print("Not all tables was saved to DBImport. Please check log and output")
 			else:
 				print("")
-				print("Not all tables was saved to DBImport. Please check log and output")
+				print("Aborting")
+
 		else:
-			print("")
-			print("Aborting")
+			# Only output the json file
+			# This is used by the rest interface to return a list of tables to the webUI
+
+			tableList = []
+			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+				resultDict = {}
+				resultDict["database"] = hiveDB
+				resultDict["table"] = row['hiveTable'].lower()
+				resultDict["connection"] = dbalias
+				resultDict["sourceSchema"] = row['schema']
+				resultDict["sourceTable"] = row['table']
+				tableList.append(resultDict)
+
+			jsonResult = json.loads(json.dumps(tableList))
+			print(jsonResult)
 
 
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
