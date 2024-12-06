@@ -41,6 +41,9 @@ class importDBs(BaseModel):
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
 
+class testConnectionResponse(BaseModel):
+	status: str
+
 class connectionSearch(BaseModel):
 	name: Union[str, None] = None
 	connectionString: Union[str, None] = None
@@ -80,12 +83,23 @@ class connectionDetails(BaseModel):
 	atlasExcludeFilter: Union[str, None] = None
 	atlasLastDiscovery: Union[str, None] = None
 
+class encryptCredentialResult(BaseModel):
+	result: str
+
+class encryptCredential(BaseModel):
+	connection: str
+	username: str
+	password: str
+
 class generateJDBCconnectionString(BaseModel):
 	databaseType: str
 	version: str
 	hostname: str
 	port: Union[int, None] = None
 	database: str
+
+class generatedJDBCconnectionString(BaseModel):
+	connectionString: str
 
 class jdbcDriver(BaseModel):
 	databaseType: str

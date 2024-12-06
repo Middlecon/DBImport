@@ -640,7 +640,7 @@ class operation(object, metaclass=Singleton):
 				resultDict["sourceTable"] = row['table']
 				tableList.append(resultDict)
 
-			jsonResult = json.loads(json.dumps(tableList))
+			jsonResult = json.dumps(tableList)
 			print(jsonResult)
 
 

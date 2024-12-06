@@ -447,8 +447,10 @@ class dbCalls:
 				jdbcConnectionString = "jdbc:sybase:Tds://%s:%s/%s"%(hostname, port, database)
 
 
+		resultMsg = { "connectionString": jdbcConnectionString }
+
 		returnCode = 200
-		return (jdbcConnectionString, returnCode)
+		return (resultMsg, returnCode)
 
 	def getJDBCdrivers(self):
 		""" Returns all JDBC Driver configuration """
@@ -1019,6 +1021,36 @@ class dbCalls:
 		session.remove()
 		return (result, returnCode)
 
+	def encryptedCredentials(self, credentials, currentUser):
+		""" Encrypt username and password with private key and store in connection """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		jsonInput = {}
+		jsonInput["connection"] = getattr(credentials, "connection")
+		jsonInput["username"] = getattr(credentials, "username")
+		jsonInput["password"] = getattr(credentials, "password")
+
+		processKilled = False
+		manageSession = subprocess.Popen([manageCmd, '--encryptCredentials', '--jsonInput', '--quiet'] , stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		try:
+			stdout, stderr = manageSession.communicate(json.dumps(jsonInput).encode(), timeout=10)
+		except subprocess.TimeoutExpired:
+			log.error("Killing 'manage --encryptCredentials' process")
+			manageSession.kill()
+			stdout, stderr = manageSession.communicate()
+			processKilled = True
+	
+		if manageSession.returncode != 0 or processKilled == True:
+			returnCode = 500
+			resultMsg = { "result": re.sub("\n$", "", re.sub("^json: ", "", stdout.decode())) } 
+		else:
+			returnCode = 200
+			resultMsg = { "result": "Credentials updated successfully" } 
+
+		return (resultMsg, returnCode)
+
 
 	def testConnection(self, connection, currentUser):
 		""" Make a test connection to a JDBC source and return result """
@@ -1032,7 +1064,9 @@ class dbCalls:
 		else:
 			returnCode = 200
 
-		return (result.stdout, returnCode)
+		resultMsg = { "status": re.sub("\n$", "", result.stdout.decode()) }
+
+		return (resultMsg, returnCode)
 
 
 	def getAllImportDatabases(self):
@@ -1107,38 +1141,21 @@ class dbCalls:
 		commandArg.append(getattr(data, "database"))
 		commandArg.append('--quiet')
 		commandArg.append('--jsonOutput')
-#		print(commandArg)
-#		print(type(commandArg))
 		connection = getattr(data, "connection")
 		database = getattr(data, "database")
 		
-		# ./manage --addImportTable -a dbimport -h dbimport --quiet --jsonOutput
-		# ['manage', '--addImportTable', '-a', 'dbimport', '-h', 'user_boszkk', '--quiet', '--jsonOutput']
-
-#		result = subprocess.run(['manage', '--addImportTable', '-a', 'dbimport', '-h', 'dbimport', '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-#		result = subprocess.run("./manage --addImportTable -a dbimport -h dbimport --quiet", stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-#		result = subprocess.run([manageCmd, '--addImportTable', '-a', 'dbimport', '-h', 'dbimport', '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-		# result = subprocess.run(['manage', '--addImportTable', '-a', connection, '-h', database, '--quiet', '--jsonOutput'], stdout=subprocess.PIPE, check=False)
-		# result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-		# result = subprocess.run(['manage', '--testConnection', '-a', connection, '--quiet'], stdout=subprocess.PIPE, check=False)
 		result = subprocess.run(commandArg, stdout=subprocess.PIPE, check=False)
 		print(result.stdout.decode())
 		print(type(result.stdout.decode()))
-		#print(result.stderr)
-		#print(result.args)
-		#print(result)
 
 		if result.returncode != 0:
 			returnCode = 500
 			returnMsg = "result.stdout"
 		else:
 			returnCode = 200
-			# returnMsg = ast.literal_eval(json.dumps(result.stdout.decode('utf-8')))
-			returnMsg = json.loads(json.dumps(result.stdout.decode('utf-8').replace("\n", "")))
+			returnMsg = json.loads(result.stdout.decode().replace("\n", ""))
 
-		# jsonResult = json.loads(json.dumps(listOfTables))
 		return (returnMsg, returnCode)
-
 
 
 	def searchImportTables(self, searchValues, currentUser):

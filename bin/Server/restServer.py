@@ -381,7 +381,12 @@ async def delete_connection(connection: str, current_user: Annotated[dataModels.
 	returnMsg, response.status_code =  dbCalls.deleteConnection(connection, current_user["username"])
 	return returnMsg
 
-@app.post("/connection/generateJDBCconnectionString", tags=["Connections"])
+@app.post("/connection/encryptCredentials", response_model=dataModels.encryptCredentialResult, tags=["Connections"])
+async def encrypt_credentials_and_store_in_connection(credentials: dataModels.encryptCredential, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.encryptedCredentials(credentials, current_user["username"])
+	return returnMsg
+
+@app.post("/connection/generateJDBCconnectionString", response_model=dataModels.generatedJDBCconnectionString, tags=["Connections"])
 async def generate_a_jdbc_connection_string(connectionValues: dataModels.generateJDBCconnectionString, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.generateJDBCconnectionString(connectionValues, current_user["username"])
 	return returnMsg
@@ -390,7 +395,7 @@ async def generate_a_jdbc_connection_string(connectionValues: dataModels.generat
 async def search_connections(searchValues: dataModels.connectionSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	return dbCalls.searchConnections(searchValues, current_user["username"])
 
-@app.get("/connection/testConnection/{connection}", tags=["Connections"])
+@app.get("/connection/testConnection/{connection}", response_model=dataModels.testConnectionResponse, tags=["Connections"])
 async def test_a_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.testConnection(connection, current_user["username"])
 	return returnMsg
@@ -399,7 +404,6 @@ async def test_a_connection(connection: str, current_user: Annotated[dataModels.
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()
 
-# @app.post("/import/discover", tags=["Imports"])
 @app.post("/import/discover", response_model=List[dataModels.discoverImportTable], tags=["Imports"])
 async def discover_new_import_tables(data: dataModels.discoverImportTableOptions, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.discoverImportTables(data, current_user["username"])
