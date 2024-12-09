@@ -16,6 +16,7 @@ function ConfigJDBCDrivers() {
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [row, setRow] = useState<JDBCdrivers>()
   const [rowIndex, setRowIndex] = useState<number>()
+  const [rowSelection, setRowSelection] = useState({})
 
   const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
 
@@ -100,6 +101,9 @@ function ConfigJDBCDrivers() {
           data={originalDriverData}
           onEdit={handleEditClick}
           isLoading={isLoading}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          enableMultiSelection={false}
         />
       ) : (
         <p

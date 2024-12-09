@@ -42,6 +42,8 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
+  const [rowSelection, setRowSelection] = useState({})
+
   const tasksData = useMemo(
     () => [...(originalDagData?.tasks || [])],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,6 +258,9 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           data={tasksData}
           onEdit={handleEditClick}
           isLoading={isLoading}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          enableMultiSelection={false}
         />
       ) : (
         <p

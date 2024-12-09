@@ -24,7 +24,6 @@ import {
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
 import DropdownRadio from '../../components/DropdownRadio'
 import { reverseMapEnumValue } from '../../utils/nameMappings'
-import ListRowsInfo from '../../components/ListRowsInfo'
 
 // const checkboxFilters = [
 //   {
@@ -430,13 +429,9 @@ function Import() {
 
         {data && Array.isArray(data.tables) ? (
           <>
-            <ListRowsInfo
-              filteredData={filteredData}
-              headersRowInfo={data.headersRowInfo}
-              itemType="table"
-            />
             <DbTables
               data={filteredData}
+              headersRowInfo={data.headersRowInfo}
               queryKeyFilters={filters}
               isLoading={isSearchLoading}
             />

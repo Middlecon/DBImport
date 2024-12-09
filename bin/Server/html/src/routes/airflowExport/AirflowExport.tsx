@@ -1,5 +1,5 @@
 import '../import/Import.scss'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useExportAirflows } from '../../utils/queries'
 import {
@@ -40,6 +40,7 @@ function AirflowExport() {
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
 
@@ -121,6 +122,17 @@ function AirflowExport() {
     )
   }
 
+  const handleBulkEditClick = useCallback(() => {
+    if (!data) return
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    console.log('handleBulkEditClick selectedRows', selectedRows)
+    // setCurrentRowsBulk(selectedRows)
+    // setIsBulkEditModalOpen(true)
+  }, [rowSelection, data])
+
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     return data.filter((row) => {
@@ -172,7 +184,12 @@ function AirflowExport() {
               />
             ))}
         </div>
-
+        <div
+          className="list-top-info-and-edit"
+          style={{ visibility: 'hidden' }}
+        >
+          <Button title="Bulk Edit" onClick={handleBulkEditClick} />
+        </div>
         {filteredData ? (
           <TableList
             columns={columns}
@@ -180,6 +197,9 @@ function AirflowExport() {
             isLoading={isLoading}
             onDelete={handleDeleteIconClick}
             airflowType="export"
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            enableMultiSelection={true}
           />
         ) : (
           <p

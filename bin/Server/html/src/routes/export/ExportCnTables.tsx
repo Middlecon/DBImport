@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import TableList from '../../components/TableList'
 import {
+  BulkUpdateExportTables,
   Column,
   EditSetting,
   ExportCnTablesWithoutEnum,
   ExportSearchFilter,
+  HeadersRowInfo,
   UIExportCnTables,
   UIExportTable
 } from '../../utils/interfaces'
@@ -13,29 +15,49 @@ import '../import/DbTables.scss'
 import EditTableModal from '../../components/EditTableModal'
 import { updateExportTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDeleteExportTable, useUpdateTable } from '../../utils/mutations'
+import {
+  useBulkUpdateTable,
+  useDeleteExportTable,
+  useUpdateTable
+} from '../../utils/mutations'
 
-import { exportCnTablesEditSettings } from '../../utils/cardRenderFormatting'
+import {
+  bulkExportFieldsData,
+  exportCnTablesEditSettings
+} from '../../utils/cardRenderFormatting'
 import ConfirmationModal from '../../components/ConfirmationModal'
+import Button from '../../components/Button'
+import BulkEditModal from '../../components/BulkEditModal'
+import ListRowsInfo from '../../components/ListRowsInfo'
 
 function ExportCnTables({
   data,
   queryKeyFilters,
-  isLoading
+  isLoading,
+  headersRowInfo
 }: {
   data: UIExportCnTables[]
   queryKeyFilters: ExportSearchFilter
   isLoading: boolean
+  headersRowInfo: HeadersRowInfo
 }) {
+  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: updateTable } = useUpdateTable()
   const { mutate: deleteTable } = useDeleteExportTable()
+  const queryClient = useQueryClient()
+
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [currentRowsBulk, setCurrentRowsBulk] = useState<
+    UIExportCnTables[] | []
+  >([])
+
   const [currentDeleteRow, setCurrentDeleteRow] = useState<UIExportCnTables>()
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setModalOpen] = useState(false)
-  const queryClient = useQueryClient()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
@@ -75,11 +97,21 @@ function ExportCnTables({
       const rowData: EditSetting[] = exportCnTablesEditSettings(row)
 
       setCurrentRow(rowData)
-      setModalOpen(true)
+      setIsModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
     }
   }
+
+  const handleBulkEditClick = useCallback(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    console.log('handleBulkEditClick selectedRows', selectedRows)
+    setCurrentRowsBulk(selectedRows)
+    setIsBulkEditModalOpen(true)
+  }, [rowSelection, data])
 
   const handleDeleteIconClick = (row: UIExportCnTables) => {
     setShowDeleteConfirmation(true)
@@ -131,7 +163,7 @@ function ExportCnTables({
             queryKey: ['export', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setModalOpen(false)
+          setIsModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -140,17 +172,90 @@ function ExportCnTables({
     )
   }
 
+  const handleBulkEditSave = (
+    bulkChanges: Record<string, string | number | boolean | null>
+  ) => {
+    console.log('bulkChanges', bulkChanges)
+    console.log('currentRowsBulk', currentRowsBulk)
+
+    const exportTablesPks = currentRowsBulk.map((row) => ({
+      connection: row.connection,
+      targetSchema: row.targetSchema,
+      targetTable: row.targetTable
+    }))
+
+    console.log(exportTablesPks)
+
+    const bulkUpdateJson: BulkUpdateExportTables = {
+      ...bulkChanges,
+      exportTables: exportTablesPks
+    }
+
+    console.log(bulkUpdateJson)
+
+    bulkUpdateTable(
+      { type: 'export', bulkUpdateJson },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['export', 'search', queryKeyFilters]
+          })
+          console.log('Update successful', response)
+          setIsModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error updating table', error)
+        }
+      }
+    )
+  }
+
+  const currentRowsBulkLength = useMemo(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    return selectedIndexes.map((index) => data[index])
+  }, [rowSelection, data])
+
+  const currentRowsLength = useMemo(
+    () => currentRowsBulkLength.length,
+    [currentRowsBulkLength]
+  )
+
   return (
     <div className="db-table-root">
       {data ? (
-        <TableList
-          columns={columns}
-          data={data}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteIconClick}
-          isLoading={isLoading}
-          isExport={true}
-        />
+        <>
+          <div
+            className="list-top-info-and-edit"
+            // style={{ visibility: 'hidden' }}
+          >
+            {currentRowsLength > 0 && (
+              <Button
+                title={`Edit ${currentRowsLength} table${
+                  currentRowsLength > 1 ? 's' : ''
+                }`}
+                onClick={handleBulkEditClick}
+              />
+            )}
+          </div>
+          <ListRowsInfo
+            filteredData={data}
+            headersRowInfo={headersRowInfo}
+            itemType="table"
+          />
+          <TableList
+            columns={columns}
+            data={data}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteIconClick}
+            isLoading={isLoading}
+            isExport={true}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            enableMultiSelection={true}
+          />
+        </>
       ) : (
         <div>Loading....</div>
       )}
@@ -158,7 +263,7 @@ function ExportCnTables({
         <EditTableModal
           title={`Edit table ${tableName}`}
           settings={currentRow}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setIsModalOpen(false)}
           onSave={handleSave}
         />
       )}
@@ -171,6 +276,19 @@ function ExportCnTables({
           onConfirm={() => handleDelete(currentDeleteRow)}
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
+        />
+      )}
+      {isBulkEditModalOpen && (
+        <BulkEditModal
+          title={`Edit the ${currentRowsLength} selected table${
+            currentRowsLength > 1 ? 's' : ''
+          }`}
+          selectedRows={currentRowsBulk}
+          bulkFieldsData={bulkExportFieldsData}
+          // onBulkChange={handleBulkChange}
+          onSave={handleBulkEditSave}
+          onClose={() => setIsBulkEditModalOpen(false)}
+          initWidth={584}
         />
       )}
     </div>

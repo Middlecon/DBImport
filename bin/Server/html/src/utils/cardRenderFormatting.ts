@@ -13,6 +13,7 @@ import {
 } from './enums'
 import {
   AirflowTask,
+  BulkField,
   Columns,
   ConfigGlobal,
   Connection,
@@ -2794,3 +2795,75 @@ export function JDBCdriversRowDataEdit(row: JDBCdrivers) {
 
   return rowData
 }
+
+// Bulk Edit
+
+export const bulkImportFieldsData: BulkField<UiDbTable>[] = [
+  {
+    key: 'importPhaseType',
+    label: 'Import Type',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('importPhaseType'),
+    infoText: infoTexts.table.import.importPhaseType
+  }, // Enum mapping for 'Import Type'
+  {
+    key: 'importTool',
+    label: 'Import Tool',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('importTool'),
+    infoText: infoTexts.table.import.importTool
+  }, // Enum mapping for 'Import Tool'
+  {
+    key: 'etlPhaseType',
+    label: 'ETL Type',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('etlPhaseType'),
+    infoText: infoTexts.table.import.etlPhaseType
+  }, // Enum mapping for 'ETL Type'
+  {
+    key: 'etlEngine',
+    label: 'ETL Engine',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('etlEngine'),
+    infoText: infoTexts.table.import.etlEngine
+  }, // Enum mapping for 'ETL Engine'
+  {
+    key: 'database',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'includeInAirflow',
+    label: 'Include in Airflow',
+    type: SettingType.Boolean,
+    infoText: infoTexts.table.import.includeInAirflow
+  } // Boolean, true or false
+]
+
+export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
+  {
+    key: 'exportType',
+    label: 'Export Type',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('exportType'),
+    infoText: infoTexts.table.export.exportType
+  }, // Enum mapping for 'Export Type'
+  {
+    key: 'exportTool',
+    label: 'Export Tool',
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('exportTool'),
+    infoText: infoTexts.table.export.exportTool
+  }, // Enum mapping for 'Export Tool'
+  {
+    key: 'exportTool',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'includeInAirflow',
+    label: 'Include in Airflow',
+    type: SettingType.Boolean,
+    infoText: infoTexts.table.import.includeInAirflow
+  } // Boolean, true or false, default: true
+]

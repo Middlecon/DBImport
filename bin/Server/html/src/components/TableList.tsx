@@ -7,7 +7,9 @@ import {
   Row,
   flexRender,
   Table as ReactTable,
-  ColumnDef
+  ColumnDef,
+  RowSelectionState,
+  OnChangeFn
 } from '@tanstack/react-table'
 import { Column } from '../utils/interfaces'
 import ImportIcon from '../assets/icons/ImportIcon'
@@ -20,8 +22,10 @@ interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
   isLoading: boolean
+  rowSelection: RowSelectionState
+  onRowSelectionChange: OnChangeFn<RowSelectionState>
+  enableMultiSelection?: boolean
   onEdit?: (row: T, rowIndex?: number) => void
-  onBulkEdit?: (rows: T[], rowsIndex?: number[]) => void
   onDelete?: (row: T) => void
   airflowType?: string
   isExport?: boolean
@@ -31,15 +35,18 @@ function TableList<T>({
   columns,
   data,
   isLoading,
+  rowSelection,
+  onRowSelectionChange,
+  enableMultiSelection = true,
   onEdit,
   onDelete,
   airflowType,
   isExport = false
 }: TableProps<T>) {
   const tableHeaderRef = useRef<HTMLDivElement | null>(null)
+  const lastSelectedRowIndexRef = useRef<number | null>(null)
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState<string>('')
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false)
-
   useEffect(() => {
     const updateScrollbarMarginTop = () => {
       if (tableHeaderRef.current) {
@@ -106,13 +113,6 @@ function TableList<T>({
   }, [])
 
   const navigate = useNavigate()
-
-  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>(
-    {}
-  )
-  const [lastSelectedRowIndex, setLastSelectedRowIndex] = useState<
-    number | null
-  >(null)
 
   const cellRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollableRef = useRef<HTMLDivElement | null>(null)
@@ -493,61 +493,98 @@ function TableList<T>({
     data,
     columns: tanstackColumns,
     state: {
-      rowSelection: selectedRowIds,
+      rowSelection,
       columnSizing: {}
     },
     // onColumnSizingChange: (newSizing) => {
     //   console.log('New column sizing:', newSizing)
     // },
-    onRowSelectionChange: setSelectedRowIds,
+
+    onRowSelectionChange: (newRowSelection) => {
+      // If multi-selection is disabled, only keeps one selected row
+      if (!enableMultiSelection) {
+        const selectedKeys = Object.keys(newRowSelection)
+        if (selectedKeys.length > 1) {
+          const lastSelected = selectedKeys[selectedKeys.length - 1]
+          newRowSelection = { [lastSelected]: true }
+        }
+      }
+      onRowSelectionChange(newRowSelection)
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    enableRowSelection: true,
+    enableRowSelection: enableMultiSelection,
     columnResizeMode: 'onChange',
     defaultColumn: {
       minSize: 20
     }
   })
 
-  // Handles row click for selection
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        event.preventDefault()
+        // Select all rows
+        const allRows = table.getRowModel().rows
+        const newRowSelection: Record<string, boolean> = {}
+        allRows.forEach((r) => {
+          newRowSelection[r.id] = true
+        })
+        table.setRowSelection(newRowSelection)
+      } else if (event.key === 'Escape') {
+        table.setRowSelection({})
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [table])
+
   const handleRowClick = useCallback(
     (event: React.MouseEvent, row: Row<T>) => {
-      event.preventDefault() // Prevents default text selection behavior
+      event.preventDefault()
+      event.stopPropagation()
 
       const clickedRowIndex = row.index
+      const allRows = table.getRowModel().rows
+      const prevIndex = lastSelectedRowIndexRef.current
+      let newSelection = { ...rowSelection }
 
-      if (event.ctrlKey || event.metaKey) {
-        // Toggles selection
-        setSelectedRowIds((prev) => ({
-          ...prev,
-          [row.id]: !prev[row.id]
-        }))
-        setLastSelectedRowIndex(clickedRowIndex)
-      } else if (event.shiftKey) {
-        if (lastSelectedRowIndex === null) {
-          // If no previous selection, select only the clicked row
-          setSelectedRowIds({ [row.id]: true })
-          setLastSelectedRowIndex(clickedRowIndex)
+      if (event.shiftKey && prevIndex !== null) {
+        const start = Math.min(prevIndex, clickedRowIndex)
+        const end = Math.max(prevIndex, clickedRowIndex)
+        // Computes selection in a single loop
+        const updatedSelection: Record<string, boolean> = {}
+        for (let i = start; i <= end; i++) {
+          updatedSelection[allRows[i].id] = true
+        }
+        newSelection = updatedSelection
+      } else if (event.ctrlKey || event.metaKey) {
+        const rowId = allRows[clickedRowIndex].id
+        if (newSelection[rowId]) {
+          delete newSelection[rowId]
         } else {
-          const start = Math.min(lastSelectedRowIndex, clickedRowIndex)
-          const end = Math.max(lastSelectedRowIndex, clickedRowIndex)
-
-          const rowsInRange = table.getRowModel().rows.slice(start, end + 1)
-          const newSelectedRowIds = { ...selectedRowIds }
-
-          rowsInRange.forEach((r) => {
-            newSelectedRowIds[r.id] = true
-          })
-
-          setSelectedRowIds(newSelectedRowIds)
+          newSelection[rowId] = true
         }
       } else {
-        // Select only the clicked row
-        setSelectedRowIds({ [row.id]: true })
-        setLastSelectedRowIndex(clickedRowIndex)
+        newSelection = { [allRows[clickedRowIndex].id]: true }
       }
+
+      if (!enableMultiSelection) {
+        // Single-selection mode enforced here if needed
+        const keys = Object.keys(newSelection)
+        if (keys.length > 1) {
+          // Keeps only the last clicked one
+          newSelection = { [keys[keys.length - 1]]: true }
+        }
+      }
+
+      lastSelectedRowIndexRef.current = clickedRowIndex
+      onRowSelectionChange(newSelection)
     },
-    [lastSelectedRowIndex, selectedRowIds, table]
+    [onRowSelectionChange, enableMultiSelection, rowSelection, table]
   )
 
   // Calculate column sizes and set CSS variables
@@ -563,41 +600,18 @@ function TableList<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.getState().columnSizing])
 
-  // Handles Ctrl+A / Cmd+A and Escape keys
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
-        event.preventDefault()
-        const allRowIds = table.getRowModel().rows.map((row) => row.id)
-        setSelectedRowIds(
-          allRowIds.reduce((prev, id) => {
-            prev[id] = true
-            return prev
-          }, {} as Record<string, boolean>)
-        )
-      } else if (event.key === 'Escape') {
-        setSelectedRowIds({})
-      }
-    }
+  // useEffect(() => {
+  //   const updateSizing = (columnId: string, size: number) => {
+  //     table.setColumnSizing((prevSizing) => ({
+  //       ...prevSizing,
+  //       [columnId]: size
+  //     }))
+  //   }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [table])
-
-  useEffect(() => {
-    const updateSizing = (columnId: string, size: number) => {
-      table.setColumnSizing((prevSizing) => ({
-        ...prevSizing,
-        [columnId]: size
-      }))
-    }
-
-    tanstackColumns.forEach((column) => {
-      updateSizing(column.id!, column.size!)
-    })
-  }, [tanstackColumns, table])
+  //   tanstackColumns.forEach((column) => {
+  //     updateSizing(column.id!, column.size!)
+  //   })
+  // }, [tanstackColumns, table])
 
   // Determines the sticky column for the box-shadow
   const getBoxShadowColumnIndex = () => {
@@ -628,6 +642,7 @@ function TableList<T>({
                 row.getIsSelected() ? 'selected' : ''
               }`}
               onClick={(event) => handleRowClick(event, row)}
+              style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell, index) => {
                 const isBoxShadowApplied = index === boxShadowColumnIndex
@@ -673,7 +688,7 @@ function TableList<T>({
     [TableBody]
   )
 
-  // State to control whether to use memoization
+  // State to control whether to use memoization for resizing
   // const [enableMemo, setEnableMemo] = useState(true)
 
   return (
@@ -772,43 +787,64 @@ function TableList<T>({
   )
 }
 
-interface TableBodyProps<T> {
-  table: ReactTable<T>
-  handleRowClick: (event: React.MouseEvent, row: Row<T>) => void
-}
+// Can be used for lifting out of Tablebody from TableList
+// interface TableBodyProps<T> {
+//   table: ReactTable<T>
+//   boxShadowColumnIndex: number | null
+//   isScrolledToEnd: boolean
+//   handleRowClick: (event: React.MouseEvent, row: Row<T>) => void
+// }
 
-function TableBody<T>({ table, handleRowClick }: TableBodyProps<T>) {
-  return (
-    <div className="tbody">
-      {table.getRowModel().rows.map((row) => (
-        <div
-          key={row.id}
-          className={`tr dbtables-row ${row.getIsSelected() ? 'selected' : ''}`}
-          onClick={(event) => handleRowClick(event, row)}
-        >
-          {row.getVisibleCells().map((cell) => (
-            <div
-              key={cell.id}
-              className="td"
-              style={{
-                width: `calc(var(--col-${cell.column.id}-size) * 1px)`
-              }}
-            >
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              {cell.column.columnDef.meta?.stickyType}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
+// function TableBody<T>({
+//   table,
+//   boxShadowColumnIndex,
+//   isScrolledToEnd,
+//   handleRowClick
+// }: TableBodyProps<T>) {
+//   return (
+//     <div className="tbody">
+//       {table.getRowModel().rows.map((row) => (
+//         <div
+//           key={row.id}
+//           className={`tr dbtables-row ${row.getIsSelected() ? 'selected' : ''}`}
+//           onClick={(event) => handleRowClick(event, row)}
+//           style={{ cursor: 'pointer' }}
+//         >
+//           {row.getVisibleCells().map((cell, index) => {
+//             const isBoxShadowApplied = index === boxShadowColumnIndex
+//             return (
+//               <div
+//                 key={cell.id}
+//                 className={`td ${
+//                   cell.column.id === 'sourceTable' ? 'fixed-width' : ''
+//                 } ${
+//                   cell.column.columnDef.meta?.isSticky
+//                     ? `sticky-right ${cell.column.columnDef.meta?.stickyType} ${
+//                         isBoxShadowApplied && !isScrolledToEnd
+//                           ? 'has-shadow'
+//                           : ''
+//                       }`
+//                     : ''
+//                 }`}
+//                 style={{
+//                   width: `calc(var(--header-${cell.id}-size) * 1px)`
+//                 }}
+//               >
+//                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
+//               </div>
+//             )
+//           })}
+//         </div>
+//       ))}
+//     </div>
+//   )
+// }
 
-export const MemoizedTableBody = React.memo(
-  TableBody,
-  (prevProps, nextProps) => {
-    return prevProps.table.options.data === nextProps.table.options.data
-  }
-) as typeof TableBody
+// export const MemoizedTableBody = React.memo(
+//   TableBody,
+//   (prevProps, nextProps) => {
+//     return prevProps.table.options.data === nextProps.table.options.data
+//   }
+// ) as typeof TableBody
 
 export default TableList

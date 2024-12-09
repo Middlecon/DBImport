@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
+  BulkUpdateImportTables,
   Column,
   DbTable,
   EditSetting,
+  HeadersRowInfo,
   ImportSearchFilter,
   UiDbTable,
   UITable
@@ -12,30 +14,47 @@ import './DbTables.scss'
 import EditTableModal from '../../components/EditTableModal'
 import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDeleteImportTable, useUpdateTable } from '../../utils/mutations'
-import { importDbTablesEditSettings } from '../../utils/cardRenderFormatting'
+import {
+  useBulkUpdateTable,
+  useDeleteImportTable,
+  useUpdateTable
+} from '../../utils/mutations'
+import {
+  bulkImportFieldsData,
+  importDbTablesEditSettings
+} from '../../utils/cardRenderFormatting'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import TableList from '../../components/TableList'
+import ListRowsInfo from '../../components/ListRowsInfo'
+import Button from '../../components/Button'
+import BulkEditModal from '../../components/BulkEditModal'
 
 function DbTables({
   data,
   queryKeyFilters,
-  isLoading
+  isLoading,
+  headersRowInfo
 }: {
   data: UiDbTable[]
   queryKeyFilters: ImportSearchFilter
   isLoading: boolean
+  headersRowInfo: HeadersRowInfo
 }) {
+  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: updateTable } = useUpdateTable()
   const { mutate: deleteTable } = useDeleteImportTable()
+  const queryClient = useQueryClient()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [currentRowsBulk, setCurrentRowsBulk] = useState<UiDbTable[] | []>([])
+
   const [currentDeleteRow, setCurrentDeleteRow] = useState<UiDbTable>()
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setModalOpen] = useState(false)
-  const queryClient = useQueryClient()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const columns: Column<DbTable>[] = useMemo(
     () => [
@@ -53,12 +72,13 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'editAndDelete' }
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
 
   const handleEditClick = async (row: UiDbTable) => {
+    console.log('handleEditClick row', row)
     const { database, table } = row
     setTableName(table)
 
@@ -73,7 +93,7 @@ function DbTables({
       const rowData: EditSetting[] = importDbTablesEditSettings(row)
 
       setCurrentRow(rowData)
-      setModalOpen(true)
+      setIsModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
     }
@@ -83,6 +103,16 @@ function DbTables({
     setShowDeleteConfirmation(true)
     setCurrentDeleteRow(row)
   }
+
+  const handleBulkEditClick = useCallback(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    console.log('handleBulkEditClick selectedRows', selectedRows)
+    setCurrentRowsBulk(selectedRows)
+    setIsBulkEditModalOpen(true)
+  }, [rowSelection, data])
 
   const handleDelete = async (row: UiDbTable) => {
     setShowDeleteConfirmation(false)
@@ -121,7 +151,7 @@ function DbTables({
             queryKey: ['import', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setModalOpen(false)
+          setIsModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -130,16 +160,79 @@ function DbTables({
     )
   }
 
+  const handleBulkEditSave = (
+    bulkChanges: Record<string, string | number | boolean | null>
+  ) => {
+    const importTablesPks = currentRowsBulk.map((row) => ({
+      database: row.database,
+      table: row.table
+    }))
+
+    const bulkUpdateJson: BulkUpdateImportTables = {
+      ...bulkChanges,
+      importTables: importTablesPks
+    }
+
+    bulkUpdateTable(
+      { type: 'import', bulkUpdateJson },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['import', 'search', queryKeyFilters]
+          })
+          console.log('Update successful', response)
+          setIsModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error updating table', error)
+        }
+      }
+    )
+  }
+
+  const currentRowsBulkLength = useMemo(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    return selectedIndexes.map((index) => data[index])
+  }, [rowSelection, data])
+
+  const currentRowsLength = useMemo(
+    () => currentRowsBulkLength.length,
+    [currentRowsBulkLength]
+  )
+
   return (
     <div className="db-table-root">
       {data ? (
-        <TableList
-          columns={columns}
-          data={data}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteIconClick}
-          isLoading={isLoading}
-        />
+        <>
+          <div className="list-top-info-and-edit">
+            {currentRowsLength > 0 && (
+              <Button
+                title={`Edit ${currentRowsLength} table${
+                  currentRowsLength > 1 ? 's' : ''
+                }`}
+                onClick={handleBulkEditClick}
+              />
+            )}
+          </div>
+
+          <ListRowsInfo
+            filteredData={data}
+            headersRowInfo={headersRowInfo}
+            itemType="table"
+          />
+          <TableList
+            columns={columns}
+            data={data}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteIconClick}
+            isLoading={isLoading}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            enableMultiSelection={true}
+          />
+        </>
       ) : (
         <div>Loading....</div>
       )}
@@ -147,7 +240,7 @@ function DbTables({
         <EditTableModal
           title={`Edit table ${tableName}`}
           settings={currentRow}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setIsModalOpen(false)}
           onSave={handleSave}
         />
       )}
@@ -160,6 +253,18 @@ function DbTables({
           onConfirm={() => handleDelete(currentDeleteRow)}
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
+        />
+      )}
+      {isBulkEditModalOpen && (
+        <BulkEditModal
+          title={`Edit the ${currentRowsLength} selected table${
+            currentRowsLength > 1 ? 's' : ''
+          }`}
+          selectedRows={currentRowsBulk}
+          bulkFieldsData={bulkImportFieldsData}
+          onSave={handleBulkEditSave}
+          onClose={() => setIsBulkEditModalOpen(false)}
+          initWidth={584}
         />
       )}
     </div>

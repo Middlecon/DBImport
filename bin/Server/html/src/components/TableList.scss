@@ -8,6 +8,11 @@
   height: calc(100vh - 214px - var(--filters-height));
 }
 
+.tables-container:focus,
+.scrollable-container:focus {
+  outline: none;
+}
+
 .divTable {
   display: table;
   width: 100%;
@@ -29,6 +34,7 @@
 }
 
 .tbody {
+  user-select: none;
   display: table-row-group;
 }
 
@@ -260,6 +266,12 @@
 
 .server-type-fixed-width {
   white-space: nowrap;
+}
+
+.bulk-input-row {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
 }
 
 @media screen and (max-width: 600px) {

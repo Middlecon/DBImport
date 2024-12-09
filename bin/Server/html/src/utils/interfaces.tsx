@@ -18,6 +18,15 @@ import {
   ValidationMethod
 } from './enums'
 
+export interface BulkField<T> {
+  key: keyof T
+  label: string
+  type: string
+  enumOptions?: { [key: string]: string }
+  infoText?: string
+  isRequired?: boolean
+}
+
 export interface ConnectionNames {
   name: string
 }
@@ -577,6 +586,22 @@ export interface TableCreate {
   includeInAirflow: boolean
 }
 
+interface ImportPKs {
+  database: string
+  table: string
+}
+
+export interface BulkUpdateImportTables {
+  connection?: string
+  importPhaseType?: string
+  etlPhaseType?: string
+  importTool?: string
+  etlEngine?: string
+  includeInAirflow?: boolean
+  operatorNotes?: string | null
+  importTables: ImportPKs[]
+}
+
 // Export
 
 export interface ExportConnections {
@@ -807,6 +832,20 @@ export interface ExportTableCreateWithoutEnum {
   createTargetTableSql: string | null
   operatorNotes: string | null
   columns: ExportColumns[]
+}
+
+interface ExportPKs {
+  connection: string
+  targetSchema: string
+  targetTable: string
+}
+
+export interface BulkUpdateExportTables {
+  exportType?: string
+  exportTool?: string
+  includeInAirflow?: boolean
+  operatorNotes?: string | null
+  exportTables: ExportPKs[]
 }
 
 // Airflow

@@ -78,6 +78,7 @@ function Connection() {
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentDeleteRow, setCurrentDeleteRow] = useState<Connections>()
+  const [rowSelection, setRowSelection] = useState({})
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
@@ -234,6 +235,9 @@ function Connection() {
                 data={filteredData}
                 isLoading={isSearchLoading}
                 onDelete={handleDeleteIconClick}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                enableMultiSelection={false}
               />
             )}
           </>

@@ -13,7 +13,9 @@ import {
   UIExportTableWithoutEnum,
   ExportTableCreateWithoutEnum,
   ConfigGlobalWithIndex,
-  JDBCdriversWithIndex
+  JDBCdriversWithIndex,
+  BulkUpdateExportTables,
+  BulkUpdateImportTables
 } from './interfaces'
 
 // Connection
@@ -55,13 +57,48 @@ export const useDeleteConnection = () => {
 
 // Update table, Import or Export
 
+const postBulkUpdateTable = async (
+  type: 'import' | 'export',
+  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
+) => {
+  console.log('bulkUpdateJson', bulkUpdateJson)
+  const response = await axiosInstance.post(`/${type}/table`, bulkUpdateJson)
+  console.log('postBulkUpdateTable response.data', response.data)
+
+  return response.data
+}
+
+interface BulkPostTableProps {
+  type: 'import' | 'export'
+  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
+}
+
+export const useBulkUpdateTable = () => {
+  return useMutation<
+    unknown, // Return type of mutation function, specify it more?
+    Error,
+    BulkPostTableProps
+  >({
+    mutationFn: ({ type, bulkUpdateJson }) => {
+      return postBulkUpdateTable(type, bulkUpdateJson)
+    }
+  })
+}
+
+// Update table, Import or Export
+
 const postUpdateTable = async (
   type: 'import' | 'export',
   table: UITableWithoutEnum | UIExportTableWithoutEnum
 ) => {
+  const { database, table: tableName, ...tableObject } = table
+
   console.log('postTable type', type)
   console.log('postTable table', table)
-  const response = await axiosInstance.post(`/${type}/table`, table)
+  const response = await axiosInstance.post(
+    `/${type}/table/${database}/${tableName}`,
+    tableObject
+  )
   console.log('postTable response.data', response.data)
 
   return response.data
@@ -88,9 +125,14 @@ export const useUpdateTable = () => {
 
 const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
   console.log('postTable table', table)
-  const response = await axiosInstance.post('/import/table', table)
-  console.log('postTable response.data', response.data)
 
+  const { database, table: tableName, ...tableObject } = table
+
+  const response = await axiosInstance.post(
+    `/import/table/${database}/${tableName}`,
+    tableObject
+  )
+  console.log('postTable response.data', response.data)
   return response.data
 }
 

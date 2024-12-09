@@ -29,6 +29,8 @@ function ExportTableColumns() {
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
+  const [rowSelection, setRowSelection] = useState({})
+
   const columnsData = useMemo(
     () => [...(tableData?.columns || [])],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,6 +109,9 @@ function ExportTableColumns() {
           data={columnsData}
           onEdit={handleEditClick}
           isLoading={isLoading}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          enableMultiSelection={false}
         />
       ) : (
         <p

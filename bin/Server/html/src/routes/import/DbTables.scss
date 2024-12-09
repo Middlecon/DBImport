@@ -13,11 +13,17 @@
   flex: 0 1 auto;
   flex-wrap: wrap;
   gap: 25px;
-  margin-bottom: 32px;
+  margin-bottom: 5px;
 }
 
 .db-tables-list {
   list-style: none;
+}
+
+.list-top-info-and-edit {
+  display: flex;
+  justify-content: end;
+  height: 27px;
 }
 
 @media screen and (max-width: 600px) {
