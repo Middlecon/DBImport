@@ -578,10 +578,15 @@ class config(object, metaclass=Singleton):
 		if self.kerberosPrincipal == "" and self.kerberosKeytab != "":
 			# There is information about a keytab, but not the principal. So lets grab the first from the file
 			kinitCommandList = ['klist', '-k', self.kerberosKeytab]
-			kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			stdOut, stdErr = kinitProc.communicate()
-			stdOut = stdOut.decode('utf-8').rstrip()
-			stdErr = stdErr.decode('utf-8').rstrip()
+			try:
+				kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				stdOut, stdErr = kinitProc.communicate()
+				stdOut = stdOut.decode('utf-8').rstrip()
+				stdErr = stdErr.decode('utf-8').rstrip()
+			except FileNotFoundError:
+				logging.error("kinit command was not found. Have you installed and configured Kerberos?")
+				self.remove_temporary_files()
+				sys.exit(1)
 
 			for line in stdOut.splitlines():
 				try:

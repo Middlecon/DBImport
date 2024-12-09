@@ -1942,6 +1942,156 @@ class dbCalls:
 		return listOfColumns
 
 
+	def repairImportTable(self, database, table, currentUser):
+		""" Repair Import table """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--repairIncrementalImport')
+		commandArg.append('--yes')
+		commandArg.append('-h')
+		commandArg.append(database)
+		commandArg.append('-t')
+		commandArg.append(table)
+		commandArg.append('--quiet')
+
+		processKilled = False
+		manageSession = subprocess.Popen(commandArg , stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		try:
+			stdout, stderr = manageSession.communicate(timeout=30)
+		except subprocess.TimeoutExpired:
+			log.error("Killing 'manage --repairIncrementalImport' process")
+			manageSession.kill()
+			stdout, stderr = manageSession.communicate()
+			processKilled = True
+	
+		if manageSession.returncode != 0 or processKilled == True:
+			returnCode = 500
+			resultMsg = { "result": re.sub("\n$", "", re.sub("^json: ", "", stdout.decode())) } 
+		else:
+			returnCode = 200
+			resultMsg = { "result": "Table repair was successfully" } 
+
+		return (resultMsg, returnCode)
+
+
+
+	def resetImportTable(self, database, table, currentUser):
+		""" Reset Import table """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--resetIncrementalImport')
+		commandArg.append('--yes')
+		commandArg.append('-h')
+		commandArg.append(database)
+		commandArg.append('-t')
+		commandArg.append(table)
+		commandArg.append('--quiet')
+
+		processKilled = False
+		manageSession = subprocess.Popen(commandArg , stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		try:
+			stdout, stderr = manageSession.communicate(timeout=30)
+		except subprocess.TimeoutExpired:
+			log.error("Killing 'manage --resetIncrementalImport' process")
+			manageSession.kill()
+			stdout, stderr = manageSession.communicate()
+			processKilled = True
+	
+		if manageSession.returncode != 0 or processKilled == True:
+			returnCode = 500
+			resultMsg = { "result": re.sub("\n$", "", re.sub("^json: ", "", stdout.decode())) } 
+		else:
+			returnCode = 200
+			resultMsg = { "result": "Table reset was successfully" } 
+
+		return (resultMsg, returnCode)
+
+
+	def repairExportTable(self, connection, schema, table, currentUser):
+		""" Repair Import table """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--repairIncrementalExport')
+		commandArg.append('--yes')
+		commandArg.append('-a')
+		commandArg.append(connection)
+		commandArg.append('-S')
+		commandArg.append(schema)
+		commandArg.append('-T')
+		commandArg.append(table)
+		commandArg.append('--quiet')
+
+		processKilled = False
+		manageSession = subprocess.Popen(commandArg , stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		try:
+			stdout, stderr = manageSession.communicate(timeout=30)
+		except subprocess.TimeoutExpired:
+			log.error("Killing 'manage --repairIncrementalExport' process")
+			manageSession.kill()
+			stdout, stderr = manageSession.communicate()
+			processKilled = True
+	
+		if manageSession.returncode != 0 or processKilled == True:
+			returnCode = 500
+			resultMsg = { "result": re.sub("\n$", "", re.sub("^json: ", "", stdout.decode())) } 
+		else:
+			returnCode = 200
+			resultMsg = { "result": "Table repair was successfully" } 
+
+		return (resultMsg, returnCode)
+
+
+	def resetExportTable(self, connection, schema, table, currentUser):
+		""" Repair Import table """
+		log = logging.getLogger(self.logger)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--resetIncrementalExport')
+		commandArg.append('--yes')
+		commandArg.append('-a')
+		commandArg.append(connection)
+		commandArg.append('-S')
+		commandArg.append(schema)
+		commandArg.append('-T')
+		commandArg.append(table)
+		commandArg.append('--quiet')
+
+		processKilled = False
+		manageSession = subprocess.Popen(commandArg , stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		try:
+			stdout, stderr = manageSession.communicate(timeout=30)
+		except subprocess.TimeoutExpired:
+			log.error("Killing 'manage --resetIncrementalExport' process")
+			manageSession.kill()
+			stdout, stderr = manageSession.communicate()
+			processKilled = True
+	
+		if manageSession.returncode != 0 or processKilled == True:
+			returnCode = 500
+			resultMsg = { "result": re.sub("\n$", "", re.sub("^json: ", "", stdout.decode())) } 
+		else:
+			returnCode = 200
+			resultMsg = { "result": "Table reset was successfully" } 
+
+		return (resultMsg, returnCode)
+
+
+
 
 	def getExportConnections(self):
 		""" Returns all connections that have exports configured in them """

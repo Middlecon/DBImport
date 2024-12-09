@@ -432,6 +432,16 @@ async def delete_import_table(database: str, table: str, current_user: Annotated
 	returnMsg, response.status_code =  dbCalls.deleteImportTable(database, table, current_user["username"])
 	return returnMsg
 
+@app.post("/import/table/{database}/{table}/repair", response_model=dataModels.defaultResultResponse, tags=["Imports"])
+async def repair_import_table(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.repairImportTable(database, table, current_user["username"])
+	return returnMsg
+
+@app.post("/import/table/{database}/{table}/reset", response_model=dataModels.defaultResultResponse, tags=["Imports"])
+async def reset_import_table(database: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.resetImportTable(database, table, current_user["username"])
+	return returnMsg
+
 @app.post("/import/table", tags=["Imports"])
 async def create_or_update_import_table(table: dataModels.importTableDetailsWrite, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.updateImportTable(table, current_user["username"])
@@ -470,6 +480,16 @@ async def get_export_table_details(connection: str, schema: str, table: str, cur
 @app.delete("/export/table/{connection}/{schema}/{table}", tags=["Exports"])
 async def delete_export_table(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.deleteExportTable(connection, schema, table, current_user["username"])
+	return returnMsg
+
+@app.post("/export/table/{connection}/{schema}/{table}/repair", response_model=dataModels.defaultResultResponse, tags=["Exports"])
+async def repair_export_table(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.repairExportTable(connection, schema, table, current_user["username"])
+	return returnMsg
+
+@app.post("/export/table/{connection}/{schema}/{table}/reset", response_model=dataModels.defaultResultResponse, tags=["Exports"])
+async def reset_export_table(connection: str, schema: str, table: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code =  dbCalls.resetExportTable(connection, schema, table, current_user["username"])
 	return returnMsg
 
 @app.post("/export/table", tags=["Exports"])

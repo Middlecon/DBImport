@@ -741,10 +741,11 @@ def main(argv):
 				import_operation.remove_temporary_files()
 				sys.exit(1)
 
-			print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
-			print("and the hive table. The tool will connect to the hive database and read the max value for the column")
-			print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
-			print("")
+			if quietMode == False:
+				print("This command will try to repair an incremental import that have come out-of-sync between data in the source table")
+				print("and the hive table. The tool will connect to the hive database and read the max value for the column")
+				print("that is used for the incremental loads. This value will then be used as the starting point for the next sqoop import")
+				print("")
 			if autoYesAnswer == False:
 				try:
 					answer = input("Are you sure you want to do this? (y/N): ")
@@ -769,8 +770,10 @@ def main(argv):
 				import_operation.remove_temporary_files()
 				sys.exit(1)
 
-			print("This command will truncate the Target Table and force the next import to be a full import.")
-			print("")
+			if quietMode == False:
+				print("This command will truncate the Target Table and force the next import to be a full import.")
+				print("")
+
 			if autoYesAnswer == False:
 				try:
 					answer = input("Are you sure you want to do this? (y/N): ")
@@ -796,8 +799,10 @@ def main(argv):
 				import_operation.remove_temporary_files()
 				sys.exit(1)
 
-			print("This command will truncate the Target Table and force the next import to be a full import.")
-			print("")
+			if quietMode == False:
+				print("This command will truncate the Target Table and force the next import to be a full import.")
+				print("")
+
 			if autoYesAnswer == False:
 				try:
 					answer = input("Are you sure you want to do this? (y/N): ")
@@ -817,8 +822,10 @@ def main(argv):
 				logging.info("Didnt answer 'y'. No actions performed")
 
 		if operation == "resetIncrementalExport":
-			print("This command will truncate the Target Table and force the next export to be a full export.")
-			print("")
+			if quietMode == False:
+				print("This command will truncate the Target Table and force the next export to be a full export.")
+				print("")
+
 			if autoYesAnswer == False:
 				try:
 					answer = input("Are you sure you want to do this? (y/N): ")
@@ -839,9 +846,10 @@ def main(argv):
 				logging.info("Didnt answer 'y'. No actions performed")
 
 		if operation == "repairIncrementalExport":
-			print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
-			print ("Target Table and use that as the max value for the next export.")
-			print("")
+			if quietMode == False:
+				print ("This command will repair an incremental import by reading the max value for the incremental column from the ")
+				print ("Target Table and use that as the max value for the next export.")
+				print("")
 	
 			if autoYesAnswer == False:
 				try:
