@@ -411,6 +411,16 @@ async def discover_new_import_tables(data: dataModels.discoverImportTableOptions
 	returnMsg, response.status_code = dbCalls.discoverImportTables(data, current_user["username"])
 	return returnMsg
 
+@app.post("/import/table", response_model=dataModels.defaultResultResponse, tags=["Imports"])
+async def multi_record_update_import_table(bulkData: dataModels.importTableBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkUpdateImportTable(bulkData, current_user["username"])
+	return returnMsg
+
+@app.delete("/import/table", response_model=dataModels.defaultResultResponse, tags=["Imports"])
+async def multi_record_delete_import_table(bulkData: List[dataModels.importTablePK], current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.bulkDeleteImportTable(bulkData, current_user["username"])
+	return returnMsg
+
 @app.post("/import/search", response_model=List[dataModels.importTable], tags=["Imports"])
 async def search_import_tables(searchValues: dataModels.importTableSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	return dbCalls.searchImportTables(searchValues, current_user["username"])
@@ -442,19 +452,9 @@ async def reset_import_table(database: str, table: str, current_user: Annotated[
 	returnMsg, response.status_code =  dbCalls.resetImportTable(database, table, current_user["username"])
 	return returnMsg
 
-@app.post("/import/table", tags=["Imports"])
-async def create_or_update_import_table(table: dataModels.importTableDetailsWrite, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.updateImportTable(table, current_user["username"])
-	return returnMsg
-
-@app.post("/import/table/bulk", response_model=dataModels.defaultResultResponse, tags=["Imports"])
-async def bulk_update_import_table(bulkData: dataModels.importTableBulkUpdate, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.bulkUpdateImportTable(bulkData, current_user["username"])
-	return returnMsg
-
-@app.delete("/import/table/bulk", response_model=dataModels.defaultResultResponse, tags=["Imports"])
-async def bulk_delete_import_table(bulkData: List[dataModels.importTablePK], current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
-	returnMsg, response.status_code = dbCalls.bulkDeleteImportTable(bulkData, current_user["username"])
+@app.post("/import/table/{database}/{table}", tags=["Imports"])
+async def create_or_update_import_table(database: str, table: str, data: dataModels.importTableDetailsWrite, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.updateImportTable(database, table, data, current_user["username"])
 	return returnMsg
 
 @app.get("/export/connection", response_model=List[dataModels.exportConnections], tags=["Exports"])

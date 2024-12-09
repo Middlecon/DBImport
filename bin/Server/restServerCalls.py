@@ -1602,7 +1602,7 @@ class dbCalls:
 		return (resultMsg, returnCode)
 
 
-	def updateImportTable(self, table, currentUser):
+	def updateImportTable(self, database, table, data, currentUser):
 		""" Update or create an import table """
 		log = logging.getLogger(self.logger)
 
@@ -1617,134 +1617,137 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		log.debug(table)
-		log.info("User '%s' updated/created import table '%s.%s'"%(currentUser, getattr(table, "database"), getattr(table, "table")))
+		log.debug(data)
+		# log.info("User '%s' updated/created import table '%s.%s'"%(currentUser, getattr(data, "database"), getattr(data, "table")))
+		log.info("User '%s' updated/created import table '%s.%s'"%(currentUser, database, table))
 
 		# Set default values
-		if getattr(table, "includeInAirflow") == None:							setattr(table, "includeInAirflow", 1)
-		if getattr(table, "validateImport") == None:							setattr(table, "validateImport", 1)	
-		if getattr(table, "validationMethod") == None:							setattr(table, "validationMethod", "rowCount")
-		if getattr(table, "validateSource") == None:							setattr(table, "validateSource", "query")
-		if getattr(table, "validateDiffAllowed") == None:						setattr(table, "validateDiffAllowed", -1)
-		if getattr(table, "validationCustomQueryValidateImportTable") == None:	setattr(table, "validationCustomQueryValidateImportTable", 1)
-		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
-#		if getattr(table, "truncateTable") == None:								setattr(table, "truncateTable", 1)
-		if getattr(table, "sqlSessions") == None:								setattr(table, "sqlSessions", -1)
-		if getattr(table, "softDeleteDuringMerge") == None:						setattr(table, "softDeleteDuringMerge", 0)
-		if getattr(table, "sqoopUseGeneratedSql") == None:						setattr(table, "sqoopUseGeneratedSql", -1)
-		if getattr(table, "allowTextSplitter") == None:							setattr(table, "allowTextSplitter", 0)
-		if getattr(table, "forceString") == None:								setattr(table, "forceString", -1)
-		if getattr(table, "invalidateImpala") == None:							setattr(table, "invalidateImpala", -1)
-		if getattr(table, "mergeCompactionMethod") == None:						setattr(table, "mergeCompactionMethod", "default")
-		if getattr(table, "createForeignKeys") == None:							setattr(table, "createForeignKeys", -1)
-		if getattr(table, "copySlave") == None:									setattr(table, "copySlave", 0)
+		if getattr(data, "includeInAirflow") == None:							setattr(data, "includeInAirflow", 1)
+		if getattr(data, "validateImport") == None:								setattr(data, "validateImport", 1)	
+		if getattr(data, "validationMethod") == None:							setattr(data, "validationMethod", "rowCount")
+		if getattr(data, "validateSource") == None:								setattr(data, "validateSource", "query")
+		if getattr(data, "validateDiffAllowed") == None:						setattr(data, "validateDiffAllowed", -1)
+		if getattr(data, "validationCustomQueryValidateImportTable") == None:	setattr(data, "validationCustomQueryValidateImportTable", 1)
+		if getattr(data, "incrValidationMethod") == None:						setattr(data, "incrValidationMethod", "full")
+#		if getattr(data, "truncateTable") == None:								setattr(data, "truncateTable", 1)
+		if getattr(data, "sqlSessions") == None:								setattr(data, "sqlSessions", -1)
+		if getattr(data, "softDeleteDuringMerge") == None:						setattr(data, "softDeleteDuringMerge", 0)
+		if getattr(data, "sqoopUseGeneratedSql") == None:						setattr(data, "sqoopUseGeneratedSql", -1)
+		if getattr(data, "allowTextSplitter") == None:							setattr(data, "allowTextSplitter", 0)
+		if getattr(data, "forceString") == None:								setattr(data, "forceString", -1)
+		if getattr(data, "invalidateImpala") == None:							setattr(data, "invalidateImpala", -1)
+		if getattr(data, "mergeCompactionMethod") == None:						setattr(data, "mergeCompactionMethod", "default")
+		if getattr(data, "createForeignKeys") == None:							setattr(data, "createForeignKeys", -1)
+		if getattr(data, "copySlave") == None:									setattr(data, "copySlave", 0)
 
 		try:
+#				hive_db = getattr(data, "database"),
+#				hive_table = getattr(data, "table"),
 			query = insert(configSchema.importTables).values(
-				hive_db = getattr(table, "database"),
-				hive_table = getattr(table, "table"),
-				dbalias = getattr(table, "connection"),
-				source_schema = getattr(table, "sourceSchema"),
-				source_table = getattr(table, "sourceTable"),
-				import_phase_type = getattr(table, "importPhaseType"),
-				etl_phase_type = getattr(table, "etlPhaseType"),
-				import_tool = getattr(table, "importTool"),
-				etl_engine = getattr(table, "etlEngine"),
-				last_update_from_source = getattr(table, "lastUpdateFromSource"),
-				sqoop_sql_where_addition = getattr(table, "sqlWhereAddition"),
-				nomerge_ingestion_sql_addition = getattr(table, "nomergeIngestionSqlAddition"),
-				include_in_airflow = getattr(table, "includeInAirflow"),
-				airflow_priority = getattr(table, "airflowPriority"),
-				validate_import = getattr(table, "validateImport"),
-				validationMethod = getattr(table, "validationMethod"),
-				validate_source = getattr(table, "validateSource"),
-				validate_diff_allowed = getattr(table, "validateDiffAllowed"),
-				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
-				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
-				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
-#				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "sqlSessions"),
-				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
-				incr_mode = getattr(table, "incrMode"),
-				incr_column = getattr(table, "incrColumn"),
-				incr_validation_method = getattr(table, "incrValidationMethod"),
-				pk_column_override = getattr(table, "pkColumnOverride"),
-				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
-				hive_merge_heap = getattr(table, "hiveContainerSize"),
-				hive_split_count = getattr(table, "splitCount"),
-				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
-				spark_executors = getattr(table, "sparkExecutors"),
-				split_by_column = getattr(table, "splitByColumn"),
-				sqoop_query = getattr(table, "sqoopCustomQuery"),
-				sqoop_options = getattr(table, "sqoopOptions"),
-				sqoop_use_generated_sql = getattr(table, "sqoopUseGeneratedSql"),
-				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
-				force_string = getattr(table, "forceString"),
-				comment = getattr(table, "comment"),
-				datalake_source = getattr(table, "datalakeSource"),
-				operator_notes = getattr(table, "operatorNotes"),
-				copy_slave = getattr(table, "copySlave"),
-				create_foreign_keys = getattr(table, "createForeignKeys"),
-				invalidate_impala = getattr(table, "invalidateImpala"),
-				custom_max_query = getattr(table, "customMaxQuery"),
-				mergeCompactionMethod = getattr(table, "mergeCompactionMethod"),
-				sourceTableType = getattr(table, "sourceTableType"),
-				import_database = getattr(table, "importDatabase"),
-				import_table = getattr(table, "importTable"),
-				history_database = getattr(table, "historyDatabase"),
-				history_table = getattr(table, "historyTable"))
+				hive_db = database,
+				hive_table = table,
+				dbalias = getattr(data, "connection"),
+				source_schema = getattr(data, "sourceSchema"),
+				source_table = getattr(data, "sourceTable"),
+				import_phase_type = getattr(data, "importPhaseType"),
+				etl_phase_type = getattr(data, "etlPhaseType"),
+				import_tool = getattr(data, "importTool"),
+				etl_engine = getattr(data, "etlEngine"),
+				last_update_from_source = getattr(data, "lastUpdateFromSource"),
+				sqoop_sql_where_addition = getattr(data, "sqlWhereAddition"),
+				nomerge_ingestion_sql_addition = getattr(data, "nomergeIngestionSqlAddition"),
+				include_in_airflow = getattr(data, "includeInAirflow"),
+				airflow_priority = getattr(data, "airflowPriority"),
+				validate_import = getattr(data, "validateImport"),
+				validationMethod = getattr(data, "validationMethod"),
+				validate_source = getattr(data, "validateSource"),
+				validate_diff_allowed = getattr(data, "validateDiffAllowed"),
+				validationCustomQuerySourceSQL = getattr(data, "validationCustomQuerySourceSQL"),
+				validationCustomQueryHiveSQL = getattr(data, "validationCustomQueryHiveSQL"),
+				validationCustomQueryValidateImportTable = getattr(data, "validationCustomQueryValidateImportTable"),
+#				truncate_hive = getattr(data, "truncateTable"),
+				mappers = getattr(data, "sqlSessions"),
+				soft_delete_during_merge = getattr(data, "softDeleteDuringMerge"),
+				incr_mode = getattr(data, "incrMode"),
+				incr_column = getattr(data, "incrColumn"),
+				incr_validation_method = getattr(data, "incrValidationMethod"),
+				pk_column_override = getattr(data, "pkColumnOverride"),
+				pk_column_override_mergeonly = getattr(data, "pkColumnOverrideMergeonly"),
+				hive_merge_heap = getattr(data, "hiveContainerSize"),
+				hive_split_count = getattr(data, "splitCount"),
+				spark_executor_memory = getattr(data, "sparkExecutorMemory"),
+				spark_executors = getattr(data, "sparkExecutors"),
+				split_by_column = getattr(data, "splitByColumn"),
+				sqoop_query = getattr(data, "sqoopCustomQuery"),
+				sqoop_options = getattr(data, "sqoopOptions"),
+				sqoop_use_generated_sql = getattr(data, "sqoopUseGeneratedSql"),
+				sqoop_allow_text_splitter = getattr(data, "allowTextSplitter"),
+				force_string = getattr(data, "forceString"),
+				comment = getattr(data, "comment"),
+				datalake_source = getattr(data, "datalakeSource"),
+				operator_notes = getattr(data, "operatorNotes"),
+				copy_slave = getattr(data, "copySlave"),
+				create_foreign_keys = getattr(data, "createForeignKeys"),
+				invalidate_impala = getattr(data, "invalidateImpala"),
+				custom_max_query = getattr(data, "customMaxQuery"),
+				mergeCompactionMethod = getattr(data, "mergeCompactionMethod"),
+				sourceTableType = getattr(data, "sourceTableType"),
+				import_database = getattr(data, "importDatabase"),
+				import_table = getattr(data, "importTable"),
+				history_database = getattr(data, "historyDatabase"),
+				history_table = getattr(data, "historyTable"))
 
 			query = query.on_duplicate_key_update(
-				dbalias = getattr(table, "connection"),
-				source_schema = getattr(table, "sourceSchema"),
-				source_table = getattr(table, "sourceTable"),
-				import_phase_type = getattr(table, "importPhaseType"),
-				etl_phase_type = getattr(table, "etlPhaseType"),
-				import_tool = getattr(table, "importTool"),
-				etl_engine = getattr(table, "etlEngine"),
-				last_update_from_source = getattr(table, "lastUpdateFromSource"),
-				sqoop_sql_where_addition = getattr(table, "sqlWhereAddition"),
-				nomerge_ingestion_sql_addition = getattr(table, "nomergeIngestionSqlAddition"),
-				include_in_airflow = getattr(table, "includeInAirflow"),
-				airflow_priority = getattr(table, "airflowPriority"),
-				validate_import = getattr(table, "validateImport"),
-				validationMethod = getattr(table, "validationMethod"),
-				validate_source = getattr(table, "validateSource"),
-				validate_diff_allowed = getattr(table, "validateDiffAllowed"),
-				validationCustomQuerySourceSQL = getattr(table, "validationCustomQuerySourceSQL"),
-				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
-				validationCustomQueryValidateImportTable = getattr(table, "validationCustomQueryValidateImportTable"),
-#				truncate_hive = getattr(table, "truncateTable"),
-				mappers = getattr(table, "sqlSessions"),
-				soft_delete_during_merge = getattr(table, "softDeleteDuringMerge"),
-				incr_mode = getattr(table, "incrMode"),
-				incr_column = getattr(table, "incrColumn"),
-				incr_validation_method = getattr(table, "incrValidationMethod"),
-				pk_column_override = getattr(table, "pkColumnOverride"),
-				pk_column_override_mergeonly = getattr(table, "pkColumnOverrideMergeonly"),
-				hive_merge_heap = getattr(table, "hiveContainerSize"),
-				hive_split_count = getattr(table, "splitCount"),
-				spark_executor_memory = getattr(table, "sparkExecutorMemory"),
-				spark_executors = getattr(table, "sparkExecutors"),
-				split_by_column = getattr(table, "splitByColumn"),
-				sqoop_query = getattr(table, "sqoopCustomQuery"),
-				sqoop_options = getattr(table, "sqoopOptions"),
-				sqoop_use_generated_sql = getattr(table, "sqoopUseGeneratedSql"),
-				sqoop_allow_text_splitter = getattr(table, "allowTextSplitter"),
-				force_string = getattr(table, "forceString"),
-				comment = getattr(table, "comment"),
-				datalake_source = getattr(table, "datalakeSource"),
-				operator_notes = getattr(table, "operatorNotes"),
-				copy_slave = getattr(table, "copySlave"),
-				create_foreign_keys = getattr(table, "createForeignKeys"),
-				invalidate_impala = getattr(table, "invalidateImpala"),
-				custom_max_query = getattr(table, "customMaxQuery"),
-				mergeCompactionMethod = getattr(table, "mergeCompactionMethod"),
-				sourceTableType = getattr(table, "sourceTableType"),
-				import_database = getattr(table, "importDatabase"),
-				import_table = getattr(table, "importTable"),
-				history_database = getattr(table, "historyDatabase"),
-				history_table = getattr(table, "historyTable"))
+				dbalias = getattr(data, "connection"),
+				source_schema = getattr(data, "sourceSchema"),
+				source_table = getattr(data, "sourceTable"),
+				import_phase_type = getattr(data, "importPhaseType"),
+				etl_phase_type = getattr(data, "etlPhaseType"),
+				import_tool = getattr(data, "importTool"),
+				etl_engine = getattr(data, "etlEngine"),
+				last_update_from_source = getattr(data, "lastUpdateFromSource"),
+				sqoop_sql_where_addition = getattr(data, "sqlWhereAddition"),
+				nomerge_ingestion_sql_addition = getattr(data, "nomergeIngestionSqlAddition"),
+				include_in_airflow = getattr(data, "includeInAirflow"),
+				airflow_priority = getattr(data, "airflowPriority"),
+				validate_import = getattr(data, "validateImport"),
+				validationMethod = getattr(data, "validationMethod"),
+				validate_source = getattr(data, "validateSource"),
+				validate_diff_allowed = getattr(data, "validateDiffAllowed"),
+				validationCustomQuerySourceSQL = getattr(data, "validationCustomQuerySourceSQL"),
+				validationCustomQueryHiveSQL = getattr(data, "validationCustomQueryHiveSQL"),
+				validationCustomQueryValidateImportTable = getattr(data, "validationCustomQueryValidateImportTable"),
+#				truncate_hive = getattr(data, "truncateTable"),
+				mappers = getattr(data, "sqlSessions"),
+				soft_delete_during_merge = getattr(data, "softDeleteDuringMerge"),
+				incr_mode = getattr(data, "incrMode"),
+				incr_column = getattr(data, "incrColumn"),
+				incr_validation_method = getattr(data, "incrValidationMethod"),
+				pk_column_override = getattr(data, "pkColumnOverride"),
+				pk_column_override_mergeonly = getattr(data, "pkColumnOverrideMergeonly"),
+				hive_merge_heap = getattr(data, "hiveContainerSize"),
+				hive_split_count = getattr(data, "splitCount"),
+				spark_executor_memory = getattr(data, "sparkExecutorMemory"),
+				spark_executors = getattr(data, "sparkExecutors"),
+				split_by_column = getattr(data, "splitByColumn"),
+				sqoop_query = getattr(data, "sqoopCustomQuery"),
+				sqoop_options = getattr(data, "sqoopOptions"),
+				sqoop_use_generated_sql = getattr(data, "sqoopUseGeneratedSql"),
+				sqoop_allow_text_splitter = getattr(data, "allowTextSplitter"),
+				force_string = getattr(data, "forceString"),
+				comment = getattr(data, "comment"),
+				datalake_source = getattr(data, "datalakeSource"),
+				operator_notes = getattr(data, "operatorNotes"),
+				copy_slave = getattr(data, "copySlave"),
+				create_foreign_keys = getattr(data, "createForeignKeys"),
+				invalidate_impala = getattr(data, "invalidateImpala"),
+				custom_max_query = getattr(data, "customMaxQuery"),
+				mergeCompactionMethod = getattr(data, "mergeCompactionMethod"),
+				sourceTableType = getattr(data, "sourceTableType"),
+				import_database = getattr(data, "importDatabase"),
+				import_table = getattr(data, "importTable"),
+				history_database = getattr(data, "historyDatabase"),
+				history_table = getattr(data, "historyTable"))
 
 			session.execute(query)
 			session.commit()
@@ -1765,14 +1768,15 @@ class dbCalls:
 					importTables.table_id
 				)
 				.select_from(importTables)
-				.filter((importTables.hive_db == getattr(table, "database")) & (importTables.hive_table == getattr(table, "table")))
+				.filter((importTables.hive_db == database) & (importTables.hive_table == table))
 				.one()
 			)
+#				.filter((importTables.hive_db == getattr(table, "database")) & (importTables.hive_table == getattr(table, "table")))
 
 		session.execute(query)
 		tableID = row[0]
 
-		columns = getattr(table, "columns")
+		columns = getattr(data, "columns")
 		for column in columns:
 			# PK in import_columns is not the most optimal. So we need to check first if it exists and then insert or update. Upsert is not available
 			row = (session.query(
@@ -1791,10 +1795,12 @@ class dbCalls:
 				if row == None:
 					log.debug("Column does not exist")
 	
+#						hive_db = getattr(data, "database"),
+#						hive_table = getattr(data, "table"),
 					query = sa.insert(configSchema.importColumns).values(
 						table_id = tableID,
-						hive_db = getattr(table, "database"),
-						hive_table = getattr(table, "table"),
+						hive_db = database,
+						hive_table = table,
 						column_name = getattr(column, "columnName"),
 						column_order = getattr(column, "columnOrder"),
 						source_column_name = getattr(column, "sourceColumnName"),
@@ -1817,13 +1823,15 @@ class dbCalls:
 				else:
 					columnID = row[0]
 					log.debug("Import column with id '%s' was updated"%(columnID))
+#							"hive_db": getattr(data, "database"),
+#							"hive_table": getattr(data, "table"),
 					session.execute(update(importColumns),
 						[
 							{
 							"table_id": tableID,
 							"column_id": columnID,
-							"hive_db": getattr(table, "database"),
-							"hive_table": getattr(table, "table"),
+							"hive_db": database,
+							"hive_table": table,
 							"column_name": getattr(column, "columnName"),
 							"column_order": getattr(column, "columnOrder"),
 							"source_column_name": getattr(column, "sourceColumnName"),

@@ -320,8 +320,8 @@ class importTableDetailsRead(BaseModel):
 	columns: List[importTableColumnsRead] = []
 
 class importTableDetailsWrite(BaseModel):
-	database: str
-	table: str
+#	database: str
+#	table: str
 	connection: str
 	sourceSchema: str
 	sourceTable: str
