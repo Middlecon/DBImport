@@ -41,8 +41,8 @@ class importDBs(BaseModel):
 	lastSize: Union[int, None] = None
 	lastRows: Union[int, None] = None
 
-class testConnectionResponse(BaseModel):
-	status: str
+# class testConnectionResponse(BaseModel):
+# 	status: str
 
 class connectionSearch(BaseModel):
 	name: Union[str, None] = None
@@ -83,8 +83,8 @@ class connectionDetails(BaseModel):
 	atlasExcludeFilter: Union[str, None] = None
 	atlasLastDiscovery: Union[str, None] = None
 
-class encryptCredentialResult(BaseModel):
-	result: str
+# class encryptCredentialResult(BaseModel):
+# 	result: str
 
 class encryptCredential(BaseModel):
 	connection: str
@@ -386,7 +386,7 @@ class importTableSearch(BaseModel):
 	includeInAirflow: Union[bool, None] = None
 	operatorNotes: Union[str, None] = None
 
-class importTableBulkUpdatePK(BaseModel):
+class importTablePK(BaseModel):
 	database: str
 	table: str
 
@@ -398,7 +398,10 @@ class importTableBulkUpdate(BaseModel):
 	etlEngine: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
 	operatorNotes: Union[str, None] = None
-	importTables: List[importTableBulkUpdatePK] 
+	importTables: List[importTablePK] 
+
+class defaultResultResponse(BaseModel):
+	result: str
 
 class exportConnections(BaseModel):
 	name: str
@@ -536,7 +539,7 @@ class exportTableDetailsWrite(BaseModel):
 	operatorNotes: Union[str, None] = None
 	columns: List[exportTableColumnsWrite] = []
 
-class exportTableBulkUpdatePK(BaseModel):
+class exportTablePK(BaseModel):
 	connection: str
 	targetSchema: str
 	targetTable: str
@@ -546,7 +549,7 @@ class exportTableBulkUpdate(BaseModel):
 	exportTool: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
 	operatorNotes: Union[str, None] = None
-	exportTables: List[exportTableBulkUpdatePK] 
+	exportTables: List[exportTablePK] 
 
 class airflowAllDags(BaseModel):
 	name: str
@@ -675,7 +678,7 @@ class airflowImportDag(BaseModel):
 	airflowLink: Union[str, None] = None
 	tasks: List[airflowTask] = []
 
-class airflowDagBulkUpdatePK(BaseModel):
+class airflowDagPK(BaseModel):
 	name: str
 
 class airflowDagBulkUpdate(BaseModel):
@@ -689,7 +692,7 @@ class airflowDagBulkUpdate(BaseModel):
 	emailOnRetries: Union[bool, None] = None
 	slaWarningTime: Union[str, None] = None
 	concurrency: Union[int, None] = None
-	dags: List[airflowDagBulkUpdatePK] 
+	dags: List[airflowDagPK] 
 
 
 

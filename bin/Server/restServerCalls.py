@@ -1064,7 +1064,7 @@ class dbCalls:
 		else:
 			returnCode = 200
 
-		resultMsg = { "status": re.sub("\n$", "", result.stdout.decode()) }
+		resultMsg = { "result": re.sub("\n$", "", result.stdout.decode()) }
 
 		return (resultMsg, returnCode)
 
@@ -1521,14 +1521,47 @@ class dbCalls:
 		session.remove()
 		return (result, returnCode)
 
+	def bulkDeleteImportTable(self, bulkData, currentUser):
+		""" Bulk delete of import tables """
+		log = logging.getLogger(self.logger)
+
+		if len(bulkData) == 0:
+			resultMsg = { "result": "Body must contain a list of databas and table to delete" }
+			returnCode = 422
+			return (resultMsg, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		deleteStatement = delete(configSchema.importTables) 
+		deleteStatement = deleteStatement.where((configSchema.importTables.hive_db == bindparam("database")) & (configSchema.importTables.hive_table == bindparam("table")))
+
+		# Create a list of dicts that contain all the databas and table combinations that will be deleted
+		tableList = []
+		for tables in bulkData:
+			tableList.append({"database": tables.database, "table": tables.table})
+
+		session.connection().execute(deleteStatement, tableList)
+		session.commit()
+		session.remove()
+
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
+
+
 	def bulkUpdateImportTable(self, bulkData, currentUser):
 		""" Bulk update of import tables """
 		log = logging.getLogger(self.logger)
 
 		if len(getattr(bulkData, "importTables")) == 0:
-			result = "importTables must contain a list of database/tables to update"
+			resultMsg = { "result": "importTables must contain a list of database/tables to update" }
 			returnCode = 422
-			return (result, returnCode)
+			return (resultMsg, returnCode)
 
 		try:
 			session = self.getDBImportSession()
@@ -1561,12 +1594,12 @@ class dbCalls:
 
 		session.connection().execute(updateStatement, tableList)
 		session.commit()
-
-
 		session.remove()
-		result = "Ok"
+
 		returnCode = 200
-		return (result, returnCode)
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
 
 
 	def updateImportTable(self, table, currentUser):
@@ -2315,14 +2348,51 @@ class dbCalls:
 		return (result, returnCode)
 
 
+	def bulkDeleteExportTable(self, bulkData, currentUser):
+		""" Bulk delete of export tables """
+		log = logging.getLogger(self.logger)
+
+		if len(bulkData) == 0:
+			resultMsg = { "result": "Body must contain a list of connection, database and table to delete" }
+			returnCode = 422
+			return (resultMsg, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		deleteStatement = delete(configSchema.exportTables) 
+		deleteStatement = deleteStatement.where(
+							(configSchema.exportTables.dbalias == bindparam("connection")) & 
+							(configSchema.exportTables.target_schema == bindparam("targetSchema")) &
+							(configSchema.exportTables.target_table == bindparam("targetTable"))
+						)
+
+		# Create a list of dicts that contain all the connection, schema and table combinations that will be deleted
+		tableList = []
+		for tables in bulkData:
+			tableList.append({"connection": tables.connection, "targetSchema": tables.targetSchema, "targetTable": tables.targetTable})
+
+		session.connection().execute(deleteStatement, tableList)
+		session.commit()
+		session.remove()
+
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
+
+
 	def bulkUpdateExportTable(self, bulkData, currentUser):
 		""" Bulk update of export tables """
 		log = logging.getLogger(self.logger)
 
 		if len(getattr(bulkData, "exportTables")) == 0:
-			result = "exportTables must contain a list of connections/targetSchema/targetDatabase to update"
+			resultMsg = { "result": "exportTables must contain a list of connections/targetSchema/targetDatabase to update" }
 			returnCode = 422
-			return (result, returnCode)
+			return (resultMsg, returnCode)
 
 		try:
 			session = self.getDBImportSession()
@@ -2356,12 +2426,12 @@ class dbCalls:
 
 		session.connection().execute(updateStatement, tableList)
 		session.commit()
-
 		session.remove()
-		result = "Ok"
-		returnCode = 200
-		return (result, returnCode)
 
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
 
 
 	def updateExportTable(self, table, currentUser):
@@ -3234,8 +3304,44 @@ class dbCalls:
 			.filter(configSchema.airflowTasks.dag_name == dagname)
 			.delete())
 		session.commit()
-		# session.close()
 		session.remove()
+
+
+	def deleteTaskFromAirflowDag(self, dagname, taskname, currentUser):
+		""" Delete tasks from an Airflow DAG """
+		log = logging.getLogger(self.logger)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		airflowImportDags = aliased(configSchema.airflowImportDags)
+		resultMsg = { "result": "ok" }
+		returnCode = 200
+
+		log.info("User '%s' deleted Airflow task '%s' from DAG '%s'"%(currentUser, taskname, dagname))
+
+		# Fetch the tableID as that is required to update/create data in import_columns
+		row = (session.query(configSchema.airflowTasks.dag_name)
+				.select_from(configSchema.airflowTasks)
+				.filter((configSchema.airflowTasks.dag_name == dagname) & (configSchema.airflowTasks.task_name == taskname)) 
+				.one_or_none()
+				)
+		session.commit()
+
+		if row == None:
+			resultMsg = { "result": "Airflow Task on DAG does not exist" }
+			returnCode = 404
+		else:
+			(session.query(configSchema.airflowTasks)
+				.filter((configSchema.airflowTasks.dag_name == dagname) & (configSchema.airflowTasks.task_name == taskname)) 
+				.delete())
+			session.commit()
+
+		session.remove()
+		return (resultMsg, returnCode)
 
 
 	def deleteImportAirflowDag(self, dagname, currentUser):
@@ -3277,14 +3383,48 @@ class dbCalls:
 		session.remove()
 		return (result, returnCode)
 
+
+	def bulkDeleteImportAirflowDag(self, bulkData, currentUser):
+		""" Bulk delete of Airflow import Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(bulkData) == 0:
+			resultMsg = { "result": "Body must contain a list of Airflow dags to delete" }
+			returnCode = 422
+			return (resultMsg, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		deleteStatement = delete(configSchema.airflowImportDags) 
+		deleteStatement = deleteStatement.where(configSchema.airflowImportDags.dag_name == bindparam("dag"))
+
+		# Create a list of dicts that contain all the databas and table combinations that will be deleted
+		tableList = []
+		for tables in bulkData:
+			tableList.append({"dag": tables.name})
+
+		session.connection().execute(deleteStatement, tableList)
+		session.commit()
+		session.remove()
+
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
+
+
 	def bulkUpdateImportAirflowDag(self, bulkData, currentUser):
 		""" Bulk update of Airflow import Dags """
 		log = logging.getLogger(self.logger)
 
 		if len(getattr(bulkData, "dags")) == 0:
-			result = "dags must contain a list of Airflow dags to update"
+			resultMsg = { "result": "dags must contain a list of Airflow dags to update" }
 			returnCode = 422
-			return (result, returnCode)
+			return (resultMsg, returnCode)
 
 		try:
 			session = self.getDBImportSession()
@@ -3322,11 +3462,12 @@ class dbCalls:
 
 		session.connection().execute(updateStatement, tableList)
 		session.commit()
-
 		session.remove()
-		result = "Ok"
+
 		returnCode = 200
-		return (result, returnCode)
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
 
 
 	def updateImportAirflowDag(self, airflowDag, currentUser):
@@ -3482,15 +3623,49 @@ class dbCalls:
 		return (result, returnCode)
 
 
+	def bulkDeleteExportAirflowDag(self, bulkData, currentUser):
+		""" Bulk delete of Airflow import Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(bulkData) == 0:
+			resultMsg = { "result": "Body must contain a list of Airflow dags to delete" }
+			returnCode = 422
+			return (resultMsg, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		deleteStatement = delete(configSchema.airflowExportDags) 
+		deleteStatement = deleteStatement.where(configSchema.airflowExportDags.dag_name == bindparam("dag"))
+
+		# Create a list of dicts that contain all the databas and table combinations that will be deleted
+		tableList = []
+		for tables in bulkData:
+			tableList.append({"dag": tables.name})
+
+		session.connection().execute(deleteStatement, tableList)
+		session.commit()
+		session.remove()
+
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
+
+
+
 
 	def bulkUpdateExportAirflowDag(self, bulkData, currentUser):
 		""" Bulk update of Airflow export Dags """
 		log = logging.getLogger(self.logger)
 
 		if len(getattr(bulkData, "dags")) == 0:
-			result = "dags must contain a list of Airflow dags to update"
+			resultMsg = { "result": "dags must contain a list of Airflow dags to update" }
 			returnCode = 422
-			return (result, returnCode)
+			return (resultMsg, returnCode)
 
 		try:
 			session = self.getDBImportSession()
@@ -3528,11 +3703,12 @@ class dbCalls:
 
 		session.connection().execute(updateStatement, tableList)
 		session.commit()
-
 		session.remove()
-		result = "Ok"
+
 		returnCode = 200
-		return (result, returnCode)
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
 
 
 
@@ -3675,14 +3851,48 @@ class dbCalls:
 		session.remove()
 		return (result, returnCode)
 
+
+	def bulkDeleteCustomAirflowDag(self, bulkData, currentUser):
+		""" Bulk delete of Airflow custom Dags """
+		log = logging.getLogger(self.logger)
+
+		if len(bulkData) == 0:
+			resultMsg = { "result": "Body must contain a list of Airflow dags to delete" }
+			returnCode = 422
+			return (resultMsg, returnCode)
+
+		try:
+			session = self.getDBImportSession()
+		except SQLerror:
+			self.disconnectDBImportDB()
+			return None
+
+		deleteStatement = delete(configSchema.airflowCustomDags) 
+		deleteStatement = deleteStatement.where(configSchema.airflowCustomDags.dag_name == bindparam("dag"))
+
+		# Create a list of dicts that contain all the databas and table combinations that will be deleted
+		tableList = []
+		for tables in bulkData:
+			tableList.append({"dag": tables.name})
+
+		session.connection().execute(deleteStatement, tableList)
+		session.commit()
+		session.remove()
+
+		returnCode = 200
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
+
+
 	def bulkUpdateCustomAirflowDag(self, bulkData, currentUser):
 		""" Bulk update of Airflow custom Dags """
 		log = logging.getLogger(self.logger)
 
 		if len(getattr(bulkData, "dags")) == 0:
-			result = "dags must contain a list of Airflow dags to update"
+			resultMsg = { "result": "dags must contain a list of Airflow dags to update" }
 			returnCode = 422
-			return (result, returnCode)
+			return (resultMsg, returnCode)
 
 		try:
 			session = self.getDBImportSession()
@@ -3720,11 +3930,12 @@ class dbCalls:
 
 		session.connection().execute(updateStatement, tableList)
 		session.commit()
-
 		session.remove()
-		result = "Ok"
+
 		returnCode = 200
-		return (result, returnCode)
+		resultMsg = { "result": "Ok" }
+
+		return (resultMsg, returnCode)
 
 
 
