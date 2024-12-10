@@ -370,7 +370,7 @@ function Import() {
           <h1>Import</h1>
           <div className="db-dropdown">
             <Button
-              title="+ Create table"
+              title="+ Add table"
               onClick={() => setCreateModalOpen(true)}
               fontFamily={`'Work Sans Variable', sans-serif`}
               fontSize="14px"

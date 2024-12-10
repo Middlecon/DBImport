@@ -76,6 +76,9 @@ function BulkInputFields<T>({
           isRequired
         } = field
 
+        const currentValue =
+          key in bulkChanges ? bulkChanges[key] : allSame ? commonValue : null
+
         switch (type) {
           case SettingType.Enum: {
             const dropdownOptions = enumOptions
@@ -83,13 +86,6 @@ function BulkInputFields<T>({
               : []
 
             const dropdownId = `dropdown-${String(field.key)}`
-
-            const currentValue =
-              key in bulkChanges
-                ? bulkChanges[key]
-                : allSame
-                ? commonValue
-                : null
 
             const currentTitle =
               currentValue != null
@@ -132,6 +128,9 @@ function BulkInputFields<T>({
                     isInfoTextPositionUp={false}
                   />
                 )}
+                {currentValue === null && (
+                  <p className="mixed-values-text">Mixed values</p>
+                )}
               </div>
             )
           }
@@ -161,6 +160,9 @@ function BulkInputFields<T>({
                     infoTextMaxWidth={430}
                     isInfoTextPositionUp={false}
                   />
+                )}
+                {currentValue === null && (
+                  <p className="mixed-values-text">Mixed values</p>
                 )}
               </div>
             )
@@ -207,6 +209,9 @@ function BulkInputFields<T>({
                     isInfoTextPositionUp={false}
                   />
                 )}
+                {currentValue === null && (
+                  <p className="mixed-values-text">Mixed values</p>
+                )}
               </div>
             )
           }
@@ -230,6 +235,9 @@ function BulkInputFields<T>({
                     infoTextMaxWidth={280}
                     isInfoTextPositionUp={false}
                   />
+                )}
+                {currentValue === null && (
+                  <p className="mixed-values-text">Mixed values</p>
                 )}
               </div>
             )

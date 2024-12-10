@@ -76,7 +76,7 @@ function ExportCnTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'editAndDelete' }
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
@@ -230,14 +230,15 @@ function ExportCnTables({
             className="list-top-info-and-edit"
             // style={{ visibility: 'hidden' }}
           >
-            {currentRowsLength > 0 && (
-              <Button
-                title={`Edit ${currentRowsLength} table${
-                  currentRowsLength > 1 ? 's' : ''
-                }`}
-                onClick={handleBulkEditClick}
-              />
-            )}
+            <Button
+              title={`Edit ${
+                currentRowsLength > 0 ? currentRowsLength : ''
+              } table${
+                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+              }`}
+              onClick={handleBulkEditClick}
+              disabled={currentRowsLength < 1}
+            />
           </div>
           <ListRowsInfo
             filteredData={data}

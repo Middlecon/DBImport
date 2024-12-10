@@ -207,14 +207,15 @@ function DbTables({
       {data ? (
         <>
           <div className="list-top-info-and-edit">
-            {currentRowsLength > 0 && (
-              <Button
-                title={`Edit ${currentRowsLength} table${
-                  currentRowsLength > 1 ? 's' : ''
-                }`}
-                onClick={handleBulkEditClick}
-              />
-            )}
+            <Button
+              title={`Edit ${
+                currentRowsLength > 0 ? currentRowsLength : ''
+              } table${
+                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+              }`}
+              onClick={handleBulkEditClick}
+              disabled={currentRowsLength < 1}
+            />
           </div>
 
           <ListRowsInfo

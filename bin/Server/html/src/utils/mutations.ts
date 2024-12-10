@@ -91,14 +91,19 @@ const postUpdateTable = async (
   type: 'import' | 'export',
   table: UITableWithoutEnum | UIExportTableWithoutEnum
 ) => {
-  const { database, table: tableName, ...tableObject } = table
+  const { database, table: tableName, ...importTableObject } = table
+  const { connection, targetSchema, targetTable, ...exportTableObject } = table
+
+  const postUrl =
+    type === 'import'
+      ? `/${type}/table/${database}/${tableName}`
+      : `/${type}/table/${connection}/${targetSchema}/${targetTable}`
+
+  const tableObject = type === 'import' ? importTableObject : exportTableObject
 
   console.log('postTable type', type)
   console.log('postTable table', table)
-  const response = await axiosInstance.post(
-    `/${type}/table/${database}/${tableName}`,
-    tableObject
-  )
+  const response = await axiosInstance.post(postUrl, tableObject)
   console.log('postTable response.data', response.data)
 
   return response.data
