@@ -2592,8 +2592,8 @@ class dbCalls:
 		return (resultMsg, returnCode)
 
 
-	def updateExportTable(self, table, currentUser):
-		""" Update or create an import table """
+	def updateExportTable(self, connection, schema, table, data, currentUser):
+		""" Update or create an export table """
 		log = logging.getLogger(self.logger)
 
 		try:
@@ -2610,74 +2610,74 @@ class dbCalls:
 		log.debug(table)
 		log.info("User '%s' updated/created export table '%s.%s' on connection '%s'"%(
 			currentUser, 
-			getattr(table, "targetSchema"), 
-			getattr(table, "targetTable"), 
-			getattr(table, "connection")))
+			schema, 
+			table, 
+			connection))
 
 		# Set default values
-		if getattr(table, "includeInAirflow") == None:							setattr(table, "includeInAirflow", 1)
-		if getattr(table, "forceCreateTempTable") == None:						setattr(table, "forceCreateTempTable", 0)	
-		if getattr(table, "validateExport") == None:							setattr(table, "validateExport", 1)
-		if getattr(table, "validationMethod") == None:							setattr(table, "validationMethod", "rowCount")
-		if getattr(table, "uppercaseColumns") == None:							setattr(table, "uppercaseColumns", -1)
-		if getattr(table, "truncateTarget") == None:							setattr(table, "truncateTarget", 1)
-		if getattr(table, "sqlSessions") == None:								setattr(table, "sqlSessions", -1)
-		if getattr(table, "incrValidationMethod") == None:						setattr(table, "incrValidationMethod", "full")
+		if getattr(data, "includeInAirflow") == None:							setattr(data, "includeInAirflow", 1)
+		if getattr(data, "forceCreateTempTable") == None:						setattr(data, "forceCreateTempTable", 0)	
+		if getattr(data, "validateExport") == None:								setattr(data, "validateExport", 1)
+		if getattr(data, "validationMethod") == None:							setattr(data, "validationMethod", "rowCount")
+		if getattr(data, "uppercaseColumns") == None:							setattr(data, "uppercaseColumns", -1)
+		if getattr(data, "truncateTarget") == None:								setattr(data, "truncateTarget", 1)
+		if getattr(data, "sqlSessions") == None:								setattr(data, "sqlSessions", -1)
+		if getattr(data, "incrValidationMethod") == None:						setattr(data, "incrValidationMethod", "full")
 
 		try:
 			query = insert(configSchema.exportTables).values(
-				dbalias = getattr(table, "connection"),
-				target_schema = getattr(table, "targetSchema"),
-				target_table = getattr(table, "targetTable"),
-				export_type = getattr(table, "exportType"),
-				export_tool = getattr(table, "exportTool"),
-				hive_db = getattr(table, "database"),
-				hive_table = getattr(table, "table"),
-				last_update_from_hive = getattr(table, "lastUpdateFromHive"),
-				sql_where_addition = getattr(table, "sqlWhereAddition"),
-				include_in_airflow = getattr(table, "includeInAirflow"),
-				airflow_priority = getattr(table, "airflowPriority"),
-				forceCreateTempTable = getattr(table, "forceCreateTempTable"),
-				validate_export = getattr(table, "validateExport"),
-				validationMethod = getattr(table, "validationMethod"),
-				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
-				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
-				uppercase_columns = getattr(table, "uppercaseColumns"),
-				truncate_target = getattr(table, "truncateTarget"),
-				mappers = getattr(table, "sqlSessions"),
-				incr_column = getattr(table, "incrColumn"),
-				incr_validation_method = getattr(table, "incrValidationMethod"),
-				sqoop_options = getattr(table, "sqoopOptions"),
-				hive_javaheap = getattr(table, "hiveContainerSize"),
-				create_target_table_sql = getattr(table, "createTargetTableSql"),
-				operator_notes = getattr(table, "operatorNotes"))
+				dbalias = connection,
+				target_schema = schema,
+				target_table = table,
+				export_type = getattr(data, "exportType"),
+				export_tool = getattr(data, "exportTool"),
+				hive_db = getattr(data, "database"),
+				hive_table = getattr(data, "table"),
+				last_update_from_hive = getattr(data, "lastUpdateFromHive"),
+				sql_where_addition = getattr(data, "sqlWhereAddition"),
+				include_in_airflow = getattr(data, "includeInAirflow"),
+				airflow_priority = getattr(data, "airflowPriority"),
+				forceCreateTempTable = getattr(data, "forceCreateTempTable"),
+				validate_export = getattr(data, "validateExport"),
+				validationMethod = getattr(data, "validationMethod"),
+				validationCustomQueryHiveSQL = getattr(data, "validationCustomQueryHiveSQL"),
+				validationCustomQueryTargetSQL = getattr(data, "validationCustomQueryTargetSQL"),
+				uppercase_columns = getattr(data, "uppercaseColumns"),
+				truncate_target = getattr(data, "truncateTarget"),
+				mappers = getattr(data, "sqlSessions"),
+				incr_column = getattr(data, "incrColumn"),
+				incr_validation_method = getattr(data, "incrValidationMethod"),
+				sqoop_options = getattr(data, "sqoopOptions"),
+				hive_javaheap = getattr(data, "hiveContainerSize"),
+				create_target_table_sql = getattr(data, "createTargetTableSql"),
+				operator_notes = getattr(data, "operatorNotes"))
 
 			query = query.on_duplicate_key_update(
-				dbalias = getattr(table, "connection"),
-				target_schema = getattr(table, "targetSchema"),
-				target_table = getattr(table, "targetTable"),
-				export_type = getattr(table, "exportType"),
-				export_tool = getattr(table, "exportTool"),
-				hive_db = getattr(table, "database"),
-				hive_table = getattr(table, "table"),
-				last_update_from_hive = getattr(table, "lastUpdateFromHive"),
-				sql_where_addition = getattr(table, "sqlWhereAddition"),
-				include_in_airflow = getattr(table, "includeInAirflow"),
-				airflow_priority = getattr(table, "airflowPriority"),
-				forceCreateTempTable = getattr(table, "forceCreateTempTable"),
-				validate_export = getattr(table, "validateExport"),
-				validationMethod = getattr(table, "validationMethod"),
-				validationCustomQueryHiveSQL = getattr(table, "validationCustomQueryHiveSQL"),
-				validationCustomQueryTargetSQL = getattr(table, "validationCustomQueryTargetSQL"),
-				uppercase_columns = getattr(table, "uppercaseColumns"),
-				truncate_target = getattr(table, "truncateTarget"),
-				mappers = getattr(table, "sqlSessions"),
-				incr_column = getattr(table, "incrColumn"),
-				incr_validation_method = getattr(table, "incrValidationMethod"),
-				sqoop_options = getattr(table, "sqoopOptions"),
-				hive_javaheap = getattr(table, "hiveContainerSize"),
-				create_target_table_sql = getattr(table, "createTargetTableSql"),
-				operator_notes = getattr(table, "operatorNotes"))
+				dbalias = connection,
+				target_schema = schema,
+				target_table = table,
+				export_type = getattr(data, "exportType"),
+				export_tool = getattr(data, "exportTool"),
+				hive_db = getattr(data, "database"),
+				hive_table = getattr(data, "table"),
+				last_update_from_hive = getattr(data, "lastUpdateFromHive"),
+				sql_where_addition = getattr(data, "sqlWhereAddition"),
+				include_in_airflow = getattr(data, "includeInAirflow"),
+				airflow_priority = getattr(data, "airflowPriority"),
+				forceCreateTempTable = getattr(data, "forceCreateTempTable"),
+				validate_export = getattr(data, "validateExport"),
+				validationMethod = getattr(data, "validationMethod"),
+				validationCustomQueryHiveSQL = getattr(data, "validationCustomQueryHiveSQL"),
+				validationCustomQueryTargetSQL = getattr(data, "validationCustomQueryTargetSQL"),
+				uppercase_columns = getattr(data, "uppercaseColumns"),
+				truncate_target = getattr(data, "truncateTarget"),
+				mappers = getattr(data, "sqlSessions"),
+				incr_column = getattr(data, "incrColumn"),
+				incr_validation_method = getattr(data, "incrValidationMethod"),
+				sqoop_options = getattr(data, "sqoopOptions"),
+				hive_javaheap = getattr(data, "hiveContainerSize"),
+				create_target_table_sql = getattr(data, "createTargetTableSql"),
+				operator_notes = getattr(data, "operatorNotes"))
 
 			session.execute(query)
 			session.commit()
@@ -2699,16 +2699,16 @@ class dbCalls:
 				)
 				.select_from(exportTables)
 				.filter(
-					(exportTables.dbalias == getattr(table, "connection")) & 
-					(exportTables.target_schema == getattr(table, "targetSchema")) &
-					(exportTables.target_table == getattr(table, "targetTable")))
+					(exportTables.dbalias == connection) & 
+					(exportTables.target_schema == schema) &
+					(exportTables.target_table == table))
 				.one()
 			)
 
 		session.execute(query)
 		tableID = row[0]
 
-		columns = getattr(table, "columns")
+		columns = getattr(data, "columns")
 		for column in columns:
 			# PK in export_columns is not the most optimal. So we need to check first if it exists and then insert or update. 
 			# Upsert is not available
@@ -2737,8 +2737,8 @@ class dbCalls:
 						column_name = getattr(column, "columnName"),
 						column_type = getattr(column, "columnType"),
 						column_order = columnOrder,
-						hive_db = getattr(table, "database"),
-						hive_table = getattr(table, "table"),
+						hive_db = getattr(data, "database"),
+						hive_table = getattr(data, "table"),
 						target_column_name = getattr(column, "targetColumnName"),
 						target_column_type = getattr(column, "targetColumnType"),
 						last_update_from_hive = getattr(column, "lastUpdateFromHive"),
@@ -2760,8 +2760,8 @@ class dbCalls:
 							"column_name": getattr(column, "columnName"),
 							"column_type": getattr(column, "columnType"),
 							"column_order": columnOrder,
-							"hive_db": getattr(table, "database"),
-							"hive_table": getattr(table, "table"),
+							"hive_db": getattr(data, "database"),
+							"hive_table": getattr(data, "table"),
 							"target_column_name": getattr(column, "targetColumnName"),
 							"target_column_type": getattr(column, "targetColumnType"),
 							"last_update_from_hive": getattr(column, "lastUpdateFromHive"),
@@ -3628,7 +3628,7 @@ class dbCalls:
 		return (resultMsg, returnCode)
 
 
-	def updateImportAirflowDag(self, airflowDag, currentUser):
+	def updateImportAirflowDag(self, dagname, airflowDag, currentUser):
 		""" Update or create an Airflow import DAG """
 		log = logging.getLogger(self.logger)
 
@@ -3642,14 +3642,14 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeImport = True) == False:
+		if self.checkDagNameAvailability(name = dagname, excludeImport = True) == False:
 			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
 			result = "Ariflow DAG with the specified name already exists as Custom or Export"
 			returnCode = 400
 			return (result, returnCode)
 
 		log.debug(airflowDag)
-		log.info("User '%s' updated/created Airflow import DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+		log.info("User '%s' updated/created Airflow import DAG '%s'"%(currentUser, dagname))
 
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
@@ -3665,7 +3665,7 @@ class dbCalls:
 
 		try:
 			query = insert(configSchema.airflowImportDags).values(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				filter_hive = getattr(airflowDag, "filterTable"),
 				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
@@ -3691,7 +3691,7 @@ class dbCalls:
 				concurrency = getattr(airflowDag, "concurrency"))
 
 			query = query.on_duplicate_key_update(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				filter_hive = getattr(airflowDag, "filterTable"),
 				finish_all_stage1_first = getattr(airflowDag, "finishAllStage1First"),
@@ -3734,7 +3734,7 @@ class dbCalls:
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
-			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+			if self.updateAirflowTasks(dagname = dagname, task = task, currentUser = currentUser) == False:
 				result = "Error while updating/creating Airflow tasks. Please check logs on server"
 				returnCode = 400
 				return (result, returnCode)
@@ -3870,7 +3870,7 @@ class dbCalls:
 
 
 
-	def updateExportAirflowDag(self, airflowDag, currentUser):
+	def updateExportAirflowDag(self, dagname, airflowDag, currentUser):
 		""" Update or create an Airflow export DAG """
 		log = logging.getLogger(self.logger)
 
@@ -3884,14 +3884,14 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeExport = True) == False:
+		if self.checkDagNameAvailability(name = dagname, excludeExport = True) == False:
 			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
 			result = "Ariflow DAG with the specified name already exists as Custom or Export"
 			returnCode = 400
 			return (result, returnCode)
 
 		log.debug(airflowDag)
-		log.info("User '%s' updated/created Airflow export DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+		log.info("User '%s' updated/created Airflow export DAG '%s'"%(currentUser, dagname))
 
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
@@ -3904,7 +3904,7 @@ class dbCalls:
 
 		try:
 			query = insert(configSchema.airflowExportDags).values(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				filter_dbalias = getattr(airflowDag, "filterConnection"),
 				filter_target_schema = getattr(airflowDag, "filterTargetSchema"),
@@ -3925,7 +3925,7 @@ class dbCalls:
 				concurrency = getattr(airflowDag, "concurrency"))
 
 			query = query.on_duplicate_key_update(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				filter_dbalias = getattr(airflowDag, "filterConnection"),
 				filter_target_schema = getattr(airflowDag, "filterTargetSchema"),
@@ -3963,7 +3963,7 @@ class dbCalls:
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
-			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+			if self.updateAirflowTasks(dagname = dagname, task = task, currentUser = currentUser) == False:
 				result = "Error while updating/creating Airflow tasks. Please check logs on server"
 				returnCode = 400
 				return (result, returnCode)
@@ -4097,7 +4097,7 @@ class dbCalls:
 
 
 
-	def updateCustomAirflowDag(self, airflowDag, currentUser):
+	def updateCustomAirflowDag(self, dagname, airflowDag, currentUser):
 		""" Update or create an Airflow custom DAG """
 		log = logging.getLogger(self.logger)
 
@@ -4111,14 +4111,14 @@ class dbCalls:
 		result = "ok"
 		returnCode = 200
 
-		if self.checkDagNameAvailability(name = getattr(airflowDag, "name"), excludeCustom = True) == False:
+		if self.checkDagNameAvailability(name = dagname, excludeCustom = True) == False:
 			log.error("Airflow Import DAG creation was denied as the name was already existing on custom or export DAG")
 			result = "Ariflow DAG with the specified name already exists as Custom or Export"
 			returnCode = 400
 			return (result, returnCode)
 
 		log.debug(airflowDag)
-		log.info("User '%s' updated/created Airflow custom DAG '%s'"%(currentUser, getattr(airflowDag, "name")))
+		log.info("User '%s' updated/created Airflow custom DAG '%s'"%(currentUser, dagname))
 
 		# Set default values
 		if getattr(airflowDag, "scheduleInterval") == None:							setattr(airflowDag, "scheduleInterval", "None")
@@ -4130,7 +4130,7 @@ class dbCalls:
 
 		try:
 			query = insert(configSchema.airflowCustomDags).values(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				retries = getattr(airflowDag, "retries"),
 				operator_notes = getattr(airflowDag, "operatorNotes"),
@@ -4148,7 +4148,7 @@ class dbCalls:
 				concurrency = getattr(airflowDag, "concurrency"))
 
 			query = query.on_duplicate_key_update(
-				dag_name = getattr(airflowDag, "name"),
+				dag_name = dagname,
 				schedule_interval = getattr(airflowDag, "scheduleInterval"),
 				retries = getattr(airflowDag, "retries"),
 				operator_notes = getattr(airflowDag, "operatorNotes"),
@@ -4183,7 +4183,7 @@ class dbCalls:
 
 		tasks = getattr(airflowDag, "tasks")
 		for task in tasks:
-			if self.updateAirflowTasks(dagname = getattr(airflowDag, "name"), task = task, currentUser = currentUser) == False:
+			if self.updateAirflowTasks(dagname = dagname, task = task, currentUser = currentUser) == False:
 				result = "Error while updating/creating Airflow tasks. Please check logs on server"
 				returnCode = 400
 				return (result, returnCode)

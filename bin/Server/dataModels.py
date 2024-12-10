@@ -500,9 +500,9 @@ class exportTableDetailsRead(BaseModel):
 	columns: List[exportTableColumnsRead] = []
 
 class exportTableDetailsWrite(BaseModel):
-	connection: str
-	targetSchema: str
-	targetTable: str
+#	connection: str
+#	targetSchema: str
+#	targetTable: str
 	exportType: str
 	exportTool: str
 	database: str
