@@ -92,12 +92,18 @@ const postUpdateTable = async (
   table: UITableWithoutEnum | UIExportTableWithoutEnum
 ) => {
   const { database, table: tableName, ...importTableObject } = table
+  const encodedDatabase = encodeURIComponent(database)
+  const encodedTable = encodeURIComponent(tableName)
+
   const { connection, targetSchema, targetTable, ...exportTableObject } = table
+  const encodedConnection = encodeURIComponent(connection)
+  const encodedTargetSchema = encodeURIComponent(targetSchema as string)
+  const encodedTargetTable = encodeURIComponent(targetTable as string)
 
   const postUrl =
     type === 'import'
-      ? `/${type}/table/${database}/${tableName}`
-      : `/${type}/table/${connection}/${targetSchema}/${targetTable}`
+      ? `/${type}/table/${encodedDatabase}/${encodedTable}`
+      : `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
 
   const tableObject = type === 'import' ? importTableObject : exportTableObject
 
@@ -132,9 +138,11 @@ const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
   console.log('postTable table', table)
 
   const { database, table: tableName, ...tableObject } = table
+  const encodedDatabase = encodeURIComponent(database)
+  const encodedTable = encodeURIComponent(tableName)
 
   const response = await axiosInstance.post(
-    `/import/table/${database}/${tableName}`,
+    `/import/table/${encodedDatabase}/${encodedTable}`,
     tableObject
   )
   console.log('postTable response.data', response.data)
@@ -178,8 +186,15 @@ export const useDeleteImportTable = () => {
 // Export create table
 
 const postCreateExportTable = async (table: ExportTableCreateWithoutEnum) => {
-  console.log('postTable table', table)
-  const response = await axiosInstance.post('/export/table', table)
+  const { connection, targetSchema, targetTable, ...exportTableObject } = table
+  const encodedConnection = encodeURIComponent(connection)
+  const encodedTargetSchema = encodeURIComponent(targetSchema)
+  const encodedTargetTable = encodeURIComponent(targetTable)
+
+  const response = await axiosInstance.post(
+    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`,
+    exportTableObject
+  )
   console.log('postTable response.data', response.data)
 
   return response.data
@@ -209,6 +224,7 @@ const deleteExportTable = async ({
   const encodedConnection = encodeURIComponent(connection)
   const encodedTargetSchema = encodeURIComponent(targetSchema)
   const encodedTargetTable = encodeURIComponent(targetTable)
+
   const response = await axiosInstance.delete(
     `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
   )
@@ -227,7 +243,13 @@ const updateAirflowDag = async (
   type: 'import' | 'export' | 'custom',
   dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
 ) => {
-  const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
+  const { name, ...dagDataObject } = dagData
+  const encodedDagName = encodeURIComponent(name)
+
+  const response = await axiosInstance.post(
+    `/airflow/dags/${type}/${encodedDagName}`,
+    dagDataObject
+  )
   return response.data
 }
 
@@ -251,7 +273,13 @@ const postCreateAirflowDag = async (
     | ExportCreateAirflowDAG
     | CustomCreateAirflowDAG
 ) => {
-  const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
+  const { name, ...dagDataObject } = dagData
+  const encodedDagName = encodeURIComponent(name)
+
+  const response = await axiosInstance.post(
+    `/airflow/dags/${type}/${encodedDagName}`,
+    dagDataObject
+  )
   return response.data
 }
 
