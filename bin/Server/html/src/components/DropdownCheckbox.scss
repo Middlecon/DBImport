@@ -13,6 +13,8 @@
     background-color: rgb(99, 104, 118);
     color: rgb(255, 255, 255);
     font-size: 14px;
+    font-family: 'Bai Jamjuree Bold', sans-serif;
+    // font-family: 'Work Sans Variable', sans-serif;
 
     // background-color: rgb(43, 62, 111);
     // color: rgb(255, 255, 255);
@@ -43,25 +45,22 @@
     box-sizing: border-box;
   }
 
+  .count-badge,
+  .count-badge-placeholder {
+    width: 12px;
+    height: 12px;
+    margin-left: 10px;
+    padding: 2.5px 2.5px 3px 2px;
+  }
+
   .count-badge {
     background-color: #d9d9d9;
     color: black;
     border-radius: 50%;
-    width: 12px;
-    height: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    margin-left: 10px;
-    padding: 2px 2px 3px 2px;
-  }
-
-  .count-badge-placeholder {
-    width: 13px;
-    height: 13px;
-    margin-left: 10px;
-    padding: 2px 2px 3px 2px;
   }
 
   .chevron-container {
@@ -72,7 +71,7 @@
 
   .menu {
     position: absolute;
-    top: 32px;
+    top: 31px;
     width: min-content;
     min-width: 95%;
 
@@ -110,7 +109,7 @@
 
   .light-menu {
     position: absolute;
-    top: 32px;
+    top: 31px;
     width: min-content;
     min-width: 95%;
 

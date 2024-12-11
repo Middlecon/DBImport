@@ -224,9 +224,13 @@ function Connection() {
         </div>
         {data && Array.isArray(data.connections) ? (
           <>
+            <div style={{ height: 27 }} />
             <ListRowsInfo
               filteredData={filteredData}
-              headersRowInfo={data.headersRowInfo}
+              contentTotalRows={data.headersRowInfo.contentTotalRows}
+              contentMaxReturnedRows={
+                data.headersRowInfo.contentMaxReturnedRows
+              }
               itemType="connection"
             />
             {filteredData && (

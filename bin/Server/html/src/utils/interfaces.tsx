@@ -19,7 +19,7 @@ import {
 } from './enums'
 
 export interface BulkField<T> {
-  key: keyof T
+  key: keyof T | 'groupingspace'
   label: string
   type: string
   enumOptions?: { [key: string]: string }
@@ -592,12 +592,12 @@ interface ImportPKs {
 }
 
 export interface BulkUpdateImportTables {
-  connection?: string
-  importPhaseType?: string
-  etlPhaseType?: string
-  importTool?: string
-  etlEngine?: string
-  includeInAirflow?: boolean
+  connection?: string | null
+  importPhaseType?: string | null
+  etlPhaseType?: string | null
+  importTool?: string | null
+  etlEngine?: string | null
+  includeInAirflow?: boolean | null
   operatorNotes?: string | null
   importTables: ImportPKs[]
 }
@@ -841,9 +841,9 @@ interface ExportPKs {
 }
 
 export interface BulkUpdateExportTables {
-  exportType?: string
-  exportTool?: string
-  includeInAirflow?: boolean
+  exportType?: string | null
+  exportTool?: string | null
+  includeInAirflow?: boolean | null
   operatorNotes?: string | null
   exportTables: ExportPKs[]
 }
@@ -985,6 +985,28 @@ export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
 }
 
 export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
+
+interface AirflowDagPk {
+  name: string
+}
+
+export interface BulkUpdateAirflowDAG {
+  scheduleInterval?: string | null
+  autoRegenerateDag?: boolean | null
+  operatorNotes?: string | null
+  sudoUser?: string | null
+  timezone?: string | null
+  email?: string | null
+  emailOnFailure?: boolean | null
+  emailOnRetries?: boolean | null
+  slaWarningTime?: string | null
+  concurrency?: number | null
+  dags: AirflowDagPk[]
+}
+
+export interface UiBulkAirflowDAG extends Omit<BulkUpdateAirflowDAG, 'dags'> {
+  name: string
+}
 
 // Configuration
 

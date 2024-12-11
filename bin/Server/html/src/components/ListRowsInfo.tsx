@@ -1,19 +1,20 @@
-import { HeadersRowInfo } from '../utils/interfaces'
 import './ListRowsInfo.scss'
 
 interface ListRowsInfoProps<T> {
   filteredData: T[]
-  headersRowInfo: HeadersRowInfo
-  itemType: 'table' | 'connection'
+  contentTotalRows: string
+  contentMaxReturnedRows?: string
+  itemType: 'table' | 'connection' | 'DAG'
 }
 
 function ListRowsInfo<T>({
   filteredData,
-  headersRowInfo,
+  contentTotalRows,
+  contentMaxReturnedRows,
   itemType
 }: ListRowsInfoProps<T>) {
-  const totalRows = Number(headersRowInfo.contentTotalRows)
-  const maxRows = Number(headersRowInfo.contentMaxReturnedRows)
+  const totalRows = Number(contentTotalRows)
+  const maxRows = contentMaxReturnedRows ? Number(contentMaxReturnedRows) : 0
   const itemTypeString = filteredData.length === 1 ? itemType : `${itemType}s`
 
   return (
@@ -24,13 +25,11 @@ function ListRowsInfo<T>({
           : `list-rows-info`
       }
     >
-      {`Showing ${filteredData.length} ${
-        totalRows > maxRows
-          ? `(limited to ${headersRowInfo.contentMaxReturnedRows})`
-          : ''
-      } of ${
-        headersRowInfo.contentTotalRows
-      } ${itemTypeString} matching the filter`}
+      {contentMaxReturnedRows
+        ? `Showing ${filteredData.length} ${
+            totalRows > maxRows ? `(limited to ${contentMaxReturnedRows})` : ''
+          } of ${contentTotalRows} ${itemTypeString} matching the filter`
+        : `Showing ${filteredData.length}  of ${contentTotalRows} ${itemTypeString}`}
     </p>
   )
 }

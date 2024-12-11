@@ -242,7 +242,8 @@ function ExportCnTables({
           </div>
           <ListRowsInfo
             filteredData={data}
-            headersRowInfo={headersRowInfo}
+            contentTotalRows={headersRowInfo.contentTotalRows}
+            contentMaxReturnedRows={headersRowInfo.contentMaxReturnedRows}
             itemType="table"
           />
           <TableList

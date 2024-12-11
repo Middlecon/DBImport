@@ -20,7 +20,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     disabled,
     onClick,
     lightStyle = false,
-    fontFamily,
+    // fontFamily,
     fontSize,
     padding,
     marginRight
@@ -31,7 +31,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
   useImperativeHandle(ref, () => buttonRef.current!)
 
   const buttonStyle: React.CSSProperties = {
-    fontFamily,
+    // fontFamily,
     fontSize,
     padding,
     marginRight

@@ -4,9 +4,11 @@ import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useExportAirflows } from '../../utils/queries'
 import {
   AirflowsExportData,
+  BulkUpdateAirflowDAG,
   Column,
   EditSetting,
-  UiAirflowsExportData
+  UiAirflowsExportData,
+  UiBulkAirflowDAG
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
@@ -16,8 +18,15 @@ import Button from '../../components/Button'
 import CreateAirflowModal from '../../components/CreateAirflowModal'
 import { createExportDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCreateAirflowDag, useDeleteAirflowDAG } from '../../utils/mutations'
+import {
+  useBulkUpdateAirflowDag,
+  useCreateAirflowDag,
+  useDeleteAirflowDAG
+} from '../../utils/mutations'
 import ConfirmationModal from '../../components/ConfirmationModal'
+import BulkEditModal from '../../components/BulkEditModal'
+import ListRowsInfo from '../../components/ListRowsInfo'
+import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 
 const checkboxFilters = [
   {
@@ -32,6 +41,8 @@ function AirflowExport() {
   const { mutate: createDAG } = useCreateAirflowDag()
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
+  const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
+
   const queryClient = useQueryClient()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
@@ -40,7 +51,12 @@ function AirflowExport() {
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+
   const [rowSelection, setRowSelection] = useState({})
+  const [currentRowsBulk, setCurrentRowsBulk] = useState<
+    UiBulkAirflowDAG[] | []
+  >([])
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
 
   const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
 
@@ -56,6 +72,8 @@ function AirflowExport() {
     ],
     []
   )
+
+  const bulkAirflowDagFields = bulkAirflowDagFieldsData('export')
 
   const handleSelect = (filterKey: string, items: string[]) => {
     setSelectedFilters((prevFilters) => ({
@@ -90,7 +108,7 @@ function AirflowExport() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ['airflows', 'export'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            queryKey: ['airflows', 'export'], // Matches all related queries that starts the queryKey with 'airflows', 'export'
             exact: false
           })
           console.log('Delete successful')
@@ -122,17 +140,6 @@ function AirflowExport() {
     )
   }
 
-  const handleBulkEditClick = useCallback(() => {
-    if (!data) return
-    const selectedIndexes = Object.keys(rowSelection).map((id) =>
-      parseInt(id, 10)
-    )
-    const selectedRows = selectedIndexes.map((index) => data[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
-    // setCurrentRowsBulk(selectedRows)
-    // setIsBulkEditModalOpen(true)
-  }, [rowSelection, data])
-
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     return data.filter((row) => {
@@ -151,6 +158,57 @@ function AirflowExport() {
       })
     })
   }, [data, selectedFilters])
+
+  const handleBulkEditClick = useCallback(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => filteredData[index])
+    console.log('handleBulkEditClick selectedRows', selectedRows)
+    setCurrentRowsBulk(selectedRows)
+    setIsBulkEditModalOpen(true)
+  }, [rowSelection, filteredData])
+
+  const handleBulkEditSave = (
+    bulkChanges: Record<string, string | number | boolean | null>
+  ) => {
+    const airflowDagPks = currentRowsBulk.map((row) => ({
+      name: row.name
+    }))
+
+    const bulkUpdateJson: BulkUpdateAirflowDAG = {
+      ...bulkChanges,
+      dags: airflowDagPks
+    }
+
+    bulkUpdateDag(
+      { type: 'export', dagData: bulkUpdateJson },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', 'export']
+          })
+          console.log('Update successful', response)
+          setIsBulkEditModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error updating table', error)
+        }
+      }
+    )
+  }
+
+  const currentRowsBulkLength = useMemo(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    return selectedIndexes.map((index) => filteredData[index])
+  }, [rowSelection, filteredData])
+
+  const currentRowsLength = useMemo(
+    () => currentRowsBulkLength.length,
+    [currentRowsBulkLength]
+  )
 
   return (
     <>
@@ -184,23 +242,36 @@ function AirflowExport() {
               />
             ))}
         </div>
-        <div
-          className="list-top-info-and-edit"
-          style={{ visibility: 'hidden' }}
-        >
-          <Button title="Bulk Edit" onClick={handleBulkEditClick} />
-        </div>
-        {filteredData ? (
-          <TableList
-            columns={columns}
-            data={filteredData}
-            isLoading={isLoading}
-            onDelete={handleDeleteIconClick}
-            airflowType="export"
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
-            enableMultiSelection={true}
-          />
+
+        {filteredData && data ? (
+          <>
+            <div className="list-top-info-and-edit">
+              <Button
+                title={`Edit ${
+                  currentRowsLength > 0 ? currentRowsLength : ''
+                } DAG${
+                  currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                }`}
+                onClick={handleBulkEditClick}
+                disabled={currentRowsLength < 1}
+              />
+            </div>
+            <ListRowsInfo
+              filteredData={filteredData}
+              contentTotalRows={String(data.length)}
+              itemType="DAG"
+            />
+            <TableList
+              columns={columns}
+              data={filteredData}
+              isLoading={isLoading}
+              onDelete={handleDeleteIconClick}
+              airflowType="export"
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
+              enableMultiSelection={true}
+            />
+          </>
         ) : (
           <p
             style={{
@@ -229,6 +300,18 @@ function AirflowExport() {
             onConfirm={() => handleDelete(currentDeleteRow)}
             onCancel={() => setShowDeleteConfirmation(false)}
             isActive={showDeleteConfirmation}
+          />
+        )}
+        {isBulkEditModalOpen && (
+          <BulkEditModal
+            title={`Edit the ${currentRowsLength} selected table${
+              currentRowsLength > 1 ? 's' : ''
+            }`}
+            selectedRows={currentRowsBulk}
+            bulkFieldsData={bulkAirflowDagFields}
+            onSave={handleBulkEditSave}
+            onClose={() => setIsBulkEditModalOpen(false)}
+            initWidth={684}
           />
         )}
       </ViewBaseLayout>

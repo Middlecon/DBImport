@@ -15,7 +15,8 @@ import {
   ConfigGlobalWithIndex,
   JDBCdriversWithIndex,
   BulkUpdateExportTables,
-  BulkUpdateImportTables
+  BulkUpdateImportTables,
+  BulkUpdateAirflowDAG
 } from './interfaces'
 
 // Connection
@@ -243,12 +244,12 @@ const updateAirflowDag = async (
   type: 'import' | 'export' | 'custom',
   dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
 ) => {
-  const { name, ...dagDataObject } = dagData
+  const { name } = dagData
   const encodedDagName = encodeURIComponent(name)
 
   const response = await axiosInstance.post(
     `/airflow/dags/${type}/${encodedDagName}`,
-    dagDataObject
+    dagData
   )
   return response.data
 }
@@ -317,6 +318,29 @@ const deleteAirflowDAG = async ({ type, dagName }: DeleteAirflowDAGArgs) => {
 export const useDeleteAirflowDAG = () => {
   return useMutation({
     mutationFn: (args: DeleteAirflowDAGArgs) => deleteAirflowDAG(args)
+  })
+}
+
+// Bulk update Airflow DAG
+
+const postBulkUpdateAirflowDag = async (
+  type: 'import' | 'export' | 'custom',
+  dagData: BulkUpdateAirflowDAG
+) => {
+  const response = await axiosInstance.post(`/airflow/dags/${type}`, dagData)
+  return response.data
+}
+
+export const useBulkUpdateAirflowDag = () => {
+  return useMutation<
+    BulkUpdateAirflowDAG,
+    Error,
+    {
+      type: 'import' | 'export' | 'custom'
+      dagData: BulkUpdateAirflowDAG
+    }
+  >({
+    mutationFn: ({ type, dagData }) => postBulkUpdateAirflowDag(type, dagData)
   })
 }
 

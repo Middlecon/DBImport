@@ -104,16 +104,6 @@ function DbTables({
     setCurrentDeleteRow(row)
   }
 
-  const handleBulkEditClick = useCallback(() => {
-    const selectedIndexes = Object.keys(rowSelection).map((id) =>
-      parseInt(id, 10)
-    )
-    const selectedRows = selectedIndexes.map((index) => data[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
-    setCurrentRowsBulk(selectedRows)
-    setIsBulkEditModalOpen(true)
-  }, [rowSelection, data])
-
   const handleDelete = async (row: UiDbTable) => {
     setShowDeleteConfirmation(false)
 
@@ -159,6 +149,16 @@ function DbTables({
       }
     )
   }
+
+  const handleBulkEditClick = useCallback(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    console.log('handleBulkEditClick selectedRows', selectedRows)
+    setCurrentRowsBulk(selectedRows)
+    setIsBulkEditModalOpen(true)
+  }, [rowSelection, data])
 
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
@@ -220,7 +220,8 @@ function DbTables({
 
           <ListRowsInfo
             filteredData={data}
-            headersRowInfo={headersRowInfo}
+            contentTotalRows={headersRowInfo.contentTotalRows}
+            contentMaxReturnedRows={headersRowInfo.contentMaxReturnedRows}
             itemType="table"
           />
           <TableList
