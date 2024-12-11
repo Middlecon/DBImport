@@ -397,7 +397,6 @@ async def search_connections(searchValues: dataModels.connectionSearch, current_
 	return dbCalls.searchConnections(searchValues, current_user["username"])
 
 @app.get("/connection/testConnection/{connection}", response_model=dataModels.defaultResultResponse, tags=["Connections"])
-# @app.get("/connection/testConnection/{connection}", response_model=dataModels.testConnectionResponse, tags=["Connections"])
 async def test_a_connection(connection: str, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code =  dbCalls.testConnection(connection, current_user["username"])
 	return returnMsg
@@ -406,9 +405,14 @@ async def test_a_connection(connection: str, current_user: Annotated[dataModels.
 async def get_all_import_databases(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getAllImportDatabases()
 
-@app.post("/import/discover", response_model=List[dataModels.discoverImportTable], tags=["Imports"])
+@app.post("/import/discover/search", response_model=List[dataModels.discoverImportTable], tags=["Imports"])
 async def discover_new_import_tables(data: dataModels.discoverImportTableOptions, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
 	returnMsg, response.status_code = dbCalls.discoverImportTables(data, current_user["username"])
+	return returnMsg
+
+@app.post("/import/discover/add", response_model=dataModels.defaultResultResponse, tags=["Imports"])
+async def add_discovered_import_tables(data: List[dataModels.discoverImportTable], current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.addDiscoveredImportTables(data, current_user["username"])
 	return returnMsg
 
 @app.post("/import/search", response_model=List[dataModels.importTable], tags=["Imports"])
@@ -460,6 +464,16 @@ async def create_or_update_import_table(database: str, table: str, data: dataMod
 @app.get("/export/connection", response_model=List[dataModels.exportConnections], tags=["Exports"])
 async def get_all_connections_with_exports(current_user: Annotated[dataModels.User, Depends(get_current_user)]):
 	return dbCalls.getExportConnections()
+
+@app.post("/export/discover/search", response_model=List[dataModels.discoverExportTable], tags=["Exports"])
+async def discover_new_export_tables(data: dataModels.discoverExportTableOptions, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.discoverExportTables(data, current_user["username"])
+	return returnMsg
+
+@app.post("/export/discover/add", response_model=dataModels.defaultResultResponse, tags=["Exports"])
+async def add_discovered_export_tables(data: List[dataModels.discoverExportTable], current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):
+	returnMsg, response.status_code = dbCalls.addDiscoveredExportTables(data, current_user["username"])
+	return returnMsg
 
 @app.post("/export/search", response_model=List[dataModels.exportTable], tags=["Exports"])
 async def search_export_tables(searchValues: dataModels.exportTableSearch, current_user: Annotated[dataModels.User, Depends(get_current_user)], response: Response):

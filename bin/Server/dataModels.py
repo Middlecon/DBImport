@@ -191,6 +191,12 @@ class discoverImportTable(BaseModel):
 class discoverImportTableOptions(BaseModel):
 	database: str
 	connection: str
+	schemaFilter: Union[str, None]
+	tableFilter: Union[str, None]
+	addSchemaToTable: bool
+	addCounterToTable: bool
+	counterStart: Union[int, None]
+	addCustomText: Union[str, None]
 
 class importTable(BaseModel):
 	database: str
@@ -419,6 +425,23 @@ class exportTableSearch(BaseModel):
 	exportTool: Union[str, None] = None
 	includeInAirflow: Union[bool, None] = None
 	operatorNotes: Union[str, None] = None
+
+class discoverExportTable(BaseModel):
+	database: str
+	table: str
+	connection: str
+	targetSchema: str
+	targetTable: str
+
+class discoverExportTableOptions(BaseModel):
+	connection: str
+	targetSchema: str
+	databaseFilter: Union[str, None]
+	tableFilter: Union[str, None]
+	addDBToTable: bool
+	addCounterToTable: bool
+	counterStart: Union[int, None]
+	addCustomText: Union[str, None]
 
 class exportTable(BaseModel):
 	connection: str

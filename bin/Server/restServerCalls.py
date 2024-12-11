@@ -54,6 +54,7 @@ from sqlalchemy.sql.operators import like_op
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.orm import aliased, sessionmaker, scoped_session, Query
 import sqlalchemy.orm.exc
+# from rich import print
 
 class dbCalls:
 	def __init__(self):
@@ -1139,24 +1140,75 @@ class dbCalls:
 		commandArg.append(getattr(data, "connection"))
 		commandArg.append('-h')
 		commandArg.append(getattr(data, "database"))
+
+		if getattr(data, "schemaFilter") != None and getattr(data, "schemaFilter").strip() != "": 
+			commandArg.append('-S')
+			commandArg.append(getattr(data, "schemaFilter"))
+			
+		if getattr(data, "tableFilter") != None and getattr(data, "tableFilter").strip() != "": 
+			commandArg.append('-T')
+			commandArg.append(getattr(data, "tableFilter"))
+			
+		if getattr(data, "addSchemaToTable") != None and getattr(data, "addSchemaToTable") == True: 
+			commandArg.append('--addSchemaToTable')
+			
+		if getattr(data, "addCounterToTable") != None and getattr(data, "addCounterToTable") == True: 
+			commandArg.append('--addCounterToTable')
+			
+			if getattr(data, "counterStart") != None: 
+				commandArg.append('--counterStart')
+				commandArg.append(str(getattr(data, "counterStart")))
+			
+		if getattr(data, "addCustomText") != None and getattr(data, "addCustomText").strip() != "":
+			commandArg.append('--addCustomText')
+			commandArg.append(getattr(data, "addCustomText"))
+
 		commandArg.append('--quiet')
 		commandArg.append('--jsonOutput')
-		connection = getattr(data, "connection")
-		database = getattr(data, "database")
+
+		log.debug(commandArg)
 		
 		result = subprocess.run(commandArg, stdout=subprocess.PIPE, check=False)
-		print(result.stdout.decode())
-		print(type(result.stdout.decode()))
 
 		if result.returncode != 0:
-			returnCode = 500
-			returnMsg = "result.stdout"
+			raise HTTPException(status_code=500, detail=result.stdout.decode())
+
 		else:
 			returnCode = 200
-			returnMsg = json.loads(result.stdout.decode().replace("\n", ""))
+			if result.stdout.decode().strip() == "There are no tables in the source database that we dont already have in DBImport":
+				returnMsg = []
+			else:
+				returnMsg = json.loads(result.stdout.decode().replace("\n", ""))
 
 		return (returnMsg, returnCode)
 
+
+	def addDiscoveredImportTables(self, data, currentUser):
+		""" Add discovered import tables """
+		log = logging.getLogger(self.logger)
+
+		createCounter = 0
+		for record in data:
+			createCounter = createCounter + 1
+			database = getattr(record, "database")
+			table = getattr(record, "table")
+
+			createData = dataModels.importTableDetailsWrite(
+				connection = getattr(record, "connection"),
+				sourceSchema = getattr(record, "sourceSchema"),
+				sourceTable = getattr(record, "sourceTable"),
+				importPhaseType = "full",
+				etlPhaseType = "truncate_insert",
+				importTool = "spark",
+				etlEngine = "spark"
+				)
+
+			self.updateImportTable(database, table, createData, currentUser)
+
+		returnCode = 200
+		resultMsg = { "result": "%s tables created"%(createCounter) }
+		
+		return (resultMsg, returnCode)
 
 	def searchImportTables(self, searchValues, currentUser):
 		""" Search for import tables """
@@ -2152,6 +2204,116 @@ class dbCalls:
 		headers = {"content-rows": str(count), "content-max-returned-rows": str(self.contentMaxRows)}
 		return JSONResponse(content=jsonResult, headers=headers, status_code=200)
 	
+
+	def discoverExportTables(self, data, currentUser):
+		""" Search for import tables """
+		log = logging.getLogger(self.logger)
+
+		# Due to incomplete development environments right now, this function returns a hardcoded json as it's not possible to generate a correct one
+		returnList = []
+		returnDict1 = {}
+		returnDict2 = {}
+		returnDict3 = {}
+		returnDict1["database"] = "hardcoded"
+		returnDict1["table"] = "table1"
+		returnDict1["connection"] = "dbimport"
+		returnDict1["targetSchema"] = "dbo"
+		returnDict1["targetTable"] = "table1"
+		returnDict2["database"] = "hardcoded"
+		returnDict2["table"] = "table2"
+		returnDict2["connection"] = "dbimport"
+		returnDict2["targetSchema"] = "dbo"
+		returnDict2["targetTable"] = "table2"
+		returnDict3["database"] = "hardcoded"
+		returnDict3["table"] = "table3"
+		returnDict3["connection"] = "dbimport"
+		returnDict3["targetSchema"] = "dbo"
+		returnDict3["targetTable"] = "table3"
+		returnList.append(returnDict1)
+		returnList.append(returnDict2)
+		returnList.append(returnDict3)
+
+		returnMsg = json.loads(json.dumps(returnList))
+		returnCode = 200
+		return (returnMsg, returnCode)
+
+		manageCmd = "%s/bin/manage"%(os.environ['DBIMPORT_HOME'])
+
+		commandArg = []
+		commandArg.append(manageCmd)
+		commandArg.append('--addExportTable')
+		commandArg.append('-a')
+		commandArg.append(getattr(data, "connection"))
+		commandArg.append('-S')
+		commandArg.append(getattr(data, "targetSchema"))
+
+		if getattr(data, "databaseFilter") != None and getattr(data, "databaseFilter").strip() != "": 
+			commandArg.append('-h')
+			commandArg.append(getattr(data, "databaseFilter"))
+			
+		if getattr(data, "tableFilter") != None and getattr(data, "tableFilter").strip() != "": 
+			commandArg.append('-t')
+			commandArg.append(getattr(data, "tableFilter"))
+			
+		if getattr(data, "addDBToTable") != None and getattr(data, "addDBToTable") == True: 
+			commandArg.append('--addDBToTable')
+			
+		if getattr(data, "addCounterToTable") != None and getattr(data, "addCounterToTable") == True: 
+			commandArg.append('--addCounterToTable')
+			
+			if getattr(data, "counterStart") != None: 
+				commandArg.append('--counterStart')
+				commandArg.append(str(getattr(data, "counterStart")))
+			
+		if getattr(data, "addCustomText") != None and getattr(data, "addCustomText").strip() != "":
+			commandArg.append('--addCustomText')
+			commandArg.append(getattr(data, "addCustomText"))
+
+		commandArg.append('--quiet')
+		commandArg.append('--jsonOutput')
+
+		log.debug(commandArg)
+		
+		result = subprocess.run(commandArg, stdout=subprocess.PIPE, check=False)
+
+		if result.returncode != 0:
+			raise HTTPException(status_code=500, detail=result.stdout.decode())
+
+		else:
+			returnCode = 200
+			if result.stdout.decode().strip() == "There are no tables in the source database that we dont already have in DBImport":
+				returnMsg = []
+			else:
+				returnMsg = json.loads(result.stdout.decode().replace("\n", ""))
+
+		return (returnMsg, returnCode)
+
+
+	def addDiscoveredExportTables(self, data, currentUser):
+		""" Add discovered export tables """
+		log = logging.getLogger(self.logger)
+
+		createCounter = 0
+		for record in data:
+			createCounter = createCounter + 1
+			connection = getattr(record, "connection")
+			targetSchema = getattr(record, "targetSchema")
+			targetTable = getattr(record, "targetTable")
+
+			createData = dataModels.exportTableDetailsWrite(
+				database = getattr(record, "database"),
+				table = getattr(record, "table"),
+				exportType = "full",
+				exportTool = "spark"
+				)
+
+			self.updateExportTable(connection, targetSchema, targetTable, createData, currentUser)
+
+		returnCode = 200
+		resultMsg = { "result": "%s tables created"%(createCounter) }
+		
+		return (resultMsg, returnCode)
+
 
 	def searchExportTables(self, searchValues, currentUser):
 		""" Search for import tables """
