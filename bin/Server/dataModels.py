@@ -210,6 +210,7 @@ class importTable(BaseModel):
 	etlEngine: str
 	lastUpdateFromSource: Union[str, None] = None
 	includeInAirflow: bool
+	operatorNotes: Union[str, None] = None
 
 class importTableColumnsRead(BaseModel):
 #	database: str
@@ -453,6 +454,7 @@ class exportTable(BaseModel):
 	exportTool: str
 	lastUpdateFromHive: Union[str, None] = None
 	includeInAirflow: bool
+	operatorNotes: Union[str, None] = None
 
 class exportTableColumnsRead(BaseModel):
 #	connection: str
@@ -590,6 +592,14 @@ class airflowImportDags(BaseModel):
 	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
+	slaWarningTime: Union[str, None] = None
+	concurrency: Union[int, None] = None
+
 
 class airflowExportDags(BaseModel):
 	name: str
@@ -601,6 +611,14 @@ class airflowExportDags(BaseModel):
 	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
+	slaWarningTime: Union[str, None] = None
+	concurrency: Union[int, None] = None
+
 
 class airflowCustomDags(BaseModel):
 	name: str
@@ -609,6 +627,14 @@ class airflowCustomDags(BaseModel):
 	airflowLink: Union[str, None] = None
 #	operatorNotes: Union[str, None] = None
 #	applicationNotes: Union[str, None] = None
+	operatorNotes: Union[str, None] = None
+	timezone: Union[str, None] = None
+	email: Union[str, None] = None
+	emailOnFailure: Union[bool, None] = None
+	emailOnRetries: Union[bool, None] = None
+	slaWarningTime: Union[str, None] = None
+	concurrency: Union[int, None] = None
+
 
 class airflowTask(BaseModel):
 	name: str

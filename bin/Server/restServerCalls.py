@@ -91,6 +91,11 @@ class dbCalls:
 
 		self.createDefaultAdminUser()
 
+	def convertIntToBool(self, intValue):
+		if intValue == 1:
+			return True
+		else:
+			return False
 
 	def disconnectDBImportDB(self):
 		""" Disconnects from the database and removes all sessions and engine """
@@ -1247,7 +1252,8 @@ class dbCalls:
 					importTables.import_tool,
 					importTables.etl_engine,
 					importTables.last_update_from_source,
-					importTables.include_in_airflow
+					importTables.include_in_airflow,
+					importTables.operator_notes
 				)
 				.select_from(importTables)
 			)
@@ -1305,6 +1311,7 @@ class dbCalls:
 				resultDict['includeInAirflow'] = True
 			else:
 				resultDict['includeInAirflow'] = False
+			resultDict['operatorNotes'] = row[11]
 
 			listOfTables.append(resultDict)
 
@@ -2348,7 +2355,8 @@ class dbCalls:
 					exportTables.export_type,
 					exportTables.export_tool,
 					exportTables.last_update_from_hive,
-					exportTables.include_in_airflow
+					exportTables.include_in_airflow,
+					exportTables.operator_notes
 				)
 				.select_from(exportTables)
 			)
@@ -2404,6 +2412,7 @@ class dbCalls:
 				resultDict['includeInAirflow'] = True
 			else:
 				resultDict['includeInAirflow'] = False
+			resultDict['operatorNotes'] = row[9]
 
 			listOfTables.append(resultDict)
 
@@ -3021,7 +3030,7 @@ class dbCalls:
 			resultDict['name'] = row[0]
 			resultDict['type'] = row[1]
 			resultDict['scheduleInterval'] = row[2]
-			resultDict['autoRegenerateDag'] = row[3]
+			resultDict['autoRegenerateDag'] = self.convertIntToBool(row[3])
 #			resultDict['operatorNotes'] = row[4]
 #			resultDict['applicationNotes'] = row[5]
 			listOfDAGs.append(resultDict)
@@ -3057,7 +3066,15 @@ class dbCalls:
 					airflowImportDags.dag_name,
 					airflowImportDags.schedule_interval,
 					airflowImportDags.auto_regenerate_dag,
-					airflowImportDags.filter_hive
+					airflowImportDags.filter_hive,
+					airflowImportDags.operator_notes,
+					airflowImportDags.sudo_user,
+					airflowImportDags.timezone,
+					airflowImportDags.email,
+					airflowImportDags.email_on_failure,
+					airflowImportDags.email_on_retries,
+					airflowImportDags.sla_warning_time,
+					airflowImportDags.concurrency
 				)
 				.select_from(airflowImportDags)
 				.limit(self.contentMaxRows)
@@ -3070,9 +3087,20 @@ class dbCalls:
 
 			resultDict['name'] = row[0]
 			resultDict['scheduleInterval'] = row[1]
-			resultDict['autoRegenerateDag'] = row[2]
+			resultDict['autoRegenerateDag'] = self.convertIntToBool(row[2])
 			resultDict['filterTable'] = row[3]
 			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
+			resultDict["operatorNotes"] = row[4]
+			resultDict["sudoUser"] = row[5]
+			resultDict["timezone"] = row[6]
+			resultDict["email"] = row[7]
+			resultDict["emailOnFailure"] = self.convertIntToBool(row[8])
+			resultDict["emailOnRetries"] = self.convertIntToBool(row[9])
+			try:
+				resultDict["slaWarningTime"] = row[10].strftime('%H:%M:%S')
+			except AttributeError:
+				resultDict["slaWarningTime"] = None
+			resultDict["concurrency"] = row[11]
 			listOfDAGs.append(resultDict)
 
 			if count == self.contentMaxRows:
@@ -3108,7 +3136,15 @@ class dbCalls:
 					airflowExportDags.auto_regenerate_dag,
 					airflowExportDags.filter_dbalias,
 					airflowExportDags.filter_target_schema,
-					airflowExportDags.filter_target_table 
+					airflowExportDags.filter_target_table, 
+					airflowExportDags.operator_notes,
+					airflowExportDags.sudo_user,
+					airflowExportDags.timezone,
+					airflowExportDags.email,
+					airflowExportDags.email_on_failure,
+					airflowExportDags.email_on_retries,
+					airflowExportDags.sla_warning_time,
+					airflowExportDags.concurrency
 				)
 				.select_from(airflowExportDags)
 				.limit(self.contentMaxRows)
@@ -3121,11 +3157,22 @@ class dbCalls:
 
 			resultDict['name'] = row[0]
 			resultDict['scheduleInterval'] = row[1]
-			resultDict['autoRegenerateDag'] = row[2]
+			resultDict['autoRegenerateDag'] = self.convertIntToBool(row[2])
 			resultDict['filterConnection'] = row[3]
 			resultDict['filterTargetSchema'] = row[4]
 			resultDict['filterTargetTable'] = row[5]
 			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
+			resultDict["operatorNotes"] = row[6]
+			resultDict["sudoUser"] = row[7]
+			resultDict["timezone"] = row[8]
+			resultDict["email"] = row[9]
+			resultDict["emailOnFailure"] = self.convertIntToBool(row[10])
+			resultDict["emailOnRetries"] = self.convertIntToBool(row[11])
+			try:
+				resultDict["slaWarningTime"] = row[12].strftime('%H:%M:%S')
+			except AttributeError:
+				resultDict["slaWarningTime"] = None
+			resultDict["concurrency"] = row[13]
 
 			listOfDAGs.append(resultDict)
 
@@ -3156,7 +3203,15 @@ class dbCalls:
 		airflowDagsData = (session.query(
 					airflowCustomDags.dag_name,
 					airflowCustomDags.schedule_interval,
-					airflowCustomDags.auto_regenerate_dag
+					airflowCustomDags.auto_regenerate_dag,
+					airflowCustomDags.operator_notes,
+					airflowCustomDags.sudo_user,
+					airflowCustomDags.timezone,
+					airflowCustomDags.email,
+					airflowCustomDags.email_on_failure,
+					airflowCustomDags.email_on_retries,
+					airflowCustomDags.sla_warning_time,
+					airflowCustomDags.concurrency
 				)
 				.select_from(airflowCustomDags)
 				.limit(self.contentMaxRows)
@@ -3169,8 +3224,19 @@ class dbCalls:
 
 			resultDict['name'] = row[0]
 			resultDict['scheduleInterval'] = row[1]
-			resultDict['autoRegenerateDag'] = row[2]
+			resultDict['autoRegenerateDag'] = self.convertIntToBool(row[2])
 			resultDict["airflowLink"] = "%s/dags/%s"%(airflowURL, row[0])
+			resultDict["operatorNotes"] = row[3]
+			resultDict["sudoUser"] = row[4]
+			resultDict["timezone"] = row[5]
+			resultDict["email"] = row[6]
+			resultDict["emailOnFailure"] = self.convertIntToBool(row[7])
+			resultDict["emailOnRetries"] = self.convertIntToBool(row[8])
+			try:
+				resultDict["slaWarningTime"] = row[9].strftime('%H:%M:%S')
+			except AttributeError:
+				resultDict["slaWarningTime"] = None
+			resultDict["concurrency"] = row[10]
 			listOfDAGs.append(resultDict)
 
 			if count == self.contentMaxRows:
@@ -3298,12 +3364,12 @@ class dbCalls:
 		resultDict["operatorNotes"] = row[3]
 		resultDict["applicationNotes"] = row[4]
 		resultDict["airflowNotes"] = row[5]
-		resultDict["autoRegenerateDag"] = row[6]
+		resultDict['autoRegenerateDag'] = self.convertIntToBool(row[6])
 		resultDict["sudoUser"] = row[7]
 		resultDict["timezone"] = row[8]
 		resultDict["email"] = row[9]
-		resultDict["emailOnFailure"] = row[10]
-		resultDict["emailOnRetries"] = row[11]
+		resultDict["emailOnFailure"] = self.convertIntToBool(row[10])
+		resultDict["emailOnRetries"] = self.convertIntToBool(row[11])
 		resultDict["tags"] = row[12]
 		try:
 			resultDict["slaWarningTime"] = row[13].strftime('%H:%M:%S')
@@ -3494,13 +3560,13 @@ class dbCalls:
 			resultDict["retries"] = 5 
 		resultDict["operatorNotes"] = row[6]
 		resultDict["applicationNotes"] = row[7]
-		resultDict["autoRegenerateDag"] = row[8]
+		resultDict['autoRegenerateDag'] = self.convertIntToBool(row[8])
 		resultDict["airflowNotes"] = row[9]
 		resultDict["sudoUser"] = row[10]
 		resultDict["timezone"] = row[11]
 		resultDict["email"] = row[12]
-		resultDict["emailOnFailure"] = row[13]
-		resultDict["emailOnRetries"] = row[14]
+		resultDict["emailOnFailure"] = self.convertIntToBool(row[13])
+		resultDict["emailOnRetries"] = self.convertIntToBool(row[14])
 		resultDict["tags"] = row[15]
 		try:
 			resultDict["slaWarningTime"] = row[16].strftime('%H:%M:%S')
@@ -3584,14 +3650,14 @@ class dbCalls:
 		resultDict["poolStage2"] = row[9]
 		resultDict["operatorNotes"] = row[10]
 		resultDict["applicationNotes"] = row[11]
-		resultDict["autoRegenerateDag"] = row[12]
+		resultDict['autoRegenerateDag'] = self.convertIntToBool(row[12])
 		resultDict["airflowNotes"] = row[13]
 		resultDict["sudoUser"] = row[14]
 		resultDict["metadataImport"] = row[15]
 		resultDict["timezone"] = row[16]
 		resultDict["email"] = row[17]
-		resultDict["emailOnFailure"] = row[18]
-		resultDict["emailOnRetries"] = row[19]
+		resultDict["emailOnFailure"] = self.convertIntToBool(row[18])
+		resultDict["emailOnRetries"] = self.convertIntToBool(row[19])
 		resultDict["tags"] = row[20]
 		try:
 			resultDict["slaWarningTime"] = row[21].strftime('%H:%M:%S')
