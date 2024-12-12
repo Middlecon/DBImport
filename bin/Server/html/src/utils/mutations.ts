@@ -300,12 +300,12 @@ const postCreateAirflowDag = async (
     | ExportCreateAirflowDAG
     | CustomCreateAirflowDAG
 ) => {
-  const { name, ...dagDataObject } = dagData
+  const { name } = dagData
   const encodedDagName = encodeURIComponent(name)
 
   const response = await axiosInstance.post(
     `/airflow/dags/${type}/${encodedDagName}`,
-    dagDataObject
+    dagData
   )
   return response.data
 }
