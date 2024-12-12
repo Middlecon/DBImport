@@ -110,6 +110,7 @@ export interface DbTable {
   sourceTable: string
   table: string
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 
 export interface UiDbTable extends DbTable {
@@ -621,6 +622,7 @@ export interface ExportCnTablesWithoutEnum {
   exportTool: string
   lastUpdateFromHive: string | null
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 
 export interface ExportCnTable {
@@ -633,6 +635,7 @@ export interface ExportCnTable {
   exportTool: ExportTool
   lastUpdateFromHive: string | null
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
   exportTypeDisplay: string

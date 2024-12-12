@@ -27,6 +27,12 @@
   color: rgb(174, 174, 174);
 }
 
+.input-fields-number-input {
+  max-width: 120px;
+  margin-right: 5px;
+  min-height: 18px;
+}
+
 .input-fields-text-input,
 .input-fields-textarea {
   width: calc(100% - 233px);
@@ -36,19 +42,19 @@
 .input-fields-textarea {
   max-width: calc(100% - 233px);
   min-width: calc(100% - 233px);
+}
+
+.input-fields-textarea,
+.bulk-input-fields-textarea {
   min-height: 56px;
   padding: 3px;
 }
 
-.input-fields-number-input {
-  max-width: 120px;
-  margin-right: 5px;
-  min-height: 18px;
-}
-
 .input-fields-number-input,
 .input-fields-textarea,
-.input-fields-text-input {
+.input-fields-text-input,
+.bulk-input-fields-text-input,
+.bulk-input-fields-textarea {
   border: 0.5px solid rgb(42, 42, 42);
   padding-left: 4px;
 }
@@ -71,15 +77,34 @@
   margin-top: 10px;
 }
 
-.bulk-input-fields-text-input {
-  width: calc(100% - 313px);
+.bulk-input-fields-text-input,
+.bulk-input-fields-textarea {
+  width: calc(100% - 325px);
   box-sizing: border-box;
 }
 
-.mixed-values-text {
+.bulk-input-fields-textarea {
+  max-width: calc(100% - 325px);
+  min-width: calc(100% - 325px);
+}
+
+.indication-text-container {
   width: 80px;
-  margin: 4px 0 0 0;
+  height: 14px;
+  margin: 0 0 0 10px;
+}
+
+.mixed-values-text,
+.changed-text {
   font-size: 12px;
+  margin: 0;
+}
+
+.changed-text {
+  color: #227131;
+}
+
+.mixed-values-text {
   color: #952323;
 }
 

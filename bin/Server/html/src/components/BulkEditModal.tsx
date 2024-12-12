@@ -27,14 +27,6 @@ function BulkEditModal<T>({
   const [bulkChanges, setBulkChanges] = useState<
     Partial<Record<keyof T, string | number | boolean | null>>
   >({})
-
-  const handleBulkChangeInternal = useCallback(
-    (fieldKey: keyof T, newValue: string | number | boolean | null) => {
-      setBulkChanges((prev) => ({ ...prev, [fieldKey]: newValue }))
-    },
-    []
-  )
-
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [modalWidth, setModalWidth] = useState(initWidth ?? 584)
   const [isResizing, setIsResizing] = useState(false)
@@ -42,7 +34,28 @@ function BulkEditModal<T>({
   const [initialWidth, setInitialWidth] = useState(initWidth ?? 584)
   const MIN_WIDTH = initWidth ?? 584
 
+  const handleBulkChangeInternal = useCallback(
+    (
+      fieldKey: keyof T,
+      newValue: string | number | boolean | null | undefined
+    ) => {
+      setBulkChanges((prev) => {
+        const updatedBulkChanges = { ...prev }
+
+        if (newValue === undefined) {
+          delete updatedBulkChanges[fieldKey]
+        } else {
+          updatedBulkChanges[fieldKey] = newValue === '' ? null : newValue
+        }
+
+        return updatedBulkChanges
+      })
+    },
+    []
+  )
+
   const handleSave = () => {
+    console.log('bulkChanges', bulkChanges)
     onSave(bulkChanges)
     onClose()
   }
@@ -137,7 +150,11 @@ function BulkEditModal<T>({
               onClick={handleCancelClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Save" />
+            <Button
+              type="submit"
+              title="Save Changes"
+              disabled={Object.keys(bulkChanges).length === 0}
+            />
           </div>
         </form>
       </div>
