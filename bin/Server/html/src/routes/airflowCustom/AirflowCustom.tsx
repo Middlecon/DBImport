@@ -19,6 +19,7 @@ import Button from '../../components/Button'
 import { createCustomDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag,
   useCreateAirflowDag,
   useDeleteAirflowDAG
@@ -37,13 +38,14 @@ const checkboxFilters = [
 ]
 
 function AirflowCustom() {
+  const queryClient = useQueryClient()
+
   const { data, isLoading } = useCustomAirflows()
   const { mutate: createDAG } = useCreateAirflowDag()
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
-
-  const queryClient = useQueryClient()
+  const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentDeleteRow, setCurrentDeleteRow] =
@@ -51,11 +53,14 @@ function AirflowCustom() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
-  const [rowSelection, setRowSelection] = useState({})
   const [currentRowsBulk, setCurrentRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
   >([])
+  const [rowSelection, setRowSelection] = useState({})
+
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
+  const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
+    useState(false)
 
   const [selectedFilters, setSelectedFilters] = useAtom(airflowCustomFilterAtom)
 
@@ -184,7 +189,8 @@ function AirflowCustom() {
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['airflows', 'custom']
+            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            exact: false
           })
           console.log('Update successful', response)
           setIsBulkEditModalOpen(false)
@@ -196,7 +202,44 @@ function AirflowCustom() {
     )
   }
 
-  const currentRowsBulkLength = useMemo(() => {
+  const handleBulkDeleteClick = useCallback(() => {
+    if (!data) return
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    setCurrentRowsBulk(selectedRows)
+    setShowBulkDeleteConfirmation(true)
+  }, [rowSelection, data])
+
+  const handleBulkDelete = async (rows: UiBulkAirflowDAG[]) => {
+    setShowBulkDeleteConfirmation(false)
+
+    const bulkDeleteRowsPks = rows.map(({ name }) => ({
+      name
+    }))
+
+    console.log(bulkDeleteRowsPks)
+
+    bulkDeleteAirflowDags(
+      { type: 'custom', bulkDeleteRowsPks },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            exact: false
+          })
+          console.log('Delete successful')
+          setRowSelection({})
+        },
+        onError: (error: Error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
+  const currentRowsBulkData = useMemo(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
@@ -204,8 +247,8 @@ function AirflowCustom() {
   }, [rowSelection, filteredData])
 
   const currentRowsLength = useMemo(
-    () => currentRowsBulkLength.length,
-    [currentRowsBulkLength]
+    () => currentRowsBulkData.length,
+    [currentRowsBulkData]
   )
 
   return (
@@ -251,6 +294,16 @@ function AirflowCustom() {
                   currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
                 }`}
                 onClick={handleBulkEditClick}
+                disabled={currentRowsLength < 1}
+              />
+              <Button
+                title={`Delete ${
+                  currentRowsLength > 0 ? currentRowsLength : ''
+                } DAG${
+                  currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                }`}
+                onClick={handleBulkDeleteClick}
+                deleteStyle={true}
                 disabled={currentRowsLength < 1}
               />
             </div>
@@ -310,6 +363,21 @@ function AirflowCustom() {
             onSave={handleBulkEditSave}
             onClose={() => setIsBulkEditModalOpen(false)}
             initWidth={684}
+          />
+        )}
+        {showBulkDeleteConfirmation && currentRowsBulk && (
+          <ConfirmationModal
+            title={`Delete the ${currentRowsLength} selected DAG${
+              currentRowsLength > 1 ? 's' : ''
+            }`}
+            message={`Are you sure that you want to delete the ${currentRowsLength} selected DAG${
+              currentRowsLength > 1 ? 's' : ''
+            }? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={() => handleBulkDelete(currentRowsBulk)}
+            onCancel={() => setShowBulkDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>

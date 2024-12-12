@@ -15,6 +15,7 @@ import EditTableModal from '../../components/EditTableModal'
 import { updateTableData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  useBulkDeleteTables,
   useBulkUpdateTable,
   useDeleteImportTable,
   useUpdateTable
@@ -40,13 +41,19 @@ function DbTables({
   isLoading: boolean
   headersRowInfo: HeadersRowInfo
 }) {
-  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
+  const queryClient = useQueryClient()
+
   const { mutate: updateTable } = useUpdateTable()
   const { mutate: deleteTable } = useDeleteImportTable()
-  const queryClient = useQueryClient()
+
+  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
+  const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+
+  const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
+    useState(false)
   const [currentRowsBulk, setCurrentRowsBulk] = useState<UiDbTable[] | []>([])
 
   const [currentDeleteRow, setCurrentDeleteRow] = useState<UiDbTable>()
@@ -190,7 +197,44 @@ function DbTables({
     )
   }
 
-  const currentRowsBulkLength = useMemo(() => {
+  const handleBulkDeleteClick = useCallback(() => {
+    const selectedIndexes = Object.keys(rowSelection).map((id) =>
+      parseInt(id, 10)
+    )
+    const selectedRows = selectedIndexes.map((index) => data[index])
+    setCurrentRowsBulk(selectedRows)
+    setShowBulkDeleteConfirmation(true)
+  }, [rowSelection, data])
+
+  const handleBulkDelete = async (rows: UiDbTable[]) => {
+    setShowBulkDeleteConfirmation(false)
+
+    const bulkDeleteRowsPks = rows.map(({ database, table }) => ({
+      database,
+      table
+    }))
+
+    console.log(bulkDeleteRowsPks)
+
+    bulkDeleteTable(
+      { type: 'import', bulkDeleteRowsPks },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['import'], // Matches all related queries that starts the queryKey with 'import'
+            exact: false
+          })
+          console.log('Delete successful')
+          setRowSelection({})
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
+  const currentRowsBulkData = useMemo(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
@@ -198,8 +242,8 @@ function DbTables({
   }, [rowSelection, data])
 
   const currentRowsLength = useMemo(
-    () => currentRowsBulkLength.length,
-    [currentRowsBulkLength]
+    () => currentRowsBulkData.length,
+    [currentRowsBulkData]
   )
 
   return (
@@ -214,6 +258,16 @@ function DbTables({
                 currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
               }`}
               onClick={handleBulkEditClick}
+              disabled={currentRowsLength < 1}
+            />
+            <Button
+              title={`Delete ${
+                currentRowsLength > 0 ? currentRowsLength : ''
+              } table${
+                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+              }`}
+              onClick={handleBulkDeleteClick}
+              deleteStyle={true}
               disabled={currentRowsLength < 1}
             />
           </div>
@@ -267,6 +321,21 @@ function DbTables({
           onSave={handleBulkEditSave}
           onClose={() => setIsBulkEditModalOpen(false)}
           initWidth={584}
+        />
+      )}
+      {showBulkDeleteConfirmation && currentRowsBulk && (
+        <ConfirmationModal
+          title={`Delete the ${currentRowsLength} selected table${
+            currentRowsLength > 1 ? 's' : ''
+          }`}
+          message={`Are you sure that you want to delete the ${currentRowsLength} selected table${
+            currentRowsLength > 1 ? 's' : ''
+          }? \nDelete is irreversable.`}
+          buttonTitleCancel="No, Go Back"
+          buttonTitleConfirm="Yes, Delete"
+          onConfirm={() => handleBulkDelete(currentRowsBulk)}
+          onCancel={() => setShowBulkDeleteConfirmation(false)}
+          isActive={showDeleteConfirmation}
         />
       )}
     </div>

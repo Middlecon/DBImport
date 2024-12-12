@@ -7,6 +7,7 @@ interface ButtonProps {
   type?: 'button' | 'reset' | 'submit'
   disabled?: boolean
   lightStyle?: boolean
+  deleteStyle?: boolean
   fontFamily?: string
   fontSize?: string
   padding?: string
@@ -20,6 +21,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     disabled,
     onClick,
     lightStyle = false,
+    deleteStyle = false,
     // fontFamily,
     fontSize,
     padding,
@@ -41,7 +43,13 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     <button
       ref={buttonRef}
       type={type}
-      className={lightStyle ? 'light-button' : 'dark-button'}
+      className={
+        lightStyle
+          ? 'light-button'
+          : deleteStyle
+          ? 'delete-button'
+          : 'dark-button'
+      }
       onClick={onClick}
       style={buttonStyle}
       disabled={disabled}

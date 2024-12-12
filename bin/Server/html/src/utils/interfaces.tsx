@@ -587,7 +587,7 @@ export interface TableCreate {
   includeInAirflow: boolean
 }
 
-interface ImportPKs {
+export interface ImportPKs {
   database: string
   table: string
 }
@@ -837,7 +837,7 @@ export interface ExportTableCreateWithoutEnum {
   columns: ExportColumns[]
 }
 
-interface ExportPKs {
+export interface ExportPKs {
   connection: string
   targetSchema: string
   targetTable: string
@@ -989,7 +989,7 @@ export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
 
 export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
 
-interface AirflowDagPk {
+export interface AirflowDagPk {
   name: string
 }
 
