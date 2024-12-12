@@ -68,8 +68,8 @@ function AirflowCustom() {
     () => [
       { header: 'DAG Name', accessor: 'name' },
       { header: 'Schedule Interval', accessor: 'scheduleInterval' },
-      { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
-      { header: 'Actions', isAction: 'delete' }
+      { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' }
+      // { header: 'Actions', isAction: 'delete' }
     ],
     []
   )

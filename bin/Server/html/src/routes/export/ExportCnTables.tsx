@@ -82,8 +82,8 @@ function ExportCnTables({
       {
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
-      },
-      { header: 'Actions', isAction: 'delete' }
+      }
+      // { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
