@@ -110,6 +110,7 @@ export interface DbTable {
   sourceTable: string
   table: string
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 
 export interface UiDbTable extends DbTable {
@@ -586,7 +587,7 @@ export interface TableCreate {
   includeInAirflow: boolean
 }
 
-interface ImportPKs {
+export interface ImportPKs {
   database: string
   table: string
 }
@@ -621,6 +622,7 @@ export interface ExportCnTablesWithoutEnum {
   exportTool: string
   lastUpdateFromHive: string | null
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 
 export interface ExportCnTable {
@@ -633,6 +635,7 @@ export interface ExportCnTable {
   exportTool: ExportTool
   lastUpdateFromHive: string | null
   includeInAirflow: boolean
+  operatorNotes: string | null
 }
 export interface UIExportCnTables extends ExportCnTablesWithoutEnum {
   exportTypeDisplay: string
@@ -834,7 +837,7 @@ export interface ExportTableCreateWithoutEnum {
   columns: ExportColumns[]
 }
 
-interface ExportPKs {
+export interface ExportPKs {
   connection: string
   targetSchema: string
   targetTable: string
@@ -986,7 +989,7 @@ export interface ExportCreateAirflowDAG extends BaseCreateAirflowDAG {
 
 export type CustomCreateAirflowDAG = BaseCreateAirflowDAG
 
-interface AirflowDagPk {
+export interface AirflowDagPk {
   name: string
 }
 

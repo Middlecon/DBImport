@@ -16,7 +16,10 @@ import {
   JDBCdriversWithIndex,
   BulkUpdateExportTables,
   BulkUpdateImportTables,
-  BulkUpdateAirflowDAG
+  BulkUpdateAirflowDAG,
+  ImportPKs,
+  ExportPKs,
+  AirflowDagPk
 } from './interfaces'
 
 // Connection
@@ -53,36 +56,6 @@ const deleteConnection = async ({ connectionName }: DeleteConnectionArgs) => {
 export const useDeleteConnection = () => {
   return useMutation({
     mutationFn: (args: DeleteConnectionArgs) => deleteConnection(args)
-  })
-}
-
-// Update table, Import or Export
-
-const postBulkUpdateTable = async (
-  type: 'import' | 'export',
-  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
-) => {
-  console.log('bulkUpdateJson', bulkUpdateJson)
-  const response = await axiosInstance.post(`/${type}/table`, bulkUpdateJson)
-  console.log('postBulkUpdateTable response.data', response.data)
-
-  return response.data
-}
-
-interface BulkPostTableProps {
-  type: 'import' | 'export'
-  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
-}
-
-export const useBulkUpdateTable = () => {
-  return useMutation<
-    unknown, // Return type of mutation function, specify it more?
-    Error,
-    BulkPostTableProps
-  >({
-    mutationFn: ({ type, bulkUpdateJson }) => {
-      return postBulkUpdateTable(type, bulkUpdateJson)
-    }
   })
 }
 
@@ -238,6 +211,59 @@ export const useDeleteExportTable = () => {
   })
 }
 
+// Bulk update tables, Import or Export
+
+const postBulkUpdateTable = async (
+  type: 'import' | 'export',
+  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
+) => {
+  console.log('bulkUpdateJson', bulkUpdateJson)
+  const response = await axiosInstance.post(`/${type}/table`, bulkUpdateJson)
+  console.log('postBulkUpdateTable response.data', response.data)
+
+  return response.data
+}
+
+interface BulkPostTableProps {
+  type: 'import' | 'export'
+  bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
+}
+
+export const useBulkUpdateTable = () => {
+  return useMutation<
+    unknown, // Return type of mutation function, specify it more?
+    Error,
+    BulkPostTableProps
+  >({
+    mutationFn: ({ type, bulkUpdateJson }) => {
+      return postBulkUpdateTable(type, bulkUpdateJson)
+    }
+  })
+}
+
+// Bulk delete tables, Import or Export
+
+type BulkDeleteTablesArgs = {
+  type: 'import' | 'export'
+  bulkDeleteRowsPks: ImportPKs[] | ExportPKs[]
+}
+
+const bulkDeleteTables = async ({
+  type,
+  bulkDeleteRowsPks
+}: BulkDeleteTablesArgs) => {
+  const response = await axiosInstance.delete(`/${type}/table`, {
+    data: bulkDeleteRowsPks
+  })
+  return response.data
+}
+
+export const useBulkDeleteTables = () => {
+  return useMutation({
+    mutationFn: (args: BulkDeleteTablesArgs) => bulkDeleteTables(args)
+  })
+}
+
 // Airflow
 
 const updateAirflowDag = async (
@@ -274,12 +300,12 @@ const postCreateAirflowDag = async (
     | ExportCreateAirflowDAG
     | CustomCreateAirflowDAG
 ) => {
-  const { name, ...dagDataObject } = dagData
+  const { name } = dagData
   const encodedDagName = encodeURIComponent(name)
 
   const response = await axiosInstance.post(
     `/airflow/dags/${type}/${encodedDagName}`,
-    dagDataObject
+    dagData
   )
   return response.data
 }
@@ -341,6 +367,29 @@ export const useBulkUpdateAirflowDag = () => {
     }
   >({
     mutationFn: ({ type, dagData }) => postBulkUpdateAirflowDag(type, dagData)
+  })
+}
+
+// Airflow bulk delete DAGs
+
+type BulkDeleteArgs = {
+  type: 'import' | 'export' | 'custom'
+  bulkDeleteRowsPks: AirflowDagPk[]
+}
+
+const bulkDeleteAirflowDags = async ({
+  type,
+  bulkDeleteRowsPks
+}: BulkDeleteArgs) => {
+  const response = await axiosInstance.delete(`/airflow/dags/${type}`, {
+    data: bulkDeleteRowsPks
+  })
+  return response.data
+}
+
+export const useBulkDeleteAirflowDags = () => {
+  return useMutation({
+    mutationFn: (args: BulkDeleteArgs) => bulkDeleteAirflowDags(args)
   })
 }
 

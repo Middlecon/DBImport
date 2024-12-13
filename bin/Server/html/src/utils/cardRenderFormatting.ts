@@ -2838,7 +2838,38 @@ export const bulkImportFieldsData: BulkField<UiDbTable>[] = [
     label: 'Include in Airflow',
     type: SettingType.Boolean,
     infoText: infoTexts.table.import.includeInAirflow
-  } // Boolean, true or false
+  }, // Boolean, true or false
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: 'line',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: 'Fields not in list:',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'operatorNotes',
+    label: 'Operator Notes',
+    type: SettingType.Textarea,
+    infoText: infoTexts.airflow.import.operatorNotes
+  }, // Free-text (64k)
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  } // Layout space
 ]
 
 export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
@@ -2866,7 +2897,38 @@ export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
     label: 'Include in Airflow',
     type: SettingType.Boolean,
     infoText: infoTexts.table.import.includeInAirflow
-  } // Boolean, true or false, default: true
+  }, // Boolean, true or false, default: true
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: 'line',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: 'Fields not in list:',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  }, // Layout space
+  {
+    key: 'operatorNotes',
+    label: 'Operator Notes',
+    type: SettingType.Textarea,
+    infoText: infoTexts.airflow.export.operatorNotes
+  }, // Free-text (64k)
+  {
+    key: 'groupingspace',
+    label: '',
+    type: SettingType.GroupingSpace
+  } // Layout space
 ]
 
 export function bulkAirflowDagFieldsData(
@@ -2893,7 +2955,7 @@ export function bulkAirflowDagFieldsData(
     }, // Layout space
     {
       key: 'groupingspace',
-      label: '--------------------------------------',
+      label: 'line',
       type: SettingType.GroupingSpace
     }, // Layout space
     {
@@ -2975,7 +3037,12 @@ export function bulkAirflowDagFieldsData(
       label: 'Operator Notes',
       type: SettingType.Textarea,
       infoText: infoTexts.airflow[airflowType].operatorNotes
-    } // Free-text (64k)
+    }, // Free-text (64k)
+    {
+      key: 'groupingspace',
+      label: '',
+      type: SettingType.GroupingSpace
+    } // Layout space
   ]
   return bulkAirflowDagFieldsData
 }
