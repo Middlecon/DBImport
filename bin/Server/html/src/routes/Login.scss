@@ -30,9 +30,7 @@
   display: flex;
   align-items: start;
   justify-content: center;
-  // width: 100%;
   min-width: 376;
-  // background-color: midnightblue;
   margin-bottom: 10px;
 }
 
@@ -43,11 +41,8 @@
   align-items: end;
   justify-items: baseline;
   gap: 5px;
-  // background-color: blue;
   text-align: left;
   margin-top: 5px;
-  // padding-left: 76px;
-  // margin-bottom: 8px;
   label {
     font-size: 19px;
     padding-right: 2px;
@@ -58,7 +53,6 @@
     gap: 5px;
   }
   label:nth-child(2) {
-    // background-color: green;
     padding-top: 2px;
     gap: 5px;
   }
@@ -70,11 +64,7 @@
 }
 
 .input-container:nth-child(2) {
-  // background-color: red;
   gap: 5px;
-
-  // padding-left: 81px;
-  // margin-bottom: 25px;
 }
 
 .login-submit-button {

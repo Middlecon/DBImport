@@ -300,7 +300,7 @@ function AirflowExport() {
               <Button
                 title={`Delete ${
                   currentRowsLength > 0 ? currentRowsLength : ''
-                } table${
+                } DAG${
                   currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
                 }`}
                 onClick={handleBulkDeleteClick}
