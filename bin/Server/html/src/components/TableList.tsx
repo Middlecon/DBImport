@@ -47,6 +47,9 @@ function TableList<T>({
   const lastSelectedRowIndexRef = useRef<number | null>(null)
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState<string>('')
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null)
+
   useEffect(() => {
     const updateScrollbarMarginTop = () => {
       if (tableHeaderRef.current) {
@@ -388,31 +391,59 @@ function TableList<T>({
       }
 
       if (column.isLink) {
+        const isFirstActionCell = rowIndex === 0
+
+        let timeoutId: string | number | NodeJS.Timeout | undefined
+
+        const handleMouseOver = (buttonId: string) => {
+          timeoutId = setTimeout(() => {
+            setHoveredButton(buttonId)
+          }, 1000)
+        }
+
+        const handleMouseOut = () => {
+          clearTimeout(timeoutId)
+          setHoveredButton(null)
+        }
         return (
           <div className="actions-row">
             {column.isLink === 'connectionLink' ? (
               <>
                 <button
-                  className="actions-cn-link-button"
+                  className={`actions-cn-link-button ${
+                    isFirstActionCell ? 'first' : ''
+                  }`}
                   onClick={() =>
                     handleConnectionLinkClick(
                       'import',
                       String(row['name' as keyof T])
                     )
                   }
+                  onMouseOver={() => handleMouseOver('import')}
+                  onMouseOut={handleMouseOut}
                 >
                   <ImportIcon />
+                  {hoveredButton === 'import' && (
+                    <span className="tooltip">Import</span>
+                  )}
                 </button>
                 <button
-                  className="actions-cn-link-button"
+                  className={`actions-cn-link-button ${
+                    isFirstActionCell ? 'first' : ''
+                  }`}
                   onClick={() =>
                     handleConnectionLinkClick(
                       'export',
                       String(row['name' as keyof T])
                     )
                   }
+                  onMouseOver={() => handleMouseOver('export')}
+                  onMouseOut={handleMouseOut}
                 >
                   <ExportIcon />
+                  {hoveredButton === 'export' && (
+                    <span className="tooltip">Export</span>
+                  )}
                 </button>
               </>
             ) : null}
@@ -421,25 +452,50 @@ function TableList<T>({
       }
 
       if (column.isAction) {
+        const isFirstActionCell = rowIndex === 0
+
+        let timeoutId: string | number | NodeJS.Timeout | undefined
+
+        const handleMouseEnter = () => {
+          timeoutId = setTimeout(() => {
+            setShowTooltip(true)
+          }, 1000)
+        }
+
+        const handleMouseLeave = () => {
+          clearTimeout(timeoutId)
+          setShowTooltip(false)
+        }
         return (
           <div className="actions-row">
             {column.isAction === 'edit' ||
             column.isAction === 'editAndDelete' ? (
               <button
+                className={`actions-edit-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
                 onClick={() => onEdit && onEdit(row, rowIndex)}
                 disabled={!onEdit}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
                 <EditIcon />
+                {showTooltip && <span className="tooltip">Edit</span>}
               </button>
             ) : null}
             {column.isAction === 'delete' ||
             column.isAction === 'editAndDelete' ? (
               <button
-                className="actions-delete-button"
+                className={`actions-delete-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
                 onClick={() => onDelete && onDelete(row)}
                 style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
                 <DeleteIcon />
+                {showTooltip && <span className="tooltip">Delete</span>}
               </button>
             ) : null}
           </div>
@@ -448,7 +504,16 @@ function TableList<T>({
 
       return String(cellValue)
     },
-    [isExport, airflowType, navigate, overflowState, onEdit, onDelete]
+    [
+      isExport,
+      airflowType,
+      navigate,
+      overflowState,
+      onEdit,
+      hoveredButton,
+      showTooltip,
+      onDelete
+    ]
   )
 
   // Define columns for TanStack Table

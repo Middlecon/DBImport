@@ -249,6 +249,21 @@
   transition: opacity 0.1s;
 }
 
+.actions-edit-button:hover .tooltip,
+.actions-delete-button:hover .tooltip,
+.actions-cn-link-button:hover .tooltip {
+  visibility: visible;
+  opacity: 7;
+  overflow: visible;
+  transform: translateY(-20px) translateX(7px);
+}
+
+.actions-edit-button.first:hover .tooltip,
+.actions-delete-button.first:hover .tooltip,
+.actions-cn-link-button.first:hover .tooltip {
+  transform: translateY(4px) translateX(7px);
+}
+
 .fixed-width {
   position: relative;
   max-width: 80px;
