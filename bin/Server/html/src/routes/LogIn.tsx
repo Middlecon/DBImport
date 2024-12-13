@@ -104,46 +104,49 @@ function LogIn() {
         <div className="login-form">
           <h2>Log in</h2>
           <form onSubmit={handleSubmit}>
-            <div className="input-container">
-              <label
-                className={loading ? 'login-disabled-label' : ''}
-                htmlFor="username"
-              >
-                Username:
-              </label>
-              <input
-                id="username"
-                type="text"
-                autoComplete="username"
-                value={formData.username}
-                onChange={(event) => {
-                  setFormData({ ...formData, username: event.target.value })
-                  setErrorMessage('')
-                }}
-                disabled={loading}
-                required
-              />
+            <div className="form-fields-container">
+              <div className="input-container">
+                <label
+                  className={loading ? 'login-disabled-label' : ''}
+                  htmlFor="username"
+                >
+                  Username:
+                </label>
+                <label
+                  className={loading ? 'login-disabled-label' : ''}
+                  htmlFor="password"
+                >
+                  Password:
+                </label>
+              </div>
+              <div className="input-container">
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={formData.username}
+                  onChange={(event) => {
+                    setFormData({ ...formData, username: event.target.value })
+                    setErrorMessage('')
+                  }}
+                  disabled={loading}
+                  required
+                />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={formData.password}
+                  onChange={(event) => {
+                    setFormData({ ...formData, password: event.target.value })
+                    setErrorMessage('')
+                  }}
+                  disabled={loading}
+                  required
+                />
+              </div>
             </div>
-            <div className="input-container">
-              <label
-                className={loading ? 'login-disabled-label' : ''}
-                htmlFor="password"
-              >
-                Password:
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={formData.password}
-                onChange={(event) => {
-                  setFormData({ ...formData, password: event.target.value })
-                  setErrorMessage('')
-                }}
-                disabled={loading}
-                required
-              />
-            </div>
+
             <button
               className="login-submit-button"
               type="submit"

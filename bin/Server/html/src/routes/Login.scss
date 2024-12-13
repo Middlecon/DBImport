@@ -26,14 +26,41 @@
   color: rgb(216, 216, 216);
 }
 
+.form-fields-container {
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  // width: 100%;
+  min-width: 376;
+  // background-color: midnightblue;
+  margin-bottom: 10px;
+}
+
 .input-container {
-  min-width: 376.66px;
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  justify-items: baseline;
+  gap: 5px;
+  // background-color: blue;
   text-align: left;
-  padding-left: 76px;
-  margin-bottom: 8px;
+  margin-top: 5px;
+  // padding-left: 76px;
+  // margin-bottom: 8px;
   label {
     font-size: 19px;
     padding-right: 2px;
+    min-height: 24.5;
+  }
+  label:first-child {
+    padding-top: 1px;
+    gap: 5px;
+  }
+  label:nth-child(2) {
+    // background-color: green;
+    padding-top: 2px;
+    gap: 5px;
   }
   input {
     padding-top: 4px;
@@ -43,9 +70,11 @@
 }
 
 .input-container:nth-child(2) {
-  min-width: 371.66px;
-  padding-left: 81px;
-  margin-bottom: 25px;
+  // background-color: red;
+  gap: 5px;
+
+  // padding-left: 81px;
+  // margin-bottom: 25px;
 }
 
 .login-submit-button {
