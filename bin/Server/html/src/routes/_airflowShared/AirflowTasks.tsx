@@ -21,9 +21,13 @@ import {
   updateImportDagData
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateAirflowDag } from '../../utils/mutations'
+import {
+  useDeleteAirflowTask,
+  useUpdateAirflowDag
+} from '../../utils/mutations'
 import Button from '../../components/Button'
 import CreateAirflowTaskModal from '../../components/CreateAirflowTaskModal'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
@@ -37,8 +41,13 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   } = useAirflowDAG(type, dagName)
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
+  const { mutate: deleteAirflowTask } = useDeleteAirflowTask()
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+
+  const [currentDeleteRow, setCurrentDeleteRow] = useState<AirflowTask>()
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
@@ -84,7 +93,8 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
         accessor: 'sensorConnection'
       },
       { header: 'Sensor Soft Fail', accessor: 'sensorSoftFail' },
-      { header: 'Sudo User', accessor: 'sudoUser' }
+      { header: 'Sudo User', accessor: 'sudoUser' },
+      { header: 'Actions', isAction: 'delete' }
     ],
     []
   )
@@ -241,6 +251,35 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
     }
   }
 
+  const handleDeleteIconClick = (row: AirflowTask) => {
+    setShowDeleteConfirmation(true)
+    setCurrentDeleteRow(row)
+  }
+
+  const handleDelete = async (row: AirflowTask) => {
+    if (!dagName) return
+    setShowDeleteConfirmation(false)
+    console.log('handleDelete task row', row)
+
+    const { name: taskNameDelete } = row
+
+    deleteAirflowTask(
+      { type, dagName, taskName: taskNameDelete },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows'], // Matches all related queries that starts the queryKey with 'airflows'
+            exact: false
+          })
+          console.log('Delete successful')
+        },
+        onError: (error: Error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
   return (
     <div style={{ marginTop: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'end', marginBottom: 15 }}>
@@ -257,6 +296,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           columns={columns}
           data={tasksData}
           onEdit={handleEditClick}
+          onDelete={handleDeleteIconClick}
           isLoading={isLoading}
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
@@ -290,6 +330,17 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           tasksData={tasksData}
           onSave={handleSaveCreateTask}
           onClose={() => setCreateModalOpen(false)}
+        />
+      )}
+      {showDeleteConfirmation && currentDeleteRow && (
+        <ConfirmationModal
+          title={`Delete ${currentDeleteRow.name}`}
+          message={`Are you sure that you want to delete task "${currentDeleteRow.name}"? \nDelete is irreversable.`}
+          buttonTitleCancel="No, Go Back"
+          buttonTitleConfirm="Yes, Delete"
+          onConfirm={() => handleDelete(currentDeleteRow)}
+          onCancel={() => setShowDeleteConfirmation(false)}
+          isActive={showDeleteConfirmation}
         />
       )}
     </div>

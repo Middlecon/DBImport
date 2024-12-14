@@ -347,6 +347,34 @@ export const useDeleteAirflowDAG = () => {
   })
 }
 
+// Airflow delete Task
+
+type DeleteAirflowTaskArgs = {
+  type: 'import' | 'export' | 'custom'
+  dagName: string
+  taskName: string
+}
+
+const deleteAirflowTask = async ({
+  type,
+  dagName,
+  taskName
+}: DeleteAirflowTaskArgs) => {
+  const encodedDagName = encodeURIComponent(dagName)
+  const encodedTaskName = encodeURIComponent(taskName)
+
+  const response = await axiosInstance.delete(
+    `/airflow/dags/${type}/${encodedDagName}/${encodedTaskName}`
+  )
+  return response.data
+}
+
+export const useDeleteAirflowTask = () => {
+  return useMutation({
+    mutationFn: (args: DeleteAirflowTaskArgs) => deleteAirflowTask(args)
+  })
+}
+
 // Bulk update Airflow DAG
 
 const postBulkUpdateAirflowDag = async (
