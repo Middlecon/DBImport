@@ -35,7 +35,7 @@ function Card({
   isNotEditable,
   isDisabled
 }: CardProps) {
-  const { table: tableParam, database, connection } = useParams()
+  const { table: tableParam, database, connection, targetTable } = useParams()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
@@ -64,24 +64,26 @@ function Card({
       console.log('editedTableData', editedTableData)
 
       const secondQueryKey = type === 'import' ? database : connection
+      const thirdQueryKey = type === 'import' ? tableParam : targetTable
 
       queryClient.setQueryData(
-        [type, secondQueryKey, tableParam],
+        [type, secondQueryKey, thirdQueryKey],
         editedTableData
       )
       updateTable(
         { type, table: editedTableData },
         {
           onSuccess: (response) => {
+            // For getting fresh data from database to the cache
             queryClient.invalidateQueries({
-              queryKey: [type, secondQueryKey, tableParam]
-            }) // For getting fresh data from database to the cache
+              queryKey: [type, secondQueryKey, thirdQueryKey]
+            })
             console.log('Update successful', response)
             setIsEditModalOpen(false)
           },
           onError: (error) => {
             queryClient.setQueryData(
-              [type, secondQueryKey, tableParam],
+              [type, secondQueryKey, thirdQueryKey],
               tableData
             )
 
