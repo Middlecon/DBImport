@@ -59,6 +59,7 @@ function CreateExportTableModal({
     )
   }, [editedSettings])
 
+  // For validating unique combination of pk's so it becomes a create and not an update
   const [filter, setFilter] = useState<ExportSearchFilter>({
     connection: null,
     targetSchema: null,

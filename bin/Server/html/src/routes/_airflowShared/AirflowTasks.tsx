@@ -286,9 +286,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
         <Button
           title="+ Create"
           onClick={() => setCreateModalOpen(true)}
-          fontFamily={`'Work Sans Variable', sans-serif`}
           fontSize="14px"
-          padding="4px 12px 7.5px 9px"
         />
       </div>
       {tasksData.length > 0 ? (

@@ -202,6 +202,7 @@ function Connection() {
                 handleDropdownToggle('searchFilter', isSearchFilterOpen)
               }
               onShow={handleShow}
+              disabled={!data}
             />
           </div>
         </div>
@@ -248,16 +249,7 @@ function Connection() {
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (
-          <p
-            style={{
-              padding: ' 40px 50px 44px 50px',
-              backgroundColor: 'white',
-              borderRadius: 7,
-              textAlign: 'center'
-            }}
-          >
-            No connections yet.
-          </p>
+          <div className="import-text-block">No connections yet.</div>
         )}
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal

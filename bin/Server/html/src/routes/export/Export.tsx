@@ -306,9 +306,7 @@ function Export() {
             <Button
               title="+ Add table"
               onClick={() => setCreateModalOpen(true)}
-              fontFamily={`'Work Sans Variable', sans-serif`}
               fontSize="14px"
-              padding="4px 13px 7.5px 9px"
             />
 
             <ExportSearchFilterTables
@@ -317,6 +315,7 @@ function Export() {
                 handleDropdownToggle('searchFilter', isSearchFilterOpen)
               }
               onShow={handleShow}
+              disabled={!data}
             />
           </div>
         </div>
@@ -373,10 +372,7 @@ function Export() {
           <div className="loading">Loading...</div>
         ) : (
           <div className="import-text-block">
-            <p>
-              Get and show export tables by the filter search above to the
-              right.
-            </p>
+            <p>No export tables yet.</p>
           </div>
         )}
       </ViewBaseLayout>

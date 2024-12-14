@@ -1296,3 +1296,36 @@ export function updateJDBCdriverData(
 
   return finalConfigData
 }
+
+// Bulk
+
+// For bulkChanges with enum values
+export function transformBulkChanges(
+  type: 'import' | 'export',
+  bulkChanges: Record<string, string | number | boolean | null>
+): Record<string, string | number | boolean | null> {
+  return Object.entries(bulkChanges).reduce((acc, [key, value]) => {
+    let category: string
+    if (key === 'importPhaseType') {
+      category = 'importType'
+    } else if (key === 'etlPhaseType') {
+      category = 'etlType'
+    } else {
+      category = key
+    }
+
+    try {
+      const backendValue = reverseMapEnumValue(
+        type,
+        category,
+        String(value),
+        true
+      )
+      acc[key] = backendValue
+    } catch {
+      acc[key] = value
+    }
+
+    return acc
+  }, {} as Record<string, string | number | boolean | null>)
+}

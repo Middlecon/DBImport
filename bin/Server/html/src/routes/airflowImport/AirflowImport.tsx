@@ -260,9 +260,7 @@ function AirflowImport() {
             <Button
               title="+ Create"
               onClick={() => setCreateModalOpen(true)}
-              fontFamily={`'Work Sans Variable', sans-serif`}
               fontSize="14px"
-              padding="4px 12px 7.5px 9px"
             />
           </div>
         </div>
@@ -324,7 +322,7 @@ function AirflowImport() {
             />
           </>
         ) : (
-          <div>Loading....</div>
+          <div className="loading">Loading...</div>
         )}
         {isCreateModalOpen && (
           <CreateAirflowModal

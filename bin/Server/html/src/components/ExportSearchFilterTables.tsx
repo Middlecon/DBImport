@@ -22,12 +22,14 @@ interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
   onShow: (filters: UiExportSearchFilter) => void
+  disabled?: boolean
 }
 
 function ExportSearchFilterTables({
   isSearchFilterOpen,
   onToggle,
-  onShow
+  onShow,
+  disabled
 }: ExportSearchFilterProps) {
   const query = new URLSearchParams(location.search)
 
@@ -240,8 +242,8 @@ function ExportSearchFilterTables({
 
   return (
     <div className="search-filter-container" ref={containerRef}>
-      <div
-        className="search-filter-button"
+      <button
+        className={`search-filter-button `}
         onClick={() => onToggle(!isSearchFilterOpen)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
@@ -249,6 +251,7 @@ function ExportSearchFilterTables({
           }
         }}
         tabIndex={0}
+        disabled={disabled}
       >
         <div className="search-filter-funnel">
           <FilterFunnel />
@@ -257,7 +260,7 @@ function ExportSearchFilterTables({
         <div className="search-filter-chevron-container">
           {isSearchFilterOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
-      </div>
+      </button>
       {isSearchFilterOpen && (
         <div className="search-filter-dropdown">
           <div className="search-filter-dropdown-h-ctn">

@@ -12,7 +12,10 @@ import {
 import { fetchTableData } from '../../utils/queries'
 import './DbTables.scss'
 import EditTableModal from '../../components/EditTableModal'
-import { updateTableData } from '../../utils/dataFunctions'
+import {
+  transformBulkChanges,
+  updateTableData
+} from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
@@ -175,8 +178,14 @@ function DbTables({
       table: row.table
     }))
 
+    // For bulkChanges with enum values
+    const transformedChanges = transformBulkChanges('import', bulkChanges)
+
+    console.log('bulkChanges', bulkChanges)
+    console.log('transformedChanges', transformedChanges)
+
     const bulkUpdateJson: BulkUpdateImportTables = {
-      ...bulkChanges,
+      ...transformedChanges,
       importTables: importTablesPks
     }
 

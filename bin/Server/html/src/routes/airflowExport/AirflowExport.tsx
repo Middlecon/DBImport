@@ -261,9 +261,7 @@ function AirflowExport() {
             <Button
               title="+ Create"
               onClick={() => setCreateModalOpen(true)}
-              fontFamily={`'Work Sans Variable', sans-serif`}
               fontSize="14px"
-              padding="4px 13px 7.5px 9px"
             />
           </div>
         </div>
@@ -325,16 +323,7 @@ function AirflowExport() {
             />
           </>
         ) : (
-          <p
-            style={{
-              padding: ' 40px 50px 44px 50px',
-              backgroundColor: 'white',
-              borderRadius: 7,
-              textAlign: 'center'
-            }}
-          >
-            No columns yet in this table.
-          </p>
+          <div className="loading">Loading...</div>
         )}
         {isCreateModalOpen && (
           <CreateAirflowModal

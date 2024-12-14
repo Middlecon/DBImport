@@ -42,6 +42,8 @@ function CreateAirflowModal({
   )
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+
+  // For validating unique pk so it becomes a create and not an update
   const [duplicateDagName, setDuplicateDagName] = useState(false)
   const [pendingValidation, setPendingValidation] = useState(false)
 

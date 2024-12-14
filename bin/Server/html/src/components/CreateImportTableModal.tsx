@@ -47,17 +47,6 @@ function CreateImportTableModal({
     [connectionsData]
   )
 
-  const [filter, setFilter] = useState<ImportSearchFilter>({
-    connection: null,
-    database: null,
-    table: null,
-    includeInAirflow: null,
-    importPhaseType: null,
-    etlPhaseType: null,
-    importTool: null,
-    etlEngine: null
-  })
-
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -83,6 +72,18 @@ function CreateImportTableModal({
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
   }, [editedSettings])
+
+  // For validating unique combination of pk's so it becomes a create and not an update
+  const [filter, setFilter] = useState<ImportSearchFilter>({
+    connection: null,
+    database: null,
+    table: null,
+    includeInAirflow: null,
+    importPhaseType: null,
+    etlPhaseType: null,
+    importTool: null,
+    etlEngine: null
+  })
 
   const updateFilter = useMemo(
     () =>

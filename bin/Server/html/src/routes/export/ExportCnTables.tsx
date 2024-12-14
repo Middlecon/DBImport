@@ -13,7 +13,10 @@ import {
 import { fetchExportTableData } from '../../utils/queries'
 import '../import/DbTables.scss'
 import EditTableModal from '../../components/EditTableModal'
-import { updateExportTableData } from '../../utils/dataFunctions'
+import {
+  transformBulkChanges,
+  updateExportTableData
+} from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
@@ -182,19 +185,20 @@ function ExportCnTables({
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
   ) => {
-    console.log('bulkChanges', bulkChanges)
-    console.log('currentRowsBulk', currentRowsBulk)
-
     const exportTablesPks = currentRowsBulk.map((row) => ({
       connection: row.connection,
       targetSchema: row.targetSchema,
       targetTable: row.targetTable
     }))
 
-    console.log(exportTablesPks)
+    // For bulkChanges with enum values
+    const transformedChanges = transformBulkChanges('export', bulkChanges)
+
+    console.log('bulkChanges', bulkChanges)
+    console.log('transformedChanges', transformedChanges)
 
     const bulkUpdateJson: BulkUpdateExportTables = {
-      ...bulkChanges,
+      ...transformedChanges,
       exportTables: exportTablesPks
     }
 

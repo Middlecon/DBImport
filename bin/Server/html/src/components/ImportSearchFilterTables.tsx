@@ -22,12 +22,14 @@ interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
   onShow: (filters: UiImportSearchFilter) => void
+  disabled?: boolean
 }
 
 function ImportSearchFilterTables({
   isSearchFilterOpen,
   onToggle,
-  onShow
+  onShow,
+  disabled
 }: ImportSearchFilterProps) {
   const query = new URLSearchParams(location.search)
   const connection = query.get('connection') || null
@@ -290,7 +292,7 @@ function ImportSearchFilterTables({
 
   return (
     <div className="search-filter-container" ref={containerRef}>
-      <div
+      <button
         className="search-filter-button"
         onClick={() => onToggle(!isSearchFilterOpen)}
         onKeyDown={(event) => {
@@ -299,6 +301,7 @@ function ImportSearchFilterTables({
           }
         }}
         tabIndex={0}
+        disabled={disabled}
       >
         <div className="search-filter-funnel">
           <FilterFunnel />
@@ -307,7 +310,7 @@ function ImportSearchFilterTables({
         <div className="search-filter-chevron-container">
           {isSearchFilterOpen ? <ChevronUp /> : <ChevronDown />}
         </div>
-      </div>
+      </button>
       {isSearchFilterOpen && (
         <div className="search-filter-dropdown">
           <div className="search-filter-dropdown-h-ctn">
