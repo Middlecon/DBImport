@@ -20,7 +20,7 @@ function ListRowsInfo<T>({
   return (
     <p
       className={
-        totalRows > maxRows
+        contentMaxReturnedRows && totalRows > maxRows
           ? `list-rows-info list-rows-limited`
           : `list-rows-info`
       }
