@@ -539,7 +539,9 @@ export const useImportAirflows = (): UseQueryResult<
       }))
 
       return mappedData
-    }
+    },
+    initialData: [],
+    refetchOnWindowFocus: false
   })
 }
 
@@ -655,7 +657,8 @@ const getGlobalConfig = async () => {
 export const useGlobalConfig = (): UseQueryResult<ConfigGlobal, Error> => {
   return useQuery({
     queryKey: ['configuration', 'global'],
-    queryFn: () => getGlobalConfig()
+    queryFn: () => getGlobalConfig(),
+    refetchOnWindowFocus: false
   })
 }
 
@@ -667,6 +670,7 @@ const getJDBCdrivers = async () => {
 export const useJDBCDrivers = (): UseQueryResult<JDBCdrivers[], Error> => {
   return useQuery({
     queryKey: ['configuration', 'jdbcdrivers'],
-    queryFn: () => getJDBCdrivers()
+    queryFn: () => getJDBCdrivers(),
+    refetchOnWindowFocus: false
   })
 }

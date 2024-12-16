@@ -286,7 +286,7 @@ function AirflowCustom() {
             ))}
         </div>
 
-        {filteredData && data ? (
+        {filteredData && Array.isArray(data) && data.length > 0 ? (
           <>
             <div className="list-top-info-and-edit">
               <Button
@@ -325,8 +325,12 @@ function AirflowCustom() {
               enableMultiSelection={true}
             />
           </>
-        ) : (
+        ) : isLoading ? (
           <div className="loading">Loading...</div>
+        ) : (
+          <div className="import-text-block">
+            <p>No custom DAGs yet.</p>
+          </div>
         )}
         {isCreateModalOpen && (
           <CreateAirflowModal

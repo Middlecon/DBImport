@@ -50,9 +50,16 @@ function ConfigJDBCDrivers() {
   if (isError) {
     return <div className="error">Server error occurred.</div>
   }
-
-  if (!originalDriverData && !isError)
+  if (isLoading) {
     return <div className="loading">Loading...</div>
+  }
+  if (!originalDriverData) {
+    return (
+      <div className="import-text-block">
+        <p>No JDBC Drivers data.</p>
+      </div>
+    )
+  }
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     const originalDataCopy: JDBCdrivers[] = [...originalDriverData]

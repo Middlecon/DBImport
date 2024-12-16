@@ -7,13 +7,20 @@ import CardConfig from './CardConfig'
 import { EditSetting } from '../../utils/interfaces'
 
 function ConfigGlobalSettings() {
-  const { data: globalConfig, isError } = useGlobalConfig()
+  const { data: globalConfig, isLoading, isError } = useGlobalConfig()
 
   if (isError) {
     return <div className="error">Server error occurred.</div>
   }
-  if (!globalConfig && !isError) {
+  if (isLoading) {
     return <div className="loading">Loading...</div>
+  }
+  if (!globalConfig) {
+    return (
+      <div className="import-text-block">
+        <p>No configuration data.</p>
+      </div>
+    )
   }
 
   console.log('globalConfig', globalConfig)
