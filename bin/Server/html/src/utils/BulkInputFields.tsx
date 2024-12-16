@@ -615,35 +615,7 @@ function BulkInputFields<T>({
           }
 
           case SettingType.GroupingSpace: {
-            return (
-              <div
-                className="bulk-input-row"
-                key={`${String(keyOfT)}-${String(index)}`}
-              >
-                {label !== '' ? (
-                  label === 'line' ? (
-                    <div
-                      style={{
-                        border: '.5px solid lightgrey',
-                        margin: 0,
-                        width: '100%'
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{ fontSize: 12, fontWeight: 400, marginBottom: 0 }}
-                    >
-                      {label}
-                    </div>
-                  )
-                ) : (
-                  <div
-                    key={`${String(keyOfT)}-${String(index)}`}
-                    className="setting-grouping-space"
-                  />
-                )}
-              </div>
-            )
+            return <div className="setting-grouping-space" />
           }
 
           default:

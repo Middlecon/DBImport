@@ -1413,7 +1413,7 @@ function TableInputFields({
     }
 
     case 'groupingSpace':
-      return <div className="setting-grouping-space"> </div>
+      return <div className="setting-grouping-space" />
 
     default:
       return null

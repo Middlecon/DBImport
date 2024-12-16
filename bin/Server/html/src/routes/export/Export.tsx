@@ -351,9 +351,11 @@ function Export() {
           ))}
         </div>
 
-        {isCreateModalOpen && mostCommonConnection && (
+        {isCreateModalOpen && (
           <CreateExportTableModal
-            connection={mostCommonConnection ? mostCommonConnection : null}
+            prefilledConnection={
+              mostCommonConnection ? mostCommonConnection : null
+            }
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
           />

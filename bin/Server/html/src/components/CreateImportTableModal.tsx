@@ -22,20 +22,20 @@ import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
 
 interface CreateTableModalProps {
-  database: string | null
+  prefilledDatabase: string | null
   prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateImportTableModal({
-  database,
+  prefilledDatabase,
   prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
   const settings = initialCreateImportTableSettings(
-    database,
+    prefilledDatabase,
     prefilledConnection
   )
   const { data: connectionsData } = useConnections(true)

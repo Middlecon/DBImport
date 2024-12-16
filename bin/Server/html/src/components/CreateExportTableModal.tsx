@@ -22,17 +22,17 @@ import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
 
 interface CreateTableModalProps {
-  connection: string | null
+  prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateExportTableModal({
-  connection,
+  prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
-  const settings = initialCreateExportTableSettings(connection)
+  const settings = initialCreateExportTableSettings(prefilledConnection)
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)

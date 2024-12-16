@@ -12,7 +12,7 @@ import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
-import { createAirflowSettings } from '../utils/cardRenderFormatting'
+import { initialCreateAirflowSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
 
 interface CreateAirflowModalProps {
@@ -26,7 +26,7 @@ function CreateAirflowModal({
   onSave,
   onClose
 }: CreateAirflowModalProps) {
-  const settings = createAirflowSettings(type)
+  const settings = initialCreateAirflowSettings(type)
 
   const { data: airflowsData } = useAllAirflows()
   const airflowNames = useMemo(

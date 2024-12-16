@@ -417,7 +417,7 @@ function Import() {
 
         {isCreateModalOpen && (
           <CreateImportTableModal
-            database={mostCommonDatabase ? mostCommonDatabase : null}
+            prefilledDatabase={mostCommonDatabase ? mostCommonDatabase : null}
             prefilledConnection={
               mostCommonConnection ? mostCommonConnection : null
             }

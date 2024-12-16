@@ -45,7 +45,7 @@ function CreateAirflowTaskModal({
     [connectionsData]
   )
 
-  const settings = initialCreateAirflowTaskSettings()
+  const settings = initialCreateAirflowTaskSettings
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
     settings ? settings : []

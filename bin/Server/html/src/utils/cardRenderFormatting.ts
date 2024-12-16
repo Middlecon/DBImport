@@ -295,7 +295,7 @@ export function airflowCardRenderSettings(
   return combinedAirflowDagSettings
 }
 
-export function createAirflowSettings(
+export function initialCreateAirflowSettings(
   airflowType: 'import' | 'export' | 'custom'
 ) {
   const baseAirflowDagSettingsPart1: EditSetting[] = [
@@ -493,109 +493,106 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
   return rowData
 }
 
-export function initialCreateAirflowTaskSettings() {
-  const rowData: EditSetting[] = [
-    {
-      label: 'Task Name',
-      value: '',
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.name,
-      isRequired: true
-    }, // Free-text, varchar(64), have to be unique in the actual DAG and can not be reserved values start or Start or stop or Stop, required
-    {
-      label: 'Type',
-      value: mapDisplayValue('type', AirflowDAGTaskType.HiveSQLScript),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('type'),
-      infoText: infoTexts.airflow.tasks.type,
-      isRequired: true
-    }, // Enum, 'shell script','Hive SQL','Hive SQL Script','JDBC SQL','Trigger DAG','DAG Sensor','SQL Sensor','DBImport command', required (default value: 'Hive SQL Script')
+export const initialCreateAirflowTaskSettings: EditSetting[] = [
+  {
+    label: 'Task Name',
+    value: '',
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.name,
+    isRequired: true
+  }, // Free-text, varchar(64), have to be unique in the actual DAG and can not be reserved values start or Start or stop or Stop, required
+  {
+    label: 'Type',
+    value: mapDisplayValue('type', AirflowDAGTaskType.HiveSQLScript),
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('type'),
+    infoText: infoTexts.airflow.tasks.type,
+    isRequired: true
+  }, // Enum, 'shell script','Hive SQL','Hive SQL Script','JDBC SQL','Trigger DAG','DAG Sensor','SQL Sensor','DBImport command', required (default value: 'Hive SQL Script')
 
-    {
-      label: 'Placement',
-      value: mapDisplayValue('placement', AirflowDAGTaskPlacement.AfterMain),
-      type: SettingType.Enum,
-      enumOptions: getEnumOptions('placement'),
-      infoText: infoTexts.airflow.tasks.placement,
-      isRequired: true
-    }, // Enum, 'before main','after main','in main', required (default value: 'after main')
+  {
+    label: 'Placement',
+    value: mapDisplayValue('placement', AirflowDAGTaskPlacement.AfterMain),
+    type: SettingType.Enum,
+    enumOptions: getEnumOptions('placement'),
+    infoText: infoTexts.airflow.tasks.placement,
+    isRequired: true
+  }, // Enum, 'before main','after main','in main', required (default value: 'after main')
 
-    {
-      label: 'Connection',
-      value: null,
-      type: SettingType.ConnectionReference,
-      infoText: infoTexts.airflow.tasks.connection
-    }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
-    // {
-    //   label: 'Airflow Pool',
-    //   value: null,
-    //   type: SettingType.Readonly,
-    //   infoText: infoTexts.airflow.tasks.airflowPool
-    // }, // Readonly, varchar(64)
-    {
-      label: 'Airflow Priority',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.airflowPriority
-    }, // Free-text, varchar(64)
-    {
-      label: 'Include in Airflow',
-      value: true,
-      type: SettingType.Boolean,
-      infoText: infoTexts.airflow.tasks.includeInAirflow,
-      isRequired: true
-    }, // Boolean true or false, required (default value: true)
-    {
-      label: 'Task Dependency Downstream',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.taskDependencyDownstream
-    }, // Free-text, Defines the downstream dependency for the Task. Comma separated list, varchar(256)
-    {
-      label: 'Task Dependency Upstream',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.taskDependencyUpstream
-    }, // Free-text, Defines the upstream dependency for the Task. Comma separated list, varchar(256)
-    {
-      label: 'Task Config',
-      value: null,
-      type: SettingType.Textarea,
-      infoText: infoTexts.airflow.tasks.taskConfig
-    }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
-    {
-      label: 'Sensor Poke Interval',
-      value: null,
-      type: SettingType.IntegerFromZeroOrNull,
-      infoText: infoTexts.airflow.tasks.sensorPokeInterval
-    }, // Number, Poke interval for sensors in seconds, int(11)
-    // {
-    //   label: 'Sensor Timeout Minutes',
-    //   value: null,
-    //   type: SettingType.Readonly,
-    //   infoText: infoTexts.airflow.tasks.sensorTimeoutMinutes
-    // }, // Readonly, Timeout for sensors in minutes, int(11)
-    {
-      label: 'Sensor Connection',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.sensorConnection
-    }, // Free-text, Name of Connection in Airflow, varchar(64)
-    {
-      label: 'Sensor Soft Fail',
-      value: null,
-      type: SettingType.BooleanNumber,
-      infoText: infoTexts.airflow.tasks.sensorSoftFail
-    }, // Boolean number, Setting this to 1 will add soft_fail=True on sensor (1=true, all else = false), int(11)
-    {
-      label: 'Sudo User',
-      value: null,
-      type: SettingType.Text,
-      infoText: infoTexts.airflow.tasks.sudoUser
-    } // Free-text, The task will use this user for sudo instead of default, varchar(64)
-  ]
-  return rowData
-}
+  {
+    label: 'Connection',
+    value: null,
+    type: SettingType.ConnectionReference,
+    infoText: infoTexts.airflow.tasks.connection
+  }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
+  // {
+  //   label: 'Airflow Pool',
+  //   value: null,
+  //   type: SettingType.Readonly,
+  //   infoText: infoTexts.airflow.tasks.airflowPool
+  // }, // Readonly, varchar(64)
+  {
+    label: 'Airflow Priority',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.airflowPriority
+  }, // Free-text, varchar(64)
+  {
+    label: 'Include in Airflow',
+    value: true,
+    type: SettingType.Boolean,
+    infoText: infoTexts.airflow.tasks.includeInAirflow,
+    isRequired: true
+  }, // Boolean true or false, required (default value: true)
+  {
+    label: 'Task Dependency Downstream',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.taskDependencyDownstream
+  }, // Free-text, Defines the downstream dependency for the Task. Comma separated list, varchar(256)
+  {
+    label: 'Task Dependency Upstream',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.taskDependencyUpstream
+  }, // Free-text, Defines the upstream dependency for the Task. Comma separated list, varchar(256)
+  {
+    label: 'Task Config',
+    value: null,
+    type: SettingType.Textarea,
+    infoText: infoTexts.airflow.tasks.taskConfig
+  }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
+  {
+    label: 'Sensor Poke Interval',
+    value: null,
+    type: SettingType.IntegerFromZeroOrNull,
+    infoText: infoTexts.airflow.tasks.sensorPokeInterval
+  }, // Number, Poke interval for sensors in seconds, int(11)
+  // {
+  //   label: 'Sensor Timeout Minutes',
+  //   value: null,
+  //   type: SettingType.Readonly,
+  //   infoText: infoTexts.airflow.tasks.sensorTimeoutMinutes
+  // }, // Readonly, Timeout for sensors in minutes, int(11)
+  {
+    label: 'Sensor Connection',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.sensorConnection
+  }, // Free-text, Name of Connection in Airflow, varchar(64)
+  {
+    label: 'Sensor Soft Fail',
+    value: null,
+    type: SettingType.BooleanNumber,
+    infoText: infoTexts.airflow.tasks.sensorSoftFail
+  }, // Boolean number, Setting this to 1 will add soft_fail=True on sensor (1=true, all else = false), int(11)
+  {
+    label: 'Sudo User',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.airflow.tasks.sudoUser
+  } // Free-text, The task will use this user for sudo instead of default, varchar(64)
+]
 
 // Connection
 
@@ -1517,13 +1514,13 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
 }
 
 export function initialCreateImportTableSettings(
-  database: string | null,
+  prefilledDatabase: string | null,
   prefilledConnection: string | null
 ) {
   const settings: EditSetting[] = [
     {
       label: 'Database',
-      value: database,
+      value: prefilledDatabase,
       type: SettingType.Text,
       infoText: infoTexts.table.import.database,
       isRequired: true
@@ -2050,11 +2047,13 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
   return rowData
 }
 
-export function initialCreateExportTableSettings(connection: string | null) {
+export function initialCreateExportTableSettings(
+  prefilledConnection: string | null
+) {
   const settings: EditSetting[] = [
     {
       label: 'Connection',
-      value: connection,
+      value: prefilledConnection,
       type: SettingType.Text,
       infoText: infoTexts.table.export.connection,
       isRequired: true
@@ -2845,21 +2844,6 @@ export const bulkImportFieldsData: BulkField<UiDbTable>[] = [
     type: SettingType.GroupingSpace
   }, // Layout space
   {
-    key: 'groupingspace',
-    label: 'line',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    key: 'groupingspace',
-    label: 'Fields not in list:',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    key: 'groupingspace',
-    label: '',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
     key: 'operatorNotes',
     label: 'Operator Notes',
     type: SettingType.Textarea,
@@ -2904,21 +2888,6 @@ export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
     type: SettingType.GroupingSpace
   }, // Layout space
   {
-    key: 'groupingspace',
-    label: 'line',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    key: 'groupingspace',
-    label: 'Fields not in list:',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
-    key: 'groupingspace',
-    label: '',
-    type: SettingType.GroupingSpace
-  }, // Layout space
-  {
     key: 'operatorNotes',
     label: 'Operator Notes',
     type: SettingType.Textarea,
@@ -2948,21 +2917,6 @@ export function bulkAirflowDagFieldsData(
       type: SettingType.Text,
       infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required?
-    {
-      key: 'groupingspace',
-      label: '',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
-      key: 'groupingspace',
-      label: 'line',
-      type: SettingType.GroupingSpace
-    }, // Layout space
-    {
-      key: 'groupingspace',
-      label: 'Fields not in list:',
-      type: SettingType.GroupingSpace
-    }, // Layout space
     {
       key: 'groupingspace',
       label: '',
