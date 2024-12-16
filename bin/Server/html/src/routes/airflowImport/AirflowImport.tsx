@@ -181,6 +181,10 @@ function AirflowImport() {
 
     const bulkUpdateJson: BulkUpdateAirflowDAG = {
       ...bulkChanges,
+      scheduleInterval:
+        bulkChanges.scheduleInterval === null
+          ? ''
+          : (bulkChanges.scheduleInterval as string | null),
       dags: airflowDagPks
     }
 
