@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
@@ -15,17 +16,23 @@ import './Modals.scss'
 import InfoText from './InfoText'
 import { initialCreateConnectionSettings } from '../utils/cardRenderFormatting'
 import GenerateConnectionStringModal from './GenerateConnectionStringModal'
+import { useFocusTrap } from '../utils/hooks'
 
 interface CreateConnectionModalProps {
+  isCreateModalOpen: boolean
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateConnectionModal({
+  isCreateModalOpen,
   onSave,
   onClose
 }: CreateConnectionModalProps) {
   const settings = initialCreateConnectionSettings
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isCreateModalOpen)
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
@@ -62,8 +69,6 @@ function CreateConnectionModal({
     index: number,
     newValue: EditSettingValueTypes | null
   ) => {
-    console.log('newValue', newValue)
-
     setPendingValidation(true)
 
     if (index < 0 || index >= editedSettings.length) {
@@ -184,7 +189,11 @@ function CreateConnectionModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}
@@ -255,6 +264,7 @@ function CreateConnectionModal({
       </div>
       {isGenerateModalOpen && (
         <GenerateConnectionStringModal
+          isGenerateModalOpen={isGenerateModalOpen}
           setGeneratedConnectionString={setGeneratedConnectionString}
           onClose={() => setIsGenerateModalOpen(false)}
         />

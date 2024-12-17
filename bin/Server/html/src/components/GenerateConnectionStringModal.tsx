@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -21,16 +22,22 @@ import { useJDBCDrivers } from '../utils/queries'
 import { generateConnectionStringFields } from '../utils/cardRenderFormatting'
 import { transformGenerateConnectionSettings } from '../utils/dataFunctions'
 import { useGenerateConnectionString } from '../utils/mutations'
+import { useFocusTrap } from '../utils/hooks'
 
 interface GenerateConnectionStringModalProps {
+  isGenerateModalOpen: boolean
   setGeneratedConnectionString: (value: string) => void
   onClose: () => void
 }
 
 function GenerateConnectionStringModal({
+  isGenerateModalOpen,
   setGeneratedConnectionString,
   onClose
 }: GenerateConnectionStringModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isGenerateModalOpen)
+
   const { mutate: generateConnectionString } = useGenerateConnectionString()
 
   const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
@@ -215,7 +222,11 @@ function GenerateConnectionStringModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

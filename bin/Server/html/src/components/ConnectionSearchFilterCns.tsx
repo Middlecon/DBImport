@@ -86,7 +86,7 @@ function ConnectionSearchFilterCns({
       }
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (openDropdown) {
           setOpenDropdown(null)
@@ -97,11 +97,11 @@ function ConnectionSearchFilterCns({
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keyup', handleKeyUp)
     }
   }, [isSearchFilterOpen, onToggle, openDropdown])
 

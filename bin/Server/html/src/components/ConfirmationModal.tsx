@@ -27,8 +27,8 @@ function ConfirmationModal({
   useFocusTrap(confirmationModalRef, isActive)
 
   return (
-    <div className="confirmation-modal-backdrop" ref={confirmationModalRef}>
-      <div className="confirmation-modal-content">
+    <div className="confirmation-modal-backdrop">
+      <div className="confirmation-modal-content" ref={confirmationModalRef}>
         <h3 className="confirmation-modal-h3">{title}</h3>
         <p>{message}</p>
         <div className="confirmation-modal-footer">

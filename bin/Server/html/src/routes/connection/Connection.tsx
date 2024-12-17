@@ -291,6 +291,7 @@ function Connection() {
         )}
         {isCreateModalOpen && (
           <CreateConnectionModal
+            isCreateModalOpen={isCreateModalOpen}
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
           />
