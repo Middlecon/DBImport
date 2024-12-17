@@ -18,7 +18,7 @@ function ConfigGlobalSettings() {
   if (!globalConfig) {
     return (
       <div className="import-text-block">
-        <p>No configuration data.</p>
+        <p>Error. No data from REST server.</p>
       </div>
     )
   }

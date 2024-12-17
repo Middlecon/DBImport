@@ -34,7 +34,7 @@
 }
 
 .tbody {
-  user-select: none;
+  user-select: text;
   display: table-row-group;
 }
 
@@ -45,6 +45,8 @@
 
 .th,
 .td {
+  user-select: text;
+
   font-size: 12px;
   display: table-cell;
   padding: 8px;
@@ -170,7 +172,7 @@
   height: 100%;
   width: 5px;
   cursor: col-resize;
-  user-select: none;
+  // user-select: none;
   touch-action: none;
 }
 

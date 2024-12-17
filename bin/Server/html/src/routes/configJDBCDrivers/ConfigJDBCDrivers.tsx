@@ -56,7 +56,7 @@ function ConfigJDBCDrivers() {
   if (!originalDriverData) {
     return (
       <div className="import-text-block">
-        <p>No JDBC Drivers data.</p>
+        <p>Error. No data from REST server.</p>
       </div>
     )
   }

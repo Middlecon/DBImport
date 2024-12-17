@@ -30,7 +30,13 @@
 .input-fields-number-input {
   max-width: 120px;
   margin-right: 5px;
-  min-height: 18px;
+  min-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.input-fields-text-input {
+  min-height: 21px;
 }
 
 .input-fields-text-input,

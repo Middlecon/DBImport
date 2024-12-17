@@ -181,7 +181,7 @@ function Import() {
   const { mutate: createTable } = useCreateImportTable()
   const queryClient = useQueryClient()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [, setImportPersistState] = useAtom(importPersistStateAtom)
   const [selectedFilters, setSelectedFilters] = useAtom(
     importTableListFiltersAtom
@@ -276,7 +276,7 @@ function Import() {
           queryKey: ['databases']
         })
         console.log('Create successful', response)
-        setCreateModalOpen(false)
+        setIsCreateModalOpen(false)
       },
       onError: (error) => {
         console.error('Error creating table', error)
@@ -371,7 +371,7 @@ function Import() {
           <div className="db-dropdown">
             <Button
               title="+ Add table"
-              onClick={() => setCreateModalOpen(true)}
+              onClick={() => setIsCreateModalOpen(true)}
               fontSize="14px"
             />
             <ImportSearchFilterTables
@@ -422,7 +422,7 @@ function Import() {
               mostCommonConnection ? mostCommonConnection : null
             }
             onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
+            onClose={() => setIsCreateModalOpen(false)}
           />
         )}
 

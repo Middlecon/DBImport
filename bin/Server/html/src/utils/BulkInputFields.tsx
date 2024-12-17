@@ -615,7 +615,12 @@ function BulkInputFields<T>({
           }
 
           case SettingType.GroupingSpace: {
-            return <div className="setting-grouping-space" />
+            return (
+              <div
+                className="setting-grouping-space"
+                key={`${String(keyOfT)}-${String(index)}`}
+              />
+            )
           }
 
           default:
