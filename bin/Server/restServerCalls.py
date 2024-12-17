@@ -675,7 +675,10 @@ class dbCalls:
 
 	def getJDBCserverType(self, name, connectionString):
 		""" Return the server type based on the connection string """
-		self.common_config.lookupConnectionAlias(name, decryptCredentials=False, jdbcURL=connectionString)
+		try:
+			self.common_config.lookupConnectionAlias(name, decryptCredentials=False, jdbcURL=connectionString, quiet=True)
+		except invalidConfiguration:
+			pass
 
 		serverType = None
 		if self.common_config.jdbc_servertype == constant.MYSQL:			serverType = "MySQL"

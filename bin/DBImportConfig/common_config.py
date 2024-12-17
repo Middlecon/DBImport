@@ -749,7 +749,7 @@ class config(object, metaclass=Singleton):
 	
 		logging.debug("Executing common_config.printConnectionAliasDetails() - Finished")
 
-	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True, jdbcURL=None):
+	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True, jdbcURL=None, quiet=False):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
@@ -874,7 +874,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("database=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			try:
@@ -922,7 +923,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("databaseName=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -941,19 +943,22 @@ class config(object, metaclass=Singleton):
 				pattern = r'@ldap://([^:/]+):(\d+)/([^,]+),'
 				r = re.search(pattern, self.jdbc_url)
 				if r is None:
-					logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
+					if quiet == False:
+						logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
 					exit_after_function = True
 			else:
 				try:
 					self.jdbc_hostname = self.jdbc_url.split("(HOST=")[1].split(')')[0]
 				except:
-					logging.error("Cant determine hostname based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine hostname based on jdbc_string")
 					exit_after_function = True
 
 				try:
 					self.jdbc_port = self.jdbc_url.split("(PORT=")[1].split(')')[0]
 				except:
-					logging.error("Cant determine port based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine port based on jdbc_string")
 					exit_after_function = True
 
 				try:
@@ -967,7 +972,8 @@ class config(object, metaclass=Singleton):
 					self.jdbc_oracle_servicename = None
 
 				if self.jdbc_oracle_sid == None and self.jdbc_oracle_servicename == None:
-					logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
+					if quiet == False:
+						logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
 					exit_after_function = True
 
 
@@ -991,7 +997,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split('?')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1015,7 +1022,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[18:].split('/')[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1039,7 +1047,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("databaseName=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1063,7 +1072,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[11:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			try:
@@ -1103,7 +1113,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'mongo://'): 
@@ -1148,7 +1159,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'jdbc:snowflake://'): 
@@ -1166,13 +1178,15 @@ class config(object, metaclass=Singleton):
 
 			database_pos = self.jdbc_url.split('?')[1].find('db')
 			if database_pos == -1:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 			else:
 				try:
 					self.jdbc_database = self.jdbc_url.split('?')[1][database_pos:].split('=')[1].split('&')[0]
 				except:
-					logging.error("Cant determine database based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine database based on jdbc_string")
 					exit_after_function = True
 
 		if self.jdbc_url.startswith( 's3a://'): 
@@ -1199,16 +1213,19 @@ class config(object, metaclass=Singleton):
 			try:
 				self.awsS3fileFormat = self.jdbc_url.split(';format=')[1].split(';')[0]
 				if self.awsS3fileFormat != "parquet":
-					logging.error("Only parquet files are supported for AWS S3")
+					if quiet == False:
+						logging.error("Only parquet files are supported for AWS S3")
 					exit_after_function = True
 			except:
-				logging.error("For AWS S3, you need to specify what file format to use")
+				if quiet == False:
+					logging.error("For AWS S3, you need to specify what file format to use")
 				exit_after_function = True
 
 			try:
 				self.awsS3region = self.jdbc_url.split(';region=')[1].split(';')[0]
 			except:
-				logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
+				if quiet == False:
+					logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
 				exit_after_function = True
 
 			try:
@@ -1236,11 +1253,13 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[21:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			if not "delimident=" in self.jdbc_url.lower(): 
-				logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
+				if quiet == False:
+					logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'jdbc:sybase:Tds:'): 
@@ -1276,7 +1295,8 @@ class config(object, metaclass=Singleton):
 
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
-			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
+			if quiet == False:
+				logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
 			exit_after_function = True
 
 		if copySlave == True:
