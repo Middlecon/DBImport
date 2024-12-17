@@ -207,7 +207,7 @@ function ConnectionSearchFilterCns({
             <div className="filter-container">
               <div className="filter-first-container">
                 <label htmlFor="searchFilterConnection">
-                  Connection:
+                  Name:
                   {isCnDropdownReady && (
                     <>
                       <input
@@ -252,7 +252,7 @@ function ConnectionSearchFilterCns({
                   )}
                 </label>
                 <label htmlFor="searchFilterTargetTable">
-                  Connection String:
+                  Connection string:
                   <input
                     id="searchFilterTargetTable"
                     type="text"

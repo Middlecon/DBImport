@@ -5,7 +5,8 @@ import { useSearchConnections } from '../../utils/queries'
 import {
   Column,
   Connections,
-  ConnectionSearchFilter
+  ConnectionSearchFilter,
+  EditSetting
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import DropdownCheckbox from '../../components/DropdownCheckbox'
@@ -19,7 +20,13 @@ import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCn
 import ListRowsInfo from '../../components/ListRowsInfo'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDeleteConnection } from '../../utils/mutations'
+import {
+  useDeleteConnection,
+  useCreateOrUpdateConnection
+} from '../../utils/mutations'
+import CreateConnectionModal from '../../components/CreateConnectionModal'
+import Button from '../../components/Button'
+import { createConnectionData } from '../../utils/dataFunctions'
 
 const checkboxFilters = [
   {
@@ -28,13 +35,13 @@ const checkboxFilters = [
     values: [
       'MySQL',
       'Oracle',
-      'MSSQL Server',
+      'MSSQL Server', // motsvarar SQL Server
       'PostgreSQL',
-      'Progress',
+      'Progress DB', // motsvarar Progress
       'DB2 UDB',
       'DB2 AS400',
       'MongoDB',
-      'Cache',
+      'CacheDB', // motsvarar Cache
       'Snowflake',
       'AWS S3',
       'Informix',
@@ -73,6 +80,7 @@ function Connection() {
   )
 
   const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
+  const { mutate: createConnection } = useCreateOrUpdateConnection()
   const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
 
@@ -81,6 +89,7 @@ function Connection() {
   const [rowSelection, setRowSelection] = useState({})
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [, setConnectionPersistState] = useAtom(connectionPersistStateAtom)
   const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
@@ -131,8 +140,29 @@ function Connection() {
     }))
   }
 
+  const handleSave = (newConnectionSettings: EditSetting[]) => {
+    const newConnectionData = createConnectionData(newConnectionSettings)
+    console.log('newConnectionData', newConnectionData)
+
+    createConnection(newConnectionData, {
+      onSuccess: (response) => {
+        // For getting fresh data from database to the cache
+        queryClient.invalidateQueries({
+          queryKey: ['connection', 'search', filters]
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['connection']
+        })
+        console.log('Update successful', response)
+        setCreateModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error updating connection', error)
+      }
+    })
+  }
+
   const handleDeleteIconClick = (row: Connections) => {
-    console.log('row', row)
     setShowDeleteConfirmation(true)
     setCurrentDeleteRow(row)
   }
@@ -161,9 +191,9 @@ function Connection() {
 
   const columns: Column<Connections>[] = useMemo(
     () => [
-      { header: 'Connection Name', accessor: 'name' },
+      { header: 'Name', accessor: 'name' },
       { header: 'Server Type', accessor: 'serverType' },
-      { header: 'Connection String', accessor: 'connectionString' },
+      { header: 'Connection string', accessor: 'connectionString' },
       { header: 'Links', isLink: 'connectionLink' },
       { header: 'Actions', isAction: 'delete' }
     ],
@@ -189,13 +219,19 @@ function Connection() {
       })
     })
   }, [data, selectedFilters])
-  console.log('filteredData', filteredData)
   return (
     <>
       <ViewBaseLayout>
         <div className="import-header">
           <h1>Connection</h1>
           <div className="db-dropdown">
+            <Button
+              title="+ Create"
+              onClick={() => setCreateModalOpen(true)}
+              fontFamily={`'Work Sans Variable', sans-serif`}
+              fontSize="14px"
+            />
+
             <ConnectionSearchFilterCns
               isSearchFilterOpen={openDropdown === 'searchFilter'}
               onToggle={(isSearchFilterOpen: boolean) =>
@@ -249,7 +285,15 @@ function Connection() {
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (
-          <div className="import-text-block">No connections yet.</div>
+          <div className="import-text-block">
+            <p>No connections yet.</p>
+          </div>
+        )}
+        {isCreateModalOpen && (
+          <CreateConnectionModal
+            onSave={handleSave}
+            onClose={() => setCreateModalOpen(false)}
+          />
         )}
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal

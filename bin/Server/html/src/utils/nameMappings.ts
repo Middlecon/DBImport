@@ -201,7 +201,7 @@ export const labelToUITableKey: { [label: string]: keyof UITableWithoutEnum } =
     'Custom Query Hive Value': 'validationCustomQueryHiveValue',
     'Airflow Priority': 'airflowPriority',
     'Include in Airflow': 'includeInAirflow',
-    'Operator Notes': 'operatorNotes',
+    'Operator notes': 'operatorNotes',
     'Copy Finished': 'copyFinished',
     'Copy Slave': 'copySlave'
   }
@@ -250,7 +250,7 @@ export const labelToUIExportTableKey: { [label: string]: keyof UIExportTable } =
     'Last Execution': 'lastExecution',
     'Hive Tez Container size (MB)': 'hiveContainerSize',
     'Create Target Table Sql': 'createTargetTableSql',
-    'Operator Notes': 'operatorNotes'
+    'Operator notes': 'operatorNotes'
   }
 
 export function getKeyFromExportLabel(
@@ -275,7 +275,7 @@ export const labelToColumnKey: { [label: string]: keyof Columns } = {
   'Source Primary Key': 'sourcePrimaryKey',
   'Last update from source': 'lastUpdateFromSource',
   Comment: 'comment',
-  'Operator Notes': 'operatorNotes',
+  'Operator notes': 'operatorNotes',
   'Anonymization Function': 'anonymizationFunction'
 }
 
@@ -556,7 +556,7 @@ export const reverseMapEnumValue = (
 
 export const labelToConnectionKey: { [label: string]: keyof Connection } = {
   Name: 'name',
-  'Connection String': 'connectionString',
+  'Connection string': 'connectionString',
   'Private Key Path': 'privateKeyPath',
   'Public Key Path': 'publicKeyPath',
   Credentials: 'credentials',
@@ -567,8 +567,8 @@ export const labelToConnectionKey: { [label: string]: keyof Connection } = {
   'Time Window Start': 'timeWindowStart',
   'Time Window Stop': 'timeWindowStop',
   'Time Window Timezone': 'timeWindowTimezone',
-  'Operator Notes': 'operatorNotes',
-  'Contact Information': 'contactInformation',
+  'Operator notes': 'operatorNotes',
+  'Contact information': 'contactInformation',
   Description: 'description',
   Owner: 'owner',
   Environment: 'environment',
@@ -594,7 +594,7 @@ export const labelToImportAirflowKey: {
   'DAG Name': 'name',
   'Schedule Interval': 'scheduleInterval',
   Retries: 'retries',
-  'Operator Notes': 'operatorNotes',
+  'Operator notes': 'operatorNotes',
   'Application Notes': 'applicationNotes',
   'Auto Regenerate DAG': 'autoRegenerateDag',
   'Airflow Notes': 'airflowNotes',
@@ -624,7 +624,7 @@ export const labelToExportAirflowKey: {
   'DAG Name': 'name',
   'Schedule Interval': 'scheduleInterval',
   Retries: 'retries',
-  'Operator Notes': 'operatorNotes',
+  'Operator notes': 'operatorNotes',
   'Application Notes': 'applicationNotes',
   'Auto Regenerate DAG': 'autoRegenerateDag',
   'Airflow Notes': 'airflowNotes',
@@ -649,7 +649,7 @@ export const labelToCustomAirflowKey: {
   'DAG Name': 'name',
   'Schedule Interval': 'scheduleInterval',
   Retries: 'retries',
-  'Operator Notes': 'operatorNotes',
+  'Operator notes': 'operatorNotes',
   'Application Notes': 'applicationNotes',
   'Auto Regenerate DAG': 'autoRegenerateDag',
   'Airflow Notes': 'airflowNotes',

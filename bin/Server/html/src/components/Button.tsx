@@ -12,6 +12,7 @@ interface ButtonProps {
   fontSize?: string
   padding?: string
   marginRight?: string
+  height?: string
 }
 
 function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
@@ -25,7 +26,8 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     // fontFamily,
     fontSize,
     padding,
-    marginRight
+    marginRight,
+    height
   } = props
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -36,7 +38,8 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     // fontFamily,
     fontSize,
     padding,
-    marginRight
+    marginRight,
+    height
   }
 
   return (

@@ -185,7 +185,7 @@ function Setting({
         return <span>{getTruncatedText(value, openDropdown === label)}</span>
 
       case 'textarea':
-        if (label === 'Connection String') {
+        if (label === 'Connection string') {
           return <div>{value}</div>
         } else
           return <div>{getTruncatedText(value, openDropdown === label)}</div>

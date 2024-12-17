@@ -256,7 +256,7 @@ function EditConnectionModal({
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                     prevValue={prevValue}
-                    connectionNames={connectionNames}
+                    dataNames={connectionNames}
                     isAirflowEmailDisabled={isAirflowEmailDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (

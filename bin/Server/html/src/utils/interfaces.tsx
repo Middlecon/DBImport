@@ -40,6 +40,14 @@ export interface ConnectionSearchFilter {
   connectionString: string | null
 }
 
+export interface GenerateJDBCconnectionString {
+  databaseType: string
+  version: string
+  hostname: string
+  port: number | null
+  database: string
+}
+
 export interface Database {
   name: string
   tables: number

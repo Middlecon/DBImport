@@ -158,7 +158,7 @@ export function airflowCardRenderSettings(
       infoText: infoTexts.airflow[airflowType].airflowNotes
     }, // Free-text (64k)
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: dagData.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.airflow[airflowType].operatorNotes
@@ -407,7 +407,7 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
     {
       label: 'Connection',
       value: row.connection,
-      type: SettingType.ConnectionReference,
+      type: SettingType.DataReference,
       isConditionsMet: row.type === AirflowDAGTaskType.JDBCSQL,
       infoText: infoTexts.airflow.tasks.connection
     }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
@@ -522,7 +522,7 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
   {
     label: 'Connection',
     value: null,
-    type: SettingType.ConnectionReference,
+    type: SettingType.DataReference,
     infoText: infoTexts.airflow.tasks.connection
   }, // Free-text, only active if "JDBC SQL" is selected in taskType, varchar(256)
   // {
@@ -596,6 +596,39 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
 
 // Connection
 
+export const generateConnectionStringFields: EditSetting[] = [
+  {
+    label: 'Database type',
+    value: null,
+    type: SettingType.DataReferenceRequired // test this setting type - probably the same functionality is needed
+    // infoText:
+  }, // Database types from JDBC drivers, required
+  {
+    label: 'Version',
+    value: 'default',
+    type: SettingType.Version // test this setting type - probably the same functionality is needed
+    // infoText:
+  }, // Compatible options to selected Database type, 'default' or, only for Database type 'SQL Server': 'default', 'jTDS', set initially to 'default', required
+  {
+    label: 'Hostname',
+    value: null,
+    type: SettingType.Text
+    // infoText:
+  }, //  Free-text, required
+  {
+    label: 'Port',
+    value: null,
+    type: SettingType.IntegerFromZeroOrNull
+    // infoText:
+  }, // Integer or null
+  {
+    label: 'Database',
+    value: null,
+    type: SettingType.Text
+    // infoText:
+  } //  Free-text, required
+]
+
 export function connectionCardRenderSettings(connection: Connection) {
   const connectionSettings: EditSetting[] = [
     // {
@@ -605,7 +638,7 @@ export function connectionCardRenderSettings(connection: Connection) {
     //   infoText: infoTexts.connection.name
     // }, //Free-text (varchar 256)
     {
-      label: 'Connection String',
+      label: 'Connection string',
       value: connection.connectionString,
       type: SettingType.Textarea,
       infoText: infoTexts.connection.connectionString,
@@ -696,13 +729,13 @@ export function connectionCardRenderSettings(connection: Connection) {
       type: SettingType.GroupingSpace
     }, // Layout space
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: connection.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.connection.operatorNotes
     }, // Free-text (64k)
     {
-      label: 'Contact Information',
+      label: 'Contact information',
       value: connection.contactInformation,
       type: SettingType.Text,
       infoText: infoTexts.connection.contactInformation
@@ -756,6 +789,52 @@ export function connectionCardRenderSettings(connection: Connection) {
   ]
   return connectionSettings
 }
+
+export const initialCreateConnectionSettings: EditSetting[] = [
+  {
+    label: 'Name',
+    value: '',
+    type: SettingType.Text,
+    infoText: infoTexts.connection.name
+  }, //Free-text (varchar 256)
+  {
+    label: 'Connection string',
+    value: '',
+    type: SettingType.Textarea,
+    infoText: infoTexts.connection.connectionString,
+    isRequired: true
+  }, // Free-text (64k)
+  {
+    label: 'Operator notes',
+    value: null,
+    type: SettingType.Textarea,
+    infoText: infoTexts.connection.operatorNotes
+  }, // Free-text (64k)
+  {
+    label: 'Contact information',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.connection.contactInformation
+  }, // Free-text (varchar 256)
+  {
+    label: 'Description',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.connection.description
+  }, // Free-text (varchar 256)
+  {
+    label: 'Owner',
+    value: null,
+    type: SettingType.Text,
+    infoText: infoTexts.connection.owner
+  }, // Free-text (varchar 256)
+
+  {
+    label: '',
+    value: '',
+    type: SettingType.GroupingSpace
+  } // Layout space
+]
 
 // Import
 
@@ -879,7 +958,7 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'Connection',
       value: table.connection,
-      type: SettingType.ConnectionReferenceRequired,
+      type: SettingType.DataReferenceRequired,
       infoText: infoTexts.table.import.connection
     }, // Reference to /connection
     {
@@ -1371,7 +1450,7 @@ export function importCardRenderSettings(table: UITable) {
       infoText: infoTexts.table.import.includeInAirflow
     }, // Boolean, true or false
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: table.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.table.import.operatorNotes
@@ -1496,7 +1575,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       infoText: infoTexts.table.import.columns.comment
     }, // Free-text
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: row.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.table.import.columns.operatorNotes
@@ -1540,7 +1619,7 @@ export function initialCreateImportTableSettings(
     {
       label: 'Connection',
       value: prefilledConnection,
-      type: SettingType.ConnectionReferenceRequired,
+      type: SettingType.DataReferenceRequired,
       infoText: infoTexts.table.import.connection,
       isRequired: true
     }, // Reference to /connection
@@ -1967,7 +2046,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.includeInAirflow
     }, // Boolean, true or false, required
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: table.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.table.export.operatorNotes
@@ -2037,7 +2116,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
       infoText: infoTexts.table.export.columns.comment
     }, // Free-text, 64k
     {
-      label: 'Operator Notes',
+      label: 'Operator notes',
       value: row.operatorNotes,
       type: SettingType.Textarea,
       infoText: infoTexts.table.export.columns.operatorNotes
@@ -2845,7 +2924,7 @@ export const bulkImportFieldsData: BulkField<UiDbTable>[] = [
   }, // Layout space
   {
     key: 'operatorNotes',
-    label: 'Operator Notes',
+    label: 'Operator notes',
     type: SettingType.Textarea,
     infoText: infoTexts.airflow.import.operatorNotes
   }, // Free-text (64k)
@@ -2889,7 +2968,7 @@ export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
   }, // Layout space
   {
     key: 'operatorNotes',
-    label: 'Operator Notes',
+    label: 'Operator notes',
     type: SettingType.Textarea,
     infoText: infoTexts.airflow.export.operatorNotes
   }, // Free-text (64k)
@@ -2988,7 +3067,7 @@ export function bulkAirflowDagFieldsData(
     }, // Layout space
     {
       key: 'operatorNotes',
-      label: 'Operator Notes',
+      label: 'Operator notes',
       type: SettingType.Textarea,
       infoText: infoTexts.airflow[airflowType].operatorNotes
     }, // Free-text (64k)

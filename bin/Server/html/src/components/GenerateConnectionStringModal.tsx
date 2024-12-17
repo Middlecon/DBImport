@@ -6,60 +6,47 @@ import {
   useState
 } from 'react'
 import {
-  AirflowTask,
   EditSetting,
-  EditSettingValueTypes
+  EditSettingValueTypes,
+  GenerateJDBCconnectionString
 } from '../utils/interfaces'
-// import { useAllAirflows } from '../utils/queries'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
-import { initialCreateAirflowTaskSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
-import { AirflowDAGTaskType } from '../utils/enums'
-import { useConnections } from '../utils/queries'
+import { useJDBCDrivers } from '../utils/queries'
 
-interface CreateAirflowModalProps {
-  type: 'import' | 'export' | 'custom'
-  tasksData: AirflowTask[]
-  onSave: (newTableData: EditSetting[]) => void
+import { generateConnectionStringFields } from '../utils/cardRenderFormatting'
+import { transformGenerateConnectionSettings } from '../utils/dataFunctions'
+import { useGenerateConnectionString } from '../utils/mutations'
+
+interface GenerateConnectionStringModalProps {
+  setGeneratedConnectionString: (value: string) => void
   onClose: () => void
 }
 
-function CreateAirflowTaskModal({
-  type,
-  tasksData,
-  onSave,
+function GenerateConnectionStringModal({
+  setGeneratedConnectionString,
   onClose
-}: CreateAirflowModalProps) {
-  // const { data: airflowsData } = useAllAirflows()
+}: GenerateConnectionStringModalProps) {
+  const { mutate: generateConnectionString } = useGenerateConnectionString()
 
-  const { data: connectionsData } = useConnections(true)
-  const connectionNames = useMemo(
-    () =>
-      Array.isArray(connectionsData)
-        ? connectionsData?.map((connection) => connection.name)
-        : [],
-    [connectionsData]
-  )
+  const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
+  const databaseTypeNames = useMemo(() => {
+    return Array.isArray(originalDriverData)
+      ? Array.from(
+          new Set(originalDriverData.map((driver) => driver.databaseType))
+        )
+      : []
+  }, [originalDriverData])
 
-  const settings = initialCreateAirflowTaskSettings
+  const settings = generateConnectionStringFields
 
-  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
-    settings ? settings : []
-  )
-
-  const airflowNames = useMemo(
-    () => (Array.isArray(tasksData) ? tasksData.map((task) => task.name) : []),
-    [tasksData]
-  )
-  const [duplicateTaskName, setDuplicateTaskName] = useState(false)
-
+  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [pendingValidation, setPendingValidation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
@@ -67,13 +54,28 @@ function CreateAirflowTaskModal({
   const [initialWidth, setInitialWidth] = useState(700)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Task Name']
+    const requiredLabels = ['Database type', 'Version', 'Hostname', 'Database']
     return editedSettings.some(
-      (setting) =>
-        (requiredLabels.includes(setting.label) && setting.value === null) ||
-        setting.value === ''
+      (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
   }, [editedSettings])
+
+  const availableVersions = useMemo(() => {
+    const selectedDatabaseType = editedSettings.find(
+      (setting) => setting.label === 'Database type'
+    )?.value
+
+    return Array.isArray(originalDriverData)
+      ? originalDriverData
+          .filter((data) => data.databaseType === selectedDatabaseType)
+          .map((data) => data.version)
+      : []
+  }, [editedSettings, originalDriverData])
+
+  const isDropdownDisabled = useMemo(
+    () => availableVersions.length <= 1,
+    [availableVersions]
+  )
 
   const MIN_WIDTH = 584
 
@@ -111,61 +113,51 @@ function CreateAirflowTaskModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  if (!settings) {
-    console.error('Task data is not available.')
-    return
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (isLoading) {
+    return <div className="loading">Loading...</div>
+  }
+  if (!originalDriverData) {
+    return (
+      <div className="import-text-block">
+        <p>Error. No data from REST server.</p>
+      </div>
+    )
   }
 
   const handleInputChange = (
     index: number,
     newValue: EditSettingValueTypes | null
   ) => {
-    setPendingValidation(true)
-
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
     }
 
-    const updatedSettings = editedSettings?.map((setting, i) =>
+    const updatedSettings = editedSettings.map((setting, i) =>
       i === index ? { ...setting, value: newValue } : setting
     )
 
-    const taskNameSetting = updatedSettings.find(
-      (setting) => setting.label === 'Task Name'
-    )
+    setEditedSettings(updatedSettings)
+    setHasChanges(true)
 
-    if (
-      taskNameSetting &&
-      airflowNames.includes(taskNameSetting.value as string)
-    ) {
-      setDuplicateTaskName(true)
-    } else {
-      setDuplicateTaskName(false)
-      setPendingValidation(false)
+    // Resets Version when Database type changes
+    if (editedSettings[index].label === 'Database type') {
+      const versionIndex = updatedSettings.findIndex(
+        (s) => s.label === 'Version'
+      )
+      if (versionIndex !== -1) {
+        updatedSettings[versionIndex] = {
+          ...updatedSettings[versionIndex],
+          value: 'default'
+        }
+      }
     }
 
     setEditedSettings(updatedSettings)
-    setHasChanges(true)
   }
-
-  const airflowTypeValue = editedSettings.find((s) => s.label === 'Type')
-
-  const isAirflowTasksConnectionDisabled =
-    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL
-
-  const isAirflowTasksSensorPokeAndSoftDisabled =
-    airflowTypeValue?.value !== AirflowDAGTaskType.DAGSensor &&
-    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
-
-  const isAirflowTasksSensorConnectionDisabled =
-    airflowTypeValue?.value !== AirflowDAGTaskType.SQLSensor
-
-  const isAirflowTasksSudoUserDisabled =
-    airflowTypeValue?.value !== AirflowDAGTaskType.DBImportCommand &&
-    airflowTypeValue?.value !== AirflowDAGTaskType.JDBCSQL &&
-    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQL &&
-    airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQLScript
 
   const handleSelect = (
     item: EditSettingValueTypes | null,
@@ -179,8 +171,8 @@ function CreateAirflowTaskModal({
     }
   }
 
-  const handleSave = () => {
-    const newTaskSettings = settings.map((setting) => {
+  const handleGenerate = () => {
+    const newGenerateSettings: EditSetting[] = settings.map((setting) => {
       const editedSetting = editedSettings.find(
         (es) => es.label === setting.label
       )
@@ -188,8 +180,20 @@ function CreateAirflowTaskModal({
       return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
     })
 
-    onSave(newTaskSettings)
-    onClose()
+    const generateConnectionStringData: GenerateJDBCconnectionString =
+      transformGenerateConnectionSettings(newGenerateSettings)
+
+    generateConnectionString(generateConnectionStringData, {
+      onSuccess: (response) => {
+        console.log('Generate successful', response)
+        console.log('response.connectionString', response.connectionString)
+        setGeneratedConnectionString(response.connectionString)
+        onClose()
+      },
+      onError: (error) => {
+        console.error('Error updating JDBC Drivers', error)
+      }
+    })
   }
 
   const handleCancelClick = () => {
@@ -220,13 +224,11 @@ function CreateAirflowTaskModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">{`Create ${
-          type.charAt(0).toUpperCase() + type.slice(1)
-        } DAG task`}</h2>
+        <h2 className="table-modal-h2">Generate connection string</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
-            handleSave()
+            handleGenerate()
           }}
         >
           <div className="table-modal-body">
@@ -238,17 +240,9 @@ function CreateAirflowTaskModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
-                    dataNames={connectionNames}
-                    isAirflowTasksSensorPokeAndSoftDisabled={
-                      isAirflowTasksSensorPokeAndSoftDisabled
-                    }
-                    isAirflowTasksSensorConnectionDisabled={
-                      isAirflowTasksSensorConnectionDisabled
-                    }
-                    isAirflowTasksSudoUserDisabled={
-                      isAirflowTasksSudoUserDisabled
-                    }
-                    disabled={isAirflowTasksConnectionDisabled}
+                    dataNames={databaseTypeNames}
+                    versionNames={availableVersions}
+                    disabled={setting.label === 'Version' && isDropdownDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
@@ -259,13 +253,7 @@ function CreateAirflowTaskModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo
-            isRequiredFieldEmpty={isRequiredFieldEmpty}
-            validation={true}
-            isValidationSad={duplicateTaskName}
-            validationText="Task Name already exists on this DAG. Please choose a different name."
-          />
-
+          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
           <div className="table-modal-footer">
             <Button
               title="Cancel"
@@ -274,17 +262,15 @@ function CreateAirflowTaskModal({
             />
             <Button
               type="submit"
-              title="Save"
-              disabled={
-                isRequiredFieldEmpty || duplicateTaskName || pendingValidation
-              }
+              title="Generate"
+              disabled={isRequiredFieldEmpty}
             />
           </div>
         </form>
       </div>
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Create DAG task"
+          title="Cancel Create table"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -297,4 +283,4 @@ function CreateAirflowTaskModal({
   )
 }
 
-export default CreateAirflowTaskModal
+export default GenerateConnectionStringModal

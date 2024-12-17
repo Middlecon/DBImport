@@ -19,12 +19,34 @@ import {
   BulkUpdateAirflowDAG,
   ImportPKs,
   ExportPKs,
-  AirflowDagPk
+  AirflowDagPk,
+  GenerateJDBCconnectionString
 } from './interfaces'
 
 // Connection
 
-const postUpdateConnection = async (connection: Connection) => {
+const postGenerateConnectionString = async (
+  connectionStringData: GenerateJDBCconnectionString
+) => {
+  console.log('post connectionStringData:', connectionStringData)
+  const response = await axiosInstance.post(
+    '/connection/generateJDBCconnectionString',
+    connectionStringData
+  )
+  console.log('post connectionStringData response.data', response.data)
+
+  return response.data
+}
+
+export const useGenerateConnectionString = () => {
+  return useMutation({
+    mutationFn: (connectionStringData: GenerateJDBCconnectionString) => {
+      return postGenerateConnectionString(connectionStringData)
+    }
+  })
+}
+
+const postCreateOrUpdateConnection = async (connection: Connection) => {
   console.log('postUpdateConnection connection', connection)
   const response = await axiosInstance.post('/connection', connection)
   console.log('postUpdateConnection response.data', response.data)
@@ -32,10 +54,10 @@ const postUpdateConnection = async (connection: Connection) => {
   return response.data
 }
 
-export const useUpdateConnection = () => {
+export const useCreateOrUpdateConnection = () => {
   return useMutation({
     mutationFn: (connectionUpdated: Connection) => {
-      return postUpdateConnection(connectionUpdated)
+      return postCreateOrUpdateConnection(connectionUpdated)
     }
   })
 }

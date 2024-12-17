@@ -11,8 +11,9 @@ export enum SettingType {
   TextTripletOctalValue = 'textTripletOctalValue',
   Textarea = 'textarea',
   Enum = 'enum',
-  ConnectionReference = 'connectionReference',
-  ConnectionReferenceRequired = 'connectionReferenceRequired',
+  DataReference = 'dataReference',
+  DataReferenceRequired = 'dataReferenceRequired',
+  Version = 'version',
   Hidden = 'hidden', // Needed here or handled in other way?
   IntegerOneOrTwo = 'integerOneOrTwo',
   IntegerFromZero = 'integerFromZero',

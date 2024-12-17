@@ -335,7 +335,7 @@ function TableList<T>({
         )
       }
 
-      if (column.header === 'Connection Name') {
+      if (column.header === 'Name') {
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
@@ -609,6 +609,9 @@ function TableList<T>({
 
   const handleRowClick = useCallback(
     (event: React.MouseEvent, row: Row<T>) => {
+      if (window.getSelection()?.toString()) {
+        return
+      }
       event.preventDefault()
       event.stopPropagation()
 

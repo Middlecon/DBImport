@@ -20,12 +20,14 @@ interface TableInputFieldsProps {
     keyLabel?: string
   ) => void
   prevValue?: string | number | boolean
-  connectionNames?: string[]
+  dataNames?: string[]
+  versionNames?: string[]
   isValidationCustomQueryDisabled?: boolean
   isAirflowEmailDisabled?: boolean
   isAirflowTasksSensorPokeAndSoftDisabled?: boolean
   isAirflowTasksSensorConnectionDisabled?: boolean
   isAirflowTasksSudoUserDisabled?: boolean
+  textareaMaxMinWidth?: string
   disabled?: boolean
 }
 
@@ -37,12 +39,14 @@ function TableInputFields({
   handleInputChange,
   handleSelect,
   prevValue = '',
-  connectionNames,
+  dataNames,
+  versionNames,
   isValidationCustomQueryDisabled = true,
   isAirflowEmailDisabled = true,
   isAirflowTasksSensorPokeAndSoftDisabled = true,
   isAirflowTasksSensorConnectionDisabled = true,
   isAirflowTasksSudoUserDisabled = true,
+  textareaMaxMinWidth,
   disabled = false
 }: TableInputFieldsProps) {
   const location = useLocation()
@@ -73,10 +77,16 @@ function TableInputFields({
     setting.label === 'Target Table' ||
     setting.label === 'Target Schema' ||
     setting.label === 'Connection' ||
-    setting.label === 'Connection String' ||
+    setting.label === 'Connection string' ||
+    setting.label === 'Database type' ||
+    setting.label === 'Version' ||
+    setting.label === 'Hostname' ||
     setting.label === 'DAG Name' ||
     setting.label === 'Task Name' ||
     (pathnames[0] === 'import' && setting.label === 'SQL Sessions') ||
+    (pathnames[0] === 'connection' &&
+      !pathnames[1] &&
+      setting.label === 'Name') ||
     pathnames[1] === 'global'
 
   const showRequiredIndicator =
@@ -483,7 +493,8 @@ function TableInputFields({
         setting.label === 'Target Table' ||
         setting.label === 'Target Schema' ||
         setting.label === 'Task Name' ||
-        setting.label === 'DAG Name'
+        setting.label === 'DAG Name' ||
+        setting.label === 'Name'
       ) {
         return (
           <>
@@ -669,6 +680,14 @@ function TableInputFields({
             ref={textareaRef}
             value={setting.value ? String(setting.value) : ''}
             className="input-fields-textarea"
+            style={
+              textareaMaxMinWidth
+                ? {
+                    minWidth: `calc(100% - ${textareaMaxMinWidth})`,
+                    maxWidth: `calc(100% - ${textareaMaxMinWidth})`
+                  }
+                : {}
+            }
             onChange={(event) => {
               event.target.style.maxHeight = `${event.target.scrollHeight}px`
               handleInputChange(index, event.target.value)
@@ -750,7 +769,7 @@ function TableInputFields({
       )
     }
 
-    case 'connectionReference':
+    case 'dataReference':
       if (setting.isHidden === true) return null
 
       return (
@@ -765,9 +784,7 @@ function TableInputFields({
           <Dropdown
             keyLabel={setting.label}
             items={
-              connectionNames && connectionNames.length > 0
-                ? connectionNames
-                : ['Loading...']
+              dataNames && dataNames.length > 0 ? dataNames : ['Loading...']
             }
             onSelect={handleSelect}
             isOpen={openDropdown === dropdownId}
@@ -791,7 +808,7 @@ function TableInputFields({
         </>
       )
 
-    case 'connectionReferenceRequired':
+    case 'dataReferenceRequired':
       if (setting.isHidden === true) return null
 
       return (
@@ -806,9 +823,7 @@ function TableInputFields({
           <Dropdown
             keyLabel={setting.label}
             items={
-              connectionNames && connectionNames.length > 0
-                ? connectionNames
-                : ['Loading...']
+              dataNames && dataNames.length > 0 ? dataNames : ['Loading...']
             }
             onSelect={handleSelect}
             isOpen={openDropdown === dropdownId}
@@ -829,6 +844,47 @@ function TableInputFields({
           />
         </>
       )
+
+    case 'version':
+      if (setting.isHidden === true) return null
+
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+          >
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+
+          <Dropdown
+            keyLabel={setting.label}
+            items={
+              versionNames && versionNames.length > 0
+                ? versionNames
+                : ['Loading...']
+            }
+            onSelect={handleSelect}
+            isOpen={openDropdown === dropdownId}
+            onToggle={(isOpen: boolean) =>
+              handleDropdownToggle(dropdownId, isOpen)
+            }
+            searchFilter={false}
+            initialTitle={setting.value ? String(setting.value) : 'Select...'}
+            backgroundColor="inherit"
+            textColor="black"
+            fontSize="14px"
+            border="0.5px solid rgb(42, 42, 42)"
+            borderRadius="3px"
+            height="21.5px"
+            chevronWidth="11"
+            chevronHeight="7"
+            lightStyle={true}
+            disabled={disabled}
+          />
+        </>
+      )
+
     case 'hidden':
       return null
 

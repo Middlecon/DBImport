@@ -7,7 +7,7 @@ import Setting from '../../import/tableDetailed/settings/Setting'
 import EditConnectionModal from '../../../components/EditConnectionModal'
 import { updateConnectionData } from '../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateConnection } from '../../../utils/mutations'
+import { useCreateOrUpdateConnection } from '../../../utils/mutations'
 
 interface CardProps {
   title: string
@@ -16,7 +16,6 @@ interface CardProps {
   isNotEditable?: boolean
   isDisabled?: boolean
 }
-
 function CardConnection({
   title,
   settings,
@@ -27,7 +26,7 @@ function CardConnection({
   const { connection: connectionParam } = useParams<{ connection: string }>()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const queryClient = useQueryClient()
-  const { mutate: updateConnection } = useUpdateConnection()
+  const { mutate: updateConnection } = useCreateOrUpdateConnection()
 
   const handleOpenModal = () => setIsEditModalOpen(true)
   const handleCloseModal = () => setIsEditModalOpen(false)

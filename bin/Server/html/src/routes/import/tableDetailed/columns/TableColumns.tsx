@@ -51,7 +51,7 @@ function TableColumns() {
       { header: 'Source Primary Key', accessor: 'sourcePrimaryKey' },
       { header: 'Last update from source', accessor: 'lastUpdateFromSource' },
       { header: 'Comment', accessor: 'comment' },
-      { header: 'Operator Notes', accessor: 'operatorNotes' },
+      { header: 'Operator notes', accessor: 'operatorNotes' },
       { header: 'Anonymization Function', accessor: 'anonymizationFunction' }
     ],
     []

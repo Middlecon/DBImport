@@ -29,7 +29,8 @@ import {
   ConfigGlobal,
   ConfigGlobalWithIndex,
   JDBCdriversWithIndex,
-  JDBCdrivers
+  JDBCdrivers,
+  GenerateJDBCconnectionString
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
@@ -45,6 +46,76 @@ import {
 } from './nameMappings'
 
 // Connection
+
+export function createConnectionData(
+  newConnectionSettings: EditSetting[]
+): Connection {
+  // Part 1: Keys that will get values from newConnectionSettings
+  const part1: {
+    name: string
+    connectionString: string
+    operatorNotes: string | null
+    contactInformation: string | null
+    description: string | null
+    owner: string | null
+  } = {
+    name: 'unknown',
+    connectionString: '',
+    operatorNotes: null,
+    contactInformation: null,
+    description: null,
+    owner: null
+  }
+
+  // Part 2: Default null values for all other fields in Connection
+  const part2: Omit<Connection, keyof typeof part1> = {
+    privateKeyPath: null,
+    publicKeyPath: null,
+    credentials: null,
+    source: null,
+    forceString: 0,
+    maxSessions: null,
+    createDatalakeImport: false,
+    timeWindowStart: null,
+    timeWindowStop: null,
+    timeWindowTimezone: null,
+    seedFile: null,
+    createForeignKey: false,
+    atlasDiscovery: false,
+    atlasIncludeFilter: null,
+    atlasExcludeFilter: null,
+    atlasLastDiscovery: null,
+    environment: null
+  }
+
+  const labelToKeyMap: Record<string, keyof typeof part1> = {
+    Name: 'name',
+    'Connection string': 'connectionString',
+    'Operator notes': 'operatorNotes',
+    'Contact information': 'contactInformation',
+    Description: 'description',
+    Owner: 'owner'
+  }
+
+  const filteredSettings = newConnectionSettings.filter(
+    (setting) => setting.type !== 'groupingSpace'
+  )
+
+  filteredSettings.forEach((setting) => {
+    const value = setting.value
+    const key = labelToKeyMap[setting.label]
+
+    if (key) {
+      if (typeof value === 'string' || value === null) {
+        ;(part1[key] as (typeof part1)[typeof key]) = value
+      }
+    }
+  })
+
+  const finalConnectionData: Connection = { ...part2, ...part1 }
+
+  return finalConnectionData
+}
 
 export function updateConnectionData(
   originalData: Connection,
@@ -104,7 +175,7 @@ export function updateConnectionData(
   }
 
   const labelToKeyMap: Record<string, keyof typeof part1> = {
-    'Connection String': 'connectionString',
+    'Connection string': 'connectionString',
     'Private Key Path': 'privateKeyPath',
     'Public Key Path': 'publicKeyPath',
     Credentials: 'credentials',
@@ -115,8 +186,8 @@ export function updateConnectionData(
     'Time Window Start': 'timeWindowStart',
     'Time Window Stop': 'timeWindowStop',
     'Time Window Timezone': 'timeWindowTimezone',
-    'Operator Notes': 'operatorNotes',
-    'Contact Information': 'contactInformation',
+    'Operator notes': 'operatorNotes',
+    'Contact information': 'contactInformation',
     Description: 'description',
     Owner: 'owner',
     'Seed File': 'seedFile',
@@ -242,7 +313,7 @@ function updateColumnData(
     'Force String': 'forceString',
     'Include in Import': 'includeInImport',
     Comment: 'comment',
-    'Operator Notes': 'operatorNotes',
+    'Operator notes': 'operatorNotes',
     'Anonymization Function': 'anonymizationFunction'
   }
 
@@ -458,7 +529,7 @@ function updateExportColumnData(
     'Target Column Name': 'targetColumnName',
     'Target Column Type': 'targetColumnType',
     'Include in Export': 'includeInExport',
-    'Operator Notes': 'operatorNotes'
+    'Operator notes': 'operatorNotes'
   }
 
   const key = labelToColumnMap[setting.label]
@@ -1328,4 +1399,23 @@ export function transformBulkChanges(
 
     return acc
   }, {} as Record<string, string | number | boolean | null>)
+}
+
+export const transformGenerateConnectionSettings = (
+  settings: EditSetting[]
+): GenerateJDBCconnectionString => {
+  const settingsMap = settings.reduce<
+    Record<string, string | number | boolean | null>
+  >((acc, setting) => {
+    acc[setting.label] = setting.value
+    return acc
+  }, {})
+
+  return {
+    databaseType: settingsMap['Database type'] || 'unknown',
+    version: settingsMap['Version'] || 'default',
+    hostname: settingsMap['Hostname'] || 'unknown',
+    port: settingsMap['Port'] !== undefined ? settingsMap['Port'] : null,
+    database: settingsMap['Database'] || 'unknown'
+  } as GenerateJDBCconnectionString
 }
