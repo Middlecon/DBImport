@@ -239,7 +239,15 @@ function GenerateConnectionStringModal({
         <form
           onSubmit={(event) => {
             event.preventDefault()
-            handleGenerate()
+            const activeElement = document.activeElement as HTMLElement
+
+            // Triggers save only if Save button with type submit is clicked or focused+Enter
+            if (
+              activeElement &&
+              activeElement.getAttribute('type') === 'submit'
+            ) {
+              handleGenerate()
+            }
           }}
         >
           <div className="table-modal-body">

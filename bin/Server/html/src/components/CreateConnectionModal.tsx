@@ -206,7 +206,15 @@ function CreateConnectionModal({
         <form
           onSubmit={(event) => {
             event.preventDefault()
-            handleSave()
+            const activeElement = document.activeElement as HTMLElement
+
+            // Triggers save only if Save button with type submit is clicked or focused+Enter
+            if (
+              activeElement &&
+              activeElement.getAttribute('type') === 'submit'
+            ) {
+              handleSave()
+            }
           }}
         >
           <div className="table-modal-body">
