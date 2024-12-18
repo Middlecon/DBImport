@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -20,18 +21,24 @@ import { initialCreateExportTableSettings } from '../utils/cardRenderFormatting'
 import { useSearchExportTables } from '../utils/queries'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
+import { useFocusTrap } from '../utils/hooks'
 
 interface CreateTableModalProps {
+  isCreateModalOpen: boolean
   prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateExportTableModal({
+  isCreateModalOpen,
   prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isCreateModalOpen)
+
   const settings = initialCreateExportTableSettings(prefilledConnection)
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
@@ -226,7 +233,11 @@ function CreateExportTableModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

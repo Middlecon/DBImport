@@ -62,7 +62,7 @@ function DbTables({
   const [currentDeleteRow, setCurrentDeleteRow] = useState<UiDbTable>()
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -103,7 +103,7 @@ function DbTables({
       const rowData: EditSetting[] = importDbTablesEditSettings(row)
 
       setCurrentRow(rowData)
-      setIsModalOpen(true)
+      setIsEditModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
     }
@@ -151,7 +151,7 @@ function DbTables({
             queryKey: ['import', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -197,7 +197,7 @@ function DbTables({
             queryKey: ['import', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -301,11 +301,12 @@ function DbTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isModalOpen && currentRow && (
+      {isEditModalOpen && currentRow && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
           settings={currentRow}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}
@@ -322,6 +323,7 @@ function DbTables({
       )}
       {isBulkEditModalOpen && (
         <BulkEditModal
+          isBulkEditModalOpen={isBulkEditModalOpen}
           title={`Edit the ${currentRowsLength} selected table${
             currentRowsLength > 1 ? 's' : ''
           }`}

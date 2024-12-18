@@ -78,6 +78,7 @@ function CardConnection({
 
       {isEditModalOpen && !isNotEditable && !isDisabled && (
         <EditConnectionModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit ${connectionParam}`}
           settings={settings}
           onSave={handleSave}

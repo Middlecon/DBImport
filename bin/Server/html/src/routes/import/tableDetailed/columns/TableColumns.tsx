@@ -20,7 +20,7 @@ function TableColumns() {
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
@@ -68,7 +68,7 @@ function TableColumns() {
 
       setCurrentRow(rowData)
       setRowIndex(rowIndex)
-      setModalOpen(true)
+      setIsEditModalOpen(true)
     },
     [tableData]
   )
@@ -95,7 +95,7 @@ function TableColumns() {
           })
           setDataRefreshTrigger((prev) => prev + 1)
           console.log('Update successful', response)
-          setModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           queryClient.invalidateQueries({
@@ -133,11 +133,12 @@ function TableColumns() {
         </p>
       )}
 
-      {isModalOpen && currentRow && (
+      {isEditModalOpen && currentRow && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit column ${currentRow[0].value}`}
           settings={currentRow}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
           initWidth={587}
         />

@@ -25,7 +25,7 @@ function ExportTableColumns() {
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
@@ -63,7 +63,7 @@ function ExportTableColumns() {
 
       setRowIndex(rowIndex)
       setCurrentRow(rowData)
-      setModalOpen(true)
+      setIsEditModalOpen(true)
     },
     [tableData]
   )
@@ -89,7 +89,7 @@ function ExportTableColumns() {
           })
           setDataRefreshTrigger((prev) => prev + 1)
           console.log('Update successful', response)
-          setModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           queryClient.invalidateQueries({
@@ -127,11 +127,12 @@ function ExportTableColumns() {
         </p>
       )}
 
-      {isModalOpen && currentRow && (
+      {isEditModalOpen && currentRow && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit column ${currentRow[0].value}`}
           settings={currentRow}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}

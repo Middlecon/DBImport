@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
@@ -14,18 +15,24 @@ import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import { initialCreateAirflowSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
+import { useFocusTrap } from '../utils/hooks'
 
 interface CreateAirflowModalProps {
+  isCreateModalOpen: boolean
   type: 'import' | 'export' | 'custom'
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
 function CreateAirflowModal({
+  isCreateModalOpen,
   type,
   onSave,
   onClose
 }: CreateAirflowModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isCreateModalOpen)
+
   const settings = initialCreateAirflowSettings(type)
 
   const { data: airflowsData } = useAllAirflows()
@@ -180,7 +187,11 @@ function CreateAirflowModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

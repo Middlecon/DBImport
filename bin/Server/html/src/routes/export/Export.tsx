@@ -353,6 +353,7 @@ function Export() {
 
         {isCreateModalOpen && (
           <CreateExportTableModal
+            isCreateModalOpen={isCreateModalOpen}
             prefilledConnection={
               mostCommonConnection ? mostCommonConnection : null
             }

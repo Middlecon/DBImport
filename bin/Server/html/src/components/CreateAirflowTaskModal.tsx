@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -20,8 +21,10 @@ import { initialCreateAirflowTaskSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
 import { AirflowDAGTaskType } from '../utils/enums'
 import { useConnections } from '../utils/queries'
+import { useFocusTrap } from '../utils/hooks'
 
 interface CreateAirflowModalProps {
+  isCreateModalOpen: boolean
   type: 'import' | 'export' | 'custom'
   tasksData: AirflowTask[]
   onSave: (newTableData: EditSetting[]) => void
@@ -29,11 +32,15 @@ interface CreateAirflowModalProps {
 }
 
 function CreateAirflowTaskModal({
+  isCreateModalOpen,
   type,
   tasksData,
   onSave,
   onClose
 }: CreateAirflowModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isCreateModalOpen)
+
   // const { data: airflowsData } = useAllAirflows()
 
   const { data: connectionsData } = useConnections(true)
@@ -211,7 +218,11 @@ function CreateAirflowTaskModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

@@ -334,6 +334,7 @@ function AirflowImport() {
         )}
         {isCreateModalOpen && (
           <CreateAirflowModal
+            isCreateModalOpen={isCreateModalOpen}
             type="import"
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
@@ -352,6 +353,7 @@ function AirflowImport() {
         )}
         {isBulkEditModalOpen && (
           <BulkEditModal
+            isBulkEditModalOpen={isBulkEditModalOpen}
             title={`Edit the ${currentRowsLength} selected DAG${
               currentRowsLength > 1 ? 's' : ''
             }`}

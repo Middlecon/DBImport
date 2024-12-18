@@ -334,6 +334,7 @@ function AirflowCustom() {
         )}
         {isCreateModalOpen && (
           <CreateAirflowModal
+            isCreateModalOpen={isCreateModalOpen}
             type="custom"
             onSave={handleSave}
             onClose={() => setCreateModalOpen(false)}
@@ -352,6 +353,7 @@ function AirflowCustom() {
         )}
         {isBulkEditModalOpen && (
           <BulkEditModal
+            isBulkEditModalOpen={isBulkEditModalOpen}
             title={`Edit the ${currentRowsLength} selected table${
               currentRowsLength > 1 ? 's' : ''
             }`}

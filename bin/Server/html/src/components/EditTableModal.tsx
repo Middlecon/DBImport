@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
@@ -16,8 +17,10 @@ import InfoText from './InfoText'
 import { AirflowDAGTaskType } from '../utils/enums'
 import { useLocation } from 'react-router-dom'
 import { isValidOctal } from '../utils/functions'
+import { useFocusTrap } from '../utils/hooks'
 
 interface EditModalProps {
+  isEditModalOpen: boolean
   title: string
   settings: EditSetting[]
   onSave: (newSettings: EditSetting[]) => void
@@ -26,12 +29,16 @@ interface EditModalProps {
 }
 
 function EditTableModal({
+  isEditModalOpen,
   title,
   settings,
   onSave,
   onClose,
   initWidth
 }: EditModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isEditModalOpen)
+
   const editableSettings =
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
@@ -263,7 +270,11 @@ function EditTableModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BulkField } from '../utils/interfaces'
 import Button from './Button'
 import ConfirmationModal from './ConfirmationModal'
 import './Modals.scss'
 import BulkInputFields, { BulkInputFieldsProps } from '../utils/BulkInputFields'
+import { useFocusTrap } from '../utils/hooks'
 
 interface BulkEditModalProps<T> {
+  isBulkEditModalOpen: boolean
   title: string
   selectedRows: T[]
   bulkFieldsData: BulkField<T>[]
@@ -17,6 +19,7 @@ interface BulkEditModalProps<T> {
 }
 
 function BulkEditModal<T>({
+  isBulkEditModalOpen,
   title,
   selectedRows,
   bulkFieldsData,
@@ -24,6 +27,9 @@ function BulkEditModal<T>({
   onClose,
   initWidth
 }: BulkEditModalProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isBulkEditModalOpen)
+
   const [bulkChanges, setBulkChanges] = useState<
     Partial<Record<keyof T, string | number | boolean | null>>
   >({})
@@ -119,7 +125,11 @@ function BulkEditModal<T>({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

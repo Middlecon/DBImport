@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -20,8 +21,10 @@ import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
 import InfoText from './InfoText'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
+import { useFocusTrap } from '../utils/hooks'
 
 interface CreateTableModalProps {
+  isCreateModalOpen: boolean
   prefilledDatabase: string | null
   prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
@@ -29,11 +32,15 @@ interface CreateTableModalProps {
 }
 
 function CreateImportTableModal({
+  isCreateModalOpen,
   prefilledDatabase,
   prefilledConnection,
   onSave,
   onClose
 }: CreateTableModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isCreateModalOpen)
+
   const settings = initialCreateImportTableSettings(
     prefilledDatabase,
     prefilledConnection
@@ -229,7 +236,11 @@ function CreateImportTableModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

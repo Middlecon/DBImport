@@ -126,6 +126,7 @@ function ConfigJDBCDrivers() {
       )}
       {isEditModalOpen && currentRow && row && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit ${row.databaseType} ${row.version}`}
           settings={currentRow}
           onClose={() => setIsEditModalOpen(false)}

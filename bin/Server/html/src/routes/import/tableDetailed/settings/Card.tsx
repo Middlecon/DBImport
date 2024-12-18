@@ -124,6 +124,7 @@ function Card({
 
       {isEditModalOpen && !isNotEditable && !isDisabled && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit ${title}`}
           settings={settings}
           onSave={handleSave}

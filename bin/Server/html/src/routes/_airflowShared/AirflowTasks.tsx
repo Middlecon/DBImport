@@ -316,6 +316,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
 
       {isEditModalOpen && currentRow && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit Task ${currentRow[0].value}`}
           settings={currentRow}
           onClose={() => setIsEditModalOpen(false)}
@@ -324,6 +325,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       )}
       {isCreateModalOpen && (
         <CreateAirflowTaskModal
+          isCreateModalOpen={isCreateModalOpen}
           type={type}
           tasksData={tasksData}
           onSave={handleSaveCreateTask}

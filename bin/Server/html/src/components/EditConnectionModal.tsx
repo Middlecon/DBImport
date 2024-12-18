@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
@@ -13,8 +14,10 @@ import TableInputFields from '../utils/TableInputFields'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from './InfoText'
+import { useFocusTrap } from '../utils/hooks'
 
 interface EditModalProps {
+  isEditModalOpen: boolean
   title: string
   settings: EditSetting[]
   onSave: (newSettings: EditSetting[]) => void
@@ -22,11 +25,15 @@ interface EditModalProps {
 }
 
 function EditConnectionModal({
+  isEditModalOpen,
   title,
   settings,
   onSave,
   onClose
 }: EditModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isEditModalOpen)
+
   const editableSettings =
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
@@ -230,7 +237,11 @@ function EditConnectionModal({
 
   return (
     <div className="table-modal-backdrop">
-      <div className="table-modal-content" style={{ width: `${modalWidth}px` }}>
+      <div
+        className="table-modal-content"
+        style={{ width: `${modalWidth}px` }}
+        ref={containerRef}
+      >
         <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}

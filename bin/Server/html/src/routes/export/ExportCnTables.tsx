@@ -65,7 +65,7 @@ function ExportCnTables({
   const [currentDeleteRow, setCurrentDeleteRow] = useState<UIExportCnTables>()
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -107,7 +107,7 @@ function ExportCnTables({
       const rowData: EditSetting[] = exportCnTablesEditSettings(row)
 
       setCurrentRow(rowData)
-      setIsModalOpen(true)
+      setIsEditModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
     }
@@ -173,7 +173,7 @@ function ExportCnTables({
             queryKey: ['export', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -212,7 +212,7 @@ function ExportCnTables({
             queryKey: ['export', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsModalOpen(false)
+          setIsEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -322,11 +322,12 @@ function ExportCnTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isModalOpen && currentRow && (
+      {isEditModalOpen && currentRow && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
           settings={currentRow}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}
@@ -343,6 +344,7 @@ function ExportCnTables({
       )}
       {isBulkEditModalOpen && (
         <BulkEditModal
+          isBulkEditModalOpen={isBulkEditModalOpen}
           title={`Edit the ${currentRowsLength} selected table${
             currentRowsLength > 1 ? 's' : ''
           }`}

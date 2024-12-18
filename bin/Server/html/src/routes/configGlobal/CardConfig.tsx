@@ -77,6 +77,7 @@ function CardConfig({ title, settings, originalData }: CardConfigProps) {
 
       {isEditModalOpen && (
         <EditTableModal
+          isEditModalOpen={isEditModalOpen}
           title={`Edit ${title}`}
           settings={settings}
           onSave={handleSave}
