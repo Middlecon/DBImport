@@ -37,7 +37,7 @@
   background-color: #f9f9f9;
   border-radius: 3px;
   padding: 5px;
-  white-space: normal;
+  white-space: pre-wrap;
   word-break: break-word;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px,
     rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
@@ -89,7 +89,7 @@
 .collapsed-content-textarea {
   height: fit-content;
   max-height: 52px;
-  white-space: normal;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
