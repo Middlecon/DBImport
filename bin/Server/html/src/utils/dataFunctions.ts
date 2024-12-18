@@ -73,15 +73,15 @@ export function createConnectionData(
     publicKeyPath: null,
     credentials: null,
     source: null,
-    forceString: 0,
+    forceString: null,
     maxSessions: null,
-    createDatalakeImport: false,
+    createDatalakeImport: null,
     timeWindowStart: null,
     timeWindowStop: null,
     timeWindowTimezone: null,
     seedFile: null,
-    createForeignKey: false,
-    atlasDiscovery: false,
+    createForeignKey: null,
+    atlasDiscovery: null,
     atlasIncludeFilter: null,
     atlasExcludeFilter: null,
     atlasLastDiscovery: null,
@@ -128,9 +128,9 @@ export function updateConnectionData(
     publicKeyPath: string | null
     credentials: string | null
     source: string | null
-    forceString: number
+    forceString: number | null
     maxSessions: number | null
-    createDatalakeImport: boolean
+    createDatalakeImport: boolean | null
     timeWindowStart: string | null
     timeWindowStop: string | null
     timeWindowTimezone: string | null
@@ -139,8 +139,8 @@ export function updateConnectionData(
     description: string | null
     owner: string | null
     seedFile: string | null
-    createForeignKey: boolean
-    atlasDiscovery: boolean
+    createForeignKey: boolean | null
+    atlasDiscovery: boolean | null
     atlasIncludeFilter: string | null
     atlasExcludeFilter: string | null
     atlasLastDiscovery: string | null

@@ -37,11 +37,11 @@ const checkboxFilters = [
       'Oracle',
       'MSSQL Server', // motsvarar SQL Server
       'PostgreSQL',
-      'Progress DB', // motsvarar Progress
+      'Progress', // motsvarar Progress DB
       'DB2 UDB',
       'DB2 AS400',
       'MongoDB',
-      'CacheDB', // motsvarar Cache
+      'Cache', // motsvarar CacheDB
       'Snowflake',
       'AWS S3',
       'Informix',

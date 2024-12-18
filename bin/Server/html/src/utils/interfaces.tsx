@@ -48,24 +48,16 @@ export interface GenerateJDBCconnectionString {
   database: string
 }
 
-export interface Database {
-  name: string
-  tables: number
-  lastImport: string
-  lastSize: number
-  lastRows: number
-}
-
 export interface Connection {
-  name: string | null
+  name: string
   connectionString: string
   privateKeyPath: string | null
   publicKeyPath: string | null
   credentials: string | null
   source: string | null
-  forceString: number
+  forceString: number | null
   maxSessions: number | null
-  createDatalakeImport: boolean
+  createDatalakeImport: boolean | null
   timeWindowStart: string | null
   timeWindowStop: string | null
   timeWindowTimezone: string | null
@@ -75,14 +67,22 @@ export interface Connection {
   owner: string | null
   environment: string | null
   seedFile: string | null
-  createForeignKey: boolean
-  atlasDiscovery: boolean
+  createForeignKey: boolean | null
+  atlasDiscovery: boolean | null
   atlasIncludeFilter: string | null
   atlasExcludeFilter: string | null
   atlasLastDiscovery: string | null
 }
 
 // Table
+
+export interface Database {
+  name: string
+  tables: number
+  lastImport: string
+  lastSize: number
+  lastRows: number
+}
 
 export interface ImportSearchFilter {
   connection: string | null
