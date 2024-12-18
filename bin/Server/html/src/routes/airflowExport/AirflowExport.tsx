@@ -1,5 +1,5 @@
 import '../import/Import.scss'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useExportAirflows } from '../../utils/queries'
 import {
@@ -8,12 +8,13 @@ import {
   Column,
   EditSetting,
   UiAirflowsExportData,
+  UiAirflowsSearchFilter,
   UiBulkAirflowDAG
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
-import DropdownCheckbox from '../../components/DropdownCheckbox'
+// import DropdownCheckbox from '../../components/DropdownCheckbox'
 import { useAtom } from 'jotai'
-import { airflowExportFilterAtom } from '../../atoms/atoms'
+import { airflowExportDagsPersistStateAtom } from '../../atoms/atoms'
 import Button from '../../components/Button'
 import CreateAirflowModal from '../../components/CreateAirflowModal'
 import { createExportDagData } from '../../utils/dataFunctions'
@@ -28,17 +29,39 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
+import { useLocation, useNavigate } from 'react-router-dom'
+import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
 
-const checkboxFilters = [
-  {
-    title: 'Auto Regenerate DAG',
-    accessor: 'autoRegenerateDag',
-    values: ['True', 'False']
-  }
-]
+// const checkboxFilters = [
+//   {
+//     title: 'Auto Regenerate DAG',
+//     accessor: 'autoRegenerateDag',
+//     values: ['True', 'False']
+//   }
+// ]
 
 function AirflowExport() {
   const queryClient = useQueryClient()
+
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = new URLSearchParams(location.search)
+
+  const validParams = ['autoRegenerateDag']
+  const allParams = Array.from(query.keys())
+
+  useEffect(() => {
+    console.log('allParams', allParams)
+    const hasInvalidParams = allParams.some(
+      (param) => !validParams.includes(param)
+    )
+    if (hasInvalidParams) {
+      navigate('/airflow/import', { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allParams, navigate])
+
+  const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const { data, isLoading } = useExportAirflows()
   const { mutate: createDAG } = useCreateAirflowDag()
@@ -63,7 +86,11 @@ function AirflowExport() {
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
 
-  const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
+  const [, setAirfloExportDagsPersistState] = useAtom(
+    airflowExportDagsPersistStateAtom
+  )
+
+  // const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
 
   const columns: Column<AirflowsExportData>[] = useMemo(
     () => [
@@ -80,11 +107,40 @@ function AirflowExport() {
 
   const bulkAirflowDagFields = bulkAirflowDagFieldsData('export')
 
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
+  // const handleSelect = (filterKey: string, items: string[]) => {
+  //   setSelectedFilters((prevFilters) => ({
+  //     ...prevFilters,
+  //     [filterKey]: items
+  //   }))
+  // }
+
+  const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
+    const params = new URLSearchParams(location.search)
+    console.log('uiFilters', uiFilters)
+
+    const filterKeys: (keyof UiAirflowsSearchFilter)[] = ['autoRegenerateDag']
+
+    filterKeys.forEach((key) => {
+      const value = uiFilters[key]
+      if (value !== null && value !== undefined && String(value).length > 0) {
+        params.set(key, String(value))
+      } else {
+        params.delete(key)
+      }
+    })
+
+    const orderedSearch = filterKeys
+      .map((key) =>
+        params.has(key) ? `${key}=${params.get(key) || ''}` : null
+      )
+      .filter((param) => param !== null)
+      .join('&')
+
+    // Only updates and navigates if query has changed
+    if (orderedSearch !== location.search.slice(1)) {
+      setAirfloExportDagsPersistState(`/airflow/export?${orderedSearch}`)
+      navigate(`/airflow/export?${orderedSearch}`, { replace: true })
+    }
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -146,23 +202,33 @@ function AirflowExport() {
   }
 
   const filteredData = useMemo(() => {
-    if (!Array.isArray(data)) return []
+    if (!data || !Array.isArray(data)) return []
+    console.log('autoRegenerateDag', autoRegenerateDag)
     return data.filter((row) => {
-      return [...checkboxFilters].every((filter) => {
-        const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-          ? selectedFilters[filter.accessor]?.map((value) => value)
-          : []
+      if (autoRegenerateDag === null) return true
 
-        if (selectedItems.length === 0) return true
-
-        const accessorKey = filter.accessor as keyof typeof row
-        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
-
-        return selectedItems.includes(rowValue)
-      })
+      return row.autoRegenerateDagDisplay === autoRegenerateDag
     })
-  }, [data, selectedFilters])
+  }, [data, autoRegenerateDag])
+
+  // const filteredData = useMemo(() => {
+  //   if (!Array.isArray(data)) return []
+  //   return data.filter((row) => {
+  //     return [...checkboxFilters].every((filter) => {
+  //       const selectedItems = Array.isArray(selectedFilters[filter.accessor])
+  //         ? selectedFilters[filter.accessor]?.map((value) => value)
+  //         : []
+
+  //       if (selectedItems.length === 0) return true
+
+  //       const accessorKey = filter.accessor as keyof typeof row
+  //       const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+  //       const rowValue = (row[displayKey] ?? row[accessorKey]) as string
+
+  //       return selectedItems.includes(rowValue)
+  //     })
+  //   })
+  // }, [data, selectedFilters])
 
   const handleBulkEditClick = useCallback(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
@@ -267,10 +333,19 @@ function AirflowExport() {
               onClick={() => setCreateModalOpen(true)}
               fontSize="14px"
             />
+            <AirflowSearchFilterDags
+              isSearchFilterOpen={openDropdown === 'searchFilter'}
+              type="export"
+              onToggle={(isSearchFilterOpen: boolean) =>
+                handleDropdownToggle('searchFilter', isSearchFilterOpen)
+              }
+              onShow={handleShow}
+              disabled={!data}
+            />
           </div>
         </div>
 
-        <div className="filters">
+        {/* <div className="filters">
           {Array.isArray(checkboxFilters) &&
             checkboxFilters.map((filter, index) => (
               <DropdownCheckbox
@@ -285,7 +360,7 @@ function AirflowExport() {
                 }
               />
             ))}
-        </div>
+        </div> */}
 
         {filteredData && Array.isArray(data) && data.length > 0 ? (
           <>

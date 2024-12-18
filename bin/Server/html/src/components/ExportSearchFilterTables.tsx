@@ -37,6 +37,7 @@ function ExportSearchFilterTables({
   const targetTable = query.get('targetTable') || null
   const targetSchema = query.get('targetSchema') || null
   const includeInAirflow = query.get('includeInAirflow') || null
+  const lastUpdateFromHive = query.get('lastUpdateFromHive') || null
   const exportType = query.get('exportType') || null
   const exportTool = query.get('exportTool') || null
 
@@ -49,6 +50,13 @@ function ExportSearchFilterTables({
     keyLabel: 'includeInAirflow',
     value: includeInAirflow,
     items: ['True', 'False']
+  })
+
+  const [lastUpdateFromHiveFilter, setLastUpdateFromHiveFilter] = useState({
+    label: 'Last update from Hive',
+    keyLabel: 'lastUpdateFromHive',
+    value: lastUpdateFromHive,
+    items: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
   })
 
   const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
@@ -71,6 +79,7 @@ function ExportSearchFilterTables({
     targetTable: targetTable ? targetTable : null,
     targetSchema: targetSchema ? targetSchema : null,
     includeInAirflow: includeInAirflow ? includeInAirflow : null,
+    lastUpdateFromHive: lastUpdateFromHive ? lastUpdateFromHive : null,
     exportType: exportType ? exportType : null,
     exportTool: exportTool ? exportTool : null
   })
@@ -92,6 +101,11 @@ function ExportSearchFilterTables({
     setIncludeInAirflowFilter((prevFilter) => ({
       ...prevFilter,
       value: formValues.includeInAirflow
+    }))
+
+    setLastUpdateFromHiveFilter((prevFilter) => ({
+      ...prevFilter,
+      value: formValues.lastUpdateFromHive
     }))
   }, [formValues])
 
@@ -219,6 +233,18 @@ function ExportSearchFilterTables({
       setFormValues((prev) => ({
         ...prev,
         includeInAirflow: item as string | null
+      }))
+    } else if (keyLabel === 'lastUpdateFromHive') {
+      const value = typeof item === 'string' ? item : null
+
+      setLastUpdateFromHiveFilter((prev) => ({
+        ...prev,
+        value: value
+      }))
+
+      setFormValues((prev) => ({
+        ...prev,
+        lastUpdateFromHive: item as string | null
       }))
     } else if (settingType === 'enum') {
       const updatedFilters = enumDropdownFilters.map((filter) =>
@@ -375,6 +401,42 @@ function ExportSearchFilterTables({
                     // onKeyUp={handleKeyUpOnInput}
                   />
                 </label>
+                <label
+                  htmlFor={`dropdown-lastUpdateFromHive`}
+                  key={`dropdown-lastUpdateFromHive`}
+                >
+                  {lastUpdateFromHiveFilter.label}:
+                  <Dropdown
+                    id={`dropdown-lastUpdateFromHive`}
+                    keyLabel={lastUpdateFromHiveFilter.keyLabel}
+                    items={lastUpdateFromHiveFilter.items}
+                    onSelect={handleSelect}
+                    isOpen={openDropdown === `dropdown-lastUpdateFromHive`}
+                    onToggle={(isOpen: boolean) =>
+                      handleDropdownToggle(
+                        `dropdown-lastUpdateFromHive`,
+                        isOpen
+                      )
+                    }
+                    searchFilter={false}
+                    initialTitle={
+                      lastUpdateFromHiveFilter.value
+                        ? String(lastUpdateFromHiveFilter.value)
+                        : 'Select...'
+                    }
+                    cross={true}
+                    backgroundColor="inherit"
+                    textColor="black"
+                    fontSize="14px"
+                    border="0.5px solid rgb(42, 42, 42)"
+                    borderRadius="3px"
+                    height="21.5px"
+                    width="212px"
+                    chevronWidth="11"
+                    chevronHeight="7"
+                    lightStyle={true}
+                  />
+                </label>
               </div>
               <div className="filter-select-dropdown">
                 <label
@@ -410,6 +472,7 @@ function ExportSearchFilterTables({
                     lightStyle={true}
                   />
                 </label>
+
                 {enumDropdownFilters.map((filter, index) => {
                   const dropdownOptions = filter.enumOptions
                     ? Object.values(filter.enumOptions)
@@ -449,11 +512,14 @@ function ExportSearchFilterTables({
                     </label>
                   )
                 })}
+                <div className="submit-button-container">
+                  <Button type="submit" title="Show" ref={buttonRef} />
+                </div>
               </div>
             </div>
-            <div className="submit-button-container">
+            {/* <div className="submit-button-container">
               <Button type="submit" title="Show" ref={buttonRef} />
-            </div>
+            </div> */}
           </form>
         </div>
       )}

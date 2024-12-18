@@ -18,11 +18,11 @@ import ImportSearchFilterTables from '../../components/ImportSearchFilterTables'
 import DbTables from './DbTables'
 import { useAtom } from 'jotai'
 import {
-  importTableListFiltersAtom,
+  // importTableListFiltersAtom,
   importPersistStateAtom
 } from '../../atoms/atoms'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
-import DropdownRadio from '../../components/DropdownRadio'
+// import DropdownRadio from '../../components/DropdownRadio'
 import { reverseMapEnumValue } from '../../utils/nameMappings'
 
 // const checkboxFilters = [
@@ -72,15 +72,15 @@ import { reverseMapEnumValue } from '../../utils/nameMappings'
 //   }
 // ]
 
-const radioFilters = [
-  {
-    title: 'Last update from source',
-    accessor: 'lastUpdateFromSource',
-    radioName: 'timestamp',
-    badgeContent: ['D', 'W', 'M', 'Y'],
-    values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-  }
-]
+// const radioFilters = [
+//   {
+//     title: 'Last update from source',
+//     accessor: 'lastUpdateFromSource',
+//     radioName: 'timestamp',
+//     badgeContent: ['D', 'W', 'M', 'Y'],
+//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+//   }
+// ]
 
 function Import() {
   const location = useLocation()
@@ -92,6 +92,7 @@ function Import() {
     'database',
     'table',
     'includeInAirflow',
+    'lastUpdateFromSource',
     'importType',
     'importTool',
     'etlType',
@@ -119,7 +120,7 @@ function Import() {
       ? false
       : null
     : null
-
+  const lastUpdateFromSource = query.get('lastUpdateFromSource') || null
   const importPhaseType = query.get('importType')
     ? reverseMapEnumValue(
         'import',
@@ -183,9 +184,9 @@ function Import() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [, setImportPersistState] = useAtom(importPersistStateAtom)
-  const [selectedFilters, setSelectedFilters] = useAtom(
-    importTableListFiltersAtom
-  )
+  // const [selectedFilters, setSelectedFilters] = useAtom(
+  //   importTableListFiltersAtom
+  // )
 
   const handleShow = (uiFilters: UiImportSearchFilter) => {
     const params = new URLSearchParams(location.search)
@@ -195,6 +196,7 @@ function Import() {
       ['database', 'database'],
       ['table', 'table'],
       ['includeInAirflow', 'includeInAirflow'],
+      ['lastUpdateFromSource', 'lastUpdateFromSource'],
       ['importPhaseType', 'importType'],
       ['importTool', 'importTool'],
       ['etlPhaseType', 'etlType'],
@@ -292,12 +294,12 @@ function Import() {
     }
   }
 
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
-  }
+  // const handleSelect = (filterKey: string, items: string[]) => {
+  //   setSelectedFilters((prevFilters) => ({
+  //     ...prevFilters,
+  //     [filterKey]: items
+  //   }))
+  // }
 
   const parseTimestamp = (timestamp: string | null): Date | null => {
     if (!timestamp) {
@@ -331,37 +333,32 @@ function Import() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.tables)) return []
+    console.log('lastUpdateFromSource', lastUpdateFromSource)
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 
       // return [...checkboxFilters, ...radioFilters].every((filter) => {
-      return [...radioFilters].every((filter) => {
-        const selectedItems =
-          selectedFilters[filter.accessor]?.map((value) => value) || []
 
-        if (selectedItems.length === 0) return true
+      if (lastUpdateFromSource === null) return true
 
-        if (filter.accessor === 'lastUpdateFromSource') {
-          const selectedRange = selectedItems[0]
-          const startDate = getDateRange(selectedRange)
+      const selectedRange = lastUpdateFromSource
+      const startDate = getDateRange(selectedRange)
 
-          if (!rowDate) return false
-          return rowDate >= startDate
-        }
+      if (!rowDate) return false
+      return rowDate >= startDate
 
-        // if (filter.accessor === 'includeInAirflow') {
-        //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
-        //   return selectedItems.includes(airflowValue)
-        // }
+      // if (filter.accessor === 'includeInAirflow') {
+      //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+      //   return selectedItems.includes(airflowValue)
+      // }
 
-        const accessorKey = filter.accessor as keyof typeof row
-        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
+      // const accessorKey = filter.accessor as keyof typeof row
+      // const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+      // const rowValue = (row[displayKey] ?? row[accessorKey]) as string
 
-        return selectedItems.includes(rowValue)
-      })
+      // return selectedItems.includes(rowValue)
     })
-  }, [data, selectedFilters, getDateRange])
+  }, [data, lastUpdateFromSource, getDateRange])
 
   return (
     <>
@@ -384,8 +381,8 @@ function Import() {
             />
           </div>
         </div>
-        <div className="filters">
-          {/* {checkboxFilters.map((filter, index) => (
+        {/* <div className="filters"> */}
+        {/* {checkboxFilters.map((filter, index) => (
             <DropdownCheckbox
               key={index}
               items={filter.values}
@@ -398,7 +395,7 @@ function Import() {
               }
             />
           ))} */}
-          {radioFilters.map((filter, index) => (
+        {/* {radioFilters.map((filter, index) => (
             <DropdownRadio
               key={index}
               items={filter.values}
@@ -413,7 +410,7 @@ function Import() {
               }
             />
           ))}
-        </div>
+        </div> */}
 
         {isCreateModalOpen && (
           <CreateImportTableModal

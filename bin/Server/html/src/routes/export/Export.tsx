@@ -12,7 +12,7 @@ import {
 } from '../../utils/interfaces'
 import { useAtom } from 'jotai'
 import {
-  exportCnListFiltersAtom,
+  // exportCnListFiltersAtom,
   exportPersistStateAtom
 } from '../../atoms/atoms'
 import CreateExportTableModal from '../../components/CreateExportTableModal'
@@ -20,7 +20,7 @@ import { createExportTableData } from '../../utils/dataFunctions'
 import { useCreateExportTable } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
-import DropdownRadio from '../../components/DropdownRadio'
+// import DropdownRadio from '../../components/DropdownRadio'
 import ExportCnTables from './ExportCnTables'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
 import { reverseMapEnumValue } from '../../utils/nameMappings'
@@ -55,15 +55,15 @@ import { reverseMapEnumValue } from '../../utils/nameMappings'
 //   }
 // ]
 
-const radioFilters = [
-  {
-    title: 'Last update from source',
-    accessor: 'lastUpdateFromHive  ',
-    radioName: 'timestamp',
-    badgeContent: ['D', 'W', 'M', 'Y'],
-    values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
-  }
-]
+// const radioFilters = [
+//   {
+//     title: 'Last update from source',
+//     accessor: 'lastUpdateFromHive  ',
+//     radioName: 'timestamp',
+//     badgeContent: ['D', 'W', 'M', 'Y'],
+//     values: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
+//   }
+// ]
 
 function Export() {
   const location = useLocation()
@@ -75,6 +75,7 @@ function Export() {
     'targetTable',
     'targetSchema',
     'includeInAirflow',
+    'lastUpdateFromHive',
     'exportType',
     'exportTool'
   ]
@@ -100,7 +101,7 @@ function Export() {
       ? false
       : null
     : null
-
+  const lastUpdateFromHive = query.get('lastUpdateFromHive') || null
   const exportType = query.get('exportType')
     ? reverseMapEnumValue(
         'export',
@@ -146,7 +147,7 @@ function Export() {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [, setExportPersistState] = useAtom(exportPersistStateAtom)
-  const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
+  // const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
 
   const handleShow = (uiFilters: UiExportSearchFilter) => {
     const params = new URLSearchParams(location.search)
@@ -156,6 +157,7 @@ function Export() {
       'targetTable',
       'targetSchema',
       'includeInAirflow',
+      'lastUpdateFromHive',
       'exportType',
       'exportTool'
     ]
@@ -191,12 +193,12 @@ function Export() {
     }
   }
 
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
-  }
+  // const handleSelect = (filterKey: string, items: string[]) => {
+  //   setSelectedFilters((prevFilters) => ({
+  //     ...prevFilters,
+  //     [filterKey]: items
+  //   }))
+  // }
 
   const mostCommonConnection = useMemo(() => {
     if (!data || !data.tables || data.tables.length === 0) return null
@@ -264,38 +266,66 @@ function Export() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.tables)) return []
+    console.log('lastUpdateFromHive', lastUpdateFromHive)
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromHive)
 
       // return [...checkboxFilters, ...radioFilters].every((filter) => {
-      return [...radioFilters].every((filter) => {
-        const selectedItems =
-          selectedFilters[filter.accessor]?.map((value) => value) || []
 
-        if (selectedItems.length === 0) return true
+      if (lastUpdateFromHive === null) return true
 
-        // Handling the date filter separately
-        if (filter.accessor === 'lastUpdateFromHive') {
-          const selectedRange = selectedItems[0]
-          const startDate = getDateRange(selectedRange)
+      const selectedRange = lastUpdateFromHive
+      const startDate = getDateRange(selectedRange)
 
-          if (!rowDate) return false
-          return rowDate >= startDate
-        }
+      if (!rowDate) return false
+      return rowDate >= startDate
 
-        // if (filter.accessor === 'includeInAirflow') {
-        //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
-        //   return selectedItems.includes(airflowValue)
-        // }
+      // if (filter.accessor === 'includeInAirflow') {
+      //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+      //   return selectedItems.includes(airflowValue)
+      // }
 
-        const accessorKey = filter.accessor as keyof typeof row
-        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
+      // const accessorKey = filter.accessor as keyof typeof row
+      // const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+      // const rowValue = (row[displayKey] ?? row[accessorKey]) as string
 
-        return selectedItems.includes(rowValue)
-      })
+      // return selectedItems.includes(rowValue)
     })
-  }, [data, selectedFilters, getDateRange])
+  }, [data, lastUpdateFromHive, getDateRange])
+  // const filteredData = useMemo(() => {
+  //   if (!data || !Array.isArray(data.tables)) return []
+  //   return data.tables.filter((row) => {
+  //     const rowDate = parseTimestamp(row.lastUpdateFromHive)
+
+  //     // return [...checkboxFilters, ...radioFilters].every((filter) => {
+  //     return [...radioFilters].every((filter) => {
+  //       const selectedItems =
+  //         selectedFilters[filter.accessor]?.map((value) => value) || []
+
+  //       if (selectedItems.length === 0) return true
+
+  //       // Handling the date filter separately
+  //       if (filter.accessor === 'lastUpdateFromHive') {
+  //         const selectedRange = selectedItems[0]
+  //         const startDate = getDateRange(selectedRange)
+
+  //         if (!rowDate) return false
+  //         return rowDate >= startDate
+  //       }
+
+  //       // if (filter.accessor === 'includeInAirflow') {
+  //       //   const airflowValue = row[filter.accessor] === true ? 'True' : 'False'
+  //       //   return selectedItems.includes(airflowValue)
+  //       // }
+
+  //       const accessorKey = filter.accessor as keyof typeof row
+  //       const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+  //       const rowValue = (row[displayKey] ?? row[accessorKey]) as string
+
+  //       return selectedItems.includes(rowValue)
+  //     })
+  //   })
+  // }, [data, selectedFilters, getDateRange])
 
   return (
     <>
@@ -320,8 +350,8 @@ function Export() {
           </div>
         </div>
 
-        <div className="filters">
-          {/* {checkboxFilters.map((filter, index) => (
+        {/* <div className="filters"> */}
+        {/* {checkboxFilters.map((filter, index) => (
             <DropdownCheckbox
               key={index}
               items={filter.values}
@@ -334,7 +364,7 @@ function Export() {
               }
             />
           ))} */}
-          {radioFilters.map((filter, index) => (
+        {/* {radioFilters.map((filter, index) => (
             <DropdownRadio
               key={index}
               items={filter.values}
@@ -349,7 +379,7 @@ function Export() {
               }
             />
           ))}
-        </div>
+        </div> */}
 
         {isCreateModalOpen && (
           <CreateExportTableModal

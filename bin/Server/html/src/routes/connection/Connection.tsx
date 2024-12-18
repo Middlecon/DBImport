@@ -6,12 +6,13 @@ import {
   Column,
   Connections,
   ConnectionSearchFilter,
-  EditSetting
+  EditSetting,
+  UiConnectionSearchFilter
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
-import DropdownCheckbox from '../../components/DropdownCheckbox'
+// import DropdownCheckbox from '../../components/DropdownCheckbox'
 import {
-  connectionFilterAtom,
+  // connectionFilterAtom,
   connectionPersistStateAtom
 } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
@@ -28,34 +29,34 @@ import CreateConnectionModal from '../../components/CreateConnectionModal'
 import Button from '../../components/Button'
 import { createConnectionData } from '../../utils/dataFunctions'
 
-const checkboxFilters = [
-  {
-    title: 'Server Type',
-    accessor: 'serverType',
-    values: [
-      'MySQL',
-      'Oracle',
-      'MSSQL Server', // motsvarar SQL Server
-      'PostgreSQL',
-      'Progress', // motsvarar Progress DB
-      'DB2 UDB',
-      'DB2 AS400',
-      'MongoDB',
-      'Cache', // motsvarar CacheDB
-      'Snowflake',
-      'AWS S3',
-      'Informix',
-      'SQL Anywhere'
-    ]
-  }
-]
+// const checkboxFilters = [
+//   {
+//     title: 'Server Type',
+//     accessor: 'serverType',
+//     values: [
+//       'MySQL',
+//       'Oracle',
+//       'MSSQL Server', // motsvarar SQL Server
+//       'PostgreSQL',
+//       'Progress', // motsvarar Progress DB
+//       'DB2 UDB',
+//       'DB2 AS400',
+//       'MongoDB',
+//       'Cache', // motsvarar CacheDB
+//       'Snowflake',
+//       'AWS S3',
+//       'Informix',
+//       'SQL Anywhere'
+//     ]
+//   }
+// ]
 
 function Connection() {
   const location = useLocation()
   const navigate = useNavigate()
   const query = new URLSearchParams(location.search)
 
-  const validParams = ['name', 'connectionString']
+  const validParams = ['name', 'connectionString', 'serverType']
   const allParams = Array.from(query.keys())
 
   useEffect(() => {
@@ -63,13 +64,14 @@ function Connection() {
       (param) => !validParams.includes(param)
     )
     if (hasInvalidParams) {
-      navigate('/import', { replace: true })
+      navigate('/connection', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParams, navigate])
 
   const name = query.get('name') || null
   const connectionString = query.get('connectionString') || null
+  const serverType = query.get('serverType') || null
 
   const filters: ConnectionSearchFilter = useMemo(
     () => ({
@@ -92,14 +94,15 @@ function Connection() {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [, setConnectionPersistState] = useAtom(connectionPersistStateAtom)
-  const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
+  // const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
 
-  const handleShow = (uiFilters: ConnectionSearchFilter) => {
+  const handleShow = (uiFilters: UiConnectionSearchFilter) => {
     const params = new URLSearchParams(location.search)
 
-    const filterKeys: (keyof ConnectionSearchFilter)[] = [
+    const filterKeys: (keyof UiConnectionSearchFilter)[] = [
       'name',
-      'connectionString'
+      'connectionString',
+      'serverType'
     ]
 
     filterKeys.forEach((key) => {
@@ -133,12 +136,12 @@ function Connection() {
     }
   }
 
-  const handleSelect = (filterKey: string, items: string[]) => {
-    setSelectedFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterKey]: items
-    }))
-  }
+  // const handleSelect = (filterKey: string, items: string[]) => {
+  //   setSelectedFilters((prevFilters) => ({
+  //     ...prevFilters,
+  //     [filterKey]: items
+  //   }))
+  // }
 
   const handleSave = (newConnectionSettings: EditSetting[]) => {
     const newConnectionData = createConnectionData(newConnectionSettings)
@@ -200,29 +203,39 @@ function Connection() {
     []
   )
 
+  // const filteredData = useMemo(() => {
+  //   console.log('data', data)
+  //   if (!data || !Array.isArray(data.connections)) return []
+  //   return data.connections.filter((row) => {
+  //     return [...checkboxFilters].every((filter) => {
+  //       const selectedItems = Array.isArray(selectedFilters[filter.accessor])
+  //         ? selectedFilters[filter.accessor]?.map((value) => value)
+  //         : []
+
+  //       if (selectedItems.length === 0) return true
+
+  //       const accessorKey = filter.accessor as keyof typeof row
+  //       const displayKey = `${String(accessorKey)}Display` as keyof typeof row
+  //       const rowValue = (row[displayKey] ?? row[accessorKey]) as string
+
+  //       return selectedItems.includes(rowValue)
+  //     })
+  //   })
+  // }, [data, selectedFilters])
+
   const filteredData = useMemo(() => {
-    console.log('data', data)
     if (!data || !Array.isArray(data.connections)) return []
+    console.log('serverType', serverType)
     return data.connections.filter((row) => {
-      return [...checkboxFilters].every((filter) => {
-        const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-          ? selectedFilters[filter.accessor]?.map((value) => value)
-          : []
+      if (serverType === null) return true
 
-        if (selectedItems.length === 0) return true
-
-        const accessorKey = filter.accessor as keyof typeof row
-        const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-        const rowValue = (row[displayKey] ?? row[accessorKey]) as string
-
-        return selectedItems.includes(rowValue)
-      })
+      return row.serverType === serverType
     })
-  }, [data, selectedFilters])
+  }, [data, serverType])
   return (
     <>
       <ViewBaseLayout>
-        <div className="import-header">
+        <div className="import-header" style={{ paddingBottom: 0 }}>
           <h1>Connection</h1>
           <div className="db-dropdown">
             <Button
@@ -243,7 +256,7 @@ function Connection() {
           </div>
         </div>
 
-        <div className="filters">
+        {/* <div className="filters">
           {Array.isArray(checkboxFilters) &&
             checkboxFilters.map((filter, index) => (
               <DropdownCheckbox
@@ -258,7 +271,7 @@ function Connection() {
                 }
               />
             ))}
-        </div>
+        </div> */}
         {data && Array.isArray(data.connections) ? (
           <>
             <div style={{ height: 27 }} />

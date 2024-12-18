@@ -16,6 +16,18 @@ export const connectionPersistStateAtom = atomWithSessionStorage<string | null>(
   null
 )
 
+export const airflowImportDagsPersistStateAtom = atomWithSessionStorage<
+  string | null
+>('airflowImportDagsPersistState', null)
+
+export const airflowExportDagsPersistStateAtom = atomWithSessionStorage<
+  string | null
+>('airflowImportDagsPersistState', null)
+
+export const airflowCustomDagsPersistStateAtom = atomWithSessionStorage<
+  string | null
+>('airflowImportDagsPersistState', null)
+
 export const isDbDropdownReadyAtom = atom(false)
 
 export const isCnDropdownReadyAtom = atom(false)

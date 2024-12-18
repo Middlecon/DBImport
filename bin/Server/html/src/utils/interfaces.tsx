@@ -42,6 +42,12 @@ export interface ConnectionSearchFilter {
   connectionString: string | null
 }
 
+export interface UiConnectionSearchFilter {
+  name: string | null
+  connectionString: string | null
+  serverType: string | null
+}
+
 export interface GenerateJDBCconnectionString {
   databaseType: string
   version: string
@@ -102,6 +108,7 @@ export interface UiImportSearchFilter {
   database: string | null
   table: string | null
   includeInAirflow: string | null
+  lastUpdateFromSource: string | null
   importPhaseType: string | null
   etlPhaseType: string | null
   importTool: string | null
@@ -668,6 +675,7 @@ export interface UiExportSearchFilter {
   targetSchema: string | null
   targetTable: string | null
   includeInAirflow: string | null
+  lastUpdateFromHive: string | null
   exportType: string | null
   exportTool: string | null
 }
@@ -864,6 +872,10 @@ export interface BulkUpdateExportTables {
 }
 
 // Airflow
+
+export interface UiAirflowsSearchFilter {
+  autoRegenerateDag: string | null
+}
 
 export interface BaseAirflowsData {
   name: string

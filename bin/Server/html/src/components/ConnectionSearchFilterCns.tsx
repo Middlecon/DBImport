@@ -8,14 +8,18 @@ import ChevronUp from '../assets/icons/ChevronUp'
 import FilterFunnel from '../assets/icons/FilterFunnel'
 import './SearchFilterTables.scss'
 import Button from './Button'
-import { ConnectionSearchFilter } from '../utils/interfaces'
+import {
+  // ConnectionSearchFilter,
+  EditSettingValueTypes,
+  UiConnectionSearchFilter
+} from '../utils/interfaces'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
 import { useFocusTrap } from '../utils/hooks'
 
-interface ExportSearchFilterProps {
+interface ConnectionSearchFilterProps {
   isSearchFilterOpen: boolean
   onToggle: (isSearchFilterOpen: boolean) => void
-  onShow: (filters: ConnectionSearchFilter) => void
+  onShow: (filters: UiConnectionSearchFilter) => void
   disabled?: boolean
 }
 
@@ -24,11 +28,33 @@ function ConnectionSearchFilterCns({
   onToggle,
   onShow,
   disabled
-}: ExportSearchFilterProps) {
+}: ConnectionSearchFilterProps) {
   const query = new URLSearchParams(location.search)
 
   const name = query.get('name') || null
   const connectionString = query.get('connectionString') || null
+  const serverType = query.get('serverType') || null
+
+  const [serverTypeFilter, setServerTypeFilter] = useState({
+    label: 'Server Type',
+    keyLabel: 'serverType',
+    value: serverType,
+    items: [
+      'MySQL',
+      'Oracle',
+      'MSSQL Server', // motsvarar SQL Server
+      'PostgreSQL',
+      'Progress', // motsvarar Progress DB
+      'DB2 UDB',
+      'DB2 AS400',
+      'MongoDB',
+      'Cache', // motsvarar CacheDB
+      'Snowflake',
+      'AWS S3',
+      'Informix',
+      'SQL Anywhere'
+    ]
+  })
 
   const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
     isCnDropdownReadyAtom
@@ -45,9 +71,10 @@ function ConnectionSearchFilterCns({
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
-  const [formValues, setFormValues] = useState<ConnectionSearchFilter>({
+  const [formValues, setFormValues] = useState<UiConnectionSearchFilter>({
     name: name ? name : null,
-    connectionString: connectionString ? connectionString : null
+    connectionString: connectionString ? connectionString : null,
+    serverType: serverType ? serverType : null
   })
 
   useFocusTrap(
@@ -55,6 +82,13 @@ function ConnectionSearchFilterCns({
     isSearchFilterOpen,
     openDropdown === 'addFavoriteDropdown'
   )
+
+  useEffect(() => {
+    setServerTypeFilter((prevFilter) => ({
+      ...prevFilter,
+      value: formValues.serverType
+    }))
+  }, [formValues])
 
   useEffect(() => {
     if (isLoading || !connectionNames.length) return
@@ -155,6 +189,32 @@ function ConnectionSearchFilterCns({
     setFormValues((prev) => ({ ...prev, name: item }))
   }
 
+  const handleSelect = (
+    item: EditSettingValueTypes | null,
+    keyLabel?: string
+  ) => {
+    if (!keyLabel) return
+
+    if (keyLabel === 'serverType') {
+      const value = typeof item === 'string' ? item : null
+
+      setServerTypeFilter((prev) => ({
+        ...prev,
+        value: value
+      }))
+
+      setFormValues((prev) => ({
+        ...prev,
+        serverType: item as string | null
+      }))
+    } else {
+      setFormValues((prev) => ({
+        ...prev,
+        [keyLabel]: item
+      }))
+    }
+  }
+
   const filteredConnectionNames = useMemo(() => {
     if (!formValues.name) return connectionNames
     return connectionNames.filter((name) =>
@@ -187,7 +247,7 @@ function ConnectionSearchFilterCns({
         <div className="search-filter-dropdown" style={{ width: '212px' }}>
           <div className="search-filter-dropdown-h-ctn">
             <h3>Search and show connections</h3>
-            <FavoriteFilterSearch<ConnectionSearchFilter>
+            <FavoriteFilterSearch<UiConnectionSearchFilter>
               ref={favoriteRef}
               type="connection"
               formValues={formValues}
@@ -272,6 +332,39 @@ function ConnectionSearchFilterCns({
 
                     // onKeyDown={handleKeyDownOnInput}
                     // onKeyUp={handleKeyUpOnInput}
+                  />
+                </label>
+                <label
+                  htmlFor={`dropdown-serverType`}
+                  key={`dropdown-serverType`}
+                >
+                  {serverTypeFilter.label}:
+                  <Dropdown
+                    id={`dropdown-serverType`}
+                    keyLabel={serverTypeFilter.keyLabel}
+                    items={serverTypeFilter.items}
+                    onSelect={handleSelect}
+                    isOpen={openDropdown === `dropdown-serverType`}
+                    onToggle={(isOpen: boolean) =>
+                      handleDropdownToggle(`dropdown-serverType`, isOpen)
+                    }
+                    searchFilter={false}
+                    initialTitle={
+                      serverTypeFilter.value
+                        ? String(serverTypeFilter.value)
+                        : 'Select...'
+                    }
+                    cross={true}
+                    backgroundColor="inherit"
+                    textColor="black"
+                    fontSize="14px"
+                    border="0.5px solid rgb(42, 42, 42)"
+                    borderRadius="3px"
+                    height="21.5px"
+                    width="212px"
+                    chevronWidth="11"
+                    chevronHeight="7"
+                    lightStyle={true}
                   />
                 </label>
               </div>

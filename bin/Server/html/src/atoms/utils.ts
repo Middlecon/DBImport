@@ -13,7 +13,10 @@ import {
   exportPersistStateAtom,
   isConfigurationSubmenuActiveAtom,
   latestPathAtom,
-  connectionPersistStateAtom
+  connectionPersistStateAtom,
+  airflowCustomDagsPersistStateAtom,
+  airflowExportDagsPersistStateAtom,
+  airflowImportDagsPersistStateAtom
 } from './atoms'
 
 export function atomWithSessionStorage<T>(key: string, initialValue: T) {
@@ -39,6 +42,9 @@ export const clearSessionStorageAtoms = () => {
   store.set(importPersistStateAtom, RESET)
   store.set(exportPersistStateAtom, RESET)
   store.set(connectionPersistStateAtom, RESET)
+  store.set(airflowImportDagsPersistStateAtom, RESET)
+  store.set(airflowExportDagsPersistStateAtom, RESET)
+  store.set(airflowCustomDagsPersistStateAtom, RESET)
   store.set(importTableListFiltersAtom, RESET)
   store.set(exportCnListFiltersAtom, RESET)
   store.set(connectionFilterAtom, RESET)
@@ -54,6 +60,9 @@ export const clearSessionStorageAtoms = () => {
     'importPersistState',
     'exportPersistState',
     'connectionPersistState',
+    'airflowImportDagsPersistState',
+    'airflowExportDagsPersistState',
+    'airflowCustomDagsPersistState',
     'importDbListFilters',
     'exportCnListFilters',
     'connectionFilters',

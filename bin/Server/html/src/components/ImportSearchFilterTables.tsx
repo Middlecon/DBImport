@@ -36,6 +36,7 @@ function ImportSearchFilterTables({
   const database = query.get('database') || null
   const table = query.get('table') || null
   const includeInAirflow = query.get('includeInAirflow') || null
+  const lastUpdateFromSource = query.get('lastUpdateFromSource') || null
   const importType = query.get('importType') || null
   const importTool = query.get('importTool') || null
   const etlType = query.get('etlType') || null
@@ -50,6 +51,13 @@ function ImportSearchFilterTables({
     keyLabel: 'includeInAirflow',
     value: includeInAirflow,
     items: ['True', 'False']
+  })
+
+  const [lastUpdateFromSourceFilter, setLastUpdateFromSourceFilter] = useState({
+    label: 'Last update from source',
+    keyLabel: 'lastUpdateFromSource',
+    value: lastUpdateFromSource,
+    items: ['Last Day', 'Last Week', 'Last Month', 'Last Year']
   })
 
   const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
@@ -85,6 +93,7 @@ function ImportSearchFilterTables({
     database: database ? database : null,
     table: table ? table : null,
     includeInAirflow: includeInAirflow ? includeInAirflow : null,
+    lastUpdateFromSource: lastUpdateFromSource ? lastUpdateFromSource : null,
     importPhaseType: importType ? importType : null,
     importTool: importTool ? importTool : null,
     etlPhaseType: etlType ? etlType : null,
@@ -110,6 +119,11 @@ function ImportSearchFilterTables({
     setIncludeInAirflowFilter((prevFilter) => ({
       ...prevFilter,
       value: formValues.includeInAirflow
+    }))
+
+    setLastUpdateFromSourceFilter((prevFilter) => ({
+      ...prevFilter,
+      value: formValues.lastUpdateFromSource
     }))
   }, [formValues])
 
@@ -267,6 +281,18 @@ function ImportSearchFilterTables({
       setFormValues((prev) => ({
         ...prev,
         includeInAirflow: item as string | null
+      }))
+    } else if (keyLabel === 'lastUpdateFromSource') {
+      const value = typeof item === 'string' ? item : null
+
+      setLastUpdateFromSourceFilter((prev) => ({
+        ...prev,
+        value: value
+      }))
+
+      setFormValues((prev) => ({
+        ...prev,
+        lastUpdateFromSource: item as string | null
       }))
     } else if (settingType === 'enum') {
       const updatedFilters = enumDropdownFilters.map((filter) =>
@@ -453,6 +479,42 @@ function ImportSearchFilterTables({
                   />
                 </label>
                 <label
+                  htmlFor={`dropdown-lastUpdateFromSource`}
+                  key={`dropdown-lastUpdateFromSource`}
+                >
+                  {lastUpdateFromSourceFilter.label}:
+                  <Dropdown
+                    id={`dropdown-lastUpdateFromSource`}
+                    keyLabel={lastUpdateFromSourceFilter.keyLabel}
+                    items={lastUpdateFromSourceFilter.items}
+                    onSelect={handleSelect}
+                    isOpen={openDropdown === `dropdown-lastUpdateFromSource`}
+                    onToggle={(isOpen: boolean) =>
+                      handleDropdownToggle(
+                        `dropdown-lastUpdateFromSource`,
+                        isOpen
+                      )
+                    }
+                    searchFilter={false}
+                    initialTitle={
+                      lastUpdateFromSourceFilter.value
+                        ? String(lastUpdateFromSourceFilter.value)
+                        : 'Select...'
+                    }
+                    cross={true}
+                    backgroundColor="inherit"
+                    textColor="black"
+                    fontSize="14px"
+                    border="0.5px solid rgb(42, 42, 42)"
+                    borderRadius="3px"
+                    height="21.5px"
+                    width="212px"
+                    chevronWidth="11"
+                    chevronHeight="7"
+                    lightStyle={true}
+                  />
+                </label>
+                <label
                   htmlFor={`dropdown-includeInAirflow`}
                   key={`dropdown-includeInAirflow`}
                 >
@@ -526,11 +588,14 @@ function ImportSearchFilterTables({
                     </label>
                   )
                 })}
+                <div className="submit-button-container">
+                  <Button type="submit" title="Show" ref={buttonRef} />
+                </div>
               </div>
             </div>
-            <div className="submit-button-container">
+            {/* <div className="submit-button-container">
               <Button type="submit" title="Show" ref={buttonRef} />
-            </div>
+            </div> */}
           </form>
         </div>
       )}

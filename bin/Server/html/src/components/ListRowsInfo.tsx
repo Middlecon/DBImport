@@ -28,8 +28,8 @@ function ListRowsInfo<T>({
       {contentMaxReturnedRows
         ? `Showing ${filteredData.length} ${
             totalRows > maxRows ? `(limited to ${contentMaxReturnedRows})` : ''
-          } of ${contentTotalRows} ${itemTypeString} matching the filter`
-        : `Showing ${filteredData.length}  of ${contentTotalRows} ${itemTypeString}`}
+          } ${itemTypeString} matching the filter`
+        : `Showing ${filteredData.length} ${itemTypeString}`}
     </p>
   )
 }
