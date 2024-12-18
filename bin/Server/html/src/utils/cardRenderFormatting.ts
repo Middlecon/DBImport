@@ -55,6 +55,7 @@ export function airflowCardRenderSettings(
       label: 'Schedule Interval',
       value: dagData.scheduleInterval,
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required?
     {
@@ -78,6 +79,7 @@ export function airflowCardRenderSettings(
       label: 'Retries',
       value: dagData.retries,
       type: SettingType.IntegerFromZero,
+      maxInt: 127,
       infoText: infoTexts.airflow[airflowType].retries,
       isRequired: true
     } // Integer, tinyint(4), default value: 5 for import & export and 0 for custom, How many retries should be Task do in Airflow before it failes,  required
@@ -100,6 +102,7 @@ export function airflowCardRenderSettings(
       label: 'Concurrency',
       value: dagData.concurrency,
       type: SettingType.IntegerFromOneOrNull,
+      maxInt: 127,
       infoText: infoTexts.airflow[airflowType].concurrency
     } // Integer, tinyint(4), Set the max Integer of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration
   ]
@@ -138,6 +141,7 @@ export function airflowCardRenderSettings(
       label: 'Sudo User',
       value: dagData.sudoUser,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.airflow[airflowType].sudoUser
     }, // Free-text, varchar(64), All tasks in DAG will use this user for sudo instead of default
     {
@@ -149,24 +153,28 @@ export function airflowCardRenderSettings(
       label: 'Tags',
       value: dagData.tags,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow[airflowType].tags
     }, // Free-text, varchar(256), Comma seperated list of Airflow tags that will be set on the DAG
     {
       label: 'Airflow Notes',
       value: dagData.airflowNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.airflow[airflowType].airflowNotes
     }, // Free-text (64k)
     {
       label: 'Operator notes',
       value: dagData.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.airflow[airflowType].operatorNotes
     }, // Free-text (64k)
     {
       label: 'Application Notes',
       value: dagData.applicationNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.airflow[airflowType].applicationNotes
     } // Free-text (64k)
   ]
@@ -178,6 +186,7 @@ export function airflowCardRenderSettings(
             label: 'Filter Table',
             value: dagData.filterTable, // column filter_hive in db
             type: SettingType.Textarea,
+            maxChar: 64000,
             infoText: infoTexts.airflow.import.filterTable
           } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE
         ]
@@ -189,12 +198,14 @@ export function airflowCardRenderSettings(
             label: 'Retries Import Stage',
             value: dagData.retriesStage1,
             type: SettingType.IntegerFromOneOrNull,
+            maxInt: 127,
             infoText: infoTexts.airflow.import.retriesStage1
           }, // Integer, tinyint(4), Specific retries Integer for Import Phase
           {
             label: 'Retries ETL Stage',
             value: dagData.retriesStage2,
             type: SettingType.IntegerFromOneOrNull,
+            maxInt: 127,
             infoText: infoTexts.airflow.import.retriesStage2
           } // Integer, tinyint(4), Specific retries Integer for Import Phase
         ]
@@ -206,12 +217,14 @@ export function airflowCardRenderSettings(
             label: 'Pool Import Stage',
             value: dagData.poolStage1,
             type: SettingType.Text,
+            maxChar: 256,
             infoText: infoTexts.airflow.import.poolStage1
           }, // Free-text, varchar(256), Airflow pool used for stage1 tasks. NULL for the default Hostname pool
           {
             label: 'Pool ETL Stage',
             value: dagData.poolStage2,
             type: SettingType.Text,
+            maxChar: 256,
             infoText: infoTexts.airflow.import.poolStage2
           }, // Free-text, varchar(256), Airflow pool used for stage2 tasks. NULL for the default DAG pool
           {
@@ -242,6 +255,7 @@ export function airflowCardRenderSettings(
             label: 'Filter Connection',
             value: dagData.filterConnection, // column filter_hive in db
             type: SettingType.Text,
+            maxChar: 256,
             infoText: infoTexts.airflow.export.filterConnection,
             isRequired: true
           }, // Free-text, varchar(256), Filter string for DBALIAS in export_tables, required
@@ -249,12 +263,14 @@ export function airflowCardRenderSettings(
             label: 'Filter Target Schema',
             value: dagData.filterTargetSchema,
             type: SettingType.Text,
+            maxChar: 256,
             infoText: infoTexts.airflow.export.filterTargetSchema
           }, // Free-text, varchar(256), Filter string for TARGET_SCHEMA  in export_tables
           {
             label: 'Filter Target Table',
             value: dagData.filterTargetTable,
             type: SettingType.Text,
+            maxChar: 256,
             infoText: infoTexts.airflow.export.filterTargetTable
           } // Free-text, varchar(256), Filter string for TARGET_TABLE  in export_tables
         ]
@@ -303,6 +319,7 @@ export function initialCreateAirflowSettings(
       label: 'DAG Name',
       value: null,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.airflow[airflowType].name,
       isRequired: true
     } //Free-text, varchar(64), have to be unique across import, export and custom, required
@@ -312,6 +329,7 @@ export function initialCreateAirflowSettings(
       label: 'Schedule Interval',
       value: null,
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required
     {
@@ -326,7 +344,8 @@ export function initialCreateAirflowSettings(
     {
       label: 'Filter Table',
       value: null,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 16384,
       infoText: infoTexts.airflow.import.filterTable
     } // Free-text, varchar(16384), Filter string for database and table. ; separated. Wildcards (*) allowed. Example HIVE_DB.HIVE_TABLE; HIVE_DB.HIVE_TABLE
   ]
@@ -336,18 +355,21 @@ export function initialCreateAirflowSettings(
       label: 'Filter Connection',
       value: null, // column filter_hive in db
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow.export.filterConnection
     }, // Free-text, varchar(256), Filter string for DBALIAS in export_tables
     {
       label: 'Filter Target Schema',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow.export.filterTargetSchema
     }, // Free-text, varchar(256), Filter string for TARGET_SCHEMA  in export_tables
     {
       label: 'Filter Target Table',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow.export.filterTargetTable
     } // Free-text, varchar(256), Filter string for TARGET_TABLE  in export_tables
   ]
@@ -421,6 +443,7 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Airflow Priority',
       value: row.airflowPriority,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.airflow.tasks.airflowPriority
     }, // Free-text, varchar(64)
     {
@@ -433,18 +456,21 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Task Dependency Downstream',
       value: row.taskDependencyDownstream,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow.tasks.taskDependencyDownstream
     }, // Free-text, Defines the downstream dependency for the Task. Comma separated list, varchar(256)
     {
       label: 'Task Dependency Upstream',
       value: row.taskDependencyUpstream,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.airflow.tasks.taskDependencyUpstream
     }, // Free-text, Defines the upstream dependency for the Task. Comma separated list, varchar(256)
     {
       label: 'Task Config',
       value: row.taskConfig,
       type: SettingType.Textarea,
+      maxChar: 512,
       infoText: infoTexts.airflow.tasks.taskConfig
     }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
     {
@@ -466,6 +492,7 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
       label: 'Sensor Connection',
       value: row.sensorConnection,
       type: SettingType.Text,
+      maxChar: 64,
       isConditionsMet: row.type === AirflowDAGTaskType.SQLSensor,
       infoText: infoTexts.airflow.tasks.sensorConnection
     }, // Free-text, Name of Connection in Airflow, varchar(64)
@@ -487,6 +514,7 @@ export function airflowTaskRowDataEdit(row: AirflowTask) {
         row.type === AirflowDAGTaskType.JDBCSQL ||
         row.type === AirflowDAGTaskType.HiveSQL ||
         row.type === AirflowDAGTaskType.HiveSQLScript,
+      maxChar: 64,
       infoText: infoTexts.airflow.tasks.sudoUser
     } // Free-text, The task will use this user for sudo instead of default, varchar(64)
   ]
@@ -498,6 +526,7 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
     label: 'Task Name',
     value: '',
     type: SettingType.Text,
+    maxChar: 64,
     infoText: infoTexts.airflow.tasks.name,
     isRequired: true
   }, // Free-text, varchar(64), have to be unique in the actual DAG and can not be reserved values start or Start or stop or Stop, required
@@ -535,6 +564,7 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
     label: 'Airflow Priority',
     value: null,
     type: SettingType.Text,
+    maxChar: 64,
     infoText: infoTexts.airflow.tasks.airflowPriority
   }, // Free-text, varchar(64)
   {
@@ -548,18 +578,21 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
     label: 'Task Dependency Downstream',
     value: null,
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.airflow.tasks.taskDependencyDownstream
   }, // Free-text, Defines the downstream dependency for the Task. Comma separated list, varchar(256)
   {
     label: 'Task Dependency Upstream',
     value: null,
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.airflow.tasks.taskDependencyUpstream
   }, // Free-text, Defines the upstream dependency for the Task. Comma separated list, varchar(256)
   {
     label: 'Task Config',
     value: null,
     type: SettingType.Textarea,
+    maxChar: 512,
     infoText: infoTexts.airflow.tasks.taskConfig
   }, // Free-text, The configuration for the Task. Depends on what Task type it is,, varchar(512)
   {
@@ -578,6 +611,7 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
     label: 'Sensor Connection',
     value: null,
     type: SettingType.Text,
+    maxChar: 64,
     infoText: infoTexts.airflow.tasks.sensorConnection
   }, // Free-text, Name of Connection in Airflow, varchar(64)
   {
@@ -590,6 +624,7 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
     label: 'Sudo User',
     value: null,
     type: SettingType.Text,
+    maxChar: 64,
     infoText: infoTexts.airflow.tasks.sudoUser
   } // Free-text, The task will use this user for sudo instead of default, varchar(64)
 ]
@@ -600,33 +635,36 @@ export const generateConnectionStringFields: EditSetting[] = [
   {
     label: 'Database type',
     value: null,
-    type: SettingType.DataReferenceRequired // test this setting type - probably the same functionality is needed
+    type: SettingType.DataReferenceRequired
     // infoText:
-  }, // Database types from JDBC drivers, required
+  }, // Database types from JDBC drivers, enum in database, required
   {
     label: 'Version',
     value: 'default',
-    type: SettingType.Version // test this setting type - probably the same functionality is needed
+    type: SettingType.Version
     // infoText:
-  }, // Compatible options to selected Database type, 'default' or, only for Database type 'SQL Server': 'default', 'jTDS', set initially to 'default', required
+  }, // Compatible options to selected Database type, 'default' or, only for Database type 'SQL Server': 'default', 'jTDS', set initially to 'default' (varchar(16) in database), required
   {
     label: 'Hostname',
     value: null,
-    type: SettingType.Text
+    type: SettingType.Text,
+    maxChar: 256
     // infoText:
-  }, //  Free-text, required
+  }, //  Free-text, varchar(256), required
   {
     label: 'Port',
     value: null,
-    type: SettingType.IntegerFromZeroOrNull
+    type: SettingType.Text,
+    maxChar: 8
     // infoText:
-  }, // Integer or null
+  }, // Free-text, varchar(8)
   {
     label: 'Database',
     value: null,
-    type: SettingType.Text
+    type: SettingType.Text,
+    maxChar: 256
     // infoText:
-  } //  Free-text, required
+  } //  Free-text, varchar(256), required
 ]
 
 export function connectionCardRenderSettings(connection: Connection) {
@@ -641,6 +679,7 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Connection string',
       value: connection.connectionString,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.connection.connectionString,
       isRequired: true
     }, // Free-text (64k)
@@ -648,18 +687,21 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Private Key Path',
       value: connection.privateKeyPath,
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.connection.privateKeyPath
     }, // Free-text (varchar 128)
     {
       label: 'Public Key Path',
       value: connection.publicKeyPath,
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.connection.publicKeyPath
     }, // Free-text (varchar 128)
     {
       label: 'Credentials',
       value: connection.credentials !== null ? connection.credentials : '',
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.connection.credentials
     }, // Free-text (64k)
 
@@ -672,6 +714,7 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Source',
       value: connection.source,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.source
     }, // Free-text (varchar 256)
     {
@@ -684,8 +727,9 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Max Sessions',
       value: connection.maxSessions,
       type: SettingType.IntegerFromOneOrNull,
+      maxInt: 127,
       infoText: infoTexts.connection.maxSessions
-    }, // Integer
+    }, // Integer, tinyint(4)
     {
       label: 'Create Foreign Key',
       value: connection.createForeignKey,
@@ -720,6 +764,7 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Seed File',
       value: connection.seedFile,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.seedFile
     }, // Free-text (varchar 256)
 
@@ -732,30 +777,35 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Operator notes',
       value: connection.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.connection.operatorNotes
     }, // Free-text (64k)
     {
       label: 'Contact information',
       value: connection.contactInformation,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.contactInformation
     }, // Free-text (varchar 256)
     {
       label: 'Description',
       value: connection.description,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.description
     }, // Free-text (varchar 256)
     {
       label: 'Owner',
       value: connection.owner,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.owner
     }, // Free-text (varchar 256)
     // {
     //   label: 'Environment',
     //   value: connection.environment,
-    //   type: SettingType.Text
+    //   type: SettingType.Text,
+    // maxChar: 256,
     // }, // Free-text (varchar 256), skip this because functionality for it is not yet implemented in the system
     {
       label: '',
@@ -772,12 +822,14 @@ export function connectionCardRenderSettings(connection: Connection) {
       label: 'Atlas Include Filter',
       value: connection.atlasIncludeFilter,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.atlasIncludeFilter
     }, // Free-text (varchar 256)
     {
       label: 'Atlas Exclude Filter',
       value: connection.atlasExcludeFilter,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.connection.atlasExcludeFilter
     }, // Free-text (varchar 256)
     {
@@ -795,12 +847,14 @@ export const initialCreateConnectionSettings: EditSetting[] = [
     label: 'Name',
     value: '',
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.connection.name
   }, //Free-text (varchar 256)
   {
     label: 'Connection string',
     value: '',
     type: SettingType.Textarea,
+    maxChar: 64000,
     infoText: infoTexts.connection.connectionString,
     isRequired: true
   }, // Free-text (64k)
@@ -808,24 +862,28 @@ export const initialCreateConnectionSettings: EditSetting[] = [
     label: 'Operator notes',
     value: null,
     type: SettingType.Textarea,
+    maxChar: 64000,
     infoText: infoTexts.connection.operatorNotes
   }, // Free-text (64k)
   {
     label: 'Contact information',
     value: null,
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.connection.contactInformation
   }, // Free-text (varchar 256)
   {
     label: 'Description',
     value: null,
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.connection.description
   }, // Free-text (varchar 256)
   {
     label: 'Owner',
     value: null,
     type: SettingType.Text,
+    maxChar: 256,
     infoText: infoTexts.connection.owner
   }, // Free-text (varchar 256)
 
@@ -937,6 +995,8 @@ export function importDbTablesEditSettings(row: UiDbTable) {
 }
 
 export function importCardRenderSettings(table: UITable) {
+  // Text types have limitation varchar(256) if no other is specified in comment
+
   const mainSettings: EditSetting[] = [
     {
       label: 'Database',
@@ -971,6 +1031,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Source Schema',
       value: table.sourceSchema,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.sourceSchema,
       isRequired: true
     }, // Free-text, required
@@ -978,6 +1039,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Source Table',
       value: table.sourceTable,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.sourceTable,
       isRequired: true
     }, // Free-text
@@ -1041,24 +1103,28 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Import Database',
       value: table.importDatabase,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.importDatabase
     }, // Free-text
     {
       label: 'Import Table',
       value: table.importTable,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.importTable
-    }, // Free-text setting
+    }, // Free-text
     {
       label: 'History Database',
       value: table.historyDatabase,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.historyDatabase
     }, // Free-text
     {
       label: 'History Table',
       value: table.historyTable,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.historyTable
     } // Free-text
   ]
@@ -1080,15 +1146,17 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Split by Column',
       value: table.splitByColumn,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.table.import.splitByColumn
-    }, // Free-text
+    }, // Free-text, varchar(64)
     {
       label: 'Sqoop Options',
       value: table.sqoopOptions,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.sqoopOptions,
       isConditionsMet: table.importTool === ImportTool.Sqoop
-    }, // Free-text, active only if importTool=sqoop
+    }, // Free-text, 64k, active only if importTool=sqoop
     {
       label: '',
       value: '',
@@ -1097,13 +1165,15 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'SQL WHERE Addition',
       value: table.sqlWhereAddition,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 1024,
       infoText: infoTexts.table.import.sqlWhereAddition
-    }, // Free-text
+    }, // Free-text, varchar(1024)
     {
       label: 'Custom Max Query',
       value: table.customMaxQuery,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.customMaxQuery,
       isConditionsMet:
         table.importPhaseType === ImportType.Incremental ||
@@ -1120,16 +1190,18 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'Scoop Custom Query',
       value: table.sqoopCustomQuery,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.sqoopCustomQuery,
       isConditionsMet: table.importTool === ImportTool.Sqoop
-    }, // Active only if sqoopUseGeneratedSql=false
+    }, // Active only if sqoopUseGeneratedSql=false, 64k
     {
       label: 'No Merge Ingestion SQL Addition',
       value: table.nomergeIngestionSqlAddition,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 2048,
       infoText: infoTexts.table.import.nomergeIngestionSqlAddition
-    }, // Free-text setting (nmore information might come about this one)
+    }, // Free-text setting (nmore information might come about this one), varchar(2048)
     {
       label: '',
       value: '',
@@ -1197,6 +1269,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Incremental Column',
       value: table.incrColumn,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.incrColumn,
       isConditionsMet: table.importPhaseType === ImportType.Incremental
     }, // Free-text, active if importPhaseType=incr
@@ -1252,15 +1325,17 @@ export function importCardRenderSettings(table: UITable) {
     {
       label: 'Primary Key Override',
       value: table.pkColumnOverride,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 1024,
       infoText: infoTexts.table.import.pkColumnOverride
-    }, // Comma-separated list with columns from "columns":{}
+    }, // Comma-separated list with columns from "columns":{}, varchar(1024)
     {
       label: 'Primary Key Override (Merge only)',
       value: table.pkColumnOverrideMergeonly,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 1024,
       infoText: infoTexts.table.import.pkColumnOverrideMergeonly
-    }, // Comma-separated list with columns from "columns":{}
+    }, // Comma-separated list with columns from "columns":{}, varchar(1024)
     {
       label: '',
       value: '',
@@ -1295,6 +1370,7 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Datalake Source',
       value: table.datalakeSource,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.datalakeSource
     } // Free-text setting
   ]
@@ -1304,9 +1380,10 @@ export function importCardRenderSettings(table: UITable) {
       label: 'SQL Sessions',
       value: table.sqlSessions,
       type: SettingType.IntegerFromOneOrAuto,
+      maxInt: 127,
       infoText: infoTexts.table.import.sqlSessions,
       isRequired: true
-    }, // Integer, -1 = Auto, required
+    }, // Integer, tinyint(4), -1 = Auto, required
     {
       label: '',
       value: '',
@@ -1318,13 +1395,13 @@ export function importCardRenderSettings(table: UITable) {
       type: SettingType.IntegerFromOneOrNull,
       infoText: infoTexts.table.import.splitCount,
       isConditionsMet: table.etlEngine === EtlEngine.Hive
-    }, // Integer, active if etlEngine=hive
+    }, // Integer, int(11), active if etlEngine=hive
     {
       label: 'Hive Tez Container size (MB)',
       value: table.hiveContainerSize,
       type: SettingType.IntegerFromOneOrNull,
       infoText: infoTexts.table.import.hiveContainerSize
-    }, // Integer, value is MB
+    }, // Integer, int(11), value is MB
     {
       label: '',
       value: '',
@@ -1334,11 +1411,12 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Spark Executor Memory',
       value: table.sparkExecutorMemory,
       type: SettingType.Text,
+      maxChar: 8,
       infoText: infoTexts.table.import.sparkExecutorMemory,
       isConditionsMet:
         table.etlEngine === EtlEngine.Spark ||
         table.importTool === ImportTool.Spark
-    }, // Free-text, active if etlEngine or importTool=spark
+    }, // Free-text, active if etlEngine or importTool=spark, varchar(8)
     {
       label: 'Spark Executors',
       value: table.sparkExecutors,
@@ -1347,7 +1425,7 @@ export function importCardRenderSettings(table: UITable) {
       isConditionsMet:
         table.etlEngine === EtlEngine.Spark ||
         table.importTool === ImportTool.Spark
-    } // Integer, active if etlEngine or importTool=spark
+    } // Integer, int(11), active if etlEngine or importTool=spark
   ]
 
   const validation: EditSetting[] = [
@@ -1376,21 +1454,23 @@ export function importCardRenderSettings(table: UITable) {
       value: table.validateDiffAllowed,
       type: SettingType.IntegerFromZeroOrAuto,
       infoText: infoTexts.table.import.validateDiffAllowed
-    }, // Integer
+    }, // Integer, bigInt(20)
     {
       label: 'Custom Query Source SQL',
       value: table.validationCustomQuerySourceSQL,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.validationCustomQuerySourceSQL,
       isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
-    }, // free-text, active if validationMethod=customQuery
+    }, // free-text, active if validationMethod=customQuery, 64k
     {
       label: 'Custom Query Hive SQL',
       value: table.validationCustomQueryHiveSQL,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.validationCustomQueryHiveSQL,
       isConditionsMet: table.validationMethod === ValidationMethod.CustomQuery
-    }, // free-text, active if validationMethod=customQuery
+    }, // free-text, active if validationMethod=customQuery, 64k
     {
       label: '',
       value: '',
@@ -1441,8 +1521,9 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Airflow Priority',
       value: table.airflowPriority,
       type: SettingType.IntegerFromOneOrNull,
+      maxInt: 127,
       infoText: infoTexts.table.import.airflowPriority
-    }, // Integer (should not be string in API)
+    }, // Integer, tinyint(4), (should not be string in API)
     {
       label: 'Include in Airflow',
       value: table.includeInAirflow,
@@ -1453,8 +1534,9 @@ export function importCardRenderSettings(table: UITable) {
       label: 'Operator notes',
       value: table.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.operatorNotes
-    } // Free-text setting
+    } // Free-text setting, 64k
   ]
 
   const siteToSiteCopy: EditSetting[] = [
@@ -1522,12 +1604,14 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       label: 'Column Name Override',
       value: row.columnNameOverride,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.columns.columnNameOverride
     }, // Free-text
     {
       label: 'Column Type Override',
       value: row.columnTypeOverride,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.columns.columnTypeOverride
     }, // Free-text
     {
@@ -1541,6 +1625,7 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       label: 'Sqoop Column Type Override',
       value: row.sqoopColumnTypeOverride,
       type: SettingType.Text,
+      maxChar: 256,
       isConditionsMet: table.importTool === ImportTool.Sqoop,
       infoText: infoTexts.table.import.columns.sqoopColumnTypeOverride
     }, // Free-text, only active if importTool=sqoop
@@ -1578,8 +1663,9 @@ export function importColumnRowDataEdit(row: Columns, table: UITable) {
       label: 'Operator notes',
       value: row.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.import.columns.operatorNotes
-    }, // Free-text
+    }, // Free-text, 64k
     {
       label: 'Anonymization Function',
       value: row.anonymizationFunction,
@@ -1601,6 +1687,7 @@ export function initialCreateImportTableSettings(
       label: 'Database',
       value: prefilledDatabase,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.database,
       isRequired: true
     }, //Free-text, default selected db, potentially copyable?, required
@@ -1608,6 +1695,7 @@ export function initialCreateImportTableSettings(
       label: 'Table',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.table,
       isRequired: true
     }, // Free-text, required
@@ -1627,6 +1715,7 @@ export function initialCreateImportTableSettings(
       label: 'Source Schema',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.sourceSchema,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -1634,6 +1723,7 @@ export function initialCreateImportTableSettings(
       label: 'Source Table',
       value: '',
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.import.sourceTable,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -1715,6 +1805,7 @@ export function exportCnTablesEditSettings(row: UIExportCnTables) {
       label: 'Database',
       value: row.database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.database,
       isRequired: true
     }, //Free-text, varchar(256), required
@@ -1722,6 +1813,7 @@ export function exportCnTablesEditSettings(row: UIExportCnTables) {
       label: 'Table',
       value: row.table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.table,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -1785,6 +1877,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Database',
       value: table.database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.database,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -1792,6 +1885,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Table',
       value: table.table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.table,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -1826,7 +1920,8 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'Sqoop Options',
       value: table.sqoopOptions,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 1024,
       isConditionsMet: table.exportTool === ExportTool.Sqoop,
       infoText: infoTexts.table.export.sqoopOptions
     }, // Free-text, varchar(1024), active only if exportTool=sqoop
@@ -1846,7 +1941,8 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'SQL Where Addition',
       value: table.sqlWhereAddition,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 1024,
       infoText: infoTexts.table.export.sqlWhereAddition
     }, // Free-text, varchar(1024)
     {
@@ -1898,6 +1994,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Incremental Column',
       value: table.incrColumn,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.incrColumn,
       isConditionsMet: table.exportType === ExportType.Incremental
     }, // Free-text, varchar(256), active if exportType=incr
@@ -1948,8 +2045,9 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'SQL Sessions',
       value: table.sqlSessions,
       type: SettingType.IntegerFromOneOrAuto,
+      maxInt: 127,
       infoText: infoTexts.table.export.sqlSessions
-    }, // Integer, tinyint(4) -1 = Auto
+    }, // Integer, tinyint(4), -1 = Auto
     {
       label: '',
       value: '',
@@ -1983,7 +2081,8 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'Custom Query Target SQL',
       value: table.validationCustomQueryTargetSQL,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.export.validationCustomQueryTargetSQL,
       isConditionsMet:
         table.validationMethod === ExportValidationMethod.CustomQuery
@@ -1991,7 +2090,8 @@ export function exportCardRenderSettings(table: UIExportTable) {
     {
       label: 'Custom Query Hive SQL',
       value: table.validationCustomQueryHiveSQL,
-      type: SettingType.Text,
+      type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.export.validationCustomQueryHiveSQL,
       isConditionsMet:
         table.validationMethod === ExportValidationMethod.CustomQuery
@@ -2037,6 +2137,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Airflow Priority',
       value: table.airflowPriority,
       type: SettingType.IntegerFromOneOrNull,
+      maxInt: 127,
       infoText: infoTexts.table.export.airflowPriority
     }, // Integer, tinyint(4) (should not be string in API)
     {
@@ -2049,6 +2150,7 @@ export function exportCardRenderSettings(table: UIExportTable) {
       label: 'Operator notes',
       value: table.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.export.operatorNotes
     } // Free-text, 64k
   ]
@@ -2089,12 +2191,14 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
       label: 'Target Column Name',
       value: row.targetColumnName,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.columns.targetColumnName
     }, // Free-text, varchar(256)
     {
       label: 'Target Column Type',
       value: row.targetColumnType,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.columns.targetColumnType
     }, // Free-text, varchar(256)
     {
@@ -2119,6 +2223,7 @@ export function exportColumnRowDataEdit(row: ExportColumns) {
       label: 'Operator notes',
       value: row.operatorNotes,
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.table.export.columns.operatorNotes
     } // Free-text, 64k
   ]
@@ -2134,13 +2239,15 @@ export function initialCreateExportTableSettings(
       label: 'Connection',
       value: prefilledConnection,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.connection,
       isRequired: true
-    }, //Free-text, default selected connection, required
+    }, //Free-text, default selected connection, varchar(256), required
     {
       label: 'Target Table',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.targetTable,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -2148,6 +2255,7 @@ export function initialCreateExportTableSettings(
       label: 'Target Schema',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.targetSchema,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -2160,6 +2268,7 @@ export function initialCreateExportTableSettings(
       label: 'Database',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.database,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -2167,6 +2276,7 @@ export function initialCreateExportTableSettings(
       label: 'Table',
       value: null,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.table.export.table,
       isRequired: true
     }, // Free-text, varchar(256), required
@@ -2213,6 +2323,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'AWS Instanceids',
       value: config.airflow_aws_instanceids,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_aws_instanceids,
       isHidden: config.airflow_aws_instanceids === null,
       isRequired: true
@@ -2234,6 +2345,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DAG Directory',
       value: config.airflow_dag_directory,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dag_directory,
       isHidden: config.airflow_dag_directory === null,
       isRequired: true
@@ -2242,6 +2354,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DAG File Group',
       value: config.airflow_dag_file_group,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dag_file_group,
       isHidden: config.airflow_dag_file_group === null,
       isRequired: true
@@ -2250,6 +2363,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DAG File Permission',
       value: config.airflow_dag_file_permission,
       type: SettingType.TextTripletOctalValue,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dag_file_permission,
       isHidden: config.airflow_dag_file_permission === null,
       isRequired: true
@@ -2258,6 +2372,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DAG Staging Directory',
       value: config.airflow_dag_staging_directory,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dag_staging_directory,
       isHidden: config.airflow_dag_staging_directory === null,
       isRequired: true
@@ -2272,6 +2387,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'DBImport Command Path',
       value: config.airflow_dbimport_commandpath,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dbimport_commandpath,
       isHidden: config.airflow_dbimport_commandpath === null,
       isRequired: true
@@ -2280,10 +2396,11 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Sudo User',
       value: config.airflow_sudo_user,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.configuration.global.airflow_sudo_user,
       isHidden: config.airflow_sudo_user === null,
       isRequired: true
-    }, // Free-text, varchar (256), username, required
+    }, // Free-text, varchar (64), username, required
     {
       label: 'Create Pool with Task',
       value: config.airflow_create_pool_with_task,
@@ -2361,11 +2478,12 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       type: SettingType.TimeZone,
       infoText: infoTexts.configuration.global.timezone,
       isHidden: config.timezone === null
-    }, // Timezone,, varchar(64), Use full text timezone, example Europe/Stockholm
+    }, // Timezone, varchar(64), Use full text timezone, example Europe/Stockholm
     {
       label: 'Atlas Discovery Interval',
       value: config.atlas_discovery_interval,
       type: SettingType.IntegerFromOne,
+      maxInt: 24,
       infoText: infoTexts.configuration.global.atlas_discovery_interval,
       isHidden: config.atlas_discovery_interval === null,
       isRequired: true
@@ -2380,23 +2498,25 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.cluster_name,
       isHidden: config.cluster_name === null,
       isRequired: true
-    }, // Free-text, varchar (256), required
+    }, // Free-text, varchar(256), required
     {
       label: 'Address',
       value: config.hdfs_address,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.configuration.global.hdfs_address,
       isHidden: config.hdfs_address === null,
       isRequired: true
-    }, // Free-text, varchar (256), filesytem url, required
+    }, // Free-text, varchar(64), filesytem url, required
     {
       label: 'Base Directory',
       value: config.hdfs_basedir,
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.configuration.global.hdfs_basedir,
       isHidden: config.hdfs_basedir === null,
       isRequired: true
-    }, // Free-text, varchar (256), folder name, required
+    }, // Free-text, varchar(64), folder name, required
     {
       label: 'Blocksize',
       value: config.hdfs_blocksize,
@@ -2404,7 +2524,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.hdfs_blocksize,
       isHidden: config.hdfs_blocksize === null,
       isRequired: true
-    } // Free-text, varchar (256), it is string but usually it is a bigint saved in it, required
+    } // Free-text, varchar(256), it is string but usually it is a bigint saved in it, required
   ]
 
   const sqlServersConfigData: EditSetting[] = [
@@ -2454,6 +2574,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Hive Validate Table',
       value: config.hive_validate_table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.hive_validate_table,
       isHidden: config.hive_validate_table === null,
       isRequired: true
@@ -2472,6 +2593,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Delete',
       value: config.import_columnname_delete,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_delete,
       isHidden: config.import_columnname_delete === null,
       isRequired: true
@@ -2480,6 +2602,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Histtime',
       value: config.import_columnname_histtime,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_histtime,
       isHidden: config.import_columnname_histtime === null,
       isRequired: true
@@ -2488,6 +2611,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Import',
       value: config.import_columnname_import,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_import,
       isHidden: config.import_columnname_import === null,
       isRequired: true
@@ -2496,6 +2620,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Insert',
       value: config.import_columnname_insert,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_insert,
       isHidden: config.import_columnname_insert === null,
       isRequired: true
@@ -2504,6 +2629,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Iud',
       value: config.import_columnname_iud,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_iud,
       isHidden: config.import_columnname_iud === null,
       isRequired: true
@@ -2512,6 +2638,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Source',
       value: config.import_columnname_source,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_source,
       isHidden: config.import_columnname_source === null,
       isRequired: true
@@ -2520,6 +2647,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Columnname Update',
       value: config.import_columnname_update,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_columnname_update,
       isHidden: config.import_columnname_update === null,
       isRequired: true
@@ -2534,6 +2662,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import History Database',
       value: config.import_history_database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_history_database,
       isHidden: config.import_history_database === null,
       isRequired: true
@@ -2542,6 +2671,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import History Table',
       value: config.import_history_table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_history_table,
       isHidden: config.import_history_table === null,
       isRequired: true
@@ -2551,6 +2681,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Staging Database',
       value: config.import_staging_database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_staging_database,
       isHidden: config.import_staging_database === null,
       isRequired: true
@@ -2559,6 +2690,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Staging Table',
       value: config.import_staging_table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_staging_table,
       isHidden: config.import_staging_table === null,
       isRequired: true
@@ -2568,6 +2700,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Work Database',
       value: config.import_work_database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_work_database,
       isHidden: config.import_work_database === null,
       isRequired: true
@@ -2576,6 +2709,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Import Work Table',
       value: config.import_work_table,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.import_work_table,
       isHidden: config.import_work_table === null,
       isRequired: true
@@ -2589,6 +2723,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Export Staging Database',
       value: config.export_staging_database,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.export_staging_database,
       isHidden: config.export_staging_database === null,
       isRequired: true
@@ -2760,10 +2895,11 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Admin User',
       value: config.restserver_admin_user,
       type: SettingType.Text,
+      maxChar: 255,
       infoText: infoTexts.configuration.global.restserver_admin_user,
       isHidden: config.restserver_admin_user === null,
       isRequired: true
-    }, // Free-text, varchar (256), required
+    }, // Free-text, varchar (255), required
     {
       label: 'Authentication Method',
       value: mapDisplayValue(
@@ -2860,6 +2996,7 @@ export function JDBCdriversRowDataEdit(row: JDBCdrivers) {
       label: 'Driver',
       value: row.driver,
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.configuration.jdbcDrivers.driver,
       isRequired: true
     }, // Free-text, varchar(128), required
@@ -2867,6 +3004,7 @@ export function JDBCdriversRowDataEdit(row: JDBCdrivers) {
       label: 'Class Path',
       value: row.classpath,
       type: SettingType.Text,
+      maxChar: 255,
       infoText: infoTexts.configuration.jdbcDrivers.classpath,
       isRequired: true
     } // Free-text, varchar(255), required
@@ -2926,6 +3064,7 @@ export const bulkImportFieldsData: BulkField<UiDbTable>[] = [
     key: 'operatorNotes',
     label: 'Operator notes',
     type: SettingType.Textarea,
+    maxChar: 64000,
     infoText: infoTexts.airflow.import.operatorNotes
   }, // Free-text (64k)
   {
@@ -2970,6 +3109,7 @@ export const bulkExportFieldsData: BulkField<UIExportCnTables>[] = [
     key: 'operatorNotes',
     label: 'Operator notes',
     type: SettingType.Textarea,
+    maxChar: 64000,
     infoText: infoTexts.airflow.export.operatorNotes
   }, // Free-text (64k)
   {
@@ -2994,6 +3134,7 @@ export function bulkAirflowDagFieldsData(
       key: 'scheduleInterval',
       label: 'Schedule Interval',
       type: SettingType.Text,
+      maxChar: 128,
       infoText: infoTexts.airflow[airflowType].scheduleInterval
     }, // Free-text, Time to execute DAG, varchar(128), required?
     {
@@ -3058,6 +3199,7 @@ export function bulkAirflowDagFieldsData(
       key: 'sudoUser',
       label: 'Sudo User',
       type: SettingType.Text,
+      maxChar: 64,
       infoText: infoTexts.airflow[airflowType].sudoUser
     }, // Free-text, varchar(64), All tasks in DAG will use this user for sudo instead of default
     {
@@ -3069,6 +3211,7 @@ export function bulkAirflowDagFieldsData(
       key: 'operatorNotes',
       label: 'Operator notes',
       type: SettingType.Textarea,
+      maxChar: 64000,
       infoText: infoTexts.airflow[airflowType].operatorNotes
     }, // Free-text (64k)
     {

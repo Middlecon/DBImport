@@ -23,6 +23,8 @@ export interface BulkField<T> {
   label: string
   type: string
   enumOptions?: { [key: string]: string }
+  maxChar?: number
+  maxInt?: number
   infoText?: string
   isRequired?: boolean
 }
@@ -576,6 +578,8 @@ export interface EditSetting {
   enumOptions?: {
     [key: string]: string
   }
+  maxChar?: number
+  maxInt?: number
   infoText?: string
   isConditionsMet?: boolean
   isHidden?: boolean

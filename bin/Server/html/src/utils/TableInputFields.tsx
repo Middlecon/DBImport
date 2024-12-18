@@ -447,6 +447,8 @@ function TableInputFields({
     case 'text': {
       if (setting.isHidden === true) return null
 
+      const maxChar = setting.maxChar
+
       if (
         setting.label === 'Custom Query Source SQL' ||
         setting.label === 'Custom Query Hive SQL' ||
@@ -469,8 +471,15 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
+              // onChange={(event) => {
+              //   const value = event.target.value
+              //   handleInputChange(index, value.trim() === '' ? '' : value)
+              // }}
               onChange={(event) => {
-                const value = event.target.value
+                let value = event.target.value
+                if (maxChar && value.length > maxChar) {
+                  value = value.slice(0, maxChar) // Truncate to maxChar
+                }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
               onBlur={(event) => {
@@ -513,6 +522,9 @@ function TableInputFields({
               value={setting.value ? String(setting.value) : ''}
               onChange={(event) => {
                 let value = event.target.value
+                if (maxChar && value.length > maxChar) {
+                  value = value.slice(0, maxChar) // Truncate to maxChar
+                }
                 if (value.includes('*')) {
                   value = value.replace(/\*/g, '')
                 }
@@ -549,8 +561,16 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
+              // onChange={(event) => {
+              //   const value = event.target.value
+              //   handleInputChange(index, value.trim() === '' ? '' : value)
+              // }}
+
               onChange={(event) => {
-                const value = event.target.value
+                let value = event.target.value
+                if (maxChar && value.length > maxChar) {
+                  value = value.slice(0, maxChar) // Truncate to maxChar
+                }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
               onBlur={(event) => {
@@ -583,8 +603,15 @@ function TableInputFields({
               id={`text-input-${index}`}
               type="text"
               value={setting.value ? String(setting.value) : ''}
+              // onChange={(event) => {
+              //   const value = event.target.value
+              //   handleInputChange(index, value.trim() === '' ? '' : value)
+              // }}
               onChange={(event) => {
-                const value = event.target.value
+                let value = event.target.value
+                if (maxChar && value.length > maxChar) {
+                  value = value.slice(0, maxChar) // Truncate to maxChar
+                }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
               onBlur={(event) => {
@@ -614,8 +641,15 @@ function TableInputFields({
             id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
+            // onChange={(event) => {
+            //   const value = event.target.value
+            //   handleInputChange(index, value.trim() === '' ? '' : value)
+            // }}
             onChange={(event) => {
-              const value = event.target.value
+              let value = event.target.value
+              if (maxChar && value.length > maxChar) {
+                value = value.slice(0, maxChar) // Truncate to maxChar
+              }
               handleInputChange(index, value.trim() === '' ? '' : value)
             }}
             onBlur={(event) => {
@@ -635,6 +669,8 @@ function TableInputFields({
     case 'textTripletOctalValue': {
       if (setting.isHidden === true) return null
 
+      const maxChar = setting.maxChar
+
       return (
         <>
           <label
@@ -650,7 +686,14 @@ function TableInputFields({
             id={`text-input-${index}`}
             type="text"
             value={setting.value ? String(setting.value) : ''}
-            onChange={(event) => handleInputChange(index, event.target.value)}
+            // onChange={(event) => handleInputChange(index, event.target.value)}
+            onChange={(event) => {
+              let value = event.target.value
+              if (maxChar && value.length > maxChar) {
+                value = value.slice(0, maxChar) // Truncate to maxChar
+              }
+              handleInputChange(index, value.trim() === '' ? '' : value)
+            }}
             onBlur={(event) => {
               if (event.target.value === '') {
                 handleInputChange(index, prevValue)
@@ -665,6 +708,8 @@ function TableInputFields({
 
     case 'textarea': {
       if (setting.isHidden === true) return null
+
+      const maxChar = setting.maxChar
 
       return (
         <>
@@ -688,9 +733,18 @@ function TableInputFields({
                   }
                 : {}
             }
+            // onChange={(event) => {
+            //   event.target.style.maxHeight = `${event.target.scrollHeight}px`
+            //   handleInputChange(index, event.target.value)
+            // }}
             onChange={(event) => {
               event.target.style.maxHeight = `${event.target.scrollHeight}px`
-              handleInputChange(index, event.target.value)
+
+              let value = event.target.value
+              if (maxChar && value.length > maxChar) {
+                value = value.slice(0, maxChar) // Truncate to maxChar
+              }
+              handleInputChange(index, value.trim() === '' ? '' : value)
             }}
             required={isRequired}
             disabled={isFieldDisabled}
@@ -929,8 +983,10 @@ function TableInputFields({
         </>
       )
 
-    case 'integerFromZero':
+    case 'integerFromZero': {
       if (setting.isHidden === true) return null
+
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -952,8 +1008,16 @@ function TableInputFields({
                 : ''
             }
             onChange={(event) => {
-              const value =
+              let value =
                 event.target.value === '' ? '' : Number(event.target.value)
+
+              if (
+                maxInt !== undefined &&
+                typeof value === 'number' &&
+                value > maxInt
+              ) {
+                value = maxInt
+              }
 
               // Temporarily allows empty input, otherwise enforce default value
               handleInputChange(
@@ -981,9 +1045,11 @@ function TableInputFields({
           />
         </>
       )
+    }
 
-    case 'integerFromZeroOrNull':
+    case 'integerFromZeroOrNull': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       if (setting.label === 'Sensor Poke Interval') {
         return (
@@ -1012,6 +1078,14 @@ function TableInputFields({
 
                 if (typeof value === 'number' && value < 0) {
                   value = null
+                }
+
+                if (
+                  maxInt !== undefined &&
+                  typeof value === 'number' &&
+                  value > maxInt
+                ) {
+                  value = maxInt
                 }
 
                 handleInputChange(index, value === '' ? null : value)
@@ -1071,9 +1145,11 @@ function TableInputFields({
           />
         </>
       )
+    }
 
-    case 'integerFromZeroOrAuto(-1)':
+    case 'integerFromZeroOrAuto(-1)': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -1101,6 +1177,14 @@ function TableInputFields({
 
                 if (typeof value === 'number' && value < 0) {
                   value = -1
+                }
+
+                if (
+                  maxInt !== undefined &&
+                  typeof value === 'number' &&
+                  value > maxInt
+                ) {
+                  value = maxInt
                 }
 
                 handleInputChange(index, value === '' ? null : value)
@@ -1140,9 +1224,11 @@ function TableInputFields({
           </div>
         </>
       )
+    }
 
-    case 'integerFromOne':
+    case 'integerFromOne': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -1165,14 +1251,37 @@ function TableInputFields({
                   ? Number(setting.value)
                   : ''
               }
+              // onChange={(event) => {
+              //   let value =
+              //     event.target.value === '' ? '' : Number(event.target.value)
+              //   if (
+              //     setting.label === 'Atlas Discovery Interval' &&
+              //     Number(value) > 24
+              //   )
+              //     value = prevValue as number
+
+              //   // Temporarily allows empty input, otherwise enforce minimum of 1
+              //   handleInputChange(
+              //     index,
+              //     value === '' || Number(value) >= 1 ? value : 1
+              //   )
+              // }}
               onChange={(event) => {
-                let value =
+                let value: string | number | null =
                   event.target.value === '' ? '' : Number(event.target.value)
+
+                if (typeof value === 'number' && value < 0) {
+                  value = null
+                }
+
                 if (
-                  setting.label === 'Atlas Discovery Interval' &&
-                  Number(value) > 24
-                )
-                  value = prevValue as number
+                  maxInt !== undefined &&
+                  typeof value === 'number' &&
+                  value > maxInt
+                ) {
+                  value = maxInt
+                  // value = prevValue as number
+                }
 
                 // Temporarily allows empty input, otherwise enforce minimum of 1
                 handleInputChange(
@@ -1194,9 +1303,11 @@ function TableInputFields({
           </div>
         </>
       )
+    }
 
-    case 'integerFromOneOrNull':
+    case 'integerFromOneOrNull': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -1228,6 +1339,16 @@ function TableInputFields({
                 event.target.value = ''
               }
 
+              if (
+                maxInt !== undefined &&
+                typeof value === 'number' &&
+                value > maxInt
+              ) {
+                value = maxInt
+                // value = prevValue? prevValue as number : maxInt
+              }
+
+              // Temporarily allows empty input, otherwise enforce minimum of 1
               handleInputChange(
                 index,
                 value === '' || isNaN(Number(value)) ? null : value
@@ -1255,9 +1376,11 @@ function TableInputFields({
           />
         </>
       )
+    }
 
-    case 'integerFromOneOrAuto(-1)':
+    case 'integerFromOneOrAuto(-1)': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -1286,6 +1409,15 @@ function TableInputFields({
 
                 if (typeof value === 'number' && value < -1) {
                   value = -1
+                }
+
+                if (
+                  maxInt !== undefined &&
+                  typeof value === 'number' &&
+                  value > maxInt
+                ) {
+                  value = maxInt
+                  // value = prevValue? prevValue as number : maxInt
                 }
 
                 handleInputChange(index, value === '' ? null : value)
@@ -1327,9 +1459,11 @@ function TableInputFields({
           </div>
         </>
       )
+    }
 
-    case 'integerFromOneOrDefaultFromConfig(null)':
+    case 'integerFromOneOrDefaultFromConfig(null)': {
       if (setting.isHidden === true) return null
+      const maxInt = setting.maxInt
 
       return (
         <>
@@ -1358,6 +1492,15 @@ function TableInputFields({
 
                 if (typeof value === 'number' && value < 1) {
                   value = null
+                }
+
+                if (
+                  maxInt !== undefined &&
+                  typeof value === 'number' &&
+                  value > maxInt
+                ) {
+                  value = maxInt
+                  // value = prevValue? prevValue as number : maxInt
                 }
 
                 handleInputChange(index, value === '' ? null : value)
@@ -1397,6 +1540,7 @@ function TableInputFields({
           </div>
         </>
       )
+    }
 
     case 'time':
       if (setting.isHidden === true) return null
