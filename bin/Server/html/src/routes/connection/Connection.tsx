@@ -203,26 +203,6 @@ function Connection() {
     []
   )
 
-  // const filteredData = useMemo(() => {
-  //   console.log('data', data)
-  //   if (!data || !Array.isArray(data.connections)) return []
-  //   return data.connections.filter((row) => {
-  //     return [...checkboxFilters].every((filter) => {
-  //       const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-  //         ? selectedFilters[filter.accessor]?.map((value) => value)
-  //         : []
-
-  //       if (selectedItems.length === 0) return true
-
-  //       const accessorKey = filter.accessor as keyof typeof row
-  //       const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-  //       const rowValue = (row[displayKey] ?? row[accessorKey]) as string
-
-  //       return selectedItems.includes(rowValue)
-  //     })
-  //   })
-  // }, [data, selectedFilters])
-
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.connections)) return []
     console.log('serverType', serverType)
@@ -232,6 +212,7 @@ function Connection() {
       return row.serverType === serverType
     })
   }, [data, serverType])
+
   return (
     <>
       <ViewBaseLayout>

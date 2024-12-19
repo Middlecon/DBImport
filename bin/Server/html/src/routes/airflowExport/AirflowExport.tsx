@@ -102,7 +102,8 @@ function AirflowExport() {
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
       { header: 'Filter Connection', accessor: 'filterConnection' },
       { header: 'Filter Target Schema', accessor: 'filterTargetSchema' },
-      { header: 'Filter Target Table', accessor: 'filterTargetTable' }
+      { header: 'Filter Target Table', accessor: 'filterTargetTable' },
+      { header: 'Links', isLink: 'airflowLink' }
       // { header: 'Actions', isAction: 'delete' }
     ],
     []

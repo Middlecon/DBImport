@@ -101,7 +101,8 @@ function AirflowImport() {
       { header: 'DAG Name', accessor: 'name' },
       { header: 'Schedule Interval', accessor: 'scheduleInterval' },
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
-      { header: 'Filter Table', accessor: 'filterTable' }
+      { header: 'Filter Table', accessor: 'filterTable' },
+      { header: 'Links', isLink: 'airflowLink' }
       // { header: 'Actions', isAction: 'delete' }
     ],
     []

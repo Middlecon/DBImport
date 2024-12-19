@@ -2432,7 +2432,15 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       type: SettingType.IntegerOneOrTwo,
       infoText: infoTexts.configuration.global.airflow_major_version,
       isHidden: config.airflow_major_version === null
-    } // Integer, 1 or 2, required
+    }, // Integer, 1 or 2, required
+    {
+      label: 'Airflow URL',
+      value: config.airflow_url,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.configuration.global.airflow_url,
+      isHidden: config.airflow_url === null
+    } // Free-text, varchar (256)
   ]
 
   const disableOperationsConfigData: EditSetting[] = [

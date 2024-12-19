@@ -536,7 +536,7 @@ export interface Column<T> {
   header: string
   accessor?: keyof T
   isAction?: 'edit' | 'delete' | 'editAndDelete'
-  isLink?: 'connectionLink'
+  isLink?: 'connectionLink' | 'airflowLink'
 }
 
 // Import table Columns, it is different on Export
@@ -1053,6 +1053,7 @@ export interface ConfigGlobal {
   airflow_dummy_task_queue: string | null
   airflow_major_version: number | null
   airflow_sudo_user: string | null
+  airflow_url: string | null
   atlas_discovery_interval: number | null
   cluster_name: string | null
   export_default_sessions: number | null

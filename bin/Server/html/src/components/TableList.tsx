@@ -17,6 +17,7 @@ import ExportIcon from '../assets/icons/ExportIcon'
 import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import './TableList.scss'
+import UrlLinkIcon from '../assets/icons/UrlLinkIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -99,13 +100,16 @@ function TableList<T>({
       if (scrollableRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = scrollableRef.current
         const atRightEnd = Math.abs(scrollLeft + clientWidth - scrollWidth) <= 1
-        setIsScrolledToEnd(atRightEnd)
+        const hasHorizontalScroll = scrollWidth > clientWidth
+
+        setIsScrolledToEnd(atRightEnd || !hasHorizontalScroll)
       }
     }
 
     const scrollableContainer = scrollableRef.current
     if (scrollableContainer) {
       scrollableContainer.addEventListener('scroll', handleScroll)
+      handleScroll() // Initial check
     }
 
     return () => {
@@ -206,6 +210,10 @@ function TableList<T>({
   //   }
   // }, [columns, isLoading])
 
+  const hasActions = columns.some((col) => col.header === 'Actions')
+  const hasLinks = columns.some((col) => col.header === 'Links')
+  const shouldApplyStyling = hasActions && hasLinks
+
   const renderCellContent = useCallback(
     (row: T, column: Column<T>, rowIndex: number) => {
       const handleTableClick = (database: string, table: string) => {
@@ -235,16 +243,19 @@ function TableList<T>({
         )
       }
 
-      const handleConnectionLinkClick = (
-        type: 'import' | 'export',
-        name: string
+      const handleLinkClick = (
+        type: 'import' | 'export' | 'airflowLink',
+        item: string
       ) => {
-        const encodedName = encodeURIComponent(name)
+        const encodedItem = encodeURIComponent(item)
 
         if (type === 'import') {
-          navigate(`/import?connection=${encodedName}`)
+          navigate(`/import?connection=${encodedItem}`)
+        } else if (type === 'export') {
+          navigate(`/export?connection=${encodedItem}`)
         } else {
-          navigate(`/export?connection=${encodedName}`)
+          console.log('item', item)
+          window.open(item, '_blank')
         }
       }
 
@@ -410,14 +421,11 @@ function TableList<T>({
             {column.isLink === 'connectionLink' ? (
               <>
                 <button
-                  className={`actions-cn-link-button ${
+                  className={`actions-link-button ${
                     isFirstActionCell ? 'first' : ''
                   }`}
                   onClick={() =>
-                    handleConnectionLinkClick(
-                      'import',
-                      String(row['name' as keyof T])
-                    )
+                    handleLinkClick('import', String(row['name' as keyof T]))
                   }
                   onMouseOver={() => handleMouseOver('import')}
                   onMouseOut={handleMouseOut}
@@ -428,14 +436,11 @@ function TableList<T>({
                   )}
                 </button>
                 <button
-                  className={`actions-cn-link-button ${
+                  className={`actions-link-button ${
                     isFirstActionCell ? 'first' : ''
                   }`}
                   onClick={() =>
-                    handleConnectionLinkClick(
-                      'export',
-                      String(row['name' as keyof T])
-                    )
+                    handleLinkClick('export', String(row['name' as keyof T]))
                   }
                   onMouseOver={() => handleMouseOver('export')}
                   onMouseOut={handleMouseOut}
@@ -446,7 +451,28 @@ function TableList<T>({
                   )}
                 </button>
               </>
-            ) : null}
+            ) : (
+              <button
+                className={`actions-link-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() =>
+                  handleLinkClick(
+                    'airflowLink',
+                    String(row['airflowLink' as keyof T])
+                  )
+                }
+                onMouseOver={() => handleMouseOver('airflowLink')}
+                onMouseOut={handleMouseOut}
+              >
+                <UrlLinkIcon />
+                {hoveredButton === 'airflowLink' && (
+                  <span className="tooltip" style={{ marginLeft: -5 }}>
+                    External
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         )
       }
@@ -760,7 +786,12 @@ function TableList<T>({
   // const [enableMemo, setEnableMemo] = useState(true)
 
   return (
-    <div className="tables-container sticky-container" tabIndex={0}>
+    <div
+      className={`tables-container sticky-container ${
+        shouldApplyStyling ? 'has-actions' : ''
+      }`}
+      tabIndex={0}
+    >
       {loading ? (
         <div className="loading-container">
           <p>Loading tables...</p>

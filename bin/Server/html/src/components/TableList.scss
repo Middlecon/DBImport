@@ -114,10 +114,6 @@
   box-shadow: -20px 0 20px -14px rgba(0, 0, 0, 0.1);
 }
 
-.th.sticky-right.links.has-shadow {
-  box-shadow: -20px 0 20px -14px rgba(0, 0, 0, 0.7);
-}
-
 .td.has-shadow {
   box-shadow: -20px 0 20px -15px rgba(0, 0, 0, 0.7);
 }
@@ -155,8 +151,12 @@
   z-index: 13;
 }
 
-.th.sticky-right.links,
-.td.sticky-right.links {
+.has-actions .th.sticky-right.links.has-shadow {
+  box-shadow: -20px 0 20px -14px rgba(0, 0, 0, 0.7);
+}
+
+.has-actions .th.sticky-right.links,
+.has-actions .td.sticky-right.links {
   right: 72px;
 }
 
@@ -217,7 +217,7 @@
     // color: #ca6658; // Alternative color, a tiny bit more orange and dull
   }
 
-  .actions-cn-link-button {
+  .actions-link-button {
     cursor: pointer;
     margin-right: 7px;
     svg {
@@ -226,7 +226,7 @@
     }
   }
 
-  .actions-cn-link-button:first-child {
+  .actions-link-button:first-child {
     margin-left: 5px;
   }
 }
@@ -254,7 +254,7 @@
 
 .actions-edit-button:hover .tooltip,
 .actions-delete-button:hover .tooltip,
-.actions-cn-link-button:hover .tooltip {
+.actions-link-button:hover .tooltip {
   visibility: visible;
   opacity: 7;
   overflow: visible;
@@ -263,7 +263,7 @@
 
 .actions-edit-button.first:hover .tooltip,
 .actions-delete-button.first:hover .tooltip,
-.actions-cn-link-button.first:hover .tooltip {
+.actions-link-button.first:hover .tooltip {
   transform: translateY(4px) translateX(7px);
 }
 
