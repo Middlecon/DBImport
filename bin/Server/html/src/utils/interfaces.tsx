@@ -874,6 +874,8 @@ export interface BulkUpdateExportTables {
 // Airflow
 
 export interface UiAirflowsSearchFilter {
+  name: string | null
+  scheduleInterval: string | null
   autoRegenerateDag: string | null
 }
 

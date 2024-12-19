@@ -17,6 +17,7 @@ import { getKeyFromExportLabel } from '../utils/nameMappings'
 import { initExportEnumDropdownFilters } from '../utils/cardRenderFormatting'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
 import { useFocusTrap } from '../utils/hooks'
+import { createTrimOnBlurHandler } from '../utils/functions'
 
 interface ExportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -266,6 +267,9 @@ function ExportSearchFilterTables({
     }
   }
 
+  const handleTrimOnBlur =
+    createTrimOnBlurHandler<UiExportSearchFilter>(setFormValues)
+
   return (
     <div className="search-filter-container" ref={containerRef}>
       <button
@@ -310,7 +314,10 @@ function ExportSearchFilterTables({
           >
             <div className="filter-container">
               <div className="filter-first-container">
-                <label htmlFor="searchFilterConnection">
+                <label
+                  htmlFor="searchFilterConnection"
+                  className="filter-text-dropdown"
+                >
                   Connection:
                   {isCnDropdownReady && (
                     <>
@@ -321,6 +328,7 @@ function ExportSearchFilterTables({
                         onChange={(event) =>
                           handleInputDropdownChange(event.target.value)
                         }
+                        onBlur={handleTrimOnBlur('connection')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault() // Prevents Enter from triggering form submission
@@ -367,6 +375,7 @@ function ExportSearchFilterTables({
                         targetTable: event.target.value
                       }))
                     }
+                    onBlur={handleTrimOnBlur('targetTable')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
@@ -390,6 +399,7 @@ function ExportSearchFilterTables({
                         targetSchema: event.target.value
                       }))
                     }
+                    onBlur={handleTrimOnBlur('targetSchema')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
@@ -438,7 +448,7 @@ function ExportSearchFilterTables({
                   />
                 </label>
               </div>
-              <div className="filter-select-dropdown">
+              <div className="filter-second-container">
                 <label
                   htmlFor={`dropdown-includeInAirflow`}
                   key={`dropdown-includeInAirflow`}

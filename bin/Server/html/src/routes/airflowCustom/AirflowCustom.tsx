@@ -34,6 +34,7 @@ import ListRowsInfo from '../../components/ListRowsInfo'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
+import { wildcardMatch } from '../../utils/functions'
 
 // const checkboxFilters = [
 //   {
@@ -50,7 +51,7 @@ function AirflowCustom() {
   const navigate = useNavigate()
   const query = new URLSearchParams(location.search)
 
-  const validParams = ['autoRegenerateDag']
+  const validParams = ['name', 'scheduleInterval', 'autoRegenerateDag']
   const allParams = Array.from(query.keys())
 
   useEffect(() => {
@@ -64,6 +65,8 @@ function AirflowCustom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParams, navigate])
 
+  const name = query.get('name') || null
+  const scheduleInterval = query.get('scheduleInterval') || null
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const { data, isLoading } = useCustomAirflows()
@@ -116,7 +119,11 @@ function AirflowCustom() {
   const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
     const params = new URLSearchParams(location.search)
 
-    const filterKeys: (keyof UiAirflowsSearchFilter)[] = ['autoRegenerateDag']
+    const filterKeys: (keyof UiAirflowsSearchFilter)[] = [
+      'name',
+      'scheduleInterval',
+      'autoRegenerateDag'
+    ]
 
     filterKeys.forEach((key) => {
       const value = uiFilters[key]
@@ -203,32 +210,20 @@ function AirflowCustom() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data)) return []
-    console.log('autoRegenerateDag', autoRegenerateDag)
+
     return data.filter((row) => {
-      if (autoRegenerateDag === null) return true
+      const matchesName = wildcardMatch(name, row.name)
+      const matchesScheduleInterval = wildcardMatch(
+        scheduleInterval,
+        row.scheduleInterval
+      )
+      const matchesAutoRegenerateDag = autoRegenerateDag
+        ? row.autoRegenerateDagDisplay === autoRegenerateDag
+        : true
 
-      return row.autoRegenerateDagDisplay === autoRegenerateDag
+      return matchesName && matchesScheduleInterval && matchesAutoRegenerateDag
     })
-  }, [data, autoRegenerateDag])
-
-  // const filteredData = useMemo(() => {
-  //   if (!Array.isArray(data)) return []
-  //   return data.filter((row) => {
-  //     return [...checkboxFilters].every((filter) => {
-  //       const selectedItems = Array.isArray(selectedFilters[filter.accessor])
-  //         ? selectedFilters[filter.accessor]?.map((value) => value)
-  //         : []
-
-  //       if (selectedItems.length === 0) return true
-
-  //       const accessorKey = filter.accessor as keyof typeof row
-  //       const displayKey = `${String(accessorKey)}Display` as keyof typeof row
-  //       const rowValue = (row[displayKey] ?? row[accessorKey]) as string
-
-  //       return selectedItems.includes(rowValue)
-  //     })
-  //   })
-  // }, [data, selectedFilters])
+  }, [data, name, scheduleInterval, autoRegenerateDag])
 
   const handleBulkEditClick = useCallback(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>

@@ -17,6 +17,7 @@ import { getKeyFromLabel } from '../utils/nameMappings'
 import { initEnumDropdownFilters } from '../utils/cardRenderFormatting'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
 import { useFocusTrap } from '../utils/hooks'
+import { createTrimOnBlurHandler } from '../utils/functions'
 
 interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -316,6 +317,9 @@ function ImportSearchFilterTables({
     }
   }
 
+  const handleTrimOnBlur =
+    createTrimOnBlurHandler<UiImportSearchFilter>(setFormValues)
+
   return (
     <div className="search-filter-container" ref={containerRef}>
       <button
@@ -359,7 +363,10 @@ function ImportSearchFilterTables({
           >
             <div className="filter-container">
               <div className="filter-first-container">
-                <label htmlFor="searchFilterConnection">
+                <label
+                  htmlFor="searchFilterConnection"
+                  className="filter-text-dropdown"
+                >
                   Connection:
                   {isCnDropdownReady && (
                     <>
@@ -373,6 +380,7 @@ function ImportSearchFilterTables({
                             event.target.value
                           )
                         }
+                        onBlur={handleTrimOnBlur('connection')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault() // Prevents Enter from triggering form submission
@@ -407,7 +415,10 @@ function ImportSearchFilterTables({
                     </>
                   )}
                 </label>
-                <label htmlFor="searchFilterDatabase">
+                <label
+                  htmlFor="searchFilterDatabase"
+                  className="filter-text-dropdown"
+                >
                   Database:
                   {isDbDropdownReady && (
                     <>
@@ -421,6 +432,7 @@ function ImportSearchFilterTables({
                             event.target.value
                           )
                         }
+                        onBlur={handleTrimOnBlur('database')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault() // Prevents Enter from triggering form submission
@@ -467,6 +479,7 @@ function ImportSearchFilterTables({
                         table: event.target.value
                       }))
                     }
+                    onBlur={handleTrimOnBlur('table')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
@@ -548,7 +561,7 @@ function ImportSearchFilterTables({
                   />
                 </label>
               </div>
-              <div className="filter-select-dropdown">
+              <div className="filter-second-container">
                 {enumDropdownFilters.map((filter, index) => {
                   const dropdownOptions = filter.enumOptions
                     ? Object.values(filter.enumOptions)

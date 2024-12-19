@@ -116,6 +116,7 @@ export function airflowCardRenderSettings(
       label: 'Email',
       value: dagData.email,
       type: SettingType.Email,
+      maxChar: 256,
       infoText: infoTexts.airflow[airflowType].email,
       isConditionsMet:
         dagData.emailOnRetries === true || dagData.emailOnFailure === true
@@ -2420,6 +2421,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Dummy Task Queue',
       value: config.airflow_dummy_task_queue,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.airflow_dummy_task_queue,
       isHidden: config.airflow_dummy_task_queue === null,
       isRequired: true
@@ -2476,6 +2478,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Timezone',
       value: config.timezone,
       type: SettingType.TimeZone,
+      maxChar: 64,
       infoText: infoTexts.configuration.global.timezone,
       isHidden: config.timezone === null
     }, // Timezone, varchar(64), Use full text timezone, example Europe/Stockholm
@@ -2495,6 +2498,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Cluster Name',
       value: config.cluster_name,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.cluster_name,
       isHidden: config.cluster_name === null,
       isRequired: true
@@ -2521,6 +2525,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Blocksize',
       value: config.hdfs_blocksize,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.hdfs_blocksize,
       isHidden: config.hdfs_blocksize === null,
       isRequired: true
@@ -2802,6 +2807,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Post Data to AWS SNS Topic',
       value: config.post_data_to_awssns_topic,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.post_data_to_awssns_topic,
       isHidden: config.post_data_to_awssns_topic === null,
       isRequired: true
@@ -2815,6 +2821,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Brokers',
       value: config.kafka_brokers,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.kafka_brokers,
       isHidden: config.kafka_brokers === null,
       isRequired: true
@@ -2823,6 +2830,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Securityprotocol',
       value: config.kafka_securityprotocol,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.kafka_securityprotocol,
       isHidden: config.kafka_securityprotocol === null,
       isRequired: true
@@ -2831,6 +2839,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Saslmechanism',
       value: config.kafka_saslmechanism,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.kafka_saslmechanism,
       isHidden: config.kafka_saslmechanism === null,
       isRequired: true
@@ -2840,6 +2849,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Topic',
       value: config.kafka_topic,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.kafka_topic,
       isHidden: config.kafka_topic === null,
       isRequired: true
@@ -2848,6 +2858,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Kafka Trustcafile',
       value: config.kafka_trustcafile,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.kafka_trustcafile,
       isHidden: config.kafka_trustcafile === null,
       isRequired: true
@@ -2864,11 +2875,12 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.rest_timeout,
       isHidden: config.rest_timeout === null,
       isRequired: true
-    }, // Integer, from 1, required
+    }, // Integer, from 1, int(11) required
     {
       label: 'Rest Trustcafile',
       value: config.rest_trustcafile,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.rest_trustcafile,
       isHidden: config.rest_trustcafile === null,
       isRequired: true
@@ -2877,6 +2889,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       label: 'Rest Url',
       value: config.rest_url,
       type: SettingType.Text,
+      maxChar: 256,
       infoText: infoTexts.configuration.global.rest_url,
       isHidden: config.rest_url === null,
       isRequired: true
@@ -2919,7 +2932,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.restserver_token_ttl,
       isHidden: config.restserver_token_ttl === null,
       isRequired: true
-    } // Integer, from 1, required
+    } // Integer, from 1, int(11), required
   ]
 
   const performanceConfigData: EditSetting[] = [
@@ -2930,7 +2943,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.import_default_sessions,
       isHidden: config.import_default_sessions === null,
       isRequired: true
-    }, // Integer, from 1, required
+    }, // Integer, from 1, int(11), required
     {
       label: 'Import Max Sessions',
       value: config.import_max_sessions,
@@ -2938,7 +2951,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.import_max_sessions,
       isHidden: config.import_max_sessions === null,
       isRequired: true
-    }, // Integer, from 1, required
+    }, // Integer, from 1, int(11), required
     {
       label: '',
       value: '',
@@ -2951,7 +2964,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.export_default_sessions,
       isHidden: config.export_default_sessions === null,
       isRequired: true
-    }, // Integer, from 1, required
+    }, // Integer, from 1, int(11), required
     {
       label: 'Export Max Sessions',
       value: config.export_max_sessions,
@@ -2959,7 +2972,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.export_max_sessions,
       isHidden: config.export_max_sessions === null,
       isRequired: true
-    }, // Integer, from 1, required
+    }, // Integer, from 1, int(11), required
     {
       label: '',
       value: '',
@@ -2972,7 +2985,7 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       infoText: infoTexts.configuration.global.spark_max_executors,
       isHidden: config.spark_max_executors === null,
       isRequired: true
-    } // Integer, from 1, required
+    } // Integer, from 1, int(11), required
   ]
 
   const configCards = {
@@ -3146,6 +3159,7 @@ export function bulkAirflowDagFieldsData(
       key: 'timezone',
       label: 'Timezone',
       type: SettingType.TimeZone,
+      maxChar: 64,
       infoText: infoTexts.airflow[airflowType].timezone
     }, // Timezone,, varchar(64), used for schedule_interval column. Use full text timezone, example Europe/Stockholm
     {
@@ -3162,6 +3176,7 @@ export function bulkAirflowDagFieldsData(
     {
       key: 'concurrency',
       label: 'Concurrency',
+      maxInt: 127,
       type: SettingType.IntegerFromOneOrNull,
       infoText: infoTexts.airflow[airflowType].concurrency
     }, // Integer, tinyint(4), Set the max Integer of concurrent tasks in the DAG while executing. Overrides the default value specified in Airflow configuration
@@ -3174,6 +3189,7 @@ export function bulkAirflowDagFieldsData(
       key: 'email',
       label: 'Email',
       type: SettingType.Email,
+      maxChar: 256,
       infoText: infoTexts.airflow[airflowType].email
       // isConditionsMet:
       //   dagData.emailOnRetries === true || dagData.emailOnFailure === true

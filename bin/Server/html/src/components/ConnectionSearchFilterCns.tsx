@@ -15,6 +15,7 @@ import {
 } from '../utils/interfaces'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
 import { useFocusTrap } from '../utils/hooks'
+import { createTrimOnBlurHandler } from '../utils/functions'
 
 interface ConnectionSearchFilterProps {
   isSearchFilterOpen: boolean
@@ -222,6 +223,9 @@ function ConnectionSearchFilterCns({
     )
   }, [formValues.name, connectionNames])
 
+  const handleTrimOnBlur =
+    createTrimOnBlurHandler<UiConnectionSearchFilter>(setFormValues)
+
   return (
     <div className="search-filter-container" ref={containerRef}>
       <button
@@ -266,17 +270,18 @@ function ConnectionSearchFilterCns({
           >
             <div className="filter-container">
               <div className="filter-first-container">
-                <label htmlFor="searchFilterConnection">
+                <label htmlFor="searchFilterCnName">
                   Name:
                   {isCnDropdownReady && (
                     <>
                       <input
-                        id="searchFilterConnection"
+                        id="searchFilterCnName"
                         type="text"
                         value={formValues.name || ''}
                         onChange={(event) =>
                           handleInputDropdownChange(event.target.value)
                         }
+                        onBlur={handleTrimOnBlur('name')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault() // Prevents Enter from triggering form submission
@@ -288,7 +293,7 @@ function ConnectionSearchFilterCns({
                         // onKeyUp={handleKeyUpOnInput}
                       />
                       <Dropdown
-                        id="searchFilterConnection"
+                        id="searchFilterCnName"
                         items={
                           filteredConnectionNames.length > 0
                             ? filteredConnectionNames
@@ -311,10 +316,10 @@ function ConnectionSearchFilterCns({
                     </>
                   )}
                 </label>
-                <label htmlFor="searchFilterTargetTable">
+                <label htmlFor="searchFilterCnString">
                   Connection string:
                   <input
-                    id="searchFilterTargetTable"
+                    id="searchFilterCnString"
                     type="text"
                     value={formValues.connectionString || ''}
                     onChange={(event) =>
@@ -323,6 +328,7 @@ function ConnectionSearchFilterCns({
                         connectionString: event.target.value
                       }))
                     }
+                    onBlur={handleTrimOnBlur('connectionString')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault() // Prevents Enter from triggering form submission
@@ -371,7 +377,7 @@ function ConnectionSearchFilterCns({
             </div>
             <div
               className="submit-button-container"
-              style={{ marginTop: '23px' }}
+              style={{ marginTop: '30px' }}
             >
               <Button type="submit" title="Show" ref={buttonRef} />
             </div>

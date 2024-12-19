@@ -53,3 +53,38 @@ export function getUpdatedSettingValue(
     ?.value?.toString()
     .trim()
 }
+
+export function createTrimOnBlurHandler<T>(
+  setState: React.Dispatch<React.SetStateAction<T>>
+) {
+  return (key: keyof T) => (event: React.FocusEvent<HTMLInputElement>) => {
+    const trimmedValue = event.target.value.trim()
+    setState((prev) => ({
+      ...prev,
+      [key]: trimmedValue === '' ? null : trimmedValue
+    }))
+  }
+}
+
+export const wildcardMatch = (
+  inputVal: string | null,
+  rowVal: string
+): boolean => {
+  if (!inputVal) {
+    // No filter applied
+    return true
+  }
+
+  const hasWildcard = inputVal.includes('*')
+
+  if (hasWildcard) {
+    // Replaces '*' with '.*' for regex pattern
+    const regexPattern = inputVal.replace(/\*/g, '.*')
+    // Creates a regex that allows partial matches anywhere
+    const regex = new RegExp(`^${regexPattern}$`, 'i')
+    return regex.test(rowVal)
+  } else {
+    // No wildcard: exact match
+    return rowVal === inputVal
+  }
+}

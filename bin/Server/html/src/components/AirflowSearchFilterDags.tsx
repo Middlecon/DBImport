@@ -11,6 +11,7 @@ import {
 } from '../utils/interfaces'
 import FavoriteFilterSearch from './FavoriteFilterSearch'
 import { useFocusTrap } from '../utils/hooks'
+import { createTrimOnBlurHandler } from '../utils/functions'
 
 interface AirflowSearchFilterDagsProps {
   isSearchFilterOpen: boolean
@@ -29,6 +30,8 @@ function AirflowSearchFilterDags({
 }: AirflowSearchFilterDagsProps) {
   const query = new URLSearchParams(location.search)
 
+  const name = query.get('name') || null
+  const scheduleInterval = query.get('scheduleInterval') || null
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const [autoRegenerateDagFilter, setAutoRegenerateDagFilter] = useState({
@@ -45,6 +48,8 @@ function AirflowSearchFilterDags({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const [formValues, setFormValues] = useState<UiAirflowsSearchFilter>({
+    name: name ? name : null,
+    scheduleInterval: scheduleInterval ? scheduleInterval : null,
     autoRegenerateDag: autoRegenerateDag ? autoRegenerateDag : null
   })
 
@@ -160,6 +165,9 @@ function AirflowSearchFilterDags({
     }
   }
 
+  const handleTrimOnBlur =
+    createTrimOnBlurHandler<UiAirflowsSearchFilter>(setFormValues)
+
   return (
     <div className="search-filter-container" ref={containerRef}>
       <button
@@ -195,7 +203,7 @@ function AirflowSearchFilterDags({
             />
           </div>
 
-          {/* <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p> */}
+          <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
           <form
             onSubmit={(event) => {
               event.preventDefault()
@@ -204,6 +212,54 @@ function AirflowSearchFilterDags({
           >
             <div className="filter-container">
               <div className="filter-first-container">
+                <label htmlFor="searchFilterDagName">
+                  Name:
+                  <input
+                    id="searchFilterDagName"
+                    type="text"
+                    value={formValues.name || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        name: event.target.value
+                      }))
+                    }
+                    onBlur={handleTrimOnBlur('name')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
+                </label>
+                <label htmlFor="searchFilterScheduleInterval">
+                  Schedule Interval:
+                  <input
+                    id="searchFilterScheduleInterval"
+                    type="text"
+                    value={formValues.scheduleInterval || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        scheduleInterval: event.target.value
+                      }))
+                    }
+                    onBlur={handleTrimOnBlur('scheduleInterval')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
+                </label>
                 <label
                   htmlFor={`dropdown-autoRegenerateDag`}
                   key={`dropdown-autoRegenerateDag`}
@@ -241,7 +297,7 @@ function AirflowSearchFilterDags({
             </div>
             <div
               className="submit-button-container"
-              style={{ marginTop: '23px' }}
+              style={{ marginTop: '28px' }}
             >
               <Button type="submit" title="Show" ref={buttonRef} />
             </div>
