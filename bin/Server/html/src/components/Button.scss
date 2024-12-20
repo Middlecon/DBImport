@@ -1,7 +1,8 @@
 .dark-button,
 .light-button,
 .delete-button {
-  min-width: 54px;
+  // min-width: 54px;
+  width: min-content;
   padding: 4px 12px 9px 12px;
   border-radius: 10px;
   display: flex;
@@ -91,6 +92,7 @@
 
 .button-title {
   height: 14px;
+  white-space: nowrap;
   // font-family: 'Work Sans Variable', sans-serif;
   // padding-top: 1px;
 }

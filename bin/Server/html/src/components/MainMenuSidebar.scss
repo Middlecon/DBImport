@@ -65,6 +65,7 @@
 
 .mainsidebar-usermenu-li {
   margin-top: auto;
+  padding-top: 40px;
 }
 
 .mainsidebar-usermenu-logout {
@@ -142,7 +143,7 @@
   }
 }
 
-@media screen and (max-height: 464px) {
+@media screen and (max-height: 645px) {
   .mainsidebar-root {
     overflow-y: scroll;
   }

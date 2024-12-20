@@ -28,6 +28,23 @@
   margin-right: 10px;
 }
 
+@media screen and (max-width: 925px) {
+  .list-top-info-and-edit {
+    margin-bottom: 7px;
+  }
+}
+
+@media screen and (max-width: 697px) {
+  .list-top-info-and-edit {
+    justify-content: start;
+  }
+}
+@media screen and (max-width: 652px) {
+  .list-top-info-and-edit {
+    display: flex;
+  }
+}
+
 @media screen and (max-width: 600px) {
   .filters {
     margin-bottom: 50px;
@@ -35,5 +52,10 @@
   .filters > * {
     flex: 1 1 auto;
     min-width: 200px;
+  }
+  .list-top-info-and-edit {
+    flex-direction: column;
+    height: 62px;
+    gap: 8px;
   }
 }

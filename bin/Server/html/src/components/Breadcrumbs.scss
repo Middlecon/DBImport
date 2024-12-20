@@ -1,6 +1,7 @@
-.breadcrumb {
+.breadcrumbs {
   display: flex;
   justify-items: center;
+  flex-wrap: wrap;
   list-style: none;
   text-decoration: none;
   font-size: 14px;
@@ -10,9 +11,14 @@
 .breadcrumb-item {
   padding-right: 2px;
   display: flex;
-  align-items: center;
+
   svg {
+    margin-top: 3px;
     padding-right: 2px;
+  }
+
+  span {
+    word-break: break-all;
   }
 
   a {

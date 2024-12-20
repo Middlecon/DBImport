@@ -27,9 +27,12 @@
 
 .import-header {
   display: flex;
-  padding: 30px 0px 40px 0;
+  padding: 25px 0px 30px 0;
   justify-content: space-between;
   z-index: 16;
+  h1 {
+    margin-right: 10px;
+  }
 }
 
 .db-dropdown {
@@ -37,7 +40,7 @@
   gap: 25px;
   margin-top: 15px;
   margin-right: 10px;
-  max-height: 30px;
+  // max-height: 30px;
 }
 
 .import-text-block {
@@ -50,9 +53,33 @@
   border-radius: 7px;
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 697px) {
   .import-header {
     display: flex;
     flex-direction: column;
+    // padding-bottom: 14px;
+    padding: 14px 0px 8px 0;
+
+    h1 {
+      margin-bottom: 10px;
+    }
+  }
+}
+
+// @media screen and (max-width: 652px) {
+//   .db-dropdown {
+//     gap: 8px;
+
+//     // margin-bottom: 50px;
+//   }
+// }
+
+@media screen and (max-width: 600px) {
+  .db-dropdown {
+    flex-direction: column;
+    gap: 8px;
+    .list-top-info-and-edit {
+      flex-direction: column;
+    }
   }
 }

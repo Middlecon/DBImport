@@ -10,6 +10,7 @@
   .search-filter-button {
     width: max-content;
     height: 100%;
+    max-height: 27px;
     padding: 7.5px 12px;
     background-color: rgb(43, 62, 111);
     color: #ffffff;
@@ -45,7 +46,10 @@
   position: absolute;
   top: 33px;
   right: 0;
-  width: 463px;
+  // width: 463px;
+  max-height: calc(100vh - 217px);
+  // max-height: 50px;
+  overflow-y: auto;
   background-color: white;
   box-shadow: rgba(50, 50, 93, 0.25) 1px 0px 27px -5px,
     rgba(0, 0, 0, 0.3) 1px 8px 16px -8px;
@@ -114,4 +118,17 @@
 .filter-container {
   display: flex;
   gap: 40px;
+}
+
+@media screen and (max-width: 830px) {
+  .filter-container {
+    flex-direction: column;
+    gap: 7px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .search-filter-dropdown {
+    right: -5px;
+  }
 }

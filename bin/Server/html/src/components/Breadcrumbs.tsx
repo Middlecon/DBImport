@@ -75,7 +75,7 @@ const Breadcrumbs = () => {
 
   return (
     <nav aria-label="breadcrumb">
-      <ol className="breadcrumb">
+      <ol className="breadcrumbs">
         {crumbs.map((crumb, idx) => (
           <li
             key={idx}
@@ -84,7 +84,11 @@ const Breadcrumbs = () => {
             }`}
           >
             {/* Only shows chevron after the first item */}
-            {idx > 0 && <ChevronRight />}
+            {idx > 0 && (
+              <div>
+                <ChevronRight />
+              </div>
+            )}
             {/* Current/last item is not a link */}
             {idx === crumbs.length - 1 ||
             idx >= 3 ||
