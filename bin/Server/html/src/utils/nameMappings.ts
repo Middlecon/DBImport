@@ -298,6 +298,7 @@ export const labelToUIGlobalConfigKey: { [label: string]: keyof ConfigGlobal } =
     'Default Pool Size': 'airflow_default_pool_size',
     'Dummy Task Queue': 'airflow_dummy_task_queue',
     'Major Version': 'airflow_major_version',
+    'Airflow URL': 'airflow_url',
     'Sudo User': 'airflow_sudo_user',
     'Airflow Disable': 'airflow_disable',
     'Export Start Disable': 'export_start_disable',

@@ -1307,8 +1307,6 @@ export function updateGlobalConfigData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  console.log('filteredSettings', filteredSettings)
-
   filteredSettings.forEach((setting) => {
     let value = setting.value as string
 
