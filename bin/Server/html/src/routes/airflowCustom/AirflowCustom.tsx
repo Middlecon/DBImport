@@ -59,8 +59,7 @@ function AirflowCustom() {
   const scheduleInterval = query.get('scheduleInterval') || null
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
-  const { data, isLoading } = useCustomAirflows()
-  const dags = useMemo(() => data, [data])
+  const { data: dags, isLoading } = useCustomAirflows()
 
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 

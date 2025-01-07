@@ -62,8 +62,7 @@ function AirflowImport() {
   const scheduleInterval = query.get('scheduleInterval') || null
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
-  const { data, isLoading } = useImportAirflows()
-  const dags = useMemo(() => data, [data])
+  const { data: dags, isLoading } = useImportAirflows()
 
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
@@ -198,14 +197,14 @@ function AirflowImport() {
   }
 
   const handleBulkDeleteClick = useCallback(() => {
-    if (!data) return
+    if (!dags) return
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
-    const selectedRows = selectedIndexes.map((index) => data[index])
+    const selectedRows = selectedIndexes.map((index) => dags[index])
     setCurrentRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
-  }, [rowSelection, data])
+  }, [rowSelection, dags])
 
   const handleBulkDelete = async (rows: UiBulkAirflowDAG[]) => {
     setShowBulkDeleteConfirmation(false)

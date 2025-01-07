@@ -71,9 +71,6 @@ function Connection() {
 
   const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
 
-  const connections = useMemo(() => data?.connections, [data])
-  const headersRowInfo = useMemo(() => data?.headersRowInfo, [data])
-
   const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
 
@@ -143,7 +140,10 @@ function Connection() {
       <ViewBaseLayout>
         <div className="header-container" style={{ paddingBottom: 0 }}>
           <h1>Connection</h1>
-          <ConnectionActions connections={connections} filters={filters} />
+          <ConnectionActions
+            connections={data?.connections}
+            filters={filters}
+          />
         </div>
 
         {/* <div className="filters">
@@ -162,13 +162,15 @@ function Connection() {
               />
             ))}
         </div> */}
-        {connections && Array.isArray(connections) && headersRowInfo ? (
+        {data && Array.isArray(data.connections) && data.headersRowInfo ? (
           <>
             <div style={{ height: 27 }} />
             <ListRowsInfo
               filteredData={filteredData}
-              contentTotalRows={headersRowInfo.contentTotalRows}
-              contentMaxReturnedRows={headersRowInfo.contentMaxReturnedRows}
+              contentTotalRows={data.headersRowInfo.contentTotalRows}
+              contentMaxReturnedRows={
+                data.headersRowInfo.contentMaxReturnedRows
+              }
               itemType="connection"
             />
             {filteredData && (

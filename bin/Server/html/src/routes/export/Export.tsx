@@ -129,9 +129,6 @@ function Export() {
 
   const { data, isLoading: isSearchLoading } = useSearchExportTables(filters)
 
-  const tables = useMemo(() => data?.tables, [data])
-  const headersRowInfo = useMemo(() => data?.headersRowInfo, [data])
-
   // const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
 
   // const handleSelect = (filterKey: string, items: string[]) => {
@@ -239,7 +236,7 @@ function Export() {
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Export</h1>
-          <ExportActions tables={tables} filters={filters} />
+          <ExportActions tables={data?.tables} filters={filters} />
         </div>
 
         {/* <div className="filters"> */}
@@ -273,11 +270,14 @@ function Export() {
           ))}
         </div> */}
 
-        {tables && Array.isArray(tables) && headersRowInfo ? (
+        {data &&
+        data.tables &&
+        Array.isArray(data.tables) &&
+        data.headersRowInfo ? (
           <>
             <ExportCnTables
               data={filteredData}
-              headersRowInfo={headersRowInfo}
+              headersRowInfo={data.headersRowInfo}
               queryKeyFilters={filters}
               isLoading={isSearchLoading}
             />

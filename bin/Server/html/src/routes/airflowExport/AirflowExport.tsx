@@ -59,8 +59,7 @@ function AirflowExport() {
   const scheduleInterval = query.get('scheduleInterval') || null
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
-  const { data, isLoading } = useExportAirflows()
-  const dags = useMemo(() => data, [data])
+  const { data: dags, isLoading } = useExportAirflows()
 
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 

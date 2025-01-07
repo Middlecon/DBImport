@@ -164,9 +164,6 @@ function Import() {
 
   const { data, isLoading: isSearchLoading } = useSearchImportTables(filters)
 
-  const tables = useMemo(() => data?.tables, [data])
-  const headersRowInfo = useMemo(() => data?.headersRowInfo, [data])
-
   // const handleSelect = (filterKey: string, items: string[]) => {
   //   setSelectedFilters((prevFilters) => ({
   //     ...prevFilters,
@@ -205,9 +202,9 @@ function Import() {
   }, [])
 
   const filteredData = useMemo(() => {
-    if (!tables || !Array.isArray(tables)) return []
+    if (!data || !Array.isArray(data.tables)) return []
     console.log('lastUpdateFromSource', lastUpdateFromSource)
-    return tables.filter((row) => {
+    return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 
       // return [...checkboxFilters, ...radioFilters].every((filter) => {
@@ -231,14 +228,14 @@ function Import() {
 
       // return selectedItems.includes(rowValue)
     })
-  }, [tables, lastUpdateFromSource, getDateRange])
+  }, [data, lastUpdateFromSource, getDateRange])
 
   return (
     <>
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Import</h1>
-          <ImportActions tables={tables} filters={filters} />
+          <ImportActions tables={data?.tables} filters={filters} />
         </div>
         {/* <div className="filters"> */}
         {/* {checkboxFilters.map((filter, index) => (
@@ -271,11 +268,14 @@ function Import() {
           ))}
         </div> */}
 
-        {tables && Array.isArray(tables) && headersRowInfo ? (
+        {data &&
+        data.tables &&
+        Array.isArray(data.tables) &&
+        data.headersRowInfo ? (
           <>
             <DbTables
               data={filteredData}
-              headersRowInfo={headersRowInfo}
+              headersRowInfo={data.headersRowInfo}
               queryKeyFilters={filters}
               isLoading={isSearchLoading}
             />
