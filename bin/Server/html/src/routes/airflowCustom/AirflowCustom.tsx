@@ -6,26 +6,16 @@ import {
   AirflowsCustomData,
   BulkUpdateAirflowDAG,
   Column,
-  EditSetting,
   UiAirflowsCustomData,
-  UiAirflowsSearchFilter,
   UiBulkAirflowDAG
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
-import { useAtom } from 'jotai'
-import {
-  // airflowCustomFilterAtom,
-  airflowImportDagsPersistStateAtom
-} from '../../atoms/atoms'
-import CreateAirflowModal from '../../components/CreateAirflowModal'
 import Button from '../../components/Button'
-import { createCustomDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag,
-  useCreateAirflowDag,
   useDeleteAirflowDAG
 } from '../../utils/mutations'
 import ConfirmationModal from '../../components/ConfirmationModal'
@@ -33,8 +23,8 @@ import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
-import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
 import { wildcardMatch } from '../../utils/functions'
+import AirflowCustomActions from './AirflowCustomActions'
 
 // const checkboxFilters = [
 //   {
@@ -70,7 +60,8 @@ function AirflowCustom() {
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const { data, isLoading } = useCustomAirflows()
-  const { mutate: createDAG } = useCreateAirflowDag()
+  const dags = useMemo(() => data, [data])
+
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
@@ -79,8 +70,6 @@ function AirflowCustom() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentDeleteRow, setCurrentDeleteRow] =
     useState<UiAirflowsCustomData>()
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [currentRowsBulk, setCurrentRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -90,10 +79,6 @@ function AirflowCustom() {
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
-
-  const [, setAirflowImportDagsPersistState] = useAtom(
-    airflowImportDagsPersistStateAtom
-  )
 
   // const [selectedFilters, setSelectedFilters] = useAtom(airflowCustomFilterAtom)
 
@@ -116,46 +101,6 @@ function AirflowCustom() {
   //     [filterKey]: items
   //   }))
   // }
-
-  const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
-    const params = new URLSearchParams(location.search)
-
-    const filterKeys: (keyof UiAirflowsSearchFilter)[] = [
-      'name',
-      'scheduleInterval',
-      'autoRegenerateDag'
-    ]
-
-    filterKeys.forEach((key) => {
-      const value = uiFilters[key]
-      if (value !== null && value !== undefined && String(value).length > 0) {
-        params.set(key, String(value))
-      } else {
-        params.delete(key)
-      }
-    })
-
-    const orderedSearch = filterKeys
-      .map((key) =>
-        params.has(key) ? `${key}=${params.get(key) || ''}` : null
-      )
-      .filter((param) => param !== null)
-      .join('&')
-
-    // Only updates and navigates if query has changed
-    if (orderedSearch !== location.search.slice(1)) {
-      setAirflowImportDagsPersistState(`/airflow/custom?${orderedSearch}`)
-      navigate(`/airflow/custom?${orderedSearch}`, { replace: true })
-    }
-  }
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
 
   const handleDeleteIconClick = (row: UiAirflowsCustomData) => {
     setShowDeleteConfirmation(true)
@@ -187,32 +132,10 @@ function AirflowCustom() {
     )
   }
 
-  const handleSave = (newCustomAirflowSettings: EditSetting[]) => {
-    const newCustomAirflowData = createCustomDagData(newCustomAirflowSettings)
-
-    if (newCustomAirflowData) {
-      createDAG(
-        { type: 'custom', dagData: newCustomAirflowData },
-        {
-          onSuccess: (response) => {
-            queryClient.invalidateQueries({
-              queryKey: ['airflows', 'custom']
-            })
-            console.log('Update successful', response)
-            setCreateModalOpen(false)
-          },
-          onError: (error) => {
-            console.error('Error updating table', error)
-          }
-        }
-      )
-    }
-  }
-
   const filteredData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return []
+    if (!dags || !Array.isArray(dags)) return []
 
-    return data.filter((row) => {
+    return dags.filter((row) => {
       const matchesName = wildcardMatch(name, row.name)
       const matchesScheduleInterval = wildcardMatch(
         scheduleInterval,
@@ -224,7 +147,7 @@ function AirflowCustom() {
 
       return matchesName && matchesScheduleInterval && matchesAutoRegenerateDag
     })
-  }, [data, name, scheduleInterval, autoRegenerateDag])
+  }, [dags, name, scheduleInterval, autoRegenerateDag])
 
   const handleBulkEditClick = useCallback(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
@@ -271,14 +194,14 @@ function AirflowCustom() {
   }
 
   const handleBulkDeleteClick = useCallback(() => {
-    if (!data) return
+    if (!dags) return
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
-    const selectedRows = selectedIndexes.map((index) => data[index])
+    const selectedRows = selectedIndexes.map((index) => dags[index])
     setCurrentRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
-  }, [rowSelection, data])
+  }, [rowSelection, dags])
 
   const handleBulkDelete = async (rows: UiBulkAirflowDAG[]) => {
     setShowBulkDeleteConfirmation(false)
@@ -324,22 +247,7 @@ function AirflowCustom() {
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Airflow Custom</h1>
-          <div className="header-buttons">
-            <Button
-              title="+ Create"
-              onClick={() => setCreateModalOpen(true)}
-              fontSize="14px"
-            />
-            <AirflowSearchFilterDags
-              isSearchFilterOpen={openDropdown === 'searchFilter'}
-              type="custom"
-              onToggle={(isSearchFilterOpen: boolean) =>
-                handleDropdownToggle('searchFilter', isSearchFilterOpen)
-              }
-              onShow={handleShow}
-              disabled={!data}
-            />
-          </div>
+          <AirflowCustomActions dags={dags} />
         </div>
 
         {/* <div className="filters">
@@ -359,7 +267,7 @@ function AirflowCustom() {
             ))}
         </div> */}
 
-        {filteredData && Array.isArray(data) && data.length > 0 ? (
+        {filteredData && Array.isArray(dags) && dags.length > 0 ? (
           <>
             <div className="list-top-info-and-edit">
               <Button
@@ -384,7 +292,7 @@ function AirflowCustom() {
             </div>
             <ListRowsInfo
               filteredData={filteredData}
-              contentTotalRows={String(data.length)}
+              contentTotalRows={String(dags.length)}
               itemType="DAG"
             />
             <TableList
@@ -404,14 +312,6 @@ function AirflowCustom() {
           <div className="text-block">
             <p>No custom DAGs yet.</p>
           </div>
-        )}
-        {isCreateModalOpen && (
-          <CreateAirflowModal
-            isCreateModalOpen={isCreateModalOpen}
-            type="custom"
-            onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
-          />
         )}
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal

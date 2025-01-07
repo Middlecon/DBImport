@@ -22,11 +22,11 @@ export const airflowImportDagsPersistStateAtom = atomWithSessionStorage<
 
 export const airflowExportDagsPersistStateAtom = atomWithSessionStorage<
   string | null
->('airflowImportDagsPersistState', null)
+>('airflowExportDagsPersistState', null)
 
 export const airflowCustomDagsPersistStateAtom = atomWithSessionStorage<
   string | null
->('airflowImportDagsPersistState', null)
+>('airflowCustomDagsPersistState', null)
 
 export const isDbDropdownReadyAtom = atom(false)
 

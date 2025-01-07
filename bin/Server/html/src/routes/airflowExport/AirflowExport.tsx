@@ -6,23 +6,16 @@ import {
   AirflowsExportData,
   BulkUpdateAirflowDAG,
   Column,
-  EditSetting,
   UiAirflowsExportData,
-  UiAirflowsSearchFilter,
   UiBulkAirflowDAG
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
-import { useAtom } from 'jotai'
-import { airflowExportDagsPersistStateAtom } from '../../atoms/atoms'
 import Button from '../../components/Button'
-import CreateAirflowModal from '../../components/CreateAirflowModal'
-import { createExportDagData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag,
-  useCreateAirflowDag,
   useDeleteAirflowDAG
 } from '../../utils/mutations'
 import ConfirmationModal from '../../components/ConfirmationModal'
@@ -30,8 +23,8 @@ import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
-import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
 import { wildcardMatch } from '../../utils/functions'
+import AirflowExportActions from './AirflowExportActions'
 
 // const checkboxFilters = [
 //   {
@@ -67,7 +60,8 @@ function AirflowExport() {
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const { data, isLoading } = useExportAirflows()
-  const { mutate: createDAG } = useCreateAirflowDag()
+  const dags = useMemo(() => data, [data])
+
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
@@ -77,9 +71,6 @@ function AirflowExport() {
   const [currentDeleteRow, setCurrentDeleteRow] =
     useState<UiAirflowsExportData>()
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
-
   const [currentRowsBulk, setCurrentRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
   >([])
@@ -88,10 +79,6 @@ function AirflowExport() {
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
-
-  const [, setAirfloExportDagsPersistState] = useAtom(
-    airflowExportDagsPersistStateAtom
-  )
 
   // const [selectedFilters, setSelectedFilters] = useAtom(airflowExportFilterAtom)
 
@@ -117,47 +104,6 @@ function AirflowExport() {
   //     [filterKey]: items
   //   }))
   // }
-
-  const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
-    const params = new URLSearchParams(location.search)
-    console.log('uiFilters', uiFilters)
-
-    const filterKeys: (keyof UiAirflowsSearchFilter)[] = [
-      'name',
-      'scheduleInterval',
-      'autoRegenerateDag'
-    ]
-
-    filterKeys.forEach((key) => {
-      const value = uiFilters[key]
-      if (value !== null && value !== undefined && String(value).length > 0) {
-        params.set(key, String(value))
-      } else {
-        params.delete(key)
-      }
-    })
-
-    const orderedSearch = filterKeys
-      .map((key) =>
-        params.has(key) ? `${key}=${params.get(key) || ''}` : null
-      )
-      .filter((param) => param !== null)
-      .join('&')
-
-    // Only updates and navigates if query has changed
-    if (orderedSearch !== location.search.slice(1)) {
-      setAirfloExportDagsPersistState(`/airflow/export?${orderedSearch}`)
-      navigate(`/airflow/export?${orderedSearch}`, { replace: true })
-    }
-  }
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
 
   const handleDeleteIconClick = (row: UiAirflowsExportData) => {
     setShowDeleteConfirmation(true)
@@ -189,30 +135,10 @@ function AirflowExport() {
     )
   }
 
-  const handleSave = (newExportAirflowSettings: EditSetting[]) => {
-    const newExportAirflowData = createExportDagData(newExportAirflowSettings)
-
-    createDAG(
-      { type: 'export', dagData: newExportAirflowData },
-      {
-        onSuccess: (response) => {
-          queryClient.invalidateQueries({
-            queryKey: ['airflows', 'export']
-          })
-          console.log('Update successful', response)
-          setCreateModalOpen(false)
-        },
-        onError: (error) => {
-          console.error('Error updating table', error)
-        }
-      }
-    )
-  }
-
   const filteredData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return []
+    if (!dags || !Array.isArray(dags)) return []
 
-    return data.filter((row) => {
+    return dags.filter((row) => {
       const matchesName = wildcardMatch(name, row.name)
       const matchesScheduleInterval = wildcardMatch(
         scheduleInterval,
@@ -224,7 +150,7 @@ function AirflowExport() {
 
       return matchesName && matchesScheduleInterval && matchesAutoRegenerateDag
     })
-  }, [data, name, scheduleInterval, autoRegenerateDag])
+  }, [dags, name, scheduleInterval, autoRegenerateDag])
 
   const handleBulkEditClick = useCallback(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
@@ -270,14 +196,14 @@ function AirflowExport() {
   }
 
   const handleBulkDeleteClick = useCallback(() => {
-    if (!data) return
+    if (!dags) return
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
-    const selectedRows = selectedIndexes.map((index) => data[index])
+    const selectedRows = selectedIndexes.map((index) => dags[index])
     setCurrentRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
-  }, [rowSelection, data])
+  }, [rowSelection, dags])
 
   const handleBulkDelete = async (rows: UiBulkAirflowDAG[]) => {
     setShowBulkDeleteConfirmation(false)
@@ -323,22 +249,7 @@ function AirflowExport() {
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Airflow Export</h1>
-          <div className="header-buttons">
-            <Button
-              title="+ Create"
-              onClick={() => setCreateModalOpen(true)}
-              fontSize="14px"
-            />
-            <AirflowSearchFilterDags
-              isSearchFilterOpen={openDropdown === 'searchFilter'}
-              type="export"
-              onToggle={(isSearchFilterOpen: boolean) =>
-                handleDropdownToggle('searchFilter', isSearchFilterOpen)
-              }
-              onShow={handleShow}
-              disabled={!data}
-            />
-          </div>
+          <AirflowExportActions dags={dags} />
         </div>
 
         {/* <div className="filters">
@@ -358,7 +269,7 @@ function AirflowExport() {
             ))}
         </div> */}
 
-        {filteredData && Array.isArray(data) && data.length > 0 ? (
+        {filteredData && Array.isArray(dags) && dags.length > 0 ? (
           <>
             <div className="list-top-info-and-edit">
               <Button
@@ -383,7 +294,7 @@ function AirflowExport() {
             </div>
             <ListRowsInfo
               filteredData={filteredData}
-              contentTotalRows={String(data.length)}
+              contentTotalRows={String(dags.length)}
               itemType="DAG"
             />
             <TableList
@@ -404,14 +315,7 @@ function AirflowExport() {
             <p>No export DAGs yet.</p>
           </div>
         )}
-        {isCreateModalOpen && (
-          <CreateAirflowModal
-            isCreateModalOpen={isCreateModalOpen}
-            type="export"
-            onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
-          />
-        )}
+
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal
             title={`Delete ${currentDeleteRow.name}`}

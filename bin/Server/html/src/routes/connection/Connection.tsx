@@ -5,29 +5,17 @@ import { useSearchConnections } from '../../utils/queries'
 import {
   Column,
   Connections,
-  ConnectionSearchFilter,
-  EditSetting,
-  UiConnectionSearchFilter
+  ConnectionSearchFilter
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
-import {
-  // connectionFilterAtom,
-  connectionPersistStateAtom
-} from '../../atoms/atoms'
-import { useAtom } from 'jotai'
+
 import { useLocation, useNavigate } from 'react-router-dom'
-import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  useDeleteConnection,
-  useCreateOrUpdateConnection
-} from '../../utils/mutations'
-import CreateConnectionModal from '../../components/CreateConnectionModal'
-import Button from '../../components/Button'
-import { createConnectionData } from '../../utils/dataFunctions'
+import { useDeleteConnection } from '../../utils/mutations'
+import ConnectionActions from './ConnectionActions'
 
 // const checkboxFilters = [
 //   {
@@ -82,7 +70,10 @@ function Connection() {
   )
 
   const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
-  const { mutate: createConnection } = useCreateOrUpdateConnection()
+
+  const connections = useMemo(() => data?.connections, [data])
+  const headersRowInfo = useMemo(() => data?.headersRowInfo, [data])
+
   const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
 
@@ -90,51 +81,7 @@ function Connection() {
   const [currentDeleteRow, setCurrentDeleteRow] = useState<Connections>()
   const [rowSelection, setRowSelection] = useState({})
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
-
-  const [, setConnectionPersistState] = useAtom(connectionPersistStateAtom)
   // const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
-
-  const handleShow = (uiFilters: UiConnectionSearchFilter) => {
-    const params = new URLSearchParams(location.search)
-
-    const filterKeys: (keyof UiConnectionSearchFilter)[] = [
-      'name',
-      'connectionString',
-      'serverType'
-    ]
-
-    filterKeys.forEach((key) => {
-      const value = uiFilters[key]
-      if (value !== null && value !== undefined && String(value).length > 0) {
-        params.set(key, String(value))
-      } else {
-        params.delete(key)
-      }
-    })
-
-    const orderedSearch = filterKeys
-      .map((key) =>
-        params.has(key) ? `${key}=${params.get(key) || ''}` : null
-      )
-      .filter((param) => param !== null)
-      .join('&')
-
-    // Only updates and navigates if query has changed
-    if (orderedSearch !== location.search.slice(1)) {
-      setConnectionPersistState(`/connection?${orderedSearch}`)
-      navigate(`/connection?${orderedSearch}`, { replace: true })
-    }
-  }
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
 
   // const handleSelect = (filterKey: string, items: string[]) => {
   //   setSelectedFilters((prevFilters) => ({
@@ -142,28 +89,6 @@ function Connection() {
   //     [filterKey]: items
   //   }))
   // }
-
-  const handleSave = (newConnectionSettings: EditSetting[]) => {
-    const newConnectionData = createConnectionData(newConnectionSettings)
-    console.log('newConnectionData', newConnectionData)
-
-    createConnection(newConnectionData, {
-      onSuccess: (response) => {
-        // For getting fresh data from database to the cache
-        queryClient.invalidateQueries({
-          queryKey: ['connection', 'search', filters]
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['connection']
-        })
-        console.log('Update successful', response)
-        setCreateModalOpen(false)
-      },
-      onError: (error) => {
-        console.error('Error updating connection', error)
-      }
-    })
-  }
 
   const handleDeleteIconClick = (row: Connections) => {
     setShowDeleteConfirmation(true)
@@ -218,23 +143,7 @@ function Connection() {
       <ViewBaseLayout>
         <div className="header-container" style={{ paddingBottom: 0 }}>
           <h1>Connection</h1>
-          <div className="header-buttons">
-            <Button
-              title="+ Create"
-              onClick={() => setCreateModalOpen(true)}
-              fontFamily={`'Work Sans Variable', sans-serif`}
-              fontSize="14px"
-            />
-
-            <ConnectionSearchFilterCns
-              isSearchFilterOpen={openDropdown === 'searchFilter'}
-              onToggle={(isSearchFilterOpen: boolean) =>
-                handleDropdownToggle('searchFilter', isSearchFilterOpen)
-              }
-              onShow={handleShow}
-              disabled={!data}
-            />
-          </div>
+          <ConnectionActions connections={connections} filters={filters} />
         </div>
 
         {/* <div className="filters">
@@ -253,15 +162,13 @@ function Connection() {
               />
             ))}
         </div> */}
-        {data && Array.isArray(data.connections) ? (
+        {connections && Array.isArray(connections) && headersRowInfo ? (
           <>
             <div style={{ height: 27 }} />
             <ListRowsInfo
               filteredData={filteredData}
-              contentTotalRows={data.headersRowInfo.contentTotalRows}
-              contentMaxReturnedRows={
-                data.headersRowInfo.contentMaxReturnedRows
-              }
+              contentTotalRows={headersRowInfo.contentTotalRows}
+              contentMaxReturnedRows={headersRowInfo.contentMaxReturnedRows}
               itemType="connection"
             />
             {filteredData && (
@@ -283,13 +190,7 @@ function Connection() {
             <p>No connections yet.</p>
           </div>
         )}
-        {isCreateModalOpen && (
-          <CreateConnectionModal
-            isCreateModalOpen={isCreateModalOpen}
-            onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
-          />
-        )}
+
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal
             title={`Delete ${currentDeleteRow.name}`}

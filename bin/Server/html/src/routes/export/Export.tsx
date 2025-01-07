@@ -1,29 +1,18 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSearchExportTables } from '../../utils/queries'
 import '../import/Import.scss'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
-import Button from '../../components/Button'
 import {
-  EditSetting,
-  ExportSearchFilter,
+  ExportSearchFilter
   // ExportSearchFilter,
-  UiExportSearchFilter
 } from '../../utils/interfaces'
-import { useAtom } from 'jotai'
-import {
-  // exportCnListFiltersAtom,
-  exportPersistStateAtom
-} from '../../atoms/atoms'
-import CreateExportTableModal from '../../components/CreateExportTableModal'
-import { createExportTableData } from '../../utils/dataFunctions'
-import { useCreateExportTable } from '../../utils/mutations'
-import { useQueryClient } from '@tanstack/react-query'
+
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
 // import DropdownRadio from '../../components/DropdownRadio'
 import ExportCnTables from './ExportCnTables'
-import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
 import { reverseMapEnumValue } from '../../utils/nameMappings'
+import ExportActions from './ExportActions'
 
 // const checkboxFilters = [
 //   {
@@ -140,58 +129,10 @@ function Export() {
 
   const { data, isLoading: isSearchLoading } = useSearchExportTables(filters)
 
-  const { mutate: createTable } = useCreateExportTable()
-  const queryClient = useQueryClient()
+  const tables = useMemo(() => data?.tables, [data])
+  const headersRowInfo = useMemo(() => data?.headersRowInfo, [data])
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
-
-  const [, setExportPersistState] = useAtom(exportPersistStateAtom)
   // const [selectedFilters, setSelectedFilters] = useAtom(exportCnListFiltersAtom)
-
-  const handleShow = (uiFilters: UiExportSearchFilter) => {
-    const params = new URLSearchParams(location.search)
-
-    const filterKeys: (keyof UiExportSearchFilter)[] = [
-      'connection',
-      'targetTable',
-      'targetSchema',
-      'includeInAirflow',
-      'lastUpdateFromHive',
-      'exportType',
-      'exportTool'
-    ]
-
-    filterKeys.forEach((key) => {
-      const value = uiFilters[key]
-      if (value !== null && value !== undefined && String(value).length > 0) {
-        params.set(key, String(value))
-      } else {
-        params.delete(key)
-      }
-    })
-
-    const orderedSearch = filterKeys
-      .map((key) =>
-        params.has(key) ? `${key}=${params.get(key) || ''}` : null
-      )
-      .filter((param) => param !== null)
-      .join('&')
-
-    // Only updates and navigates if query has changed
-    if (orderedSearch !== location.search.slice(1)) {
-      setExportPersistState(`/export?${orderedSearch}`)
-      navigate(`/export?${orderedSearch}`, { replace: true })
-    }
-  }
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
 
   // const handleSelect = (filterKey: string, items: string[]) => {
   //   setSelectedFilters((prevFilters) => ({
@@ -199,40 +140,6 @@ function Export() {
   //     [filterKey]: items
   //   }))
   // }
-
-  const mostCommonConnection = useMemo(() => {
-    if (!data || !data.tables || data.tables.length === 0) return null
-    const connectionCounts = data.tables.reduce((acc, row) => {
-      const connection = row.connection
-      if (connection) {
-        acc[connection] = (acc[connection] || 0) + 1
-      }
-      return acc
-    }, {} as { [key: string]: number })
-
-    return Object.keys(connectionCounts).reduce((a, b) =>
-      connectionCounts[a] > connectionCounts[b] ? a : b
-    )
-  }, [data])
-
-  const handleSave = (newTableData: EditSetting[]) => {
-    const newTable = createExportTableData(newTableData)
-    createTable(newTable, {
-      onSuccess: (response) => {
-        queryClient.invalidateQueries({
-          queryKey: ['export', 'search', filters]
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['export', 'connections']
-        })
-        console.log('Create successful', response)
-        setCreateModalOpen(false)
-      },
-      onError: (error) => {
-        console.error('Error creating table', error)
-      }
-    })
-  }
 
   const parseTimestamp = (timestamp: string | null): Date | null => {
     if (!timestamp) {
@@ -332,22 +239,7 @@ function Export() {
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Export</h1>
-          <div className="header-buttons">
-            <Button
-              title="+ Add table"
-              onClick={() => setCreateModalOpen(true)}
-              fontSize="14px"
-            />
-
-            <ExportSearchFilterTables
-              isSearchFilterOpen={openDropdown === 'searchFilter'}
-              onToggle={(isSearchFilterOpen: boolean) =>
-                handleDropdownToggle('searchFilter', isSearchFilterOpen)
-              }
-              onShow={handleShow}
-              disabled={!data}
-            />
-          </div>
+          <ExportActions tables={tables} filters={filters} />
         </div>
 
         {/* <div className="filters"> */}
@@ -381,22 +273,11 @@ function Export() {
           ))}
         </div> */}
 
-        {isCreateModalOpen && (
-          <CreateExportTableModal
-            isCreateModalOpen={isCreateModalOpen}
-            prefilledConnection={
-              mostCommonConnection ? mostCommonConnection : null
-            }
-            onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
-          />
-        )}
-
-        {data && Array.isArray(data.tables) ? (
+        {tables && Array.isArray(tables) && headersRowInfo ? (
           <>
             <ExportCnTables
               data={filteredData}
-              headersRowInfo={data.headersRowInfo}
+              headersRowInfo={headersRowInfo}
               queryKeyFilters={filters}
               isLoading={isSearchLoading}
             />

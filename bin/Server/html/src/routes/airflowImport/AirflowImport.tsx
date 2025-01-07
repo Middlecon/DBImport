@@ -6,9 +6,7 @@ import {
   AirflowsImportData,
   BulkUpdateAirflowDAG,
   Column,
-  EditSetting,
   UiAirflowsImportData,
-  UiAirflowsSearchFilter,
   UiBulkAirflowDAG
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
@@ -16,12 +14,9 @@ import TableList from '../../components/TableList'
 // import { useAtom } from 'jotai'
 // import { airflowImportFilterAtom } from '../../atoms/atoms'
 import Button from '../../components/Button'
-import CreateAirflowModal from '../../components/CreateAirflowModal'
-import { createImportDagData } from '../../utils/dataFunctions'
 import {
   useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag,
-  useCreateAirflowDag,
   useDeleteAirflowDAG
 } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
@@ -30,10 +25,9 @@ import ListRowsInfo from '../../components/ListRowsInfo'
 import BulkEditModal from '../../components/BulkEditModal'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
-import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
-import { airflowImportDagsPersistStateAtom } from '../../atoms/atoms'
-import { useAtom } from 'jotai'
+
 import { wildcardMatch } from '../../utils/functions'
+import AirflowImportActions from './AirflowImportActions'
 
 // const checkboxFilters = [
 //   {
@@ -69,7 +63,8 @@ function AirflowImport() {
   const autoRegenerateDag = query.get('autoRegenerateDag') || null
 
   const { data, isLoading } = useImportAirflows()
-  const { mutate: createDAG } = useCreateAirflowDag()
+  const dags = useMemo(() => data, [data])
+
   const { mutate: deleteDAG } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
@@ -78,8 +73,6 @@ function AirflowImport() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [currentDeleteRow, setCurrentDeleteRow] =
     useState<UiAirflowsImportData>()
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
   const [currentRowsBulk, setCurrentRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -89,10 +82,6 @@ function AirflowImport() {
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
-
-  const [, setAirflowImportDagsPersistState] = useAtom(
-    airflowImportDagsPersistStateAtom
-  )
 
   // const [selectedFilters, setSelectedFilters] = useAtom(airflowImportFilterAtom)
 
@@ -116,46 +105,6 @@ function AirflowImport() {
   //     [filterKey]: items
   //   }))
   // }
-
-  const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
-    const params = new URLSearchParams(location.search)
-
-    const filterKeys: (keyof UiAirflowsSearchFilter)[] = [
-      'name',
-      'scheduleInterval',
-      'autoRegenerateDag'
-    ]
-
-    filterKeys.forEach((key) => {
-      const value = uiFilters[key]
-      if (value !== null && value !== undefined && String(value).length > 0) {
-        params.set(key, String(value))
-      } else {
-        params.delete(key)
-      }
-    })
-
-    const orderedSearch = filterKeys
-      .map((key) =>
-        params.has(key) ? `${key}=${params.get(key) || ''}` : null
-      )
-      .filter((param) => param !== null)
-      .join('&')
-
-    // Only updates and navigates if query has changed
-    if (orderedSearch !== location.search.slice(1)) {
-      setAirflowImportDagsPersistState(`/airflow/import?${orderedSearch}`)
-      navigate(`/airflow/import?${orderedSearch}`, { replace: true })
-    }
-  }
-
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
-  }
 
   const handleDeleteIconClick = (row: UiAirflowsImportData) => {
     setShowDeleteConfirmation(true)
@@ -187,30 +136,10 @@ function AirflowImport() {
     )
   }
 
-  const handleSave = (newImportAirflowSettings: EditSetting[]) => {
-    const newImportAirflowData = createImportDagData(newImportAirflowSettings)
-
-    createDAG(
-      { type: 'import', dagData: newImportAirflowData },
-      {
-        onSuccess: (response) => {
-          queryClient.invalidateQueries({
-            queryKey: ['airflows', 'import']
-          })
-          console.log('Update successful', response)
-          setCreateModalOpen(false)
-        },
-        onError: (error) => {
-          console.error('Error updating table', error)
-        }
-      }
-    )
-  }
-
   const filteredData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return []
+    if (!dags || !Array.isArray(dags)) return []
 
-    return data.filter((row) => {
+    return dags.filter((row) => {
       const matchesName = wildcardMatch(name, row.name)
       const matchesScheduleInterval = wildcardMatch(
         scheduleInterval,
@@ -222,7 +151,7 @@ function AirflowImport() {
 
       return matchesName && matchesScheduleInterval && matchesAutoRegenerateDag
     })
-  }, [data, name, scheduleInterval, autoRegenerateDag])
+  }, [dags, name, scheduleInterval, autoRegenerateDag])
 
   const handleBulkEditClick = useCallback(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
@@ -322,22 +251,7 @@ function AirflowImport() {
       <ViewBaseLayout>
         <div className="header-container">
           <h1>Airflow Import</h1>
-          <div className="header-buttons">
-            <Button
-              title="+ Create"
-              onClick={() => setCreateModalOpen(true)}
-              fontSize="14px"
-            />
-            <AirflowSearchFilterDags
-              isSearchFilterOpen={openDropdown === 'searchFilter'}
-              type="import"
-              onToggle={(isSearchFilterOpen: boolean) =>
-                handleDropdownToggle('searchFilter', isSearchFilterOpen)
-              }
-              onShow={handleShow}
-              disabled={!data}
-            />
-          </div>
+          <AirflowImportActions dags={dags} />
         </div>
 
         {/* <div className="filters">
@@ -357,7 +271,7 @@ function AirflowImport() {
             ))}
         </div> */}
 
-        {filteredData && Array.isArray(data) && data.length > 0 ? (
+        {filteredData && Array.isArray(dags) && dags.length > 0 ? (
           <>
             <div className="list-top-info-and-edit">
               <Button
@@ -382,7 +296,7 @@ function AirflowImport() {
             </div>
             <ListRowsInfo
               filteredData={filteredData}
-              contentTotalRows={String(data.length)}
+              contentTotalRows={String(dags.length)}
               itemType="DAG"
             />
             <TableList
@@ -403,14 +317,7 @@ function AirflowImport() {
             <p>No import DAGs yet.</p>
           </div>
         )}
-        {isCreateModalOpen && (
-          <CreateAirflowModal
-            isCreateModalOpen={isCreateModalOpen}
-            type="import"
-            onSave={handleSave}
-            onClose={() => setCreateModalOpen(false)}
-          />
-        )}
+
         {showDeleteConfirmation && currentDeleteRow && (
           <ConfirmationModal
             title={`Delete ${currentDeleteRow.name}`}

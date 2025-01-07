@@ -271,10 +271,7 @@ function Import() {
           ))}
         </div> */}
 
-        {tables &&
-        headersRowInfo &&
-        Array.isArray(tables) &&
-        Array.isArray(tables) ? (
+        {tables && Array.isArray(tables) && headersRowInfo ? (
           <>
             <DbTables
               data={filteredData}
