@@ -322,9 +322,9 @@ function AirflowCustom() {
   return (
     <>
       <ViewBaseLayout>
-        <div className="import-header">
+        <div className="header-container">
           <h1>Airflow Custom</h1>
-          <div className="db-dropdown">
+          <div className="header-buttons">
             <Button
               title="+ Create"
               onClick={() => setCreateModalOpen(true)}
@@ -401,7 +401,7 @@ function AirflowCustom() {
         ) : isLoading ? (
           <div className="loading">Loading...</div>
         ) : (
-          <div className="import-text-block">
+          <div className="text-block">
             <p>No custom DAGs yet.</p>
           </div>
         )}

@@ -216,9 +216,9 @@ function Connection() {
   return (
     <>
       <ViewBaseLayout>
-        <div className="import-header" style={{ paddingBottom: 0 }}>
+        <div className="header-container" style={{ paddingBottom: 0 }}>
           <h1>Connection</h1>
-          <div className="db-dropdown">
+          <div className="header-buttons">
             <Button
               title="+ Create"
               onClick={() => setCreateModalOpen(true)}
@@ -279,7 +279,7 @@ function Connection() {
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (
-          <div className="import-text-block">
+          <div className="text-block">
             <p>No connections yet.</p>
           </div>
         )}

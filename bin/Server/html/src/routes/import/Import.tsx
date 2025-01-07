@@ -286,7 +286,7 @@ function Import() {
         ) : isSearchLoading ? (
           <div className="loading">Loading...</div>
         ) : (
-          <div className="import-text-block">
+          <div className="text-block">
             <p>No import tables yet.</p>
           </div>
         )}
