@@ -6,7 +6,7 @@ import Dropdown from './Dropdown'
 import ChevronDown from '../assets/icons/ChevronDown'
 import ChevronUp from '../assets/icons/ChevronUp'
 import FilterFunnel from '../assets/icons/FilterFunnel'
-import './SearchFilterTables.scss'
+import './HeaderActions.scss'
 import Button from './Button'
 import {
   // ConnectionSearchFilter,

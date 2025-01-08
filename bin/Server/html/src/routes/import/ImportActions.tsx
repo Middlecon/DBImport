@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Button from '../../components/Button'
 import CreateImportTableModal from '../../components/CreateImportTableModal'
 import ImportSearchFilterTables from '../../components/ImportSearchFilterTables'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,6 +13,9 @@ import {
 import { useCreateImportTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
 import { importPersistStateAtom } from '../../atoms/atoms'
+import DropdownActions from '../../components/DropdownActions'
+import DiscoverIcon from '../../assets/icons/DiscoverIcon'
+import PlusIcon from '../../assets/icons/PlusIcon'
 
 interface ImportActionsProps {
   tables: UiDbTable[] | undefined
@@ -138,11 +140,27 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
   return (
     <>
       <div className="header-buttons">
-        <Button
-          title="+ Add table"
-          onClick={() => setIsCreateModalOpen(true)}
-          fontSize="14px"
-        />
+        <div className="actions-dropdown-container">
+          <DropdownActions
+            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+            onToggle={(isDropdownActionsOpen: boolean) =>
+              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+            }
+            items={[
+              {
+                icon: <PlusIcon />,
+                label: 'Add table',
+                onClick: () => setIsCreateModalOpen(true)
+              },
+              {
+                icon: <DiscoverIcon />,
+                label: `Discover and Add tables`,
+                onClick: () => console.log('Discover action clicked')
+              }
+            ]}
+            disabled={!tables}
+          />
+        </div>
         <ImportSearchFilterTables
           isSearchFilterOpen={openDropdown === 'searchFilter'}
           onToggle={(isSearchFilterOpen: boolean) =>
