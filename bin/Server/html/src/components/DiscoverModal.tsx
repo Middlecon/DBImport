@@ -662,7 +662,7 @@ function DiscoverModal({
           title="Close Discover and Add tables"
           message="Modal will be cleared."
           buttonTitleCancel="No, Go Back"
-          buttonTitleConfirm="Yes, Cancel"
+          buttonTitleConfirm="Yes, Close"
           onConfirm={handleConfirmCancel}
           onCancel={handleCloseConfirmation}
           isActive={showConfirmation}
