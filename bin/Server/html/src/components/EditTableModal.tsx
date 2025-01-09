@@ -18,6 +18,8 @@ import { AirflowDAGTaskType } from '../utils/enums'
 import { useLocation } from 'react-router-dom'
 import { isValidOctal } from '../utils/functions'
 import { useFocusTrap } from '../utils/hooks'
+import { useAtom } from 'jotai'
+import { isMainSidebarMinimized } from '../atoms/atoms'
 
 interface EditModalProps {
   isEditModalOpen: boolean
@@ -80,6 +82,8 @@ function EditTableModal({
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(initWidth ? initWidth : 584)
   const MIN_WIDTH = initWidth ? initWidth : 584
+
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const validationMethodSetting = editedSettings.find(
     (s) => s.label === 'Validation Method'
@@ -271,7 +275,9 @@ function EditTableModal({
   return (
     <div className="table-modal-backdrop">
       <div
-        className="table-modal-content"
+        className={`table-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >

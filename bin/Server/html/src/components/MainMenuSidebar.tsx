@@ -16,7 +16,8 @@ import {
   isAirflowSubmenuActiveAtom,
   isConfigurationSubmenuActiveAtom,
   exportPersistStateAtom,
-  usernameAtom
+  usernameAtom,
+  isMainSidebarMinimized
 } from '../atoms/atoms'
 import { useState } from 'react'
 import AirflowImportIcon from '../assets/icons/AirflowImportIcon'
@@ -30,11 +31,9 @@ import { clearSessionStorageAtoms } from '../atoms/utils'
 import ConfigurationJDBCDriversIcon from '../assets/icons/ConfigurationJDBCDriversIcon'
 import ConfigurationGlobalIcon from '../assets/icons/ConfigurationGlobalIcon'
 
-interface MainSidebarProps {
-  minimized: boolean
-  setMinimized: React.Dispatch<React.SetStateAction<boolean>>
-}
-function MainMenuSidebar({ minimized, setMinimized }: MainSidebarProps) {
+function MainMenuSidebar() {
+  const [minimized, setMinimized] = useAtom(isMainSidebarMinimized)
+
   const { data: statusData } = useGetStatusAndVersion()
   const navigate = useNavigate()
   const [importPersistState] = useAtom(importPersistStateAtom)

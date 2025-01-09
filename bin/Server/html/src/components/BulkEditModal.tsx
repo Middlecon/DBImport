@@ -5,6 +5,8 @@ import ConfirmationModal from './ConfirmationModal'
 import './Modals.scss'
 import BulkInputFields, { BulkInputFieldsProps } from '../utils/BulkInputFields'
 import { useFocusTrap } from '../utils/hooks'
+import { useAtom } from 'jotai'
+import { isMainSidebarMinimized } from '../atoms/atoms'
 
 interface BulkEditModalProps<T> {
   isBulkEditModalOpen: boolean
@@ -39,6 +41,8 @@ function BulkEditModal<T>({
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(initWidth ?? 584)
   const MIN_WIDTH = initWidth ?? 584
+
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const handleBulkChangeInternal = useCallback(
     (
@@ -126,7 +130,9 @@ function BulkEditModal<T>({
   return (
     <div className="table-modal-backdrop">
       <div
-        className="table-modal-content"
+        className={`table-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >

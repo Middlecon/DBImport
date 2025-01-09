@@ -15,6 +15,8 @@ import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from './InfoText'
 import { useFocusTrap } from '../utils/hooks'
+import { useAtom } from 'jotai'
+import { isMainSidebarMinimized } from '../atoms/atoms'
 
 interface EditModalProps {
   isEditModalOpen: boolean
@@ -68,6 +70,8 @@ function EditConnectionModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
+
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredFields = editedSettings.filter(
@@ -238,7 +242,9 @@ function EditConnectionModal({
   return (
     <div className="table-modal-backdrop">
       <div
-        className="table-modal-content"
+        className={`table-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >

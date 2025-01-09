@@ -16,7 +16,7 @@
   position: relative;
   margin-top: 20px;
   margin-bottom: 20px;
-  margin-left: 50px;
+  margin-left: 250px;
   padding: 40px 45px 45px 45px;
   border-radius: 8px;
   width: 584px;
@@ -24,6 +24,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  &.sidebar-minimized {
+    margin-left: 85px;
+  }
 }
 
 .table-modal-resize-handle {

@@ -22,6 +22,8 @@ import InfoText from './InfoText'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
 import { useFocusTrap } from '../utils/hooks'
+import { isMainSidebarMinimized } from '../atoms/atoms'
+import { useAtom } from 'jotai'
 
 interface CreateTableModalProps {
   isCreateModalOpen: boolean
@@ -65,6 +67,8 @@ function CreateImportTableModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
+
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = [
@@ -237,7 +241,9 @@ function CreateImportTableModal({
   return (
     <div className="table-modal-backdrop">
       <div
-        className="table-modal-content"
+        className={`table-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >

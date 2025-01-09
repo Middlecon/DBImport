@@ -1,6 +1,14 @@
 import { atom, getDefaultStore } from 'jotai'
 import { atomWithSessionStorage } from './utils'
 
+export const isMainSidebarMinimized = atom(false)
+
+export const isDbDropdownReadyAtom = atom(false)
+
+export const isCnDropdownReadyAtom = atom(false)
+
+export const airflowTypeAtom = atom('')
+
 export const importPersistStateAtom = atomWithSessionStorage<string | null>(
   'importPersistState',
   null
@@ -27,10 +35,6 @@ export const airflowExportDagsPersistStateAtom = atomWithSessionStorage<
 export const airflowCustomDagsPersistStateAtom = atomWithSessionStorage<
   string | null
 >('airflowCustomDagsPersistState', null)
-
-export const isDbDropdownReadyAtom = atom(false)
-
-export const isCnDropdownReadyAtom = atom(false)
 
 export const importTableListFiltersAtom = atomWithSessionStorage<{
   [key: string]: string[]
@@ -64,8 +68,6 @@ export const isConfigurationSubmenuActiveAtom = atomWithSessionStorage<boolean>(
   'isConfigurationSubmenuActive',
   false
 )
-
-export const airflowTypeAtom = atom('')
 
 export const usernameAtom = atomWithSessionStorage<string | null>(
   'username',

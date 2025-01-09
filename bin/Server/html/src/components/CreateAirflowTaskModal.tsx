@@ -22,6 +22,8 @@ import InfoText from './InfoText'
 import { AirflowDAGTaskType } from '../utils/enums'
 import { useConnections } from '../utils/queries'
 import { useFocusTrap } from '../utils/hooks'
+import { useAtom } from 'jotai'
+import { isMainSidebarMinimized } from '../atoms/atoms'
 
 interface CreateAirflowModalProps {
   isCreateModalOpen: boolean
@@ -72,6 +74,8 @@ function CreateAirflowTaskModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
+
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
     const requiredLabels = ['Task Name']
@@ -219,7 +223,9 @@ function CreateAirflowTaskModal({
   return (
     <div className="table-modal-backdrop">
       <div
-        className="table-modal-content"
+        className={`table-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >
