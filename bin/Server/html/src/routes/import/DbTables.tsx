@@ -53,13 +53,13 @@ function DbTables({
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
-  const [currentRowsBulk, setCurrentRowsBulk] = useState<UiDbTable[] | []>([])
+  const [selectedRowsBulk, setSelectedRowsBulk] = useState<UiDbTable[] | []>([])
 
-  const [currentDeleteRow, setCurrentDeleteRow] = useState<UiDbTable>()
+  const [selectedDeleteRow, setSelectedDeleteRow] = useState<UiDbTable>()
   const [tableData, setTableData] = useState<UITable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -102,7 +102,7 @@ function DbTables({
 
       const rowData: EditSetting[] = importDbTablesEditSettings(row)
 
-      setCurrentRow(rowData)
+      setSelectedRow(rowData)
       setIsEditModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
@@ -111,7 +111,7 @@ function DbTables({
 
   const handleDeleteIconClick = (row: UiDbTable) => {
     setShowDeleteConfirmation(true)
-    setCurrentDeleteRow(row)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: UiDbTable) => {
@@ -166,14 +166,14 @@ function DbTables({
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
     console.log('handleBulkEditClick selectedRows', selectedRows)
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, data])
 
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
   ) => {
-    const importTablesPks = currentRowsBulk.map((row) => ({
+    const importTablesPks = selectedRowsBulk.map((row) => ({
       database: row.database,
       table: row.table
     }))
@@ -211,7 +211,7 @@ function DbTables({
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
   }, [rowSelection, data])
 
@@ -243,16 +243,16 @@ function DbTables({
     )
   }
 
-  const currentRowsBulkData = useMemo(() => {
+  const selectedRowsBulkData = useMemo(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
     return selectedIndexes.map((index) => data[index])
   }, [rowSelection, data])
 
-  const currentRowsLength = useMemo(
-    () => currentRowsBulkData.length,
-    [currentRowsBulkData]
+  const selectedRowsLength = useMemo(
+    () => selectedRowsBulkData.length,
+    [selectedRowsBulkData]
   )
 
   return (
@@ -262,22 +262,22 @@ function DbTables({
           <div className="list-top-info-and-edit">
             <Button
               title={`Edit ${
-                currentRowsLength > 0 ? currentRowsLength : ''
+                selectedRowsLength > 0 ? selectedRowsLength : ''
               } table${
-                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
               }`}
               onClick={handleBulkEditClick}
-              disabled={currentRowsLength < 1}
+              disabled={selectedRowsLength < 1}
             />
             <Button
               title={`Delete ${
-                currentRowsLength > 0 ? currentRowsLength : ''
+                selectedRowsLength > 0 ? selectedRowsLength : ''
               } table${
-                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
               }`}
               onClick={handleBulkDeleteClick}
               deleteStyle={true}
-              disabled={currentRowsLength < 1}
+              disabled={selectedRowsLength < 1}
             />
           </div>
 
@@ -301,22 +301,22 @@ function DbTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isEditModalOpen && currentRow && (
+      {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
-          settings={currentRow}
+          settings={selectedRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}
-      {showDeleteConfirmation && currentDeleteRow && (
+      {showDeleteConfirmation && selectedDeleteRow && (
         <ConfirmationModal
-          title={`Delete ${currentDeleteRow.table}`}
-          message={`Are you sure that you want to delete table "${currentDeleteRow.table}"? \nDelete is irreversable.`}
+          title={`Delete ${selectedDeleteRow.table}`}
+          message={`Are you sure that you want to delete table "${selectedDeleteRow.table}"? \nDelete is irreversable.`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleDelete(currentDeleteRow)}
+          onConfirm={() => handleDelete(selectedDeleteRow)}
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />
@@ -324,27 +324,27 @@ function DbTables({
       {isBulkEditModalOpen && (
         <BulkEditModal
           isBulkEditModalOpen={isBulkEditModalOpen}
-          title={`Edit the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          title={`Edit the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }`}
-          selectedRows={currentRowsBulk}
+          selectedRows={selectedRowsBulk}
           bulkFieldsData={bulkImportFieldsData}
           onSave={handleBulkEditSave}
           onClose={() => setIsBulkEditModalOpen(false)}
           initWidth={584}
         />
       )}
-      {showBulkDeleteConfirmation && currentRowsBulk && (
+      {showBulkDeleteConfirmation && selectedRowsBulk && (
         <ConfirmationModal
-          title={`Delete the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          title={`Delete the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }`}
-          message={`Are you sure that you want to delete the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          message={`Are you sure that you want to delete the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }? \nDelete is irreversable.`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleBulkDelete(currentRowsBulk)}
+          onConfirm={() => handleBulkDelete(selectedRowsBulk)}
           onCancel={() => setShowBulkDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />

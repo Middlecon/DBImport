@@ -47,8 +47,8 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
 
-  const [currentDeleteRow, setCurrentDeleteRow] = useState<AirflowTask>()
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [selectedDeleteRow, setSelectedDeleteRow] = useState<AirflowTask>()
+  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
   const [rowSelection, setRowSelection] = useState({})
@@ -109,7 +109,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       const rowData: EditSetting[] = airflowTaskRowDataEdit(row)
 
       setRowIndex(rowIndex)
-      setCurrentRow(rowData)
+      setSelectedRow(rowData)
       setIsEditModalOpen(true)
     },
     [originalDagData]
@@ -253,7 +253,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
 
   const handleDeleteIconClick = (row: AirflowTask) => {
     setShowDeleteConfirmation(true)
-    setCurrentDeleteRow(row)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: AirflowTask) => {
@@ -314,11 +314,11 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
         </p>
       )}
 
-      {isEditModalOpen && currentRow && (
+      {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
-          title={`Edit Task ${currentRow[0].value}`}
-          settings={currentRow}
+          title={`Edit Task ${selectedRow[0].value}`}
+          settings={selectedRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
@@ -332,13 +332,13 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           onClose={() => setCreateModalOpen(false)}
         />
       )}
-      {showDeleteConfirmation && currentDeleteRow && (
+      {showDeleteConfirmation && selectedDeleteRow && (
         <ConfirmationModal
-          title={`Delete ${currentDeleteRow.name}`}
-          message={`Are you sure that you want to delete task "${currentDeleteRow.name}"? \nDelete is irreversable.`}
+          title={`Delete ${selectedDeleteRow.name}`}
+          message={`Are you sure that you want to delete task "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleDelete(currentDeleteRow)}
+          onConfirm={() => handleDelete(selectedDeleteRow)}
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />

@@ -75,7 +75,7 @@ function Connection() {
   const queryClient = useQueryClient()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [currentDeleteRow, setCurrentDeleteRow] = useState<Connections>()
+  const [selectedDeleteRow, setSelectedDeleteRow] = useState<Connections>()
   const [rowSelection, setRowSelection] = useState({})
 
   // const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
@@ -89,7 +89,7 @@ function Connection() {
 
   const handleDeleteIconClick = (row: Connections) => {
     setShowDeleteConfirmation(true)
-    setCurrentDeleteRow(row)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: Connections) => {
@@ -193,13 +193,13 @@ function Connection() {
           </div>
         )}
 
-        {showDeleteConfirmation && currentDeleteRow && (
+        {showDeleteConfirmation && selectedDeleteRow && (
           <ConfirmationModal
-            title={`Delete ${currentDeleteRow.name}`}
-            message={`Are you sure that you want to delete connection "${currentDeleteRow.name}"? \nDelete is irreversable.`}
+            title={`Delete ${selectedDeleteRow.name}`}
+            message={`Are you sure that you want to delete connection "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleDelete(currentDeleteRow)}
+            onConfirm={() => handleDelete(selectedDeleteRow)}
             onCancel={() => setShowDeleteConfirmation(false)}
             isActive={showDeleteConfirmation}
           />

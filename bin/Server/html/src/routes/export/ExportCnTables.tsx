@@ -54,15 +54,15 @@ function ExportCnTables({
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
-  const [currentRowsBulk, setCurrentRowsBulk] = useState<
+  const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UIExportCnTables[] | []
   >([])
 
-  const [currentDeleteRow, setCurrentDeleteRow] = useState<UIExportCnTables>()
+  const [selectedDeleteRow, setSelectedDeleteRow] = useState<UIExportCnTables>()
   const [tableData, setTableData] = useState<UIExportTable | null>(null)
   const [tableName, setTableName] = useState<string>('')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -106,7 +106,7 @@ function ExportCnTables({
 
       const rowData: EditSetting[] = exportCnTablesEditSettings(row)
 
-      setCurrentRow(rowData)
+      setSelectedRow(rowData)
       setIsEditModalOpen(true)
     } catch (error) {
       console.error('Failed to fetch table data:', error)
@@ -119,13 +119,13 @@ function ExportCnTables({
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
     console.log('handleBulkEditClick selectedRows', selectedRows)
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, data])
 
   const handleDeleteIconClick = (row: UIExportCnTables) => {
     setShowDeleteConfirmation(true)
-    setCurrentDeleteRow(row)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: UIExportCnTables) => {
@@ -185,7 +185,7 @@ function ExportCnTables({
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
   ) => {
-    const exportTablesPks = currentRowsBulk.map((row) => ({
+    const exportTablesPks = selectedRowsBulk.map((row) => ({
       connection: row.connection,
       targetSchema: row.targetSchema,
       targetTable: row.targetTable
@@ -226,7 +226,7 @@ function ExportCnTables({
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
   }, [rowSelection, data])
 
@@ -261,16 +261,16 @@ function ExportCnTables({
     )
   }
 
-  const currentRowsBulkData = useMemo(() => {
+  const selectedRowsBulkData = useMemo(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
     return selectedIndexes.map((index) => data[index])
   }, [rowSelection, data])
 
-  const currentRowsLength = useMemo(
-    () => currentRowsBulkData.length,
-    [currentRowsBulkData]
+  const selectedRowsLength = useMemo(
+    () => selectedRowsBulkData.length,
+    [selectedRowsBulkData]
   )
 
   return (
@@ -283,22 +283,22 @@ function ExportCnTables({
           >
             <Button
               title={`Edit ${
-                currentRowsLength > 0 ? currentRowsLength : ''
+                selectedRowsLength > 0 ? selectedRowsLength : ''
               } table${
-                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
               }`}
               onClick={handleBulkEditClick}
-              disabled={currentRowsLength < 1}
+              disabled={selectedRowsLength < 1}
             />
             <Button
               title={`Delete ${
-                currentRowsLength > 0 ? currentRowsLength : ''
+                selectedRowsLength > 0 ? selectedRowsLength : ''
               } table${
-                currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
               }`}
               onClick={handleBulkDeleteClick}
               deleteStyle={true}
-              disabled={currentRowsLength < 1}
+              disabled={selectedRowsLength < 1}
             />
           </div>
           <ListRowsInfo
@@ -313,7 +313,7 @@ function ExportCnTables({
             onEdit={handleEditClick}
             onDelete={handleDeleteIconClick}
             isLoading={isLoading}
-            isExport={true}
+            noLinkOnTableName={true}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             enableMultiSelection={true}
@@ -322,22 +322,22 @@ function ExportCnTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isEditModalOpen && currentRow && (
+      {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
-          settings={currentRow}
+          settings={selectedRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />
       )}
-      {showDeleteConfirmation && currentDeleteRow && (
+      {showDeleteConfirmation && selectedDeleteRow && (
         <ConfirmationModal
-          title={`Delete ${currentDeleteRow.targetTable}`}
-          message={`Are you sure that you want to delete \n\n target table "${currentDeleteRow.targetTable}"? Delete is irreversable.`}
+          title={`Delete ${selectedDeleteRow.targetTable}`}
+          message={`Are you sure that you want to delete \n\n target table "${selectedDeleteRow.targetTable}"? Delete is irreversable.`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleDelete(currentDeleteRow)}
+          onConfirm={() => handleDelete(selectedDeleteRow)}
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />
@@ -345,10 +345,10 @@ function ExportCnTables({
       {isBulkEditModalOpen && (
         <BulkEditModal
           isBulkEditModalOpen={isBulkEditModalOpen}
-          title={`Edit the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          title={`Edit the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }`}
-          selectedRows={currentRowsBulk}
+          selectedRows={selectedRowsBulk}
           bulkFieldsData={bulkExportFieldsData}
           // onBulkChange={handleBulkChange}
           onSave={handleBulkEditSave}
@@ -356,17 +356,17 @@ function ExportCnTables({
           initWidth={584}
         />
       )}
-      {showBulkDeleteConfirmation && currentRowsBulk && (
+      {showBulkDeleteConfirmation && selectedRowsBulk && (
         <ConfirmationModal
-          title={`Delete the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          title={`Delete the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }`}
-          message={`Are you sure that you want to delete the ${currentRowsLength} selected table${
-            currentRowsLength > 1 ? 's' : ''
+          message={`Are you sure that you want to delete the ${selectedRowsLength} selected table${
+            selectedRowsLength > 1 ? 's' : ''
           }? \nDelete is irreversable.`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleBulkDelete(currentRowsBulk)}
+          onConfirm={() => handleBulkDelete(selectedRowsBulk)}
           onCancel={() => setShowBulkDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />

@@ -29,7 +29,7 @@ interface TableProps<T> {
   onEdit?: (row: T, rowIndex?: number) => void
   onDelete?: (row: T) => void
   airflowType?: string
-  isExport?: boolean
+  noLinkOnTableName?: boolean
 }
 
 function TableList<T>({
@@ -42,7 +42,7 @@ function TableList<T>({
   onEdit,
   onDelete,
   airflowType,
-  isExport = false
+  noLinkOnTableName = false
 }: TableProps<T>) {
   const tableHeaderRef = useRef<HTMLDivElement | null>(null)
   const lastSelectedRowIndexRef = useRef<number | null>(null)
@@ -311,7 +311,7 @@ function TableList<T>({
         )
       }
 
-      if (!isExport && column.accessor === 'table') {
+      if (!noLinkOnTableName && column.accessor === 'table') {
         return (
           <p
             ref={(el) => (cellRefs.current[rowIndex] = el)}
@@ -531,7 +531,7 @@ function TableList<T>({
       return String(cellValue)
     },
     [
-      isExport,
+      noLinkOnTableName,
       airflowType,
       navigate,
       overflowState,

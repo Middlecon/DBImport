@@ -1,4 +1,3 @@
-import '../import/Import.scss'
 import { useCallback, useMemo, useState } from 'react'
 import { useJDBCDrivers } from '../../utils/queries'
 import { Column, EditSetting, JDBCdrivers } from '../../utils/interfaces'
@@ -8,12 +7,13 @@ import { JDBCdriversRowDataEdit } from '../../utils/cardRenderFormatting'
 import { updateJDBCdriverData } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateJDBCdrivers } from '../../utils/mutations'
+import '../import/Import.scss'
 
 function ConfigJDBCDrivers() {
   const queryClient = useQueryClient()
   const { mutate: updateDriver } = useUpdateJDBCdrivers()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
   const [row, setRow] = useState<JDBCdrivers>()
   const [rowIndex, setRowIndex] = useState<number>()
   const [rowSelection, setRowSelection] = useState({})
@@ -41,7 +41,7 @@ function ConfigJDBCDrivers() {
 
       setRowIndex(rowIndex)
       setRow(row)
-      setCurrentRow(rowData)
+      setSelectedRow(rowData)
       setIsEditModalOpen(true)
     },
     [originalDriverData]
@@ -112,23 +112,19 @@ function ConfigJDBCDrivers() {
           onRowSelectionChange={setRowSelection}
           enableMultiSelection={false}
         />
+      ) : isLoading ? (
+        <div className="loading">Loading...</div>
       ) : (
-        <p
-          style={{
-            padding: ' 40px 50px 44px 50px',
-            backgroundColor: 'white',
-            borderRadius: 7,
-            textAlign: 'center'
-          }}
-        >
-          No JDBC Drivers data yet.
-        </p>
+        <div className="text-block">
+          <p>No connections yet.</p>
+        </div>
       )}
-      {isEditModalOpen && currentRow && row && (
+
+      {isEditModalOpen && selectedRow && row && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
           title={`Edit ${row.databaseType} ${row.version}`}
-          settings={currentRow}
+          settings={selectedRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
         />

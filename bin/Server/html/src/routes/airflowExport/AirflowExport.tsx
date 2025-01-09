@@ -67,10 +67,10 @@ function AirflowExport() {
   const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [currentDeleteRow, setCurrentDeleteRow] =
+  const [selectedDeleteRow, setSelectedDeleteRow] =
     useState<UiAirflowsExportData>()
 
-  const [currentRowsBulk, setCurrentRowsBulk] = useState<
+  const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
   >([])
   const [rowSelection, setRowSelection] = useState({})
@@ -106,7 +106,7 @@ function AirflowExport() {
 
   const handleDeleteIconClick = (row: UiAirflowsExportData) => {
     setShowDeleteConfirmation(true)
-    setCurrentDeleteRow(row)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: UiAirflowsExportData) => {
@@ -157,14 +157,14 @@ function AirflowExport() {
     )
     const selectedRows = selectedIndexes.map((index) => filteredData[index])
     console.log('handleBulkEditClick selectedRows', selectedRows)
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, filteredData])
 
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
   ) => {
-    const airflowDagPks = currentRowsBulk.map((row) => ({
+    const airflowDagPks = selectedRowsBulk.map((row) => ({
       name: row.name
     }))
 
@@ -200,7 +200,7 @@ function AirflowExport() {
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => dags[index])
-    setCurrentRowsBulk(selectedRows)
+    setSelectedRowsBulk(selectedRows)
     setShowBulkDeleteConfirmation(true)
   }, [rowSelection, dags])
 
@@ -231,16 +231,16 @@ function AirflowExport() {
     )
   }
 
-  const currentRowsBulkData = useMemo(() => {
+  const selectedRowsBulkData = useMemo(() => {
     const selectedIndexes = Object.keys(rowSelection).map((id) =>
       parseInt(id, 10)
     )
     return selectedIndexes.map((index) => filteredData[index])
   }, [rowSelection, filteredData])
 
-  const currentRowsLength = useMemo(
-    () => currentRowsBulkData.length,
-    [currentRowsBulkData]
+  const selectedRowsLength = useMemo(
+    () => selectedRowsBulkData.length,
+    [selectedRowsBulkData]
   )
 
   return (
@@ -273,22 +273,22 @@ function AirflowExport() {
             <div className="list-top-info-and-edit">
               <Button
                 title={`Edit ${
-                  currentRowsLength > 0 ? currentRowsLength : ''
+                  selectedRowsLength > 0 ? selectedRowsLength : ''
                 } DAG${
-                  currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                  selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
                 }`}
                 onClick={handleBulkEditClick}
-                disabled={currentRowsLength < 1}
+                disabled={selectedRowsLength < 1}
               />
               <Button
                 title={`Delete ${
-                  currentRowsLength > 0 ? currentRowsLength : ''
+                  selectedRowsLength > 0 ? selectedRowsLength : ''
                 } DAG${
-                  currentRowsLength > 1 || currentRowsLength === 0 ? 's' : ''
+                  selectedRowsLength > 1 || selectedRowsLength === 0 ? 's' : ''
                 }`}
                 onClick={handleBulkDeleteClick}
                 deleteStyle={true}
-                disabled={currentRowsLength < 1}
+                disabled={selectedRowsLength < 1}
               />
             </div>
             <ListRowsInfo
@@ -315,13 +315,13 @@ function AirflowExport() {
           </div>
         )}
 
-        {showDeleteConfirmation && currentDeleteRow && (
+        {showDeleteConfirmation && selectedDeleteRow && (
           <ConfirmationModal
-            title={`Delete ${currentDeleteRow.name}`}
-            message={`Are you sure that you want to delete \n\n DAG "${currentDeleteRow.name}"? Delete is irreversable.`}
+            title={`Delete ${selectedDeleteRow.name}`}
+            message={`Are you sure that you want to delete \n\n DAG "${selectedDeleteRow.name}"? Delete is irreversable.`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleDelete(currentDeleteRow)}
+            onConfirm={() => handleDelete(selectedDeleteRow)}
             onCancel={() => setShowDeleteConfirmation(false)}
             isActive={showDeleteConfirmation}
           />
@@ -329,27 +329,27 @@ function AirflowExport() {
         {isBulkEditModalOpen && (
           <BulkEditModal
             isBulkEditModalOpen={isBulkEditModalOpen}
-            title={`Edit the ${currentRowsLength} selected DAG${
-              currentRowsLength > 1 ? 's' : ''
+            title={`Edit the ${selectedRowsLength} selected DAG${
+              selectedRowsLength > 1 ? 's' : ''
             }`}
-            selectedRows={currentRowsBulk}
+            selectedRows={selectedRowsBulk}
             bulkFieldsData={bulkAirflowDagFields}
             onSave={handleBulkEditSave}
             onClose={() => setIsBulkEditModalOpen(false)}
             initWidth={684}
           />
         )}
-        {showBulkDeleteConfirmation && currentRowsBulk && (
+        {showBulkDeleteConfirmation && selectedRowsBulk && (
           <ConfirmationModal
-            title={`Delete the ${currentRowsLength} selected DAG${
-              currentRowsLength > 1 ? 's' : ''
+            title={`Delete the ${selectedRowsLength} selected DAG${
+              selectedRowsLength > 1 ? 's' : ''
             }`}
-            message={`Are you sure that you want to delete the ${currentRowsLength} selected DAG${
-              currentRowsLength > 1 ? 's' : ''
+            message={`Are you sure that you want to delete the ${selectedRowsLength} selected DAG${
+              selectedRowsLength > 1 ? 's' : ''
             }? \nDelete is irreversable.`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleBulkDelete(currentRowsBulk)}
+            onConfirm={() => handleBulkDelete(selectedRowsBulk)}
             onCancel={() => setShowBulkDeleteConfirmation(false)}
             isActive={showDeleteConfirmation}
           />

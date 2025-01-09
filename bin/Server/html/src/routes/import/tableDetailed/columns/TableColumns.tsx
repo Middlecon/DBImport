@@ -21,7 +21,7 @@ function TableColumns() {
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [currentRow, setCurrentRow] = useState<EditSetting[] | []>([])
+  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
   const [rowIndex, setRowIndex] = useState<number>()
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0)
   const [rowSelection, setRowSelection] = useState({})
@@ -66,7 +66,7 @@ function TableColumns() {
 
       const rowData: EditSetting[] = importColumnRowDataEdit(row, tableData)
 
-      setCurrentRow(rowData)
+      setSelectedRow(rowData)
       setRowIndex(rowIndex)
       setIsEditModalOpen(true)
     },
@@ -133,11 +133,11 @@ function TableColumns() {
         </p>
       )}
 
-      {isEditModalOpen && currentRow && (
+      {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
-          title={`Edit column ${currentRow[0].value}`}
-          settings={currentRow}
+          title={`Edit column ${selectedRow[0].value}`}
+          settings={selectedRow}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSave}
           initWidth={587}
