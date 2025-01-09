@@ -842,6 +842,11 @@ class dbCalls:
 		log.debug(connection)
 		log.info("User '%s' updated/created connection '%s'"%(currentUser, getattr(connection, "name")))
 
+		if getattr(connection, "forceString") == None:				setattr(connection, "forceString", 0)
+		if getattr(connection, "createDatalakeImport") == None:		setattr(connection, "createDatalakeImport", 1)
+		if getattr(connection, "createForeignKey") == None:			setattr(connection, "createForeignKey", 1)
+		if getattr(connection, "atlasDiscovery") == None:			setattr(connection, "atlasDiscovery", 1)
+
 		try:
 			query = insert(configSchema.jdbcConnections).values(
 				dbalias = getattr(connection, "name"),
