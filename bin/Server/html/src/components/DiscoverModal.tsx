@@ -638,7 +638,9 @@ function DiscoverModal({
               enableSourceTableOverflow={true}
             />
           ) : isDiscoverLoading ? (
-            <div className="text-block discover">Loading...</div>
+            <div className="text-block discover">
+              <p>Loading...</p>
+            </div>
           ) : (
             <div className="text-block discover">
               <p>No tables yet.</p>
