@@ -24,6 +24,11 @@
   white-space: normal;
   word-break: keep-all;
   overflow-wrap: normal;
+  margin-left: 250px;
+
+  &.sidebar-minimized {
+    margin-left: 85px;
+  }
 }
 
 .confirmation-modal-h3 {

@@ -402,9 +402,7 @@ function Dropdown<T>({
                   </li>
                 ))
               ) : (
-                <li className="no-results" no-hover>
-                  No results found
-                </li>
+                <li className="no-results">No results found</li>
               )}
             </ul>
           )}

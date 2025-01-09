@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import Button from './Button'
 import './ConfirmationModal.scss'
 import { useFocusTrap } from '../utils/hooks'
+import { isMainSidebarMinimized } from '../atoms/atoms'
+import { useAtom } from 'jotai'
 
 interface ConfirmModalProps {
   title: string
@@ -23,12 +25,18 @@ function ConfirmationModal({
   isActive
 }: ConfirmModalProps) {
   const confirmationModalRef = useRef<HTMLDivElement>(null)
+  const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   useFocusTrap(confirmationModalRef, isActive)
 
   return (
     <div className="confirmation-modal-backdrop">
-      <div className="confirmation-modal-content" ref={confirmationModalRef}>
+      <div
+        className={`confirmation-modal-content ${
+          mainSidebarMinimized ? 'sidebar-minimized' : ''
+        }`}
+        ref={confirmationModalRef}
+      >
         <h3 className="confirmation-modal-h3">{title}</h3>
         <p>{message}</p>
         <div className="confirmation-modal-footer">

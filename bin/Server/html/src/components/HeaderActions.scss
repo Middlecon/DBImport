@@ -67,13 +67,14 @@
 
 .actions-dropdown-item {
   cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+
   &:hover,
   &.highlighted {
     background-color: #e7e7e7;
   }
-  display: flex;
-  gap: 8px;
-  padding: 10px;
 
   .add-table,
   .discover {
@@ -143,6 +144,15 @@
     justify-content: center;
     margin: 3px 0;
     margin-top: 32px;
+  }
+
+  .filter-second-container {
+    margin-top: 14px;
+    margin-bottom: 4px;
+
+    label:first-child {
+      margin-top: 0;
+    }
   }
 
   .filter-second-container {
