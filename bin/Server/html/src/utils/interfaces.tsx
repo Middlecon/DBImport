@@ -115,6 +115,44 @@ export interface UiImportSearchFilter {
   etlEngine: string | null
 }
 
+export interface ImportDiscoverSearch {
+  connection: string
+  database: string
+  schemaFilter: string | null
+  tableFilter: string | null
+  addSchemaToTable: boolean
+  addCounterToTable: boolean
+  counterStart: number | null
+  addCustomText: string | null
+}
+
+export interface ImportDiscoverTable {
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+}
+
+export interface UiImportDiscoverSearch {
+  connection: string | null // required in search, null for input handling
+  database: string | null // required in search, null for input handling
+  schemaFilter: string | null
+  tableFilter: string | null
+  addSchemaToTable: boolean
+  addCounterToTable: boolean
+  counterStart: number | null
+  addCustomText: string | null
+}
+
+export interface UiImportDiscoverTables {
+  database: string
+  table: string
+  connection: string
+  sourceSchema: string
+  sourceTable: string
+}
+
 export interface DbTable {
   connection: string
   database: string

@@ -16,6 +16,7 @@ import { importPersistStateAtom } from '../../atoms/atoms'
 import DropdownActions from '../../components/DropdownActions'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
+import DiscoverModal from '../../components/DiscoverModal'
 
 interface ImportActionsProps {
   tables: UiDbTable[] | undefined
@@ -30,6 +31,7 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false)
 
   const mostCommonConnection = useMemo(() => {
     if (!tables || tables.length === 0) return null
@@ -150,12 +152,18 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
               {
                 icon: <PlusIcon />,
                 label: 'Add table',
-                onClick: () => setIsCreateModalOpen(true)
+                onClick: () => {
+                  setIsCreateModalOpen(true)
+                  setOpenDropdown(null)
+                }
               },
               {
                 icon: <DiscoverIcon />,
                 label: `Discover and Add tables`,
-                onClick: () => console.log('Discover action clicked')
+                onClick: () => {
+                  setIsDiscoverModalOpen(true)
+                  setOpenDropdown(null)
+                }
               }
             ]}
             disabled={!tables}
@@ -179,6 +187,14 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
           }
           onSave={handleSave}
           onClose={() => setIsCreateModalOpen(false)}
+        />
+      )}
+
+      {isDiscoverModalOpen && (
+        <DiscoverModal
+          title="Discover and Add tables"
+          isDiscoverModalOpen={isDiscoverModalOpen}
+          onClose={() => setIsDiscoverModalOpen(false)}
         />
       )}
     </>

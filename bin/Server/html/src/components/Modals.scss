@@ -100,6 +100,106 @@
   margin-top: 0px;
 }
 
+.discover-modal-header {
+  h2 {
+    margin-bottom: 10px;
+  }
+  p {
+    margin: 0;
+    font-size: 12px;
+  }
+}
+
+.discover-container {
+  display: flex;
+  gap: 57px;
+
+  margin-top: 15px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  height: fit-content;
+
+  label {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  input {
+    border: 0.5px solid rgb(42, 42, 42);
+    padding-left: 4px;
+    width: 100%;
+  }
+
+  .dropdown {
+    width: 100%;
+  }
+}
+
+.discover-first-container,
+.discover-second-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 50%;
+}
+
+// Debug coloring
+// .discover-first-container {
+//   background-color: green;
+//   label {
+//     background-color: blue;
+//   }
+// }
+
+// .discover-second-container {
+//   background-color: rgb(66, 44, 77);
+//   label {
+//     background-color: blue;
+//   }
+// }
+
+.discover-db-dropdown {
+  margin-bottom: -7.2px;
+}
+
+.discover-radio-edit {
+  display: inline-flex;
+  align-items: center;
+  align-content: center;
+  margin-left: 5px;
+
+  label {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    width: max-content !important;
+    margin-right: 30px;
+    margin-top: 3px;
+  }
+
+  input[type='radio'] {
+    margin: 0;
+    vertical-align: middle;
+  }
+}
+
+.text-block.discover {
+  margin-top: 0;
+}
+
+.discover-button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.discover-button-container.footer {
+  margin-top: 20px;
+}
+
 .error-message {
   font-size: 12px;
   color: red;

@@ -19,6 +19,8 @@ import {
   ExportTable,
   HeadersRowInfo,
   ImportAirflowDAG,
+  ImportDiscoverSearch,
+  ImportDiscoverTable,
   ImportSearchFilter,
   JDBCdrivers,
   Table,
@@ -232,6 +234,25 @@ export const useSearchImportTables = (
 
       return { tables: enumMappedData, headersRowInfo }
     },
+    enabled: filters !== null, // Prevents query execution when filters is null
+    refetchOnWindowFocus: false
+  })
+}
+
+// Discover tables
+
+const postDiscoverImportTables = async (filters: ImportDiscoverSearch) => {
+  const response = await axiosInstance.post('/import/discover/search', filters)
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useDiscoverImportTables = (
+  filters: ImportDiscoverSearch | null
+): UseQueryResult<ImportDiscoverTable[], Error> => {
+  return useQuery({
+    queryKey: ['import', 'discover', filters],
+    queryFn: async () => postDiscoverImportTables(filters!), // We are sure that filters is not null here because of the enabled flag
     enabled: filters !== null, // Prevents query execution when filters is null
     refetchOnWindowFocus: false
   })

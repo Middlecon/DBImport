@@ -30,6 +30,7 @@ interface TableProps<T> {
   onDelete?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
+  enableSourceTableOverflow?: boolean
 }
 
 function TableList<T>({
@@ -42,7 +43,8 @@ function TableList<T>({
   onEdit,
   onDelete,
   airflowType,
-  noLinkOnTableName = false
+  noLinkOnTableName = false,
+  enableSourceTableOverflow = false
 }: TableProps<T>) {
   const tableHeaderRef = useRef<HTMLDivElement | null>(null)
   const lastSelectedRowIndexRef = useRef<number | null>(null)
@@ -264,7 +266,7 @@ function TableList<T>({
 
       const cellValue = row[displayKey] ?? row[accessorKey] ?? ''
 
-      if (column.accessor === 'sourceTable') {
+      if (column.accessor === 'sourceTable' && !enableSourceTableOverflow) {
         return (
           <>
             <p ref={(el) => (cellRefs.current[rowIndex] = el)}>
@@ -531,6 +533,7 @@ function TableList<T>({
       return String(cellValue)
     },
     [
+      enableSourceTableOverflow,
       noLinkOnTableName,
       airflowType,
       navigate,
@@ -744,7 +747,10 @@ function TableList<T>({
                   <div
                     key={cell.id}
                     className={`td ${
-                      cell.column.id === 'sourceTable' ? 'fixed-width' : ''
+                      cell.column.id === 'sourceTable' &&
+                      !enableSourceTableOverflow
+                        ? 'fixed-width'
+                        : ''
                     } ${
                       cell.column.columnDef.meta?.isSticky
                         ? `sticky-right ${
@@ -769,7 +775,12 @@ function TableList<T>({
         </div>
       )
     },
-    [boxShadowColumnIndex, handleRowClick, isScrolledToEnd]
+    [
+      boxShadowColumnIndex,
+      enableSourceTableOverflow,
+      handleRowClick,
+      isScrolledToEnd
+    ]
   )
 
   const MemoizedTableBody = React.useMemo(
@@ -823,7 +834,10 @@ function TableList<T>({
                       <div
                         key={header.id}
                         className={`th ${
-                          header.id === 'sourceTable' ? 'fixed-width' : ''
+                          header.id === 'sourceTable' &&
+                          !enableSourceTableOverflow
+                            ? 'fixed-width'
+                            : ''
                         }
                         ${
                           header.id === 'serverType'

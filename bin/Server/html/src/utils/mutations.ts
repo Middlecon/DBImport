@@ -20,7 +20,8 @@ import {
   ImportPKs,
   ExportPKs,
   AirflowDagPk,
-  GenerateJDBCconnectionString
+  GenerateJDBCconnectionString,
+  ImportDiscoverTable
 } from './interfaces'
 
 // Connection
@@ -176,6 +177,20 @@ const deleteImportTable = async ({
 export const useDeleteImportTable = () => {
   return useMutation({
     mutationFn: (args: DeleteImportTableArgs) => deleteImportTable(args)
+  })
+}
+
+// Add discovered tables
+
+const postAddImportTables = async (tables: ImportDiscoverTable[]) => {
+  const response = await axiosInstance.post('/import/discover/add', tables)
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useAddImportTables = () => {
+  return useMutation({
+    mutationFn: (tables: ImportDiscoverTable[]) => postAddImportTables(tables)
   })
 }
 
