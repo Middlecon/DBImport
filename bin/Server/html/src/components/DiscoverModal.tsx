@@ -581,7 +581,7 @@ function DiscoverModal({
                     <span
                       style={
                         formValues.addCounterToTable === false
-                          ? { color: 'grey' }
+                          ? { color: '#a0a0a0' }
                           : {}
                       }
                     >
@@ -591,7 +591,11 @@ function DiscoverModal({
                       id="discoverCounterStart"
                       // ref={inputRef}
                       className="input-fields-number-input"
-                      style={{ minHeight: 0 }}
+                      style={
+                        formValues.addCounterToTable === false
+                          ? { minHeight: 0, color: '#a0a0a0' }
+                          : { minHeight: 0 }
+                      }
                       type="number"
                       value={formValues.counterStart || ''}
                       onChange={(event) => {
