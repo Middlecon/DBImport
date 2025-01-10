@@ -5,7 +5,8 @@
   overflow-x: auto;
   overflow-y: auto;
   width: 100%;
-  height: calc(100vh - 228px - var(--filters-height));
+  height: max-content;
+  max-height: calc(100vh - 228px - var(--filters-height));
 }
 
 .tables-container:focus,
