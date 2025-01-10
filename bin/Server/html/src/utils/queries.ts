@@ -15,6 +15,8 @@ import {
   ExportAirflowDAG,
   ExportCnTable,
   ExportConnections,
+  ExportDiscoverSearch,
+  ExportDiscoverTable,
   ExportSearchFilter,
   ExportTable,
   HeadersRowInfo,
@@ -239,7 +241,7 @@ export const useSearchImportTables = (
   })
 }
 
-// Discover tables
+// Discover import tables
 
 const postDiscoverImportTables = async (filters: ImportDiscoverSearch) => {
   const response = await axiosInstance.post('/import/discover/search', filters)
@@ -536,6 +538,25 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
 //     enabled: !!type
 //   })
 // }
+
+// Discover export tables
+
+const postDiscoverExportTables = async (filters: ExportDiscoverSearch) => {
+  const response = await axiosInstance.post('/export/discover/search', filters)
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useDiscoverExportTables = (
+  filters: ExportDiscoverSearch | null
+): UseQueryResult<ExportDiscoverTable[], Error> => {
+  return useQuery({
+    queryKey: ['export', 'discover', filters],
+    queryFn: async () => postDiscoverExportTables(filters!), // We are sure that filters is not null here because of the enabled flag
+    enabled: filters !== null, // Prevents query execution when filters is null
+    refetchOnWindowFocus: false
+  })
+}
 
 // Get all import airflows
 

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Button from '../../components/Button'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
 import CreateExportTableModal from '../../components/CreateExportTableModal'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,6 +13,10 @@ import {
 import { useCreateExportTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
 import { exportPersistStateAtom } from '../../atoms/atoms'
+import DiscoverIcon from '../../assets/icons/DiscoverIcon'
+import PlusIcon from '../../assets/icons/PlusIcon'
+import DropdownActions from '../../components/DropdownActions'
+import DiscoverExportModal from '../../components/DiscoverExportModal'
 
 interface ExportActionsProps {
   tables: UIExportCnTables[] | undefined
@@ -26,6 +29,8 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   const navigate = useNavigate()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false)
+
   const [, setExportPersistState] = useAtom(exportPersistStateAtom)
 
   const mostCommonConnection = useMemo(() => {
@@ -109,12 +114,33 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   return (
     <>
       <div className="header-buttons">
-        <Button
-          title="+ Add table"
-          onClick={() => setIsCreateModalOpen(true)}
-          fontSize="14px"
-        />
-
+        <div className="actions-dropdown-container">
+          <DropdownActions
+            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+            onToggle={(isDropdownActionsOpen: boolean) =>
+              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+            }
+            items={[
+              {
+                icon: <PlusIcon />,
+                label: 'Create table',
+                onClick: () => {
+                  setIsCreateModalOpen(true)
+                  setOpenDropdown(null)
+                }
+              },
+              {
+                icon: <DiscoverIcon />,
+                label: `Discover and Add tables`,
+                onClick: () => {
+                  setIsDiscoverModalOpen(true)
+                  setOpenDropdown(null)
+                }
+              }
+            ]}
+            disabled={!tables}
+          />
+        </div>
         <ExportSearchFilterTables
           isSearchFilterOpen={openDropdown === 'searchFilter'}
           onToggle={(isSearchFilterOpen: boolean) =>
@@ -132,6 +158,13 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
           }
           onSave={handleSave}
           onClose={() => setIsCreateModalOpen(false)}
+        />
+      )}
+      {isDiscoverModalOpen && (
+        <DiscoverExportModal
+          title="Discover and Add tables"
+          isDiscoverModalOpen={isDiscoverModalOpen}
+          onClose={() => setIsDiscoverModalOpen(false)}
         />
       )}
     </>

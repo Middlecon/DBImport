@@ -126,14 +126,6 @@ export interface ImportDiscoverSearch {
   addCustomText: string | null
 }
 
-export interface ImportDiscoverTable {
-  database: string
-  table: string
-  connection: string
-  sourceSchema: string
-  sourceTable: string
-}
-
 export interface UiImportDiscoverSearch {
   connection: string | null // required in search, null for input handling
   database: string | null // required in search, null for input handling
@@ -145,7 +137,7 @@ export interface UiImportDiscoverSearch {
   addCustomText: string | null
 }
 
-export interface UiImportDiscoverTables {
+export interface ImportDiscoverTable {
   database: string
   table: string
   connection: string
@@ -716,6 +708,45 @@ export interface UiExportSearchFilter {
   lastUpdateFromHive: string | null
   exportType: string | null
   exportTool: string | null
+}
+
+export interface ExportDiscoverSearch {
+  connection: string
+  targetSchema: string
+  databaseFilter: string | null
+  tableFilter: string | null
+  addDBToTable: boolean
+  addCounterToTable: boolean
+  counterStart: number | null
+  addCustomText: string | null
+}
+
+export interface UiExportDiscoverSearch {
+  connection: string | null // required in search, null for input handling
+  targetSchema: string | null // required in search, null for input handling
+  databaseFilter: string | null
+  tableFilter: string | null
+  addDBToTable: boolean
+  addCounterToTable: boolean
+  counterStart: number | null
+  addCustomText: string | null
+}
+
+export interface ExportDiscoverTable {
+  database: string
+  table: string
+  connection: string
+  targetSchema: string
+  targetTable: string
+}
+
+export interface UiExportDiscoverTable {
+  uuid: string
+  database: string
+  table: string
+  connection: string
+  targetSchema: string
+  targetTable: string
 }
 
 export interface ExportTable {

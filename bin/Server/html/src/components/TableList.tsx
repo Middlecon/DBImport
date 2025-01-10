@@ -25,6 +25,7 @@ interface TableProps<T> {
   isLoading: boolean
   rowSelection: RowSelectionState
   onRowSelectionChange: OnChangeFn<RowSelectionState>
+  containerRef?: React.RefObject<HTMLDivElement>
   enableMultiSelection?: boolean
   onEdit?: (row: T, rowIndex?: number) => void
   onDelete?: (row: T) => void
@@ -39,6 +40,7 @@ function TableList<T>({
   isLoading,
   rowSelection,
   onRowSelectionChange,
+  containerRef: externalRef,
   enableMultiSelection = true,
   onEdit,
   onDelete,
@@ -46,6 +48,9 @@ function TableList<T>({
   noLinkOnTableName = false,
   enableSourceTableOverflow = false
 }: TableProps<T>) {
+  const internalRef = useRef<HTMLDivElement>(null)
+  const containerRef = externalRef || internalRef
+
   const tableHeaderRef = useRef<HTMLDivElement | null>(null)
   const lastSelectedRowIndexRef = useRef<number | null>(null)
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState<string>('')
@@ -595,6 +600,7 @@ function TableList<T>({
     // },
 
     onRowSelectionChange: (newRowSelection) => {
+      console.log('newRowSelection', newRowSelection)
       // If multi-selection is disabled, only keeps one selected row
       if (!enableMultiSelection) {
         const selectedKeys = Object.keys(newRowSelection)
@@ -616,25 +622,57 @@ function TableList<T>({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
-        event.preventDefault()
-        // Select all rows
-        const allRows = table.getRowModel().rows
-        const newRowSelection: Record<string, boolean> = {}
-        allRows.forEach((r) => {
-          newRowSelection[r.id] = true
-        })
-        table.setRowSelection(newRowSelection)
-      } else if (event.key === 'Escape') {
-        table.setRowSelection({})
+      if (
+        enableMultiSelection &&
+        containerRef.current &&
+        containerRef.current.contains(document.activeElement)
+      ) {
+        if ((event.metaKey || event.ctrlKey) && event.key === 'a') {
+          event.preventDefault()
+          const newRowSelection: Record<string, boolean> = {}
+          data.forEach((_, index) => {
+            newRowSelection[index] = true
+          })
+          onRowSelectionChange(newRowSelection)
+        } else if (event.key === 'Escape') {
+          event.preventDefault()
+          onRowSelectionChange({})
+        }
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [table])
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [containerRef, data, enableMultiSelection, onRowSelectionChange])
+
+  // useEffect(() => {
+  //   const handleKeyDown = (event: KeyboardEvent) => {
+  //     // Check if the user’s focus is inside the containerRef
+  //     if (
+  //       containerRef?.current &&
+  //       containerRef.current.contains(document.activeElement)
+  //     ) {
+  //       if ((event.metaKey || event.ctrlKey) && event.key === 'a') {
+  //         // Cmd + A or Ctrl + A: Select all rows
+  //         event.preventDefault()
+  //         const newRowSelection: Record<string, boolean> = {}
+  //         table.getRowModel().rows.forEach((row) => {
+  //           newRowSelection[row.id] = true
+  //         })
+  //         table.setRowSelection(newRowSelection)
+  //       } else if (event.key === 'Escape') {
+  //         // Escape: Deselect all rows
+  //         event.preventDefault()
+  //         table.setRowSelection({})
+  //       }
+  //     }
+  //   }
+
+  //   document.addEventListener('keydown', handleKeyDown)
+  //   return () => {
+  //     document.removeEventListener('keydown', handleKeyDown)
+  //   }
+  // }, [containerRef, table])
 
   const handleRowClick = useCallback(
     (event: React.MouseEvent, row: Row<T>) => {
@@ -798,6 +836,7 @@ function TableList<T>({
 
   return (
     <div
+      ref={internalRef}
       className={`tables-container sticky-container ${
         shouldApplyStyling ? 'has-actions' : ''
       }`}

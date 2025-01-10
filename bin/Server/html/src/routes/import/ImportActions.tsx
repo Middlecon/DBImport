@@ -16,7 +16,7 @@ import { importPersistStateAtom } from '../../atoms/atoms'
 import DropdownActions from '../../components/DropdownActions'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
-import DiscoverModal from '../../components/DiscoverModal'
+import DiscoverImportModal from '../../components/DiscoverImportModal'
 
 interface ImportActionsProps {
   tables: UiDbTable[] | undefined
@@ -151,7 +151,7 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
             items={[
               {
                 icon: <PlusIcon />,
-                label: 'Add table',
+                label: 'Create table',
                 onClick: () => {
                   setIsCreateModalOpen(true)
                   setOpenDropdown(null)
@@ -191,7 +191,7 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
       )}
 
       {isDiscoverModalOpen && (
-        <DiscoverModal
+        <DiscoverImportModal
           title="Discover and Add tables"
           isDiscoverModalOpen={isDiscoverModalOpen}
           onClose={() => setIsDiscoverModalOpen(false)}

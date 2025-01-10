@@ -15,8 +15,8 @@ import { createTrimOnBlurHandler } from '../utils/functions'
 import {
   Column,
   ImportDiscoverSearch,
-  UiImportDiscoverSearch,
-  UiImportDiscoverTables
+  ImportDiscoverTable,
+  UiImportDiscoverSearch
 } from '../utils/interfaces'
 import Dropdown from './Dropdown'
 import { useAtom } from 'jotai'
@@ -34,10 +34,10 @@ import TableList from './TableList'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import { useAddImportTables } from '../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-import infoTexts from './../infoTexts.json'
+import infoTexts from '../infoTexts.json'
 import InfoText from './InfoText'
 
-const columns: Column<UiImportDiscoverTables>[] = [
+const columns: Column<ImportDiscoverTable>[] = [
   { header: 'Table', accessor: 'table' },
   { header: 'Connection', accessor: 'connection' },
   { header: 'Database', accessor: 'database' },
@@ -51,7 +51,7 @@ interface DiscoverModalProps {
   onClose: () => void
 }
 
-function DiscoverModal({
+function DiscoverImportModal({
   isDiscoverModalOpen,
   title,
   onClose
@@ -92,6 +92,8 @@ function DiscoverModal({
 
   const isRequiredFieldEmpty = isConnectionEmpty || isDatabaseEmpty
 
+  const isRowSelectionEmpty = Object.keys(rowSelection).length === 0
+
   const [isDbDropdownReady, setIsDbDropdownReady] = useAtom(
     isDbDropdownReadyAtom
   )
@@ -123,9 +125,7 @@ function DiscoverModal({
   const { data: discoverTables, isLoading: isDiscoverLoading } =
     useDiscoverImportTables(filters)
 
-  console.log('discoverTables', discoverTables)
-
-  const [uiTables, setUiTables] = useState<UiImportDiscoverTables[]>([])
+  const [uiTables, setUiTables] = useState<ImportDiscoverTable[]>([])
 
   useEffect(() => {
     if (discoverTables) {
@@ -204,7 +204,6 @@ function DiscoverModal({
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    console.log('formValues', formValues)
     if (isOpen) {
       setOpenDropdown(dropdownId)
     } else if (openDropdown === dropdownId) {
@@ -215,17 +214,11 @@ function DiscoverModal({
   }
 
   const handleSearchClick = () => {
-    console.log('formValues', formValues)
     const filters = formValues as ImportDiscoverSearch
     setFilters(filters)
   }
 
   const handleTablesAdd = () => {
-    console.log('rowSelection', rowSelection)
-    console.log('discoverTables', discoverTables)
-    console.log('uiTables', uiTables)
-    console.log('selectedRowsData', selectedRowsBulkData)
-
     if (selectedRowsBulkData === undefined) return
 
     addImportTables(selectedRowsBulkData, {
@@ -247,7 +240,9 @@ function DiscoverModal({
     })
   }
 
-  const handleCancelClick = () => {
+  const handleCloseClick = () => {
+    console.log('isRowSelectionEmpty', isRowSelectionEmpty)
+    console.log('rowSelection', rowSelection)
     setShowConfirmation(true)
   }
 
@@ -316,7 +311,8 @@ function DiscoverModal({
         <div className="discover-modal-header">
           <h2 className="table-modal-h2">{title}</h2>
           <p>
-            Discover tables not yet added to DBImport and optionally add them.{' '}
+            Discover tables not yet added to DBImport, select and optionally add
+            them.
           </p>
           <p>{`Use the asterisk (*) as a wildcard character in the filters for partial matches.`}</p>
         </div>
@@ -712,6 +708,7 @@ function DiscoverModal({
               // onDelete={handleDeleteIconClick}
               isLoading={isDiscoverLoading}
               rowSelection={rowSelection}
+              containerRef={containerRef}
               onRowSelectionChange={setRowSelection}
               enableMultiSelection={true}
               noLinkOnTableName={true}
@@ -730,10 +727,10 @@ function DiscoverModal({
           <div className="discover-button-container footer">
             <Button
               title="Close"
-              onClick={handleCancelClick}
+              onClick={handleCloseClick}
               lightStyle={true}
             />
-            <Button type="submit" title="Add" />
+            <Button type="submit" title="Add" disabled={isRowSelectionEmpty} />
           </div>
         </form>
       </div>
@@ -752,4 +749,4 @@ function DiscoverModal({
   )
 }
 
-export default DiscoverModal
+export default DiscoverImportModal

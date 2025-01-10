@@ -21,7 +21,8 @@ import {
   ExportPKs,
   AirflowDagPk,
   GenerateJDBCconnectionString,
-  ImportDiscoverTable
+  ImportDiscoverTable,
+  ExportDiscoverTable
 } from './interfaces'
 
 // Connection
@@ -245,6 +246,20 @@ const deleteExportTable = async ({
 export const useDeleteExportTable = () => {
   return useMutation({
     mutationFn: (args: DeleteExportTableArgs) => deleteExportTable(args)
+  })
+}
+
+// Add discovered tables
+
+const postAddExportTables = async (tables: ExportDiscoverTable[]) => {
+  const response = await axiosInstance.post('/export/discover/add', tables)
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useAddExportTables = () => {
+  return useMutation({
+    mutationFn: (tables: ExportDiscoverTable[]) => postAddExportTables(tables)
   })
 }
 
