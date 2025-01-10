@@ -331,5 +331,25 @@
       "driver": "Java class for JDBC driver",
       "classpath": "Full path to JDBC driver/jar file. If more than one file is required, separate them with : and no spaces"
     }
+  },
+  "discover": {
+    "import": {
+      "connection": "",
+      "schemaFilter": "",
+      "tableFilter": "",
+      "database": "",
+      "addSchemaToTable": "",
+      "addCounterToTable": "",
+      "addCustomText": ""
+    },
+    "export": {
+      "connection": "",
+      "databaseFilter": "",
+      "tableFilter": "",
+      "targetSchema": "",
+      "addDBToTable": "",
+      "addCounterToTable": "",
+      "addCustomText": ""
+    }
   }
 }
