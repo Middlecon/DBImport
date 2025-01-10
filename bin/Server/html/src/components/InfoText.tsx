@@ -7,6 +7,7 @@ interface InfoTextProps {
   infoText: string
   infoTextMaxWidth?: number
   isInfoTextPositionUp?: boolean
+  isInfoTextPositionRight?: boolean
   iconPosition?: CSSProperties
 }
 
@@ -15,6 +16,7 @@ function InfoText({
   infoText,
   infoTextMaxWidth,
   isInfoTextPositionUp,
+  isInfoTextPositionRight,
   iconPosition = { paddingTop: 2 }
 }: InfoTextProps) {
   const [openInfoDropdown, setOpenInfoDropdown] = useState<string | null>(null)
@@ -99,6 +101,8 @@ function InfoText({
             style={
               isInfoTextPositionUp
                 ? { top: 'auto', bottom: '100%', maxWidth: infoTextMaxWidth }
+                : isInfoTextPositionRight
+                ? { left: 0, maxWidth: infoTextMaxWidth }
                 : { maxWidth: infoTextMaxWidth }
             }
           >

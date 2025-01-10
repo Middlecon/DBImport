@@ -34,6 +34,8 @@ import TableList from './TableList'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import { useAddImportTables } from '../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
+import infoTexts from './../infoTexts.json'
+import InfoText from './InfoText'
 
 const columns: Column<UiImportDiscoverTables>[] = [
   { header: 'Table', accessor: 'table' },
@@ -314,9 +316,9 @@ function DiscoverModal({
         <div className="discover-modal-header">
           <h2 className="table-modal-h2">{title}</h2>
           <p>
-            Search for tables not yet added to DBImport and optionally add them.{' '}
+            Discover tables not yet added to DBImport and optionally add them.{' '}
           </p>
-          <p>{`Use the asterisk (*) as a wildcard character for partial matches.`}</p>
+          <p>{`Use the asterisk (*) as a wildcard character in the filters for partial matches.`}</p>
         </div>
         <form
           onSubmit={(event) => {
@@ -340,135 +342,168 @@ function DiscoverModal({
                   {isConnectionEmpty && <span style={{ color: 'red' }}>*</span>}
                 </span>
 
-                {isCnDropdownReady && (
-                  <Dropdown
-                    id="discoverConnection"
-                    keyLabel="connection"
-                    items={
-                      filteredConnectionNames.length > 0
-                        ? filteredConnectionNames
-                        : ['No Connection yet']
-                    }
-                    onSelect={handleInputDropdownSelect}
-                    isOpen={openDropdown === 'cnDiscover'}
-                    onToggle={(isOpen: boolean) =>
-                      handleDropdownToggle('cnDiscover', isOpen)
-                    }
-                    searchFilter={true}
-                    initialTitle={'Select...'}
-                    cross={true}
-                    backgroundColor="inherit"
-                    textColor="black"
-                    border="0.5px solid rgb(42, 42, 42)"
-                    borderRadius="3px"
-                    height="21.5px"
-                    width="100%"
-                    lightStyle={true}
-                  />
-                )}
+                <div style={{ display: 'flex' }}>
+                  {isCnDropdownReady && (
+                    <Dropdown
+                      id="discoverConnection"
+                      keyLabel="connection"
+                      items={
+                        filteredConnectionNames.length > 0
+                          ? filteredConnectionNames
+                          : ['No Connection yet']
+                      }
+                      onSelect={handleInputDropdownSelect}
+                      isOpen={openDropdown === 'cnDiscover'}
+                      onToggle={(isOpen: boolean) =>
+                        handleDropdownToggle('cnDiscover', isOpen)
+                      }
+                      searchFilter={true}
+                      initialTitle={'Select...'}
+                      cross={true}
+                      backgroundColor="inherit"
+                      textColor="black"
+                      border="0.5px solid rgb(42, 42, 42)"
+                      borderRadius="3px"
+                      height="21.5px"
+                      width="100%"
+                      lightStyle={true}
+                    />
+                  )}
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Connection'}
+                      infoText={infoTexts.discover.import.connection}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
+                </div>
               </label>
+              <label htmlFor="discoverSchemaFilter">
+                <span>Schema filter:</span>
+                <div style={{ display: 'flex' }}>
+                  <input
+                    id="discoverSchemaFilter"
+                    type="text"
+                    value={formValues.schemaFilter || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        schemaFilter: event.target.value
+                      }))
+                    }
+                    onBlur={handleTrimOnBlur('schemaFilter')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Schema filter'}
+                      infoText={infoTexts.discover.import.schemaFilter}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
+                </div>
+              </label>
+              <label htmlFor="discoverTableFilter">
+                <span>Table filter:</span>
+                <div style={{ display: 'flex' }}>
+                  <input
+                    id="discoverTableFilter"
+                    type="text"
+                    value={formValues.tableFilter || ''}
+                    onChange={(event) =>
+                      setFormValues((prev) => ({
+                        ...prev,
+                        tableFilter: event.target.value
+                      }))
+                    }
+                    onBlur={handleTrimOnBlur('tableFilter')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Table filter'}
+                      infoText={infoTexts.discover.import.tableFilter}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
+                </div>
+              </label>
+            </div>
+            <div className="discover-second-container">
               <label
                 htmlFor="discoverDatabase"
                 className="discover-db-dropdown"
               >
                 <span>
                   Database:
-                  {isDatabaseEmpty && (
-                    <span style={{ color: 'red', display: 'inline' }}>*</span>
-                  )}
+                  {isDatabaseEmpty && <span style={{ color: 'red' }}>*</span>}
                 </span>
-
-                {isDbDropdownReady && (
-                  <>
-                    <input
-                      id="discoverDatabase"
-                      type="text"
-                      value={formValues.database || ''}
-                      onChange={(event) =>
-                        handleInputDropdownChange(
-                          'database',
-                          event.target.value
-                        )
-                      }
-                      onBlur={handleTrimOnBlur('database')}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault() // Prevents Enter from triggering form submission
+                <div style={{ display: 'flex' }}>
+                  {isDbDropdownReady && (
+                    <div style={{ width: '100%' }}>
+                      <input
+                        id="discoverDatabase"
+                        type="text"
+                        value={formValues.database || ''}
+                        onChange={(event) =>
+                          handleInputDropdownChange(
+                            'database',
+                            event.target.value
+                          )
                         }
-                      }}
-                      autoComplete="off"
+                        onBlur={handleTrimOnBlur('database')}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault() // Prevents Enter from triggering form submission
+                          }
+                        }}
+                        autoComplete="off"
+                      />
+                      <Dropdown
+                        id="discoverDatabase"
+                        keyLabel="database"
+                        items={
+                          filteredDatabaseNames.length > 0
+                            ? filteredDatabaseNames
+                            : ['No DB yet']
+                        }
+                        onSelect={handleInputDropdownSelect}
+                        isOpen={openDropdown === 'dbDiscover'}
+                        onToggle={(isOpen: boolean) =>
+                          handleDropdownToggle('dbDiscover', isOpen)
+                        }
+                        searchFilter={false}
+                        textInputMode={true}
+                        backgroundColor="inherit"
+                        textColor="black"
+                        border="0.5px solid rgb(42, 42, 42)"
+                        borderRadius="3px"
+                        height="21.5px"
+                        lightStyle={true}
+                      />
+                    </div>
+                  )}
+                  <span style={{ marginLeft: 12 }}>
+                    <InfoText
+                      label={'Database'}
+                      infoText={infoTexts.discover.import.database}
+                      isInfoTextPositionRight={true}
                     />
-                    <Dropdown
-                      id="discoverDatabase"
-                      keyLabel="database"
-                      items={
-                        filteredDatabaseNames.length > 0
-                          ? filteredDatabaseNames
-                          : ['No DB yet']
-                      }
-                      onSelect={handleInputDropdownSelect}
-                      isOpen={openDropdown === 'dbDiscover'}
-                      onToggle={(isOpen: boolean) =>
-                        handleDropdownToggle('dbDiscover', isOpen)
-                      }
-                      searchFilter={false}
-                      textInputMode={true}
-                      backgroundColor="inherit"
-                      textColor="black"
-                      border="0.5px solid rgb(42, 42, 42)"
-                      borderRadius="3px"
-                      height="21.5px"
-                      lightStyle={true}
-                    />
-                  </>
-                )}
+                  </span>
+                </div>
               </label>
-              <label htmlFor="discoverSchemaFilter">
-                Schema filter:
-                <input
-                  id="discoverSchemaFilter"
-                  type="text"
-                  value={formValues.schemaFilter || ''}
-                  onChange={(event) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      schemaFilter: event.target.value
-                    }))
-                  }
-                  onBlur={handleTrimOnBlur('schemaFilter')}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault() // Prevents Enter from triggering form submission
-                    }
-                  }}
-                  autoComplete="off"
-                />
-              </label>
-              <label htmlFor="discoverTableFilter">
-                Table filter:
-                <input
-                  id="discoverTableFilter"
-                  type="text"
-                  value={formValues.tableFilter || ''}
-                  onChange={(event) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      tableFilter: event.target.value
-                    }))
-                  }
-                  onBlur={handleTrimOnBlur('tableFilter')}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault() // Prevents Enter from triggering form submission
-                    }
-                  }}
-                  autoComplete="off"
-                />
-              </label>
-            </div>
-            <div className="discover-second-container">
               <label>
-                Add schema to table:
+                <span>Add schema to table:</span>
                 <div className="discover-radio-edit">
                   <label>
                     <input
@@ -500,10 +535,17 @@ function DiscoverModal({
                     />
                     False
                   </label>
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Add schema to table'}
+                      infoText={infoTexts.discover.import.addSchemaToTable}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
                 </div>
               </label>
               <label>
-                Add counter to table:
+                <span>Add counter to table:</span>
                 <div className="discover-radio-edit">
                   <label>
                     <input
@@ -535,81 +577,115 @@ function DiscoverModal({
                     />
                     False
                   </label>
+                  <label htmlFor="discoverCounterStart">
+                    <span
+                      style={
+                        formValues.addCounterToTable === false
+                          ? { color: 'grey' }
+                          : {}
+                      }
+                    >
+                      Start:
+                    </span>
+                    <input
+                      id="discoverCounterStart"
+                      // ref={inputRef}
+                      className="input-fields-number-input"
+                      style={{ minHeight: 0 }}
+                      type="number"
+                      value={formValues.counterStart || ''}
+                      onChange={(event) => {
+                        let value: number | null =
+                          event.target.value === ''
+                            ? null
+                            : Number(event.target.value)
+
+                        if (typeof value === 'number' && value < 1) {
+                          value = null
+                          event.target.value = ''
+                        }
+
+                        setFormValues((prev) => ({
+                          ...prev,
+                          counterStart: isNaN(Number(value)) ? null : value
+                        }))
+                      }}
+                      onBlur={(event) => {
+                        const valueString = event.target.value.trim()
+
+                        // If empty or < 1, resets to null
+                        if (
+                          isNaN(Number(valueString)) ||
+                          Number(valueString) < 1
+                        ) {
+                          setFormValues((prev) => ({
+                            ...prev,
+                            counterStart: null
+                          }))
+                          event.target.value = ''
+                        } else {
+                          // Converts e.g. `+10` to `10` (removes any valid sign characters, including Dead)
+                          const numericValue = Number(valueString)
+                          setFormValues((prev) => ({
+                            ...prev,
+                            counterStart: numericValue
+                          }))
+                          event.target.value = String(numericValue)
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        // Prevent invalid characters from being typed
+                        if (
+                          ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(
+                            event.key
+                          ) // Dead is still working, fix so it is not
+                        ) {
+                          event.preventDefault()
+                        }
+                      }}
+                      step="1"
+                      disabled={formValues.addCounterToTable === false}
+                    />
+                  </label>
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Add counter to table'}
+                      infoText={infoTexts.discover.import.addCounterToTable}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
                 </div>
               </label>
-              <label htmlFor="discoverCounterStart">
-                Counter start:
-                <input
-                  id="discoverCounterStart"
-                  // ref={inputRef}
-                  className="input-fields-number-input"
-                  style={{ minHeight: 0 }}
-                  type="number"
-                  value={formValues.counterStart || ''}
-                  onChange={(event) => {
-                    let value: number | null =
-                      event.target.value === ''
-                        ? null
-                        : Number(event.target.value)
 
-                    if (typeof value === 'number' && value < 1) {
-                      value = null
-                      event.target.value = ''
-                    }
-
-                    setFormValues((prev) => ({
-                      ...prev,
-                      counterStart: isNaN(Number(value)) ? null : value
-                    }))
-                  }}
-                  onBlur={(event) => {
-                    const valueString = event.target.value.trim()
-
-                    // If empty or < 1, resets to null
-                    if (isNaN(Number(valueString)) || Number(valueString) < 1) {
-                      setFormValues((prev) => ({ ...prev, counterStart: null }))
-                      event.target.value = ''
-                    } else {
-                      // Converts e.g. `+10` to `10` (removes any valid sign characters, including Dead)
-                      const numericValue = Number(valueString)
+              <label htmlFor="discoverCustomText">
+                <span>Add custom text:</span>
+                <div style={{ display: 'flex' }}>
+                  <input
+                    id="discoverCustomText"
+                    type="text"
+                    value={formValues.addCustomText || ''}
+                    onChange={(event) =>
                       setFormValues((prev) => ({
                         ...prev,
-                        counterStart: numericValue
+                        addCustomText: event.target.value
                       }))
-                      event.target.value = String(numericValue)
                     }
-                  }}
-                  onKeyDown={(event) => {
-                    // Prevent invalid characters from being typed
-                    if (
-                      ['e', 'E', '+', '-', '.', ',', 'Dead'].includes(event.key) // Dead is still working, fix so it is not
-                    ) {
-                      event.preventDefault()
-                    }
-                  }}
-                  step="1"
-                />
-              </label>
-              <label htmlFor="discoverCustomText">
-                Add custom text:
-                <input
-                  id="discoverCustomText"
-                  type="text"
-                  value={formValues.addCustomText || ''}
-                  onChange={(event) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      addCustomText: event.target.value
-                    }))
-                  }
-                  onBlur={handleTrimOnBlur('addCustomText')}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault() // Prevents Enter from triggering form submission
-                    }
-                  }}
-                  autoComplete="off"
-                />
+                    onBlur={handleTrimOnBlur('addCustomText')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                  <span style={{ marginLeft: 5 }}>
+                    <InfoText
+                      label={'Add custom text'}
+                      infoText={infoTexts.discover.import.addCustomText}
+                      isInfoTextPositionRight={true}
+                    />
+                  </span>
+                </div>
               </label>
             </div>
           </div>
@@ -618,7 +694,7 @@ function DiscoverModal({
           <div className="discover-button-container">
             <div />
             <Button
-              title="Search"
+              title="Discover"
               disabled={isRequiredFieldEmpty}
               onClick={handleSearchClick}
             />
