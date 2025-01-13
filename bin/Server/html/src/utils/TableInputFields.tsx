@@ -77,6 +77,8 @@ function TableInputFields({
     setting.label === 'Target Table' ||
     setting.label === 'Target Schema' ||
     setting.label === 'Connection' ||
+    setting.label === 'Username' ||
+    setting.label === 'Password' ||
     setting.label === 'Connection string' ||
     setting.label === 'Database type' ||
     setting.label === 'Version' ||
@@ -431,7 +433,6 @@ function TableInputFields({
 
     case 'readonly':
       if (setting.isHidden === true) return null
-
       return (
         <>
           <label

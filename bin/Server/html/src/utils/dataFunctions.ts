@@ -30,7 +30,8 @@ import {
   ConfigGlobalWithIndex,
   JDBCdriversWithIndex,
   JDBCdrivers,
-  GenerateJDBCconnectionString
+  GenerateJDBCconnectionString,
+  EncryptCredentials
 } from './interfaces'
 import {
   getKeyFromCustomAirflowLabel,
@@ -46,6 +47,23 @@ import {
 } from './nameMappings'
 
 // Connection
+
+export const transformEncryptCredentialsSettings = (
+  settings: EditSetting[]
+): EncryptCredentials => {
+  const settingsMap = settings.reduce<
+    Record<string, string | number | boolean | null>
+  >((acc, setting) => {
+    acc[setting.label] = setting.value
+    return acc
+  }, {})
+
+  return {
+    connection: settingsMap['Connection'] || 'unknown',
+    username: settingsMap['Username'] || 'default',
+    password: settingsMap['Password'] || 'unknown'
+  } as EncryptCredentials
+}
 
 export function createConnectionData(
   newConnectionSettings: EditSetting[]

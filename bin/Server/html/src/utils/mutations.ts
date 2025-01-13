@@ -22,21 +22,42 @@ import {
   AirflowDagPk,
   GenerateJDBCconnectionString,
   ImportDiscoverTable,
-  ExportDiscoverTable
+  ExportDiscoverTable,
+  EncryptCredentials
 } from './interfaces'
 
 // Connection
 
+// Encrypt credentials
+
+const postEncryptCredentials = async (data: EncryptCredentials) => {
+  console.log('post connectionStringData:', data)
+  const response = await axiosInstance.post(
+    '/connection/encryptCredentials',
+    data
+  )
+  console.log('post encryptCredentials response', response)
+
+  return response.data
+}
+
+export const useEncryptCredentials = () => {
+  return useMutation({
+    mutationFn: (data: EncryptCredentials) => {
+      return postEncryptCredentials(data)
+    }
+  })
+}
+
+// Generate connection string
+
 const postGenerateConnectionString = async (
   connectionStringData: GenerateJDBCconnectionString
 ) => {
-  console.log('post connectionStringData:', connectionStringData)
   const response = await axiosInstance.post(
     '/connection/generateJDBCconnectionString',
     connectionStringData
   )
-  console.log('post connectionStringData response.data', response.data)
-
   return response.data
 }
 
@@ -47,6 +68,31 @@ export const useGenerateConnectionString = () => {
     }
   })
 }
+
+// Test connection
+
+interface TestConnection {
+  result: string
+}
+
+const getTestConnection = async (
+  connection: string
+): Promise<TestConnection> => {
+  console.log('connection', connection)
+  const encodedConnection = encodeURIComponent(connection)
+  const response = await axiosInstance.get<TestConnection>(
+    `/connection/${encodedConnection}`
+  )
+  return response.data
+}
+
+export const useTestConnection = () => {
+  return useMutation({
+    mutationFn: (connection: string) => getTestConnection(connection)
+  })
+}
+
+// Create or update connection
 
 const postCreateOrUpdateConnection = async (connection: Connection) => {
   console.log('postUpdateConnection connection', connection)
@@ -63,6 +109,8 @@ export const useCreateOrUpdateConnection = () => {
     }
   })
 }
+
+// Delete connection
 
 type DeleteConnectionArgs = {
   connectionName: string

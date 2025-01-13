@@ -58,6 +58,8 @@ import {
 
 // CONNECTION
 
+// Get search connections
+
 interface ConnectionsResponse {
   data: DbTable[]
   headers:

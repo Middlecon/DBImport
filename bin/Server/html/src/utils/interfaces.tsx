@@ -29,6 +29,12 @@ export interface BulkField<T> {
   isRequired?: boolean
 }
 
+export interface EncryptCredentials {
+  connection: string
+  username: string
+  password: string
+}
+
 export interface ConnectionNames {
   name: string
 }

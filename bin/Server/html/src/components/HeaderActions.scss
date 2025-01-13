@@ -63,14 +63,22 @@
   right: 0;
   width: max-content;
   border-radius: 10px;
-  max-width: 130px;
+  box-shadow: rgba(50, 50, 93, 0.25) 1px 0px 27px -5px,
+    rgba(0, 0, 0, 0.3) 1px 8px 16px -8px;
+}
+
+.actions-dropdown-container.discover-br {
+  .actions-dropdown-wrapper {
+    max-width: 135px;
+  }
 }
 
 .actions-dropdown-item {
   cursor: pointer;
   display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 10px;
+  padding: 10px 15px 10px 10px;
 
   &:hover,
   &.highlighted {

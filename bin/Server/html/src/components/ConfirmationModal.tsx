@@ -9,10 +9,10 @@ interface ConfirmModalProps {
   title: string
   message: string
   buttonTitleCancel: string
-  buttonTitleConfirm: string
-  onConfirm: () => void
   onCancel: () => void
   isActive: boolean
+  buttonTitleConfirm?: string
+  onConfirm?: () => void
 }
 
 function ConfirmationModal({
@@ -45,7 +45,9 @@ function ConfirmationModal({
             onClick={onCancel}
             lightStyle={true}
           />
-          <Button title={buttonTitleConfirm} onClick={onConfirm} />
+          {onConfirm && buttonTitleConfirm && (
+            <Button title={buttonTitleConfirm} onClick={onConfirm} />
+          )}
         </div>
       </div>
     </div>

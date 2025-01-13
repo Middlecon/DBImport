@@ -250,6 +250,11 @@
     "atlasLastDiscovery": "Timestamp of last discovery process for Atlas"
   },
 
+  "connectionEncryptCredentials": {
+    "username": "",
+    "password": ""
+  },
+
   "configuration": {
     "global": {
       "airflow_aws_instanceids": "AWS Instance IDs to start the DBImport commands on. Comma-separated list of instance IDs. Tasks will be randomly assigned to one of the EMR clusters specified.",

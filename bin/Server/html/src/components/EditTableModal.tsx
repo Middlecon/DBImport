@@ -42,10 +42,12 @@ function EditTableModal({
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
       const isHidden = setting.isHidden
-      const isDatabaseOrTable =
-        setting.label === 'Database' || setting.label === 'Table'
+      const isDisplayReadonly =
+        setting.label === 'Database' ||
+        setting.label === 'Table' ||
+        setting.label === 'Connection'
 
-      return !isHidden && (!isReadonly || isDatabaseOrTable)
+      return !isHidden && (!isReadonly || isDisplayReadonly)
     }) ?? []
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(

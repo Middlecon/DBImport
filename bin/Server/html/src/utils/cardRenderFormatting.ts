@@ -632,6 +632,58 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
 
 // Connection
 
+export const encryptCredentialsSettings: EditSetting[] = [
+  {
+    label: 'Username',
+    value: '',
+    type: SettingType.Text,
+    maxChar: 256,
+    infoText: infoTexts.connectionEncryptCredentials.username,
+    isRequired: true
+  }, // Free-text (varchar 256)
+  {
+    label: 'Password',
+    value: '',
+    type: SettingType.Text,
+    maxChar: 256,
+    infoText: infoTexts.connectionEncryptCredentials.password,
+    isRequired: true
+  } // Free-text (varchar 256)
+]
+
+export function encryptCredentialsSettings2(connectionName: string) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Connection',
+      value: connectionName,
+      type: SettingType.Readonly,
+      maxChar: 256
+    }, // Readonly (varchar 256),
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
+      label: 'Username',
+      value: '',
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.connectionEncryptCredentials.username,
+      isRequired: true
+    }, // Free-text (varchar 256)
+    {
+      label: 'Password',
+      value: '',
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.connectionEncryptCredentials.password,
+      isRequired: true
+    } // Free-text (varchar 256)
+  ]
+  return settings
+}
+
 export const generateConnectionStringFields: EditSetting[] = [
   {
     label: 'Database type',
