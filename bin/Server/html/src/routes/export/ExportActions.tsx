@@ -15,8 +15,8 @@ import { useAtom } from 'jotai'
 import { exportPersistStateAtom } from '../../atoms/atoms'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
+import DiscoverImportModal from '../../components/DiscoverImportModal'
 import DropdownActions from '../../components/DropdownActions'
-import DiscoverExportModal from '../../components/DiscoverExportModal'
 
 interface ExportActionsProps {
   tables: UIExportCnTables[] | undefined
@@ -27,11 +27,11 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   const { mutate: createTable } = useCreateExportTable()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const [, setExportPersistState] = useAtom(exportPersistStateAtom)
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isDiscoverModalOpen, setIsDiscoverModalOpen] = useState(false)
-
-  const [, setExportPersistState] = useAtom(exportPersistStateAtom)
 
   const mostCommonConnection = useMemo(() => {
     if (!tables || tables.length === 0) return null
@@ -141,6 +141,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
             disabled={!tables}
           />
         </div>
+
         <ExportSearchFilterTables
           isSearchFilterOpen={openDropdown === 'searchFilter'}
           onToggle={(isSearchFilterOpen: boolean) =>
@@ -161,7 +162,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
         />
       )}
       {isDiscoverModalOpen && (
-        <DiscoverExportModal
+        <DiscoverImportModal
           title="Discover and Add tables"
           isDiscoverModalOpen={isDiscoverModalOpen}
           onClose={() => setIsDiscoverModalOpen(false)}
