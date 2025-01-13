@@ -16,13 +16,13 @@ import { createTrimOnBlurHandler } from '../utils/functions'
 import {
   Column,
   ExportDiscoverSearch,
-  UiExportDiscoverSearch,
-  UiExportDiscoverTable
+  ExportDiscoverTable,
+  UiExportDiscoverSearch
 } from '../utils/interfaces'
 import Dropdown from './Dropdown'
 import { useAtom } from 'jotai'
 import { isCnDropdownReadyAtom, isMainSidebarMinimized } from '../atoms/atoms'
-import { useExportConnections, useDiscoverExportTables } from '../utils/queries'
+import { useDiscoverExportTables, useConnections } from '../utils/queries'
 import TableList from './TableList'
 import RequiredFieldsInfo from './RequiredFieldsInfo'
 import { useAddExportTables } from '../utils/mutations'
@@ -30,7 +30,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import infoTexts from '../infoTexts.json'
 import InfoText from './InfoText'
 
-const columns: Column<UiExportDiscoverTable>[] = [
+const columns: Column<ExportDiscoverTable>[] = [
   { header: 'Target Table', accessor: 'targetTable' },
   { header: 'Target Schema', accessor: 'targetSchema' },
   { header: 'Connection', accessor: 'connection' },
@@ -96,27 +96,21 @@ function DiscoverExportModal({
 
   const { mutate: addExportTables } = useAddExportTables()
 
-  const { data: connectionsData, isLoading } = useExportConnections()
-  const connectionNames = useMemo(
-    () =>
-      Array.isArray(connectionsData)
-        ? connectionsData?.map((connection) => connection.name)
-        : [],
-    [connectionsData]
-  )
+  const { data: connectionsData, isLoading } = useConnections(true)
+  const connectionNames = useMemo(() => {
+    return Array.isArray(connectionsData)
+      ? connectionsData.map((connection) => connection.name)
+      : []
+  }, [connectionsData])
 
   const { data: discoverTables, isLoading: isDiscoverLoading } =
     useDiscoverExportTables(filters)
 
-  const [uiTables, setUiTables] = useState<UiExportDiscoverTable[]>([])
+  const [uiTables, setUiTables] = useState<ExportDiscoverTable[]>([])
 
   useEffect(() => {
     if (discoverTables) {
-      const tablesWithUuid = discoverTables.map((table) => ({
-        ...table,
-        uuid: uuidv4() // Add a unique UUID
-      }))
-      setUiTables(tablesWithUuid)
+      setUiTables(discoverTables)
     }
   }, [discoverTables])
 

@@ -740,15 +740,6 @@ export interface ExportDiscoverTable {
   targetTable: string
 }
 
-export interface UiExportDiscoverTable {
-  uuid: string
-  database: string
-  table: string
-  connection: string
-  targetSchema: string
-  targetTable: string
-}
-
 export interface ExportTable {
   connection: string
   targetSchema: string
