@@ -105,6 +105,7 @@ function Connection() {
             queryKey: ['connection'], // Matches all related queries that starts the queryKey with 'connection'
             exact: false
           })
+          setRowSelection({})
           console.log('Delete successful')
         },
         onError: (error) => {

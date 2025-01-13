@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   BulkUpdateImportTables,
   Column,
@@ -32,6 +32,8 @@ import TableList from '../../components/TableList'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import Button from '../../components/Button'
 import BulkEditModal from '../../components/BulkEditModal'
+import { useAtom } from 'jotai'
+import { clearRowSelectionAtom } from '../../atoms/atoms'
 
 function DbTables({
   data,
@@ -65,6 +67,12 @@ function DbTables({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
+
+  const [clearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
+
+  useEffect(() => {
+    setRowSelection({})
+  }, [clearRowSelectionTrigger])
 
   const columns: Column<DbTable>[] = useMemo(
     () => [

@@ -9,6 +9,8 @@ export const isCnDropdownReadyAtom = atom(false)
 
 export const airflowTypeAtom = atom('')
 
+export const clearRowSelectionAtom = atom(0)
+
 export const importPersistStateAtom = atomWithSessionStorage<string | null>(
   'importPersistState',
   null

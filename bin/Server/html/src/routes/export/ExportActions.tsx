@@ -12,7 +12,10 @@ import {
 } from '../../utils/interfaces'
 import { useCreateExportTable } from '../../utils/mutations'
 import { useAtom } from 'jotai'
-import { exportPersistStateAtom } from '../../atoms/atoms'
+import {
+  clearRowSelectionAtom,
+  exportPersistStateAtom
+} from '../../atoms/atoms'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
 import DiscoverImportModal from '../../components/DiscoverImportModal'
@@ -28,6 +31,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [, setExportPersistState] = useAtom(exportPersistStateAtom)
+  const [, setClearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -125,6 +129,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
                 icon: <PlusIcon />,
                 label: 'Create table',
                 onClick: () => {
+                  setClearRowSelectionTrigger((prev) => prev + 1)
                   setIsCreateModalOpen(true)
                   setOpenDropdown(null)
                 }
@@ -133,6 +138,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
                 icon: <DiscoverIcon />,
                 label: `Discover and Add tables`,
                 onClick: () => {
+                  setClearRowSelectionTrigger((prev) => prev + 1)
                   setIsDiscoverModalOpen(true)
                   setOpenDropdown(null)
                 }

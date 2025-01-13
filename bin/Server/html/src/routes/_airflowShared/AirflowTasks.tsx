@@ -271,6 +271,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
             queryKey: ['airflows'], // Matches all related queries that starts the queryKey with 'airflows'
             exact: false
           })
+          setRowSelection({})
           console.log('Delete successful')
         },
         onError: (error: Error) => {

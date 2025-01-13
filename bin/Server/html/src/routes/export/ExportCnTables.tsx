@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import TableList from '../../components/TableList'
 import {
   BulkUpdateExportTables,
@@ -33,6 +33,8 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 import Button from '../../components/Button'
 import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
+import { useAtom } from 'jotai'
+import { clearRowSelectionAtom } from '../../atoms/atoms'
 
 function ExportCnTables({
   data,
@@ -68,6 +70,12 @@ function ExportCnTables({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
+
+  const [clearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
+
+  useEffect(() => {
+    setRowSelection({})
+  }, [clearRowSelectionTrigger])
 
   const columns: Column<ExportCnTablesWithoutEnum>[] = useMemo(
     () => [
