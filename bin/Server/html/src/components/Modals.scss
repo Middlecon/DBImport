@@ -1,3 +1,8 @@
+body.resizing {
+  user-select: none;
+  cursor: ew-resize;
+}
+
 .table-modal-backdrop {
   z-index: 100;
   position: fixed;

@@ -33,9 +33,6 @@ function EditConnectionModal({
   onSave,
   onClose
 }: EditModalProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isEditModalOpen)
-
   const editableSettings =
     settings?.filter((setting) => {
       const isReadonly = setting.type === 'readonly'
@@ -70,6 +67,10 @@ function EditConnectionModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
+  const MIN_WIDTH = 584
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isEditModalOpen, showConfirmation)
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
@@ -203,16 +204,16 @@ function EditConnectionModal({
     setShowConfirmation(false)
   }
 
-  const MIN_WIDTH = 584
-
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)
     setInitialMouseX(e.clientX)
     setInitialWidth(modalWidth)
+    document.body.classList.add('resizing')
   }
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
+    document.body.classList.remove('resizing')
   }, [])
 
   const handleMouseMove = useCallback(

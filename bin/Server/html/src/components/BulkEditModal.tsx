@@ -29,9 +29,6 @@ function BulkEditModal<T>({
   onClose,
   initWidth
 }: BulkEditModalProps<T>) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isBulkEditModalOpen)
-
   const [bulkChanges, setBulkChanges] = useState<
     Partial<Record<keyof T, string | number | boolean | null>>
   >({})
@@ -41,6 +38,9 @@ function BulkEditModal<T>({
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(initWidth ?? 584)
   const MIN_WIDTH = initWidth ?? 584
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isBulkEditModalOpen, showConfirmation)
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
@@ -93,10 +93,12 @@ function BulkEditModal<T>({
     setIsResizing(true)
     setInitialMouseX(e.clientX)
     setInitialWidth(modalWidth)
+    document.body.classList.add('resizing')
   }
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
+    document.body.classList.remove('resizing')
   }, [])
 
   const handleMouseMove = useCallback(

@@ -58,9 +58,6 @@ function DiscoverImportModal({
 }: DiscoverModalProps) {
   const queryClient = useQueryClient()
 
-  const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isDiscoverModalOpen)
-
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -69,6 +66,11 @@ function DiscoverImportModal({
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(760)
+  const MIN_WIDTH = 584
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef, isDiscoverModalOpen, showConfirmation)
+
   const [rowSelection, setRowSelection] = useState({})
 
   const [formValues, setFormValues] = useState<UiImportDiscoverSearch>({
@@ -255,16 +257,16 @@ function DiscoverImportModal({
     setShowConfirmation(false)
   }
 
-  const MIN_WIDTH = 584
-
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)
     setInitialMouseX(e.clientX)
     setInitialWidth(modalWidth)
+    document.body.classList.add('resizing')
   }
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
+    document.body.classList.remove('resizing')
   }, [])
 
   const handleMouseMove = useCallback(
@@ -369,7 +371,7 @@ function DiscoverImportModal({
                     <InfoText
                       label={'Connection'}
                       infoText={infoTexts.discover.import.connection}
-                      isInfoTextPositionRight={true}
+                      // isInfoTextPositionRight={true}
                     />
                   </span>
                 </div>
@@ -399,7 +401,7 @@ function DiscoverImportModal({
                     <InfoText
                       label={'Schema filter'}
                       infoText={infoTexts.discover.import.schemaFilter}
-                      isInfoTextPositionRight={true}
+                      // isInfoTextPositionRight={true}
                     />
                   </span>
                 </div>
@@ -429,7 +431,7 @@ function DiscoverImportModal({
                     <InfoText
                       label={'Table filter'}
                       infoText={infoTexts.discover.import.tableFilter}
-                      isInfoTextPositionRight={true}
+                      // isInfoTextPositionRight={true}
                     />
                   </span>
                 </div>
@@ -493,7 +495,7 @@ function DiscoverImportModal({
                     <InfoText
                       label={'Database'}
                       infoText={infoTexts.discover.import.database}
-                      isInfoTextPositionRight={true}
+                      // isInfoTextPositionRight={true}
                     />
                   </span>
                 </div>
@@ -535,7 +537,7 @@ function DiscoverImportModal({
                     <InfoText
                       label={'Add schema to table'}
                       infoText={infoTexts.discover.import.addSchemaToTable}
-                      isInfoTextPositionRight={true}
+                      // isInfoTextPositionRight={true}
                     />
                   </span>
                 </div>
