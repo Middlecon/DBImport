@@ -1,6 +1,7 @@
 .actions-dropdown-container,
 .search-filter-container {
   position: relative;
+  overflow: visible;
 }
 
 .action-dropdown-chevron-container,
@@ -105,8 +106,6 @@
   right: 0;
   // width: 463px;
   max-height: calc(100vh - 217px);
-  // max-height: 50px;
-  overflow-y: auto;
   background-color: white;
   box-shadow: rgba(50, 50, 93, 0.25) 1px 0px 27px -5px,
     rgba(0, 0, 0, 0.3) 1px 8px 16px -8px;
