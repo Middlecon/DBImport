@@ -2239,11 +2239,11 @@ export function initialCreateExportTableSettings(
     {
       label: 'Connection',
       value: prefilledConnection,
-      type: SettingType.Text,
+      type: SettingType.DataReferenceRequired,
       maxChar: 256,
       infoText: infoTexts.table.export.connection,
       isRequired: true
-    }, //Free-text, default selected connection, varchar(256), required
+    }, //Connections-dropdown, default selected connection, varchar(256), required
     {
       label: 'Target Table',
       value: null,

@@ -18,7 +18,7 @@ import RequiredFieldsInfo from './RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from './InfoText'
 import { initialCreateExportTableSettings } from '../utils/cardRenderFormatting'
-import { useSearchExportTables } from '../utils/queries'
+import { useConnections, useSearchExportTables } from '../utils/queries'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../utils/functions'
 import { useFocusTrap } from '../utils/hooks'
@@ -87,6 +87,15 @@ function CreateExportTableModal({
         setPendingValidation(false)
       }, 500),
     [setFilter]
+  )
+
+  const { data: connectionsData } = useConnections(true)
+  const connectionNames = useMemo(
+    () =>
+      Array.isArray(connectionsData)
+        ? connectionsData?.map((connection) => connection.name)
+        : [],
+    [connectionsData]
   )
 
   const {
@@ -274,6 +283,7 @@ function CreateExportTableModal({
                   <TableInputFields
                     index={index}
                     setting={setting}
+                    dataNames={connectionNames}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                   />
