@@ -21,6 +21,11 @@ import {
 } from '../../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import ConfirmationModal from '../../../components/ConfirmationModal'
+import { AxiosError } from 'axios'
+
+export interface ErrorData {
+  result: string
+}
 
 function ConnectionDetailedView() {
   const queryClient = useQueryClient()
@@ -39,7 +44,15 @@ function ConnectionDetailedView() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const [isEncryptModalOpen, setIsEncryptModalOpen] = useState(false)
+  const [isEncryptLoading, setIsEncryptLoading] = useState(false)
+
   const [isTestCnModalOpen, setIsTestCnModalOpen] = useState(false)
+  const [isTestLoading, setIsTestLoading] = useState(true)
+
+  const [errorMessageTest, setErrorMessageTest] = useState<string | null>(null)
+  const [errorMessageEncrypt, setErrorMessageEncrypt] = useState<string | null>(
+    null
+  )
 
   const { mutate: testConnection, isSuccess: isTestSuccess } =
     useTestConnection()
@@ -49,16 +62,31 @@ function ConnectionDetailedView() {
       console.log('No connectionParam', connectionParam)
       return
     }
-    testConnection(connectionParam, {
-      onSuccess: (response) => {
-        setIsTestCnModalOpen(true)
-        console.log('Connection test succeeded, result:', response)
-      },
-      onError: (error) => {
-        setIsTestCnModalOpen(true)
-        console.error('Connection test failed', error)
+
+    setIsTestCnModalOpen(true)
+
+    testConnection(
+      // 'hej',
+      connectionParam,
+      {
+        onSuccess: (response) => {
+          setIsTestLoading(false)
+          console.log('Connection test succeeded, result:', response)
+        },
+        onError: (error: Error) => {
+          setIsTestLoading(false)
+          setErrorMessageTest(error.message)
+          setIsTestCnModalOpen(true)
+          console.log('error', error)
+          console.error('Connection test failed', error.message)
+        }
+        // Correspons the above, response to onSuccess and error to onError
+        // onSettled: (response, error) => {
+        //   console.log('onSettled response', response)
+        //   console.log('onSettled response', error)
+        // }
       }
-    })
+    )
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -70,6 +98,7 @@ function ConnectionDetailedView() {
   }
 
   const handleSave = (updatedSettings: EditSetting[]) => {
+    setIsEncryptLoading(true)
     console.log('updatedSettings', updatedSettings)
     const encryptCredentialsData =
       transformEncryptCredentialsSettings(updatedSettings)
@@ -83,10 +112,15 @@ function ConnectionDetailedView() {
           exact: false
         })
         console.log('Update successful', response)
+        setIsEncryptLoading(false)
         setIsEncryptModalOpen(false)
       },
-      onError: (error) => {
-        console.error('Error updating table', error)
+      onError: (error: AxiosError<ErrorData>) => {
+        console.error('Error encrypt credentials', error)
+        const errorMessage =
+          error.response?.data?.result || 'An unknown error occurred'
+        setErrorMessageEncrypt(errorMessage)
+        setIsEncryptLoading(false)
       }
     })
   }
@@ -125,22 +159,37 @@ function ConnectionDetailedView() {
         {isEncryptModalOpen && connectionParam && (
           <EditTableModal
             isEditModalOpen={isEncryptModalOpen}
-            // title={`Encrypt credentials for ${connectionParam}`}
             title={`Encrypt credentials`}
             settings={settings2}
             onSave={handleSave}
             onClose={() => setIsEncryptModalOpen(false)}
+            isNoCloseOnSave={true}
             initWidth={400}
+            isLoading={isEncryptLoading}
+            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
+            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
+            submitButtonTitle="Encrypt"
           />
         )}
         {isTestCnModalOpen && (
           <ConfirmationModal
-            title={`Test ${isTestSuccess ? 'successful' : 'failed'}`}
-            message={`Contact with connection ${connectionParam} ${
-              isTestSuccess ? 'verified' : 'failed'
-            }.`}
+            title={
+              isTestLoading
+                ? 'Testing'
+                : `Test ${isTestSuccess ? 'successful' : 'failed'}`
+            }
+            message={
+              isTestLoading
+                ? ''
+                : `Contact with connection ${connectionParam} ${
+                    isTestSuccess ? 'verified' : 'failed'
+                  }.`
+            }
+            isLoading={isTestLoading}
+            errorInfo={isTestSuccess ? null : errorMessageTest}
             buttonTitleCancel="Close"
             onCancel={() => {
+              setIsTestLoading(true)
               setIsTestCnModalOpen(false)
             }}
             isActive={isTestCnModalOpen}

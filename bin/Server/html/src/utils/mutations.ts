@@ -25,6 +25,8 @@ import {
   ExportDiscoverTable,
   EncryptCredentials
 } from './interfaces'
+import { AxiosError } from 'axios'
+import { ErrorData } from '../routes/connection/connectionDetailed/ConnectionDetailedView'
 
 // Connection
 
@@ -42,7 +44,7 @@ const postEncryptCredentials = async (data: EncryptCredentials) => {
 }
 
 export const useEncryptCredentials = () => {
-  return useMutation({
+  return useMutation<void, AxiosError<ErrorData>, EncryptCredentials>({
     mutationFn: (data: EncryptCredentials) => {
       return postEncryptCredentials(data)
     }

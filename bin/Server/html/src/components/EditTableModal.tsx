@@ -1,4 +1,5 @@
 import {
+  CSSProperties,
   SetStateAction,
   useCallback,
   useEffect,
@@ -20,6 +21,7 @@ import { isValidOctal } from '../utils/functions'
 import { useFocusTrap } from '../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../atoms/atoms'
+import PulseLoader from 'react-spinners/PulseLoader'
 
 interface EditModalProps {
   isEditModalOpen: boolean
@@ -27,7 +29,12 @@ interface EditModalProps {
   settings: EditSetting[]
   onSave: (newSettings: EditSetting[]) => void
   onClose: () => void
+  isNoCloseOnSave?: boolean
   initWidth?: number
+  isLoading?: boolean
+  errorMessage?: string | null
+  onResetErrorMessage?: () => void
+  submitButtonTitle?: string
 }
 
 function EditTableModal({
@@ -36,7 +43,12 @@ function EditTableModal({
   settings,
   onSave,
   onClose,
-  initWidth
+  isNoCloseOnSave,
+  initWidth,
+  isLoading = false,
+  errorMessage,
+  onResetErrorMessage,
+  submitButtonTitle = 'Save'
 }: EditModalProps) {
   const editableSettings =
     settings?.filter((setting) => {
@@ -126,6 +138,9 @@ function EditTableModal({
     index: number,
     newValue: string | number | boolean | null
   ) => {
+    if (errorMessage && onResetErrorMessage) {
+      onResetErrorMessage()
+    }
     // Creates a new array, copying all elements of editedSettings
     const newSettings = [...editedSettings]
     const setting = newSettings[index]
@@ -219,7 +234,9 @@ function EditTableModal({
         })
       : []
     onSave(updatedSettings)
-    onClose()
+    if (!isNoCloseOnSave) {
+      onClose()
+    }
   }
 
   const handleCancelClick = () => {
@@ -276,6 +293,11 @@ function EditTableModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
+  const override: CSSProperties = {
+    display: 'inline',
+    marginTop: 1.5
+  }
+
   return (
     <div className="table-modal-backdrop">
       <div
@@ -331,6 +353,7 @@ function EditTableModal({
                     isAirflowTasksSudoUserDisabled={
                       isAirflowTasksSudoUserDisabled
                     }
+                    isLoading={isLoading}
                     disabled={isAirflowTasksConnectionDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
@@ -377,27 +400,42 @@ function EditTableModal({
                 </div>
               ))}
           </div>
-          {location.pathname === '/configuration/global' ? (
-            <RequiredFieldsInfo
-              isRequiredFieldEmpty={isRequiredFieldEmpty}
-              validation={true}
-              isValidationSad={isNotTripleOctalValue}
-              validationText="DAG File Permission must be a 3-digit or 4-digit octal value."
-            />
-          ) : (
-            <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
-          )}
-
+          <div className="modal-message-container">
+            {isLoading ? (
+              <div className="modal-loading-container">
+                <div style={{ margin: 0 }}>Loading</div>
+                <PulseLoader
+                  loading={isLoading}
+                  cssOverride={override}
+                  size={3}
+                />
+              </div>
+            ) : errorMessage ? (
+              <p className="error-message" style={{ margin: 0 }}>
+                {errorMessage}
+              </p>
+            ) : location.pathname === '/configuration/global' ? (
+              <RequiredFieldsInfo
+                isRequiredFieldEmpty={isRequiredFieldEmpty}
+                validation={true}
+                isValidationSad={isNotTripleOctalValue}
+                validationText="DAG File Permission must be a 3-digit or 4-digit octal value."
+              />
+            ) : (
+              <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+            )}
+          </div>
           <div className="table-modal-footer">
             <Button
               title="Cancel"
               onClick={handleCancelClick}
               lightStyle={true}
+              disabled={isLoading}
             />
             <Button
               type="submit"
-              title="Save"
-              disabled={isRequiredFieldEmpty}
+              title={submitButtonTitle}
+              disabled={isRequiredFieldEmpty || isLoading}
             />
           </div>
         </form>

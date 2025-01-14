@@ -28,6 +28,7 @@ interface TableInputFieldsProps {
   isAirflowTasksSensorConnectionDisabled?: boolean
   isAirflowTasksSudoUserDisabled?: boolean
   textareaMaxMinWidth?: string
+  isLoading?: boolean
   disabled?: boolean
 }
 
@@ -47,6 +48,7 @@ function TableInputFields({
   isAirflowTasksSensorConnectionDisabled = true,
   isAirflowTasksSudoUserDisabled = true,
   textareaMaxMinWidth,
+  isLoading = false,
   disabled = false
 }: TableInputFieldsProps) {
   const location = useLocation()
@@ -94,7 +96,7 @@ function TableInputFields({
   const showRequiredIndicator =
     (setting.value === null || setting.value === '') && isRequired
 
-  const isFieldDisabled = setting.isConditionsMet === false
+  const isFieldDisabled = setting.isConditionsMet === false || isLoading
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
@@ -441,7 +443,12 @@ function TableInputFields({
           >
             {setting.label}:
           </label>
-          <span id={`text-input-${index}`}>{setting.value}</span>
+          <span
+            className={isFieldDisabled ? 'input-fields-readonly-disabled' : ''}
+            id={`text-input-${index}`}
+          >
+            {setting.value}
+          </span>
         </>
       )
 
