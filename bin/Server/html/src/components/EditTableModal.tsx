@@ -32,6 +32,7 @@ interface EditModalProps {
   isNoCloseOnSave?: boolean
   initWidth?: number
   isLoading?: boolean
+  loadingText?: string
   errorMessage?: string | null
   onResetErrorMessage?: () => void
   submitButtonTitle?: string
@@ -46,6 +47,7 @@ function EditTableModal({
   isNoCloseOnSave,
   initWidth,
   isLoading = false,
+  loadingText,
   errorMessage,
   onResetErrorMessage,
   submitButtonTitle = 'Save'
@@ -403,7 +405,7 @@ function EditTableModal({
           <div className="modal-message-container">
             {isLoading ? (
               <div className="modal-loading-container">
-                <div style={{ margin: 0 }}>Loading</div>
+                <div style={{ margin: 0 }}>{loadingText}</div>
                 <PulseLoader
                   loading={isLoading}
                   cssOverride={override}

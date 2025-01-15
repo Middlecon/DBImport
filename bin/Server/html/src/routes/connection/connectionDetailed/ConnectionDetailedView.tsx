@@ -28,9 +28,6 @@ export interface ErrorData {
 }
 
 function ConnectionDetailedView() {
-  const queryClient = useQueryClient()
-  const { mutate: encryptCredentials } = useEncryptCredentials()
-
   const { connection: connectionParam } = useParams<{
     connection: string
   }>()
@@ -54,6 +51,9 @@ function ConnectionDetailedView() {
     null
   )
 
+  const queryClient = useQueryClient()
+  const { mutate: encryptCredentials } = useEncryptCredentials()
+
   const { mutate: testConnection, isSuccess: isTestSuccess } =
     useTestConnection()
 
@@ -73,9 +73,11 @@ function ConnectionDetailedView() {
           setIsTestLoading(false)
           console.log('Connection test succeeded, result:', response)
         },
-        onError: (error: Error) => {
+        onError: (error: AxiosError<ErrorData>) => {
+          const errorMessage =
+            error.response?.data?.result || 'An unknown error occurred'
           setIsTestLoading(false)
-          setErrorMessageTest(error.message)
+          setErrorMessageTest(errorMessage)
           setIsTestCnModalOpen(true)
           console.log('error', error)
           console.error('Connection test failed', error.message)
@@ -166,6 +168,7 @@ function ConnectionDetailedView() {
             isNoCloseOnSave={true}
             initWidth={400}
             isLoading={isEncryptLoading}
+            loadingText="Encrypting"
             errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
             onResetErrorMessage={() => setErrorMessageEncrypt(null)}
             submitButtonTitle="Encrypt"

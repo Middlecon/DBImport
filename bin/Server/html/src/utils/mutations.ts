@@ -73,23 +73,17 @@ export const useGenerateConnectionString = () => {
 
 // Test connection
 
-interface TestConnection {
-  result: string
-}
-
-const getTestConnection = async (
-  connection: string
-): Promise<TestConnection> => {
+const getTestConnection = async (connection: string) => {
   console.log('connection', connection)
   const encodedConnection = encodeURIComponent(connection)
-  const response = await axiosInstance.get<TestConnection>(
-    `/connection/${encodedConnection}`
+  const response = await axiosInstance.get(
+    `/connection/testConnection/${encodedConnection}`
   )
   return response.data
 }
 
 export const useTestConnection = () => {
-  return useMutation({
+  return useMutation<void, AxiosError<ErrorData>, string>({
     mutationFn: (connection: string) => getTestConnection(connection)
   })
 }
