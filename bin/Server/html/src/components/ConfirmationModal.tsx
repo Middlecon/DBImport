@@ -57,10 +57,9 @@ function ConfirmationModal({
         <p>{!isLoading ? message : ''}</p>
 
         {!isLoading && errorInfo && (
-          <>
-            <p>Error message:</p>
-            <p className="error-info-message">{errorInfo}</p>
-          </>
+          <p className="error-message" style={{ marginTop: 0 }}>
+            {errorInfo}
+          </p>
         )}
 
         <div className="confirmation-modal-footer">
