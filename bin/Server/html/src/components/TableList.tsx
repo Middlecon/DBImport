@@ -548,7 +548,7 @@ function TableList<T>({
               >
                 <GenerateDAGIcon />
                 {showTooltip && (
-                  <span className="tooltip" style={{ left: 'unset', right: 0 }}>
+                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
                     Generate DAG
                   </span>
                 )}
