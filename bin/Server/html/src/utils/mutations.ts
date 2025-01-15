@@ -28,7 +28,7 @@ import {
 import { AxiosError } from 'axios'
 import { ErrorData } from '../routes/connection/connectionDetailed/ConnectionDetailedView'
 
-// Connection
+// CONNECTION
 
 // Encrypt credentials
 
@@ -126,6 +126,8 @@ export const useDeleteConnection = () => {
     mutationFn: (args: DeleteConnectionArgs) => deleteConnection(args)
   })
 }
+
+// IMPORT AND EXPORT
 
 // Update table, Import or Export
 
@@ -360,7 +362,26 @@ export const useBulkDeleteTables = () => {
   })
 }
 
-// Airflow
+// AIRFLOW
+
+// Generate DAG
+
+const getGenDagConnection = async (dagName: string) => {
+  console.log('dagName', dagName)
+  const encodedDagName = encodeURIComponent(dagName)
+  const response = await axiosInstance.get(`/airflow/generate_dag`, {
+    params: { dagname: encodedDagName }
+  })
+  return response.data
+}
+
+export const useGenDagConnection = () => {
+  return useMutation<void, AxiosError<ErrorData>, string>({
+    mutationFn: (dagName: string) => getGenDagConnection(dagName)
+  })
+}
+
+// Update DAG
 
 const updateAirflowDag = async (
   type: 'import' | 'export' | 'custom',
@@ -388,6 +409,8 @@ export const useUpdateAirflowDag = () => {
     mutationFn: ({ type, dagData }) => updateAirflowDag(type, dagData)
   })
 }
+
+// Create DAG
 
 const postCreateAirflowDag = async (
   type: 'import' | 'export' | 'custom',
@@ -422,7 +445,7 @@ export const useCreateAirflowDag = () => {
   })
 }
 
-// Airflow delete DAG
+// Delete DAG
 
 type DeleteAirflowDAGArgs = {
   type: 'import' | 'export' | 'custom'
@@ -443,7 +466,7 @@ export const useDeleteAirflowDAG = () => {
   })
 }
 
-// Airflow delete Task
+// Delete Task
 
 type DeleteAirflowTaskArgs = {
   type: 'import' | 'export' | 'custom'
@@ -471,7 +494,7 @@ export const useDeleteAirflowTask = () => {
   })
 }
 
-// Bulk update Airflow DAG
+// Bulk update DAGs
 
 const postBulkUpdateAirflowDag = async (
   type: 'import' | 'export' | 'custom',
@@ -494,7 +517,7 @@ export const useBulkUpdateAirflowDag = () => {
   })
 }
 
-// Airflow bulk delete DAGs
+// Bulk delete DAGs
 
 type BulkDeleteArgs = {
   type: 'import' | 'export' | 'custom'
@@ -517,7 +540,7 @@ export const useBulkDeleteAirflowDags = () => {
   })
 }
 
-// Configuration
+// CONFIGURATION
 
 const postGlobalConfig = async (config: ConfigGlobalWithIndex) => {
   console.log('post config:', config)

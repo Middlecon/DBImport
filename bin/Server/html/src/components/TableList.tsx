@@ -18,6 +18,7 @@ import EditIcon from '../assets/icons/EditIcon'
 import DeleteIcon from '../assets/icons/DeleteIcon'
 import './TableList.scss'
 import UrlLinkIcon from '../assets/icons/UrlLinkIcon'
+import GenerateDAGIcon from '../assets/icons/GenerateDAGIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -29,9 +30,11 @@ interface TableProps<T> {
   enableMultiSelection?: boolean
   onEdit?: (row: T, rowIndex?: number) => void
   onDelete?: (row: T) => void
+  onGenerate?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
+  lightStickyHeadBoxShadow?: boolean
 }
 
 function TableList<T>({
@@ -44,9 +47,11 @@ function TableList<T>({
   enableMultiSelection = true,
   onEdit,
   onDelete,
+  onGenerate,
   airflowType,
   noLinkOnTableName = false,
-  enableSourceTableOverflow = false
+  enableSourceTableOverflow = false,
+  lightStickyHeadBoxShadow = false
 }: TableProps<T>) {
   const internalRef = useRef<HTMLDivElement>(null)
   const containerRef = externalRef || internalRef
@@ -531,6 +536,24 @@ function TableList<T>({
                 {showTooltip && <span className="tooltip">Delete</span>}
               </button>
             ) : null}
+            {column.isAction === 'generateDag' ? (
+              <button
+                className={`actions-edit-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => onGenerate && onGenerate(row)}
+                disabled={!onGenerate}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <GenerateDAGIcon />
+                {showTooltip && (
+                  <span className="tooltip" style={{ left: 'unset', right: 0 }}>
+                    Generate DAG
+                  </span>
+                )}
+              </button>
+            ) : null}
           </div>
         )
       }
@@ -546,11 +569,12 @@ function TableList<T>({
       onEdit,
       hoveredButton,
       showTooltip,
+      onGenerate,
       onDelete
     ]
   )
 
-  // Define columns for TanStack Table
+  // Defines columns for TanStack Table
   const tanstackColumns = useMemo<ColumnDef<T>[]>(
     () =>
       columns.map((column) => ({
@@ -562,6 +586,7 @@ function TableList<T>({
         minSize: 20,
         enableResizing: true,
         meta: {
+          isLightHeadShadow: column.header === 'Auto Regenerate DAG',
           isSticky: column.header === 'Actions' || column.header === 'Links',
           stickyType:
             column.header === 'Actions'
@@ -583,7 +608,6 @@ function TableList<T>({
             {renderCellContent(info.row.original, column, info.row.index)}
           </div>
         )
-        //   // renderCellContent(info.row.original, column, info.row.index)
       })),
     [columns, renderCellContent]
   )
@@ -888,7 +912,9 @@ function TableList<T>({
                                 header.column.columnDef.meta?.stickyType
                               } ${
                                 isBoxShadowApplied && !isScrolledToEnd
-                                  ? 'has-shadow'
+                                  ? lightStickyHeadBoxShadow
+                                    ? 'has-shadow light'
+                                    : 'has-shadow'
                                   : ''
                               }`
                             : ''

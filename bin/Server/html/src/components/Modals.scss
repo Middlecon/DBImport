@@ -102,7 +102,7 @@ body.resizing {
 .table-modal-footer {
   display: flex;
   justify-content: space-around;
-  margin-top: 0px;
+  margin-top: 10px;
 }
 
 .discover-modal-header {
@@ -224,13 +224,21 @@ body.resizing {
   padding-bottom: 10px;
 }
 
-.error-message {
+.error-message,
+.success-message {
   font-size: 12px;
-  color: red;
   display: flex;
   justify-content: end;
   visibility: visible;
   margin: 25px 0 11px 0;
+}
+
+.error-message {
+  color: red;
+}
+
+.success-message {
+  color: rgb(36, 131, 9);
 }
 
 .error-info-message {

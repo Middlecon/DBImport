@@ -14,13 +14,15 @@ interface DropdownActionsProps {
   isDropdownActionsOpen: boolean
   onToggle: (isDropdownActionsOpen: boolean) => void
   disabled?: boolean
+  marginTop?: number
 }
 
 function DropdownActions({
   items,
   isDropdownActionsOpen,
+  onToggle,
   disabled = false,
-  onToggle
+  marginTop = 0
 }: DropdownActionsProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -64,7 +66,10 @@ function DropdownActions({
 
   return (
     <>
-      <div className="actions-dropdown-container">
+      <div
+        className="actions-dropdown-container"
+        style={{ marginTop: marginTop }}
+      >
         <button
           className="action-dropdown-button"
           onClick={() => onToggle(!isDropdownActionsOpen)}

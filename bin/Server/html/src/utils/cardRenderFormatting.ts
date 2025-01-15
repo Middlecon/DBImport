@@ -630,35 +630,28 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
   } // Free-text, The task will use this user for sudo instead of default, varchar(64)
 ]
 
+export function generateDagSettings(dagName: string) {
+  const settings: EditSetting[] = [
+    {
+      label: 'DAG Name',
+      value: dagName,
+      type: SettingType.Readonly,
+      maxChar: 256
+    } // Readonly, varchar(64)
+  ]
+  return settings
+}
+
 // Connection
 
-export const encryptCredentialsSettings: EditSetting[] = [
-  {
-    label: 'Username',
-    value: '',
-    type: SettingType.Text,
-    maxChar: 256,
-    infoText: infoTexts.connectionEncryptCredentials.username,
-    isRequired: true
-  }, // Free-text (varchar 256)
-  {
-    label: 'Password',
-    value: '',
-    type: SettingType.Text,
-    maxChar: 256,
-    infoText: infoTexts.connectionEncryptCredentials.password,
-    isRequired: true
-  } // Free-text (varchar 256)
-]
-
-export function encryptCredentialsSettings2(connectionName: string) {
+export function encryptCredentialsSettings(connectionName: string) {
   const settings: EditSetting[] = [
     {
       label: 'Connection',
       value: connectionName,
       type: SettingType.Readonly,
       maxChar: 256
-    }, // Readonly (varchar 256),
+    }, // Readonly, varchar(256)
     {
       label: '',
       value: '',
@@ -671,7 +664,7 @@ export function encryptCredentialsSettings2(connectionName: string) {
       maxChar: 256,
       infoText: infoTexts.connectionEncryptCredentials.username,
       isRequired: true
-    }, // Free-text (varchar 256)
+    }, // Free-text, varchar(256)
     {
       label: 'Password',
       value: '',
@@ -679,7 +672,7 @@ export function encryptCredentialsSettings2(connectionName: string) {
       maxChar: 256,
       infoText: infoTexts.connectionEncryptCredentials.password,
       isRequired: true
-    } // Free-text (varchar 256)
+    } // Free-text, varchar(256)
   ]
   return settings
 }

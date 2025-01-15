@@ -571,7 +571,7 @@ export interface HeadersRowInfo {
 export interface Column<T> {
   header: string
   accessor?: keyof T
-  isAction?: 'edit' | 'delete' | 'editAndDelete'
+  isAction?: 'edit' | 'delete' | 'editAndDelete' | 'generateDag'
   isLink?: 'connectionLink' | 'airflowLink'
 }
 

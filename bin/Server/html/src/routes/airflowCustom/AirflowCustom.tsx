@@ -16,15 +16,21 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag,
-  useDeleteAirflowDAG
+  useGenDagConnection
 } from '../../utils/mutations'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
-import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
+import {
+  bulkAirflowDagFieldsData,
+  generateDagSettings
+} from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { wildcardMatch } from '../../utils/functions'
 import AirflowCustomActions from './AirflowCustomActions'
+import { AxiosError } from 'axios'
+import EditTableModal from '../../components/EditTableModal'
+import { ErrorData } from '../connection/connectionDetailed/ConnectionDetailedView'
 
 // const checkboxFilters = [
 //   {
@@ -61,14 +67,25 @@ function AirflowCustom() {
 
   const { data: dags, isLoading } = useCustomAirflows()
 
-  const { mutate: deleteDAG } = useDeleteAirflowDAG()
+  const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
+  const [isGenDagLoading, setIsGenDagLoading] = useState(false)
+  const [errorMessageGenerate, setErrorMessageGenerate] = useState<
+    string | null
+  >(null)
+  const [successMessageGenerate, setSuccessMessageGenerate] = useState<
+    string | null
+  >(null)
 
+  const { mutate: generateDag } = useGenDagConnection()
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
   const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [selectedDeleteRow, setSelectedDeleteRow] =
+  const [selectedGenerateRow, setSelectedGenerateRow] =
     useState<UiAirflowsCustomData>()
+
+  const settings = generateDagSettings(
+    selectedGenerateRow ? selectedGenerateRow.name : ''
+  )
 
   const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -86,8 +103,8 @@ function AirflowCustom() {
       { header: 'DAG Name', accessor: 'name' },
       { header: 'Schedule Interval', accessor: 'scheduleInterval' },
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
-      { header: 'Links', isLink: 'airflowLink' }
-      // { header: 'Actions', isAction: 'delete' }
+      { header: 'Links', isLink: 'airflowLink' },
+      { header: 'Actions', isAction: 'generateDag' }
     ],
     []
   )
@@ -101,34 +118,40 @@ function AirflowCustom() {
   //   }))
   // }
 
-  const handleDeleteIconClick = (row: UiAirflowsCustomData) => {
-    setShowDeleteConfirmation(true)
-    setSelectedDeleteRow(row)
+  const handleGenerateIconClick = (row: UiAirflowsCustomData) => {
+    setSelectedGenerateRow(row)
+    setIsGenDagModalOpen(true)
   }
 
-  const handleDelete = async (row: UiAirflowsCustomData) => {
-    setShowDeleteConfirmation(false)
+  const handleGenerateDag = () => {
+    if (!selectedGenerateRow) {
+      console.log('No selected row or DAG name', selectedGenerateRow)
+      return
+    }
 
-    const { name: nameDelete } = row
+    setIsGenDagLoading(true)
 
-    deleteDAG(
-      {
-        type: 'custom',
-        dagName: nameDelete
+    generateDag(selectedGenerateRow.name, {
+      onSuccess: (response) => {
+        setIsGenDagLoading(false)
+        setSuccessMessageGenerate('Generate DAG succeeded')
+        console.log('Generating DAG succeeded, result:', response)
+        // setIsGenDagModalOpen(false)
       },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'custom'
-            exact: false
-          })
-          console.log('Delete successful')
-        },
-        onError: (error) => {
-          console.error('Error deleting item', error)
-        }
+      onError: (error: AxiosError<ErrorData>) => {
+        const errorMessage =
+          error.response?.statusText &&
+          error.response?.data.detail !== undefined
+            ? `${error.message} ${error.response?.statusText}, ${error.response?.data.detail[0].msg}: ${error.response?.data.detail[0].type}`
+            : error.status === 500
+            ? `${error.message} ${error.response?.statusText}: ${error.response?.data}`
+            : 'An unknown error occurred'
+        setIsGenDagLoading(false)
+        setErrorMessageGenerate(errorMessage)
+        console.log('error', error)
+        console.error('Generate DAG failed', error.message)
       }
-    )
+    })
   }
 
   const filteredData = useMemo(() => {
@@ -298,7 +321,7 @@ function AirflowCustom() {
               columns={columns}
               data={filteredData}
               isLoading={isLoading}
-              onDelete={handleDeleteIconClick}
+              onGenerate={handleGenerateIconClick}
               airflowType="custom"
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
@@ -312,17 +335,7 @@ function AirflowCustom() {
             <p>No custom DAGs yet.</p>
           </div>
         )}
-        {showDeleteConfirmation && selectedDeleteRow && (
-          <ConfirmationModal
-            title={`Delete ${selectedDeleteRow.name}`}
-            message={`Are you sure that you want to delete \n\n DAG "${selectedDeleteRow.name}"? Delete is irreversable.`}
-            buttonTitleCancel="No, Go Back"
-            buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleDelete(selectedDeleteRow)}
-            onCancel={() => setShowDeleteConfirmation(false)}
-            isActive={showDeleteConfirmation}
-          />
-        )}
+
         {isBulkEditModalOpen && (
           <BulkEditModal
             isBulkEditModalOpen={isBulkEditModalOpen}
@@ -348,7 +361,29 @@ function AirflowCustom() {
             buttonTitleConfirm="Yes, Delete"
             onConfirm={() => handleBulkDelete(selectedRowsBulk)}
             onCancel={() => setShowBulkDeleteConfirmation(false)}
-            isActive={showDeleteConfirmation}
+            isActive={showBulkDeleteConfirmation}
+          />
+        )}
+        {isGenDagModalOpen && (
+          <EditTableModal
+            isEditModalOpen={isGenDagModalOpen}
+            title={`Generate DAG`}
+            settings={settings}
+            onSave={handleGenerateDag}
+            onClose={() => {
+              setIsGenDagModalOpen(false)
+              setErrorMessageGenerate(null)
+              setSuccessMessageGenerate(null)
+            }}
+            isNoCloseOnSave={true}
+            initWidth={300}
+            isLoading={isGenDagLoading}
+            loadingText="Generating"
+            successMessage={successMessageGenerate}
+            errorMessage={errorMessageGenerate ? errorMessageGenerate : null}
+            onResetErrorMessage={() => setErrorMessageGenerate(null)}
+            submitButtonTitle="Generate"
+            closeButtonTitle="Close"
           />
         )}
       </ViewBaseLayout>

@@ -9,10 +9,7 @@ import DropdownActions from '../../../components/DropdownActions'
 import TestConnectionIcon from '../../../assets/icons/TestConnectionIcon'
 import EncryptIcon from '../../../assets/icons/EncryptIcon'
 import EditTableModal from '../../../components/EditTableModal'
-import {
-  // encryptCredentialsSettings,
-  encryptCredentialsSettings2
-} from '../../../utils/cardRenderFormatting'
+import { encryptCredentialsSettings } from '../../../utils/cardRenderFormatting'
 import { EditSetting } from '../../../utils/interfaces'
 import { transformEncryptCredentialsSettings } from '../../../utils/dataFunctions'
 import {
@@ -23,18 +20,26 @@ import { useQueryClient } from '@tanstack/react-query'
 import ConfirmationModal from '../../../components/ConfirmationModal'
 import { AxiosError } from 'axios'
 
+export interface ErrorDetail {
+  input: string | null
+  loc: string[]
+  msg: string | null
+  type: string | null
+  url: string | null
+}
 export interface ErrorData {
-  result: string
+  result?: string
+  detail?: ErrorDetail[]
 }
 
 function ConnectionDetailedView() {
+  const queryClient = useQueryClient()
+
   const { connection: connectionParam } = useParams<{
     connection: string
   }>()
 
-  // const settings = encryptCredentialsSettings
-
-  const settings2 = encryptCredentialsSettings2(
+  const settings = encryptCredentialsSettings(
     connectionParam ? connectionParam : ''
   )
 
@@ -42,18 +47,14 @@ function ConnectionDetailedView() {
 
   const [isEncryptModalOpen, setIsEncryptModalOpen] = useState(false)
   const [isEncryptLoading, setIsEncryptLoading] = useState(false)
-
-  const [isTestCnModalOpen, setIsTestCnModalOpen] = useState(false)
-  const [isTestLoading, setIsTestLoading] = useState(true)
-
-  const [errorMessageTest, setErrorMessageTest] = useState<string | null>(null)
   const [errorMessageEncrypt, setErrorMessageEncrypt] = useState<string | null>(
     null
   )
-
-  const queryClient = useQueryClient()
   const { mutate: encryptCredentials } = useEncryptCredentials()
 
+  const [isTestCnModalOpen, setIsTestCnModalOpen] = useState(false)
+  const [isTestLoading, setIsTestLoading] = useState(true)
+  const [errorMessageTest, setErrorMessageTest] = useState<string | null>(null)
   const { mutate: testConnection, isSuccess: isTestSuccess } =
     useTestConnection()
 
@@ -82,11 +83,6 @@ function ConnectionDetailedView() {
           console.log('error', error)
           console.error('Connection test failed', error.message)
         }
-        // Correspons the above, response to onSuccess and error to onError
-        // onSettled: (response, error) => {
-        //   console.log('onSettled response', response)
-        //   console.log('onSettled response', error)
-        // }
       }
     )
   }
@@ -134,6 +130,7 @@ function ConnectionDetailedView() {
           <h1>{`${connectionParam}`}</h1>
           <DropdownActions
             isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+            marginTop={5}
             onToggle={(isDropdownActionsOpen: boolean) =>
               handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
             }
@@ -160,7 +157,7 @@ function ConnectionDetailedView() {
           <EditTableModal
             isEditModalOpen={isEncryptModalOpen}
             title={`Encrypt credentials`}
-            settings={settings2}
+            settings={settings}
             onSave={handleSave}
             onClose={() => setIsEncryptModalOpen(false)}
             isNoCloseOnSave={true}

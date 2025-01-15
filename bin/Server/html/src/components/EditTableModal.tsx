@@ -33,9 +33,11 @@ interface EditModalProps {
   initWidth?: number
   isLoading?: boolean
   loadingText?: string
+  successMessage?: string | null
   errorMessage?: string | null
   onResetErrorMessage?: () => void
   submitButtonTitle?: string
+  closeButtonTitle?: string
 }
 
 function EditTableModal({
@@ -48,9 +50,11 @@ function EditTableModal({
   initWidth,
   isLoading = false,
   loadingText,
+  successMessage,
   errorMessage,
   onResetErrorMessage,
-  submitButtonTitle = 'Save'
+  submitButtonTitle = 'Save',
+  closeButtonTitle = 'Cancel'
 }: EditModalProps) {
   const editableSettings =
     settings?.filter((setting) => {
@@ -59,7 +63,8 @@ function EditTableModal({
       const isDisplayReadonly =
         setting.label === 'Database' ||
         setting.label === 'Table' ||
-        setting.label === 'Connection'
+        setting.label === 'Connection' ||
+        setting.label === 'DAG Name'
 
       return !isHidden && (!isReadonly || isDisplayReadonly)
     }) ?? []
@@ -306,7 +311,7 @@ function EditTableModal({
         className={`table-modal-content ${
           mainSidebarMinimized ? 'sidebar-minimized' : ''
         }`}
-        style={{ width: `${modalWidth}px` }}
+        style={{ width: `${modalWidth}px`, minWidth: 'fit-content' }}
         ref={containerRef}
       >
         <div
@@ -416,6 +421,10 @@ function EditTableModal({
               <p className="error-message" style={{ margin: 0 }}>
                 {errorMessage}
               </p>
+            ) : successMessage ? (
+              <p className="success-message" style={{ margin: 0 }}>
+                {successMessage}
+              </p>
             ) : location.pathname === '/configuration/global' ? (
               <RequiredFieldsInfo
                 isRequiredFieldEmpty={isRequiredFieldEmpty}
@@ -429,7 +438,7 @@ function EditTableModal({
           </div>
           <div className="table-modal-footer">
             <Button
-              title="Cancel"
+              title={closeButtonTitle}
               onClick={handleCancelClick}
               lightStyle={true}
               disabled={isLoading}
