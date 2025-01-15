@@ -12,14 +12,14 @@ interface DropdownActionItem {
 interface DropdownActionsProps {
   items: DropdownActionItem[]
   isDropdownActionsOpen: boolean
-  disabled: boolean
   onToggle: (isDropdownActionsOpen: boolean) => void
+  disabled?: boolean
 }
 
 function DropdownActions({
   items,
   isDropdownActionsOpen,
-  disabled,
+  disabled = false,
   onToggle
 }: DropdownActionsProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
@@ -64,34 +64,44 @@ function DropdownActions({
 
   return (
     <>
-      <button
-        className="action-dropdown-button"
-        onClick={() => onToggle(!isDropdownActionsOpen)}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-      >
-        Actions
-        <div className="action-dropdown-chevron-container">
-          {isDropdownActionsOpen ? <ChevronUp /> : <ChevronDown />}
-        </div>
-      </button>
+      <div className="actions-dropdown-container">
+        <button
+          className="action-dropdown-button"
+          onClick={() => onToggle(!isDropdownActionsOpen)}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        >
+          Actions
+          <div className="action-dropdown-chevron-container">
+            {isDropdownActionsOpen ? <ChevronUp /> : <ChevronDown />}
+          </div>
+        </button>
 
-      {isDropdownActionsOpen && (
-        <div className="actions-dropdown-wrapper" ref={dropdownRef}>
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className={`actions-dropdown-item ${
-                activeIndex === index ? 'highlighted' : ''
-              } ${index === 0 ? 'add-table' : 'discover'}`}
-              onClick={item.onClick}
-              tabIndex={0}
-            >
-              {item.icon} {item.label}
-            </div>
-          ))}
-        </div>
-      )}
+        {isDropdownActionsOpen && (
+          <div className="actions-dropdown-wrapper" ref={dropdownRef}>
+            {items.map((item, index) => (
+              <div
+                key={index}
+                className={`actions-dropdown-item ${
+                  activeIndex === index ? 'highlighted' : ''
+                } ${
+                  items.length === 1
+                    ? 'first last'
+                    : index === 0
+                    ? 'first'
+                    : index === items.length - 1
+                    ? 'last'
+                    : ''
+                }`}
+                onClick={item.onClick}
+                tabIndex={0}
+              >
+                {item.icon} {item.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </>
   )
 }

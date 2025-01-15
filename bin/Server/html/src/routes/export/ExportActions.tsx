@@ -118,7 +118,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   return (
     <>
       <div className="header-buttons">
-        <div className="actions-dropdown-container discover-br">
+        <div className="actions-dropdown-discover-br">
           <DropdownActions
             isDropdownActionsOpen={openDropdown === 'dropdownActions'}
             onToggle={(isDropdownActionsOpen: boolean) =>

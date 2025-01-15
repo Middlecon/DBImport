@@ -63,7 +63,6 @@ function ConfirmationModal({
           </>
         )}
 
-        {/* <p className="loading-response">{isLoading ? 'Loading...' : ''}</p> */}
         <div className="confirmation-modal-footer">
           <Button
             title={buttonTitleCancel}

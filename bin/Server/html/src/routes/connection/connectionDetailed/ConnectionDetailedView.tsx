@@ -132,30 +132,28 @@ function ConnectionDetailedView() {
       <ViewBaseLayout>
         <div className="table-header">
           <h1>{`${connectionParam}`}</h1>
-          <div className="actions-dropdown-container">
-            <DropdownActions
-              isDropdownActionsOpen={openDropdown === 'dropdownActions'}
-              onToggle={(isDropdownActionsOpen: boolean) =>
-                handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
-              }
-              items={[
-                {
-                  icon: <EncryptIcon />,
-                  label: `Encrypt credentials`,
-                  onClick: () => {
-                    setIsEncryptModalOpen(true)
-                    setOpenDropdown(null)
-                  }
-                },
-                {
-                  icon: <TestConnectionIcon />,
-                  label: 'Test connection',
-                  onClick: handleTestConnection
+          <DropdownActions
+            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+            onToggle={(isDropdownActionsOpen: boolean) =>
+              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+            }
+            items={[
+              {
+                icon: <EncryptIcon />,
+                label: `Encrypt credentials`,
+                onClick: () => {
+                  setIsEncryptModalOpen(true)
+                  setOpenDropdown(null)
                 }
-              ]}
-              disabled={!connectionParam}
-            />
-          </div>
+              },
+              {
+                icon: <TestConnectionIcon />,
+                label: 'Test connection',
+                onClick: handleTestConnection
+              }
+            ]}
+            disabled={!connectionParam}
+          />
         </div>
         <ConnectionSettings />
         {isEncryptModalOpen && connectionParam && (

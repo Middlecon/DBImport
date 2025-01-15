@@ -67,9 +67,11 @@
     rgba(0, 0, 0, 0.3) 1px 8px 16px -8px;
 }
 
-.actions-dropdown-container.discover-br {
-  .actions-dropdown-wrapper {
-    max-width: 135px;
+.actions-dropdown-discover-br {
+  .actions-dropdown-container {
+    .actions-dropdown-wrapper {
+      max-width: 135px;
+    }
   }
 }
 
@@ -91,12 +93,12 @@
   }
 }
 
-.actions-dropdown-item.add-table {
+.actions-dropdown-item.first {
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 }
 
-.actions-dropdown-item.discover {
+.actions-dropdown-item.last {
   border-top: 1px solid #ababac;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
