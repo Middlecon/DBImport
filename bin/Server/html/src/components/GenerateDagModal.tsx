@@ -4,6 +4,7 @@ import EditTableModal from './EditTableModal'
 import { generateDagSettings } from '../utils/cardRenderFormatting'
 import { useGenerateDag } from '../utils/mutations'
 import { ErrorData } from '../utils/interfaces'
+import infoTexts from '../infoTexts.json'
 
 interface GenerateDagModalProps {
   dagName: string
@@ -63,6 +64,7 @@ function GenerateDagModal({
     <EditTableModal
       isEditModalOpen={isGenDagModalOpen}
       title={`Generate DAG`}
+      titleInfoText={infoTexts.actions.generateDag}
       settings={settings}
       onSave={handleGenerateDag}
       onClose={() => {

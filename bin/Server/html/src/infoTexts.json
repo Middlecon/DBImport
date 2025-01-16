@@ -356,5 +356,9 @@
       "addCounterToTable": "",
       "addCustomText": ""
     }
+  },
+
+  "actions": {
+    "generateDag": ""
   }
 }

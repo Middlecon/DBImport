@@ -38,6 +38,7 @@ interface EditModalProps {
   onResetErrorMessage?: () => void
   submitButtonTitle?: string
   closeButtonTitle?: string
+  titleInfoText?: string | null
 }
 
 function EditTableModal({
@@ -54,7 +55,8 @@ function EditTableModal({
   errorMessage,
   onResetErrorMessage,
   submitButtonTitle = 'Save',
-  closeButtonTitle = 'Cancel'
+  closeButtonTitle = 'Cancel',
+  titleInfoText = null
 }: EditModalProps) {
   const editableSettings =
     settings?.filter((setting) => {
@@ -322,7 +324,18 @@ function EditTableModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">{title}</h2>
+        <h2 className="table-modal-h2">
+          {title}
+          {titleInfoText && titleInfoText.length > 0 && (
+            <InfoText
+              label={title}
+              infoText={titleInfoText}
+              iconPosition={{ marginLeft: 12 }}
+              isInfoTextPositionRight={true}
+              infoTextMaxWidth={300}
+            />
+          )}
+        </h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
