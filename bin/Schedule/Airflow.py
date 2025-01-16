@@ -613,9 +613,13 @@ class initialize(object):
 		importTablesQuery = importTablesQuery.filter(importTables.include_in_airflow == 1)
 
 		for hiveTarget in DAG['filter_hive'].split(';'):
-			hiveDB = hiveTarget.split(".")[0].strip().replace(r'*', '%')
-			hiveTable = hiveTarget.split(".")[1].strip().replace(r'*', '%')
-			if hiveDB == None or hiveTable == None or hiveDB == "" or hiveTable == "":
+			try:
+				hiveDB = hiveTarget.split(".")[0].strip().replace(r'*', '%')
+				hiveTable = hiveTarget.split(".")[1].strip().replace(r'*', '%')
+				if hiveDB == None or hiveTable == None or hiveDB == "" or hiveTable == "":
+					self.DAGfile.close()
+					raise invalidConfiguration("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
+			except IndexError:
 				self.DAGfile.close()
 				raise invalidConfiguration("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
 #				log.error("Syntax for filter_hive column is <HIVE_DB>.<HIVE_TABLE>;<HIVE_DB>.<HIVE_TABLE>;.....")
