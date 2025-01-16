@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useConnections } from '../utils/queries'
+import { useConnections } from '../../utils/queries'
 import { useAtom } from 'jotai'
-import { isCnDropdownReadyAtom } from '../atoms/atoms'
-import Dropdown from './Dropdown'
-import ChevronDown from '../assets/icons/ChevronDown'
-import ChevronUp from '../assets/icons/ChevronUp'
-import FilterFunnel from '../assets/icons/FilterFunnel'
-import './HeaderActions.scss'
-import Button from './Button'
+import { isCnDropdownReadyAtom } from '../../atoms/atoms'
+import Dropdown from '../../components/Dropdown'
+import ChevronDown from '../../assets/icons/ChevronDown'
+import ChevronUp from '../../assets/icons/ChevronUp'
+import FilterFunnel from '../../assets/icons/FilterFunnel'
+import Button from '../../components/Button'
 import {
   // ConnectionSearchFilter,
   EditSettingValueTypes,
   UiConnectionSearchFilter
-} from '../utils/interfaces'
-import FavoriteFilterSearch from './FavoriteFilterSearch'
-import { useFocusTrap } from '../utils/hooks'
-import { createTrimOnBlurHandler } from '../utils/functions'
+} from '../../utils/interfaces'
+import FavoriteFilterSearch from '../../components/FavoriteFilterSearch'
+import { useFocusTrap } from '../../utils/hooks'
+import { createTrimOnBlurHandler } from '../../utils/functions'
+import '../../components/HeaderActions.scss'
 
 interface ConnectionSearchFilterProps {
   isSearchFilterOpen: boolean

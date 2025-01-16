@@ -12,7 +12,7 @@ import {
 import { useCreateAirflowDag } from '../../utils/mutations'
 import { useAtom } from 'jotai'
 import { airflowCustomDagsPersistStateAtom } from '../../atoms/atoms'
-import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
+import AirflowSearchFilterDags from '../_airflowShared/AirflowSearchFilterDags'
 import CreateAirflowModal from '../../components/modals/CreateAirflowModal'
 
 interface AirflowCustomActionsProps {

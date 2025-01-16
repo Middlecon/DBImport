@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import Dropdown from './Dropdown'
-import ChevronDown from '../assets/icons/ChevronDown'
-import ChevronUp from '../assets/icons/ChevronUp'
-import FilterFunnel from '../assets/icons/FilterFunnel'
-import './HeaderActions.scss'
-import Button from './Button'
+import Dropdown from '../../components/Dropdown'
+import ChevronDown from '../../assets/icons/ChevronDown'
+import ChevronUp from '../../assets/icons/ChevronUp'
+import FilterFunnel from '../../assets/icons/FilterFunnel'
+import Button from '../../components/Button'
 import {
   EditSettingValueTypes,
   UiAirflowsSearchFilter
-} from '../utils/interfaces'
-import FavoriteFilterSearch from './FavoriteFilterSearch'
-import { useFocusTrap } from '../utils/hooks'
-import { createTrimOnBlurHandler } from '../utils/functions'
+} from '../../utils/interfaces'
+import FavoriteFilterSearch from '../../components/FavoriteFilterSearch'
+import { useFocusTrap } from '../../utils/hooks'
+import { createTrimOnBlurHandler } from '../../utils/functions'
+import '../../components/HeaderActions.scss'
 
 interface AirflowSearchFilterDagsProps {
   isSearchFilterOpen: boolean

@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useConnections, useDatabases } from '../utils/queries'
 import { useAtom } from 'jotai'
-import { isCnDropdownReadyAtom, isDbDropdownReadyAtom } from '../atoms/atoms'
-import Dropdown from './Dropdown'
-import ChevronDown from '../assets/icons/ChevronDown'
-import ChevronUp from '../assets/icons/ChevronUp'
-import FilterFunnel from '../assets/icons/FilterFunnel'
-import './HeaderActions.scss'
-import Button from './Button'
+import ChevronDown from '../../assets/icons/ChevronDown'
+import ChevronUp from '../../assets/icons/ChevronUp'
+import FilterFunnel from '../../assets/icons/FilterFunnel'
+import { isDbDropdownReadyAtom, isCnDropdownReadyAtom } from '../../atoms/atoms'
+import Button from '../../components/Button'
+import Dropdown from '../../components/Dropdown'
+import FavoriteFilterSearch from '../../components/FavoriteFilterSearch'
+import { initEnumDropdownFilters } from '../../utils/cardRenderFormatting'
+import { createTrimOnBlurHandler } from '../../utils/functions'
+import { useFocusTrap } from '../../utils/hooks'
 import {
+  UiImportSearchFilter,
   EditSetting,
-  EditSettingValueTypes,
-  UiImportSearchFilter
-} from '../utils/interfaces'
-import { getKeyFromLabel } from '../utils/nameMappings'
-import { initEnumDropdownFilters } from '../utils/cardRenderFormatting'
-import FavoriteFilterSearch from './FavoriteFilterSearch'
-import { useFocusTrap } from '../utils/hooks'
-import { createTrimOnBlurHandler } from '../utils/functions'
+  EditSettingValueTypes
+} from '../../utils/interfaces'
+import { getKeyFromLabel } from '../../utils/nameMappings'
+import { useDatabases, useConnections } from '../../utils/queries'
+import '../../components/HeaderActions.scss'
 
 interface ImportSearchFilterProps {
   isSearchFilterOpen: boolean

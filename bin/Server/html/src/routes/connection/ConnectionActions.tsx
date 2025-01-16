@@ -10,7 +10,7 @@ import {
 } from '../../utils/interfaces'
 import { useAtom } from 'jotai'
 import { connectionPersistStateAtom } from '../../atoms/atoms'
-import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
+import ConnectionSearchFilterCns from './ConnectionSearchFilterCns'
 import CreateConnectionModal from '../../components/modals/CreateConnectionModal'
 import { createConnectionData } from '../../utils/dataFunctions'
 import { useCreateOrUpdateConnection } from '../../utils/mutations'
