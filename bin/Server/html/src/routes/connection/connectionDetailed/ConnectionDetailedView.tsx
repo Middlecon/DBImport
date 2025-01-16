@@ -10,7 +10,7 @@ import TestConnectionIcon from '../../../assets/icons/TestConnectionIcon'
 import EncryptIcon from '../../../assets/icons/EncryptIcon'
 import EditTableModal from '../../../components/EditTableModal'
 import { encryptCredentialsSettings } from '../../../utils/cardRenderFormatting'
-import { EditSetting } from '../../../utils/interfaces'
+import { EditSetting, ErrorData } from '../../../utils/interfaces'
 import { transformEncryptCredentialsSettings } from '../../../utils/dataFunctions'
 import {
   useEncryptCredentials,
@@ -19,18 +19,6 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import ConfirmationModal from '../../../components/ConfirmationModal'
 import { AxiosError } from 'axios'
-
-export interface ErrorDetail {
-  input: string | null
-  loc: string[]
-  msg: string | null
-  type: string | null
-  url: string | null
-}
-export interface ErrorData {
-  result?: string
-  detail?: ErrorDetail[]
-}
 
 function ConnectionDetailedView() {
   const queryClient = useQueryClient()

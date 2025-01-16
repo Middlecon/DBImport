@@ -1269,3 +1269,15 @@ export interface JDBCdriversWithIndex {
   driver: string
   classpath: string
 }
+
+export interface ErrorDetail {
+  input: string | null
+  loc: string[]
+  msg: string | null
+  type: string | null
+  url: string | null
+}
+export interface ErrorData {
+  result?: string
+  detail?: ErrorDetail[]
+}

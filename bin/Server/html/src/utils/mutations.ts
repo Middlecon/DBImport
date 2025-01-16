@@ -23,10 +23,10 @@ import {
   GenerateJDBCconnectionString,
   ImportDiscoverTable,
   ExportDiscoverTable,
-  EncryptCredentials
+  EncryptCredentials,
+  ErrorData
 } from './interfaces'
 import { AxiosError } from 'axios'
-import { ErrorData } from '../routes/connection/connectionDetailed/ConnectionDetailedView'
 
 // CONNECTION
 
@@ -366,7 +366,7 @@ export const useBulkDeleteTables = () => {
 
 // Generate DAG
 
-const getGenDagConnection = async (dagName: string) => {
+const getGenerateDag = async (dagName: string) => {
   console.log('dagName', dagName)
   const encodedDagName = encodeURIComponent(dagName)
   const response = await axiosInstance.get(`/airflow/generate_dag`, {
@@ -375,9 +375,9 @@ const getGenDagConnection = async (dagName: string) => {
   return response.data
 }
 
-export const useGenDagConnection = () => {
+export const useGenerateDag = () => {
   return useMutation<void, AxiosError<ErrorData>, string>({
-    mutationFn: (dagName: string) => getGenDagConnection(dagName)
+    mutationFn: (dagName: string) => getGenerateDag(dagName)
   })
 }
 

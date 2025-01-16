@@ -16,24 +16,18 @@ import TableList from '../../components/TableList'
 import Button from '../../components/Button'
 import {
   useBulkDeleteAirflowDags,
-  useBulkUpdateAirflowDag,
-  useGenDagConnection
+  useBulkUpdateAirflowDag
 } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import BulkEditModal from '../../components/BulkEditModal'
-import {
-  bulkAirflowDagFieldsData,
-  generateDagSettings
-} from '../../utils/cardRenderFormatting'
+import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { wildcardMatch } from '../../utils/functions'
 import AirflowImportActions from './AirflowImportActions'
-import { AxiosError } from 'axios'
-import EditTableModal from '../../components/EditTableModal'
-import { ErrorData } from '../connection/connectionDetailed/ConnectionDetailedView'
+import GenerateDagModal from '../../components/GenerateDagModal'
 
 // const checkboxFilters = [
 //   {
@@ -71,25 +65,12 @@ function AirflowImport() {
   const { data: dags, isLoading } = useImportAirflows()
 
   const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
-  const [isGenDagLoading, setIsGenDagLoading] = useState(false)
-  const [errorMessageGenerate, setErrorMessageGenerate] = useState<
-    string | null
-  >(null)
-  const [successMessageGenerate, setSuccessMessageGenerate] = useState<
-    string | null
-  >(null)
-
-  const { mutate: generateDag } = useGenDagConnection()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
   const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
   const [selectedGenerateRow, setSelectedGenerateRow] =
     useState<UiAirflowsImportData>()
-
-  const settings = generateDagSettings(
-    selectedGenerateRow ? selectedGenerateRow.name : ''
-  )
 
   const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -126,37 +107,6 @@ function AirflowImport() {
   const handleGenerateIconClick = (row: UiAirflowsImportData) => {
     setSelectedGenerateRow(row)
     setIsGenDagModalOpen(true)
-  }
-
-  const handleGenerateDag = () => {
-    if (!selectedGenerateRow) {
-      console.log('No selected row or DAG name', selectedGenerateRow)
-      return
-    }
-
-    setIsGenDagLoading(true)
-
-    generateDag(selectedGenerateRow.name, {
-      onSuccess: (response) => {
-        setIsGenDagLoading(false)
-        setSuccessMessageGenerate('Generate DAG succeeded')
-        console.log('Generating DAG succeeded, result:', response)
-        // setIsGenDagModalOpen(false)
-      },
-      onError: (error: AxiosError<ErrorData>) => {
-        const errorMessage =
-          error.response?.statusText &&
-          error.response?.data.detail !== undefined
-            ? `${error.message} ${error.response?.statusText}, ${error.response?.data.detail[0].msg}: ${error.response?.data.detail[0].type}`
-            : error.status === 500
-            ? `${error.message} ${error.response?.statusText}: ${error.response?.data}`
-            : 'An unknown error occurred'
-        setIsGenDagLoading(false)
-        setErrorMessageGenerate(errorMessage)
-        console.log('error', error)
-        console.error('Generate DAG failed', error.message)
-      }
-    })
   }
 
   const filteredData = useMemo(() => {
@@ -371,26 +321,11 @@ function AirflowImport() {
           />
         )}
 
-        {isGenDagModalOpen && (
-          <EditTableModal
-            isEditModalOpen={isGenDagModalOpen}
-            title={`Generate DAG`}
-            settings={settings}
-            onSave={handleGenerateDag}
-            onClose={() => {
-              setIsGenDagModalOpen(false)
-              setErrorMessageGenerate(null)
-              setSuccessMessageGenerate(null)
-            }}
-            isNoCloseOnSave={true}
-            initWidth={300}
-            isLoading={isGenDagLoading}
-            loadingText="Generating"
-            successMessage={successMessageGenerate}
-            errorMessage={errorMessageGenerate ? errorMessageGenerate : null}
-            onResetErrorMessage={() => setErrorMessageGenerate(null)}
-            submitButtonTitle="Generate"
-            closeButtonTitle="Close"
+        {isGenDagModalOpen && selectedGenerateRow && (
+          <GenerateDagModal
+            dagName={selectedGenerateRow.name}
+            isGenDagModalOpen={isGenDagModalOpen}
+            onClose={() => setIsGenDagModalOpen(false)}
           />
         )}
       </ViewBaseLayout>
