@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import '../import/tableDetailed/settings/Card.scss'
+import '../_shared/tableDetailed/settings/Card.scss'
 import Button from '../../components/Button'
 import EditTableModal from '../../components/modals/EditTableModal'
 
 import { EditSetting, ConfigGlobal } from '../../utils/interfaces'
 import { useQueryClient } from '@tanstack/react-query'
-import Setting from '../import/tableDetailed/settings/Setting'
+import Setting from '../_shared/tableDetailed/settings/Setting'
 import { updateGlobalConfigData } from '../../utils/dataFunctions'
 import { useUpdateGlobalConfig } from '../../utils/mutations'
 

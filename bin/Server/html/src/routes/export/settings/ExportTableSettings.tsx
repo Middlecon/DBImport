@@ -1,6 +1,6 @@
-import '../../import/tableDetailed/settings/TableSettings.scss'
+import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import { useParams } from 'react-router-dom'
-import Card from '../../import/tableDetailed/settings/Card'
+import Card from '../../_shared/tableDetailed/settings/Card'
 import '../../../components/Loading.scss'
 import { useExportTable } from '../../../utils/queries'
 import { exportCardRenderSettings } from '../../../utils/cardRenderFormatting'

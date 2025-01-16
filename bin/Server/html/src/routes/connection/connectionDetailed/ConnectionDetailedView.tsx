@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
-import '../../_shared/TableDetailedView.scss'
-import '../../import/tableDetailed/settings/TableSettings.scss'
+import '../../_shared/tableDetailed/DetailedView.scss'
+import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import '../../../components/Loading.scss'
 import ConnectionSettings from './ConnectionSettings'
 import { useState } from 'react'
@@ -114,7 +114,7 @@ function ConnectionDetailedView() {
   return (
     <>
       <ViewBaseLayout>
-        <div className="table-header">
+        <div className="detailed-view-header">
           <h1>{`${connectionParam}`}</h1>
           <DropdownActions
             isDropdownActionsOpen={openDropdown === 'dropdownActions'}

@@ -1,9 +1,9 @@
-import './TableSettings.scss'
+import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import { useParams } from 'react-router-dom'
-import { useTable } from '../../../../utils/queries'
-import Card from './Card'
-import { importCardRenderSettings } from '../../../../utils/cardRenderFormatting'
-import '../../../../components/Loading.scss'
+import '../../../components/Loading.scss'
+import { importCardRenderSettings } from '../../../utils/cardRenderFormatting'
+import { useTable } from '../../../utils/queries'
+import Card from '../../_shared/tableDetailed/settings/Card'
 
 function TableSettings() {
   const { database, table: tableParam } = useParams<{

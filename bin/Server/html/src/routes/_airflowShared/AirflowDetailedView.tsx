@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
 import { useEffect, useMemo, useState } from 'react'
-import '../_shared/TableDetailedView.scss'
+import '../_shared/tableDetailed/DetailedView.scss'
 import GenerateDAGIcon from '../../assets/icons/GenerateDAGIcon'
 import DropdownActions from '../../components/DropdownActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
@@ -58,7 +58,7 @@ function AirflowDetailedView({
   return (
     <>
       <ViewBaseLayout>
-        <div className="table-header">
+        <div className="detailed-view-header">
           <h1>{`${dagName}`}</h1>
           <DropdownActions
             isDropdownActionsOpen={openDropdown === 'dropdownActions'}

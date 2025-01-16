@@ -1,5 +1,5 @@
-import '../_shared/TableDetailedView.scss'
-import '../import/tableDetailed/settings/TableSettings.scss'
+import '../_shared/tableDetailed/DetailedView.scss'
+import '../_shared/tableDetailed/settings/TableSettings.scss'
 import '../../components/Loading.scss'
 import { useGlobalConfig } from '../../utils/queries'
 import { configGlobalCardRenderSettings } from '../../utils/cardRenderFormatting'

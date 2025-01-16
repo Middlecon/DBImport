@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useAirflowDAG } from '../../utils/queries'
-import '../_shared/TableDetailedView.scss'
+import '../_shared/tableDetailed/DetailedView.scss'
 import CardAirflow from './CardAirflow'
 import { airflowCardRenderSettings } from '../../utils/cardRenderFormatting'
 import '../../components/Loading.scss'

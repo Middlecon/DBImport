@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
-import '../../_shared/TableDetailedView.scss'
-import '../../import/tableDetailed/settings/TableSettings.scss'
+import '../../_shared/tableDetailed/DetailedView.scss'
+import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import { useConnection } from '../../../utils/queries'
 import { connectionCardRenderSettings } from '../../../utils/cardRenderFormatting'
 import CardConnection from './CardConnection'

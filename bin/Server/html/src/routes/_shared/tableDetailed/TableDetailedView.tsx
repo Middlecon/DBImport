@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
-import ViewBaseLayout from '../../components/ViewBaseLayout'
+import ViewBaseLayout from '../../../components/ViewBaseLayout'
 import { useEffect, useMemo } from 'react'
-import './TableDetailedView.scss'
+import '../tableDetailed/DetailedView.scss'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -76,7 +76,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
   return (
     <>
       <ViewBaseLayout>
-        <div className="table-header">
+        <div className="detailed-view-header">
           {type === 'import' && <h1>{`${database}.${table}`}</h1>}
           {type === 'export' && (
             <h1>{`${connection}.${targetSchema}.${targetTable}`}</h1>

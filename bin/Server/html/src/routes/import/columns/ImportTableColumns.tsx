@@ -1,14 +1,14 @@
-import { Column, Columns, EditSetting } from '../../../../utils/interfaces'
-import TableList from '../../../../components/TableList'
+import { Column, Columns, EditSetting } from '../../../utils/interfaces'
+import TableList from '../../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
-import { useTable } from '../../../../utils/queries'
-import EditTableModal from '../../../../components/modals/EditTableModal'
-import { updateTableData } from '../../../../utils/dataFunctions'
+import { useTable } from '../../../utils/queries'
+import EditTableModal from '../../../components/modals/EditTableModal'
+import { updateTableData } from '../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUpdateTable } from '../../../../utils/mutations'
+import { useUpdateTable } from '../../../utils/mutations'
 import { useParams } from 'react-router-dom'
-import '../../../../components/Loading.scss'
-import { importColumnRowDataEdit } from '../../../../utils/cardRenderFormatting'
+import '../../../components/Loading.scss'
+import { importColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 
 function TableColumns() {
   const { database, table: tableParam } = useParams<{
