@@ -17,13 +17,9 @@ function GenerateDagModal({
   isGenDagModalOpen,
   onClose
 }: GenerateDagModalProps) {
-  const [isGenDagLoading, setIsGenDagLoading] = useState(false)
-  const [errorMessageGenerate, setErrorMessageGenerate] = useState<
-    string | null
-  >(null)
-  const [successMessageGenerate, setSuccessMessageGenerate] = useState<
-    string | null
-  >(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const { mutate: generateDag } = useGenerateDag()
 
@@ -35,12 +31,12 @@ function GenerateDagModal({
       return
     }
 
-    setIsGenDagLoading(true)
+    setIsLoading(true)
 
     generateDag(dagName, {
       onSuccess: (response) => {
-        setIsGenDagLoading(false)
-        setSuccessMessageGenerate('Generate DAG succeeded')
+        setIsLoading(false)
+        setSuccessMessage('Generate DAG succeeded')
         console.log('Generating DAG succeeded, result:', response)
         // setIsGenDagModalOpen(false)
       },
@@ -52,8 +48,8 @@ function GenerateDagModal({
             : error.status === 500
             ? `${error.message} ${error.response?.statusText}: ${error.response?.data}`
             : 'An unknown error occurred'
-        setIsGenDagLoading(false)
-        setErrorMessageGenerate(errorMessage)
+        setIsLoading(false)
+        setErrorMessage(errorMessage)
         console.log('error', error)
         console.error('Generate DAG failed', error.message)
       }
@@ -69,16 +65,16 @@ function GenerateDagModal({
       onSave={handleGenerateDag}
       onClose={() => {
         onClose()
-        setErrorMessageGenerate(null)
-        setSuccessMessageGenerate(null)
+        setErrorMessage(null)
+        setSuccessMessage(null)
       }}
       isNoCloseOnSave={true}
       initWidth={300}
-      isLoading={isGenDagLoading}
+      isLoading={isLoading}
       loadingText="Generating"
-      successMessage={successMessageGenerate}
-      errorMessage={errorMessageGenerate ? errorMessageGenerate : null}
-      onResetErrorMessage={() => setErrorMessageGenerate(null)}
+      successMessage={successMessage}
+      errorMessage={errorMessage ? errorMessage : null}
+      onResetErrorMessage={() => setErrorMessage(null)}
       submitButtonTitle="Generate"
       closeButtonTitle="Close"
     />
