@@ -5,7 +5,7 @@ import { importCardRenderSettings } from '../../../utils/cardRenderFormatting'
 import { useTable } from '../../../utils/queries'
 import Card from '../../_shared/tableDetailed/settings/Card'
 
-function TableSettings() {
+function ImportTableSettings() {
   const { database, table: tableParam } = useParams<{
     database: string
     table: string
@@ -139,4 +139,4 @@ function TableSettings() {
   )
 }
 
-export default TableSettings
+export default ImportTableSettings

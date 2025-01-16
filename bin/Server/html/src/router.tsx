@@ -5,7 +5,7 @@ import Export from './routes/export/Export'
 import Home from './routes/Home'
 import Import from './routes/import/Import'
 import TableDetailedView from './routes/_shared/tableDetailed/TableDetailedView'
-import TableColumns from './routes/import/columns/ImportTableColumns'
+import ImportTableColumns from './routes/import/columns/ImportTableColumns'
 import TableStatistics from './routes/_shared/tableDetailed/statistics/TableStatistics'
 import Connection from './routes/connection/Connection'
 import ConnectionDetailedView from './routes/connection/connectionDetailed/ConnectionDetailedView'
@@ -20,7 +20,7 @@ import ExportTableSettings from './routes/export/settings/ExportTableSettings'
 import ExportTableColumns from './routes/export/columns/ExportTableColumns'
 import ConfigGlobalBase from './routes/configGlobal/ConfigGlobalBase'
 import ConfigJDBCDriversBase from './routes/configJDBCDrivers/ConfigJDBCDriversBase'
-import TableSettings from './routes/import/settings/ImportTableSettings'
+import ImportTableSettings from './routes/import/settings/ImportTableSettings'
 
 export const router = createBrowserRouter([
   {
@@ -55,11 +55,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: 'settings',
-            element: <TableSettings />
+            element: <ImportTableSettings />
           },
           {
             path: 'columns',
-            element: <TableColumns />
+            element: <ImportTableColumns />
           },
           {
             path: 'statistics',
