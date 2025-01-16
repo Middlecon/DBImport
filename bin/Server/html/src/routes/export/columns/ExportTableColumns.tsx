@@ -6,7 +6,7 @@ import { Column, EditSetting, ExportColumns } from '../../../utils/interfaces'
 import { useUpdateTable } from '../../../utils/mutations'
 import { useExportTable } from '../../../utils/queries'
 import TableList from '../../../components/TableList'
-import EditTableModal from '../../../components/EditTableModal'
+import EditTableModal from '../../../components/modals/EditTableModal'
 import { updateExportTableData } from '../../../utils/dataFunctions'
 import { exportColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import '../_shared/TableDetailedView.scss'
 import GenerateDAGIcon from '../../assets/icons/GenerateDAGIcon'
 import DropdownActions from '../../components/DropdownActions'
-import GenerateDagModal from '../../components/GenerateDagModal'
+import GenerateDagModal from '../../components/modals/GenerateDagModal'
 
 function AirflowDetailedView({
   type

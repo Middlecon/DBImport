@@ -12,10 +12,10 @@ import TableList from '../../components/TableList'
 
 import { useLocation, useNavigate } from 'react-router-dom'
 import ListRowsInfo from '../../components/ListRowsInfo'
-import ConfirmationModal from '../../components/ConfirmationModal'
 import { useQueryClient } from '@tanstack/react-query'
 import { useDeleteConnection } from '../../utils/mutations'
 import ConnectionActions from './ConnectionActions'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 // const checkboxFilters = [
 //   {

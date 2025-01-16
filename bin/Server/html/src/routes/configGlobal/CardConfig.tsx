@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import '../import/tableDetailed/settings/Card.scss'
 import Button from '../../components/Button'
-import EditTableModal from '../../components/EditTableModal'
+import EditTableModal from '../../components/modals/EditTableModal'
 
 import { EditSetting, ConfigGlobal } from '../../utils/interfaces'
 import { useQueryClient } from '@tanstack/react-query'

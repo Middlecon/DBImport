@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BulkField } from '../utils/interfaces'
-import Button from './Button'
-import ConfirmationModal from './ConfirmationModal'
 import './Modals.scss'
-import BulkInputFields, { BulkInputFieldsProps } from '../utils/BulkInputFields'
-import { useFocusTrap } from '../utils/hooks'
 import { useAtom } from 'jotai'
-import { isMainSidebarMinimized } from '../atoms/atoms'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
+import BulkInputFields, {
+  BulkInputFieldsProps
+} from '../../utils/BulkInputFields'
+import { useFocusTrap } from '../../utils/hooks'
+import { BulkField } from '../../utils/interfaces'
+import Button from '../Button'
+import ConfirmationModal from './ConfirmationModal'
 
 interface BulkEditModalProps<T> {
   isBulkEditModalOpen: boolean

@@ -10,19 +10,19 @@ import {
   EditSetting,
   EditSettingValueTypes,
   ExportSearchFilter
-} from '../utils/interfaces'
-import Button from './Button'
+} from '../../utils/interfaces'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
-import TableInputFields from '../utils/TableInputFields'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
+import TableInputFields from '../../utils/TableInputFields'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import InfoText from './InfoText'
-import { initialCreateExportTableSettings } from '../utils/cardRenderFormatting'
-import { useConnections, useSearchExportTables } from '../utils/queries'
+import InfoText from '../InfoText'
+import { initialCreateExportTableSettings } from '../../utils/cardRenderFormatting'
+import { useConnections, useSearchExportTables } from '../../utils/queries'
 import { debounce } from 'lodash'
-import { getUpdatedSettingValue } from '../utils/functions'
-import { useFocusTrap } from '../utils/hooks'
-import { isMainSidebarMinimized } from '../atoms/atoms'
+import { getUpdatedSettingValue } from '../../utils/functions'
+import { useFocusTrap } from '../../utils/hooks'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 
 interface CreateTableModalProps {

@@ -8,7 +8,7 @@ import { useState } from 'react'
 import DropdownActions from '../../../components/DropdownActions'
 import TestConnectionIcon from '../../../assets/icons/TestConnectionIcon'
 import EncryptIcon from '../../../assets/icons/EncryptIcon'
-import EditTableModal from '../../../components/EditTableModal'
+import EditTableModal from '../../../components/modals/EditTableModal'
 import { encryptCredentialsSettings } from '../../../utils/cardRenderFormatting'
 import { EditSetting, ErrorData } from '../../../utils/interfaces'
 import { transformEncryptCredentialsSettings } from '../../../utils/dataFunctions'
@@ -17,8 +17,8 @@ import {
   useTestConnection
 } from '../../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-import ConfirmationModal from '../../../components/ConfirmationModal'
 import { AxiosError } from 'axios'
+import ConfirmationModal from '../../../components/modals/ConfirmationModal'
 
 function ConnectionDetailedView() {
   const queryClient = useQueryClient()

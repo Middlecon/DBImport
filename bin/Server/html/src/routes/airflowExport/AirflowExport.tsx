@@ -17,14 +17,15 @@ import {
   useBulkDeleteAirflowDags,
   useBulkUpdateAirflowDag
 } from '../../utils/mutations'
-import ConfirmationModal from '../../components/ConfirmationModal'
-import BulkEditModal from '../../components/BulkEditModal'
+
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { wildcardMatch } from '../../utils/functions'
 import AirflowExportActions from './AirflowExportActions'
-import GenerateDagModal from '../../components/GenerateDagModal'
+import GenerateDagModal from '../../components/modals/GenerateDagModal'
+import BulkEditModal from '../../components/modals/BulkEditModal'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 // const checkboxFilters = [
 //   {

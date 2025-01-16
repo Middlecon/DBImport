@@ -11,7 +11,7 @@ import {
 import TableList from '../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
 import { useAirflowDAG } from '../../utils/queries'
-import EditTableModal from '../../components/EditTableModal'
+import EditTableModal from '../../components/modals/EditTableModal'
 import { useParams } from 'react-router-dom'
 import '../../components/Loading.scss'
 import { airflowTaskRowDataEdit } from '../../utils/cardRenderFormatting'
@@ -26,8 +26,8 @@ import {
   useUpdateAirflowDag
 } from '../../utils/mutations'
 import Button from '../../components/Button'
-import CreateAirflowTaskModal from '../../components/CreateAirflowTaskModal'
-import ConfirmationModal from '../../components/ConfirmationModal'
+import CreateAirflowTaskModal from '../../components/modals/CreateAirflowTaskModal'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{

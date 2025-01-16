@@ -1,10 +1,10 @@
 import { CSSProperties, useRef } from 'react'
-import Button from './Button'
 import './Modals.scss'
-import { useFocusTrap } from '../utils/hooks'
-import { isMainSidebarMinimized } from '../atoms/atoms'
 import { useAtom } from 'jotai'
 import PulseLoader from 'react-spinners/PulseLoader'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
+import { useFocusTrap } from '../../utils/hooks'
+import Button from '../Button'
 
 interface ConfirmModalProps {
   title: string

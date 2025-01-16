@@ -19,15 +19,15 @@ import {
   useBulkUpdateAirflowDag
 } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-import ConfirmationModal from '../../components/ConfirmationModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
-import BulkEditModal from '../../components/BulkEditModal'
 import { bulkAirflowDagFieldsData } from '../../utils/cardRenderFormatting'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { wildcardMatch } from '../../utils/functions'
 import AirflowImportActions from './AirflowImportActions'
-import GenerateDagModal from '../../components/GenerateDagModal'
+import GenerateDagModal from '../../components/modals/GenerateDagModal'
+import BulkEditModal from '../../components/modals/BulkEditModal'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 // const checkboxFilters = [
 //   {

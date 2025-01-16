@@ -10,7 +10,7 @@ import {
   ImportAirflowDAG,
   AirflowWithDynamicKeys
 } from '../../utils/interfaces'
-import EditConnectionModal from '../../components/EditConnectionModal'
+import EditConnectionModal from '../../components/modals/EditConnectionModal'
 import { useParams } from 'react-router-dom'
 import {
   updateCustomDagData,

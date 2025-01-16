@@ -10,21 +10,21 @@ import {
   EditSetting,
   EditSettingValueTypes,
   GenerateJDBCconnectionString
-} from '../utils/interfaces'
-import Button from './Button'
+} from '../../utils/interfaces'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
-import TableInputFields from '../utils/TableInputFields'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
+import TableInputFields from '../../utils/TableInputFields'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import InfoText from './InfoText'
-import { useJDBCDrivers } from '../utils/queries'
+import InfoText from '../InfoText'
+import { useJDBCDrivers } from '../../utils/queries'
 
-import { generateConnectionStringFields } from '../utils/cardRenderFormatting'
-import { transformGenerateConnectionSettings } from '../utils/dataFunctions'
-import { useGenerateConnectionString } from '../utils/mutations'
-import { useFocusTrap } from '../utils/hooks'
+import { generateConnectionStringFields } from '../../utils/cardRenderFormatting'
+import { transformGenerateConnectionSettings } from '../../utils/dataFunctions'
+import { useGenerateConnectionString } from '../../utils/mutations'
+import { useFocusTrap } from '../../utils/hooks'
 import { useAtom } from 'jotai'
-import { isMainSidebarMinimized } from '../atoms/atoms'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 
 interface GenerateConnectionStringModalProps {
   isGenerateModalOpen: boolean

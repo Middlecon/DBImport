@@ -6,28 +6,31 @@ import {
   useRef,
   useState
 } from 'react'
-import Button from './Button'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import './Modals.scss'
 
-import { useFocusTrap } from '../utils/hooks'
-import { createTrimOnBlurHandler } from '../utils/functions'
+import { useFocusTrap } from '../../utils/hooks'
+import { createTrimOnBlurHandler } from '../../utils/functions'
 import {
   Column,
   ExportDiscoverSearch,
   ExportDiscoverTable,
   UiExportDiscoverSearch
-} from '../utils/interfaces'
-import Dropdown from './Dropdown'
+} from '../../utils/interfaces'
+import Dropdown from '../Dropdown'
 import { useAtom } from 'jotai'
-import { isCnDropdownReadyAtom, isMainSidebarMinimized } from '../atoms/atoms'
-import { useDiscoverExportTables, useConnections } from '../utils/queries'
-import TableList from './TableList'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
-import { useAddExportTables } from '../utils/mutations'
+import {
+  isCnDropdownReadyAtom,
+  isMainSidebarMinimized
+} from '../../atoms/atoms'
+import { useDiscoverExportTables, useConnections } from '../../utils/queries'
+import TableList from '../TableList'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
+import { useAddExportTables } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
-import infoTexts from '../infoTexts.json'
-import InfoText from './InfoText'
+import infoTexts from '../../infoTexts.json'
+import InfoText from '../InfoText'
 
 const columns: Column<ExportDiscoverTable>[] = [
   { header: 'Target Table', accessor: 'targetTable' },

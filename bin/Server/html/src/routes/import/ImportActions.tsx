@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CreateImportTableModal from '../../components/CreateImportTableModal'
+import CreateImportTableModal from '../../components/modals/CreateImportTableModal'
 import ImportSearchFilterTables from '../../components/ImportSearchFilterTables'
 import { useQueryClient } from '@tanstack/react-query'
 import { createTableData } from '../../utils/dataFunctions'
@@ -19,7 +19,7 @@ import {
 import DropdownActions from '../../components/DropdownActions'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
-import DiscoverImportModal from '../../components/DiscoverImportModal'
+import DiscoverImportModal from '../../components/modals/DiscoverImportModal'
 
 interface ImportActionsProps {
   tables: UiDbTable[] | undefined

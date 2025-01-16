@@ -6,43 +6,64 @@ import {
   useRef,
   useState
 } from 'react'
-import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
-import { useConnections } from '../utils/queries'
-import Button from './Button'
+import {
+  EditSetting,
+  EditSettingValueTypes,
+  ImportSearchFilter
+} from '../../utils/interfaces'
+import { useConnections, useSearchImportTables } from '../../utils/queries'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
-import TableInputFields from '../utils/TableInputFields'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
+import TableInputFields from '../../utils/TableInputFields'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import InfoText from './InfoText'
-import { initialCreateConnectionSettings } from '../utils/cardRenderFormatting'
-import GenerateConnectionStringModal from './GenerateConnectionStringModal'
-import { useFocusTrap } from '../utils/hooks'
+import { initialCreateImportTableSettings } from '../../utils/cardRenderFormatting'
+import InfoText from '../InfoText'
+import { debounce } from 'lodash'
+import { getUpdatedSettingValue } from '../../utils/functions'
+import { useFocusTrap } from '../../utils/hooks'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
-import { isMainSidebarMinimized } from '../atoms/atoms'
 
-interface CreateConnectionModalProps {
+interface CreateTableModalProps {
   isCreateModalOpen: boolean
+  prefilledDatabase: string | null
+  prefilledConnection: string | null
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
-function CreateConnectionModal({
+function CreateImportTableModal({
   isCreateModalOpen,
+  prefilledDatabase,
+  prefilledConnection,
   onSave,
   onClose
-}: CreateConnectionModalProps) {
-  const settings = initialCreateConnectionSettings
+}: CreateTableModalProps) {
+  const settings = initialCreateImportTableSettings(
+    prefilledDatabase,
+    prefilledConnection
+  )
+  const { data: connectionsData } = useConnections(true)
+  const connectionNames = useMemo(
+    () =>
+      Array.isArray(connectionsData)
+        ? connectionsData.map((connection) => connection.name)
+        : [],
+    [connectionsData]
+  )
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isValidationError, setIsValidationError] = useState(false)
+  const [validationMessage, setValidationMessage] = useState('')
   const [pendingValidation, setPendingValidation] = useState(false)
-  const [duplicateConnectionName, setDuplicateConnectionName] = useState(false)
 
-  const [modalWidth, setModalWidth] = useState(750)
+  const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
-  const [initialWidth, setInitialWidth] = useState(750)
+  const [initialWidth, setInitialWidth] = useState(700)
   const MIN_WIDTH = 584
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -50,67 +71,106 @@ function CreateConnectionModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
-  const [generatedConnectionString, setGeneratedConnectionString] =
-    useState<string>('')
-
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Name', 'Connection string']
+    const requiredLabels = [
+      'Database',
+      'Table',
+      'Connection',
+      'Source Schema',
+      'Source Table'
+    ]
 
     return editedSettings.some(
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
   }, [editedSettings])
 
-  // For unique connection name validation
-  const { data: connectionsData } = useConnections(true)
-  const connectionNames = useMemo(() => {
-    return Array.isArray(connectionsData)
-      ? connectionsData.map((connection) => connection.name)
-      : []
-  }, [connectionsData])
+  // For validating unique combination of pk's so it becomes a create and not an update
+  const [filter, setFilter] = useState<ImportSearchFilter>({
+    connection: null,
+    database: null,
+    table: null,
+    includeInAirflow: null,
+    importPhaseType: null,
+    etlPhaseType: null,
+    importTool: null,
+    etlEngine: null
+  })
+
+  const updateFilter = useMemo(
+    () =>
+      debounce((updatedFilter) => {
+        setFilter(updatedFilter)
+        setPendingValidation(false)
+      }, 500),
+    [setFilter]
+  )
+
+  const {
+    data,
+    isLoading: validationIsLoading,
+    isError
+  } = useSearchImportTables(
+    filter.database && filter.table ? filter : null,
+    true
+  )
+
+  useEffect(() => {
+    if (!validationIsLoading && data) {
+      setPendingValidation(false)
+      if (data.tables.length > 0) {
+        setIsValidationError(true)
+        setValidationMessage('Table name already exists in the given database.')
+      } else {
+        setIsValidationError(false)
+        setValidationMessage('')
+      }
+    } else if (isError) {
+      setPendingValidation(false)
+      setIsValidationError(true)
+      setValidationMessage('Error validating table name. Please try again.')
+    }
+  }, [data, isError, validationIsLoading])
 
   const handleInputChange = (
     index: number,
     newValue: EditSettingValueTypes | null
   ) => {
-    setPendingValidation(true)
-
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
     }
 
-    const updatedSettings = editedSettings.map((setting, i) =>
-      i === index
-        ? { ...setting, value: newValue === '' ? null : newValue }
-        : setting
+    const updatedSettings = editedSettings?.map((setting, i) =>
+      i === index ? { ...setting, value: newValue } : setting
     )
-
-    const connectionNameSetting = updatedSettings.find(
-      (setting) => setting.label === 'Name'
-    )
-
-    if (
-      connectionNameSetting &&
-      connectionNames.includes(connectionNameSetting.value as string)
-    ) {
-      setDuplicateConnectionName(true)
-    } else {
-      setDuplicateConnectionName(false)
-      setPendingValidation(false)
-    }
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
+    setPendingValidation(false)
+
+    const updatedDatabase = getUpdatedSettingValue('Database', updatedSettings)
+    const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
+
+    if (updatedDatabase && updatedTable) {
+      updateFilter({
+        ...filter,
+        database: updatedDatabase,
+        table: updatedTable
+      })
+    }
   }
 
-  // Not used yet in here, but required for TableList - maybe make handleSelect optional in TableList later
   const handleSelect = (
     item: EditSettingValueTypes | null,
     keyLabel?: string
   ) => {
-    console.log('item, keyLabel', item, keyLabel)
+    const index = editedSettings.findIndex(
+      (setting) => setting.label === keyLabel
+    )
+    if (index !== -1) {
+      handleInputChange(index, item)
+    }
   }
 
   const handleSave = () => {
@@ -179,19 +239,6 @@ function CreateConnectionModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  useEffect(() => {
-    if (generatedConnectionString) {
-      setEditedSettings((prevSettings) =>
-        prevSettings.map((setting) =>
-          setting.label === 'Connection string'
-            ? { ...setting, value: generatedConnectionString }
-            : setting
-        )
-      )
-      setHasChanges(true) // Mark as having changes for save functionality
-    }
-  }, [generatedConnectionString])
-
   return (
     <div className="table-modal-backdrop">
       <div
@@ -209,7 +256,7 @@ function CreateConnectionModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">Create connection</h2>
+        <h2 className="table-modal-h2">Create table</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -233,7 +280,7 @@ function CreateConnectionModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
-                    textareaMaxMinWidth="304px"
+                    dataNames={connectionNames}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
@@ -241,23 +288,14 @@ function CreateConnectionModal({
                       infoText={setting.infoText}
                     />
                   )}
-                  <div style={{ width: 100, marginLeft: 8 }}>
-                    {setting.label === 'Connection string' && (
-                      <Button
-                        title="Generate"
-                        onClick={() => setIsGenerateModalOpen(true)}
-                        height="23px"
-                      />
-                    )}
-                  </div>
                 </div>
               ))}
           </div>
           <RequiredFieldsInfo
-            isRequiredFieldEmpty={isRequiredFieldEmpty}
             validation={true}
-            isValidationSad={duplicateConnectionName}
-            validationText="Connection name already exists. Please choose a different name."
+            isValidationSad={isValidationError}
+            validationText={validationMessage}
+            isRequiredFieldEmpty={isRequiredFieldEmpty}
           />
           <div className="table-modal-footer">
             <Button
@@ -270,23 +308,17 @@ function CreateConnectionModal({
               title="Save"
               disabled={
                 isRequiredFieldEmpty ||
-                duplicateConnectionName ||
+                isValidationError ||
+                validationIsLoading ||
                 pendingValidation
               }
             />
           </div>
         </form>
       </div>
-      {isGenerateModalOpen && (
-        <GenerateConnectionStringModal
-          isGenerateModalOpen={isGenerateModalOpen}
-          setGeneratedConnectionString={setGeneratedConnectionString}
-          onClose={() => setIsGenerateModalOpen(false)}
-        />
-      )}
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Create connection"
+          title="Cancel Create table"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -299,4 +331,4 @@ function CreateConnectionModal({
   )
 }
 
-export default CreateConnectionModal
+export default CreateImportTableModal

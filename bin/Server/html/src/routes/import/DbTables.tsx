@@ -11,7 +11,7 @@ import {
 } from '../../utils/interfaces'
 import { fetchTableData } from '../../utils/queries'
 import './DbTables.scss'
-import EditTableModal from '../../components/EditTableModal'
+import EditTableModal from '../../components/modals/EditTableModal'
 import {
   transformBulkChanges,
   updateTableData
@@ -27,13 +27,13 @@ import {
   bulkImportFieldsData,
   importDbTablesEditSettings
 } from '../../utils/cardRenderFormatting'
-import ConfirmationModal from '../../components/ConfirmationModal'
 import TableList from '../../components/TableList'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import Button from '../../components/Button'
-import BulkEditModal from '../../components/BulkEditModal'
 import { useAtom } from 'jotai'
 import { clearRowSelectionAtom } from '../../atoms/atoms'
+import BulkEditModal from '../../components/modals/BulkEditModal'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 function DbTables({
   data,

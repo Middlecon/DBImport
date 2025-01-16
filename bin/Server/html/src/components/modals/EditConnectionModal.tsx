@@ -6,17 +6,17 @@ import {
   useRef,
   useState
 } from 'react'
-import { EditSetting, EditSettingValueTypes } from '../utils/interfaces'
-import { useConnections } from '../utils/queries'
-import Button from './Button'
+import { EditSetting, EditSettingValueTypes } from '../../utils/interfaces'
+import { useConnections } from '../../utils/queries'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
-import TableInputFields from '../utils/TableInputFields'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
+import TableInputFields from '../../utils/TableInputFields'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import InfoText from './InfoText'
-import { useFocusTrap } from '../utils/hooks'
+import InfoText from '../InfoText'
+import { useFocusTrap } from '../../utils/hooks'
 import { useAtom } from 'jotai'
-import { isMainSidebarMinimized } from '../atoms/atoms'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 
 interface EditModalProps {
   isEditModalOpen: boolean

@@ -13,7 +13,7 @@ import { useCreateAirflowDag } from '../../utils/mutations'
 import { useAtom } from 'jotai'
 import { airflowExportDagsPersistStateAtom } from '../../atoms/atoms'
 import AirflowSearchFilterDags from '../../components/AirflowSearchFilterDags'
-import CreateAirflowModal from '../../components/CreateAirflowModal'
+import CreateAirflowModal from '../../components/modals/CreateAirflowModal'
 
 interface AirflowExportActionsProps {
   dags: UiAirflowsExportData[] | undefined

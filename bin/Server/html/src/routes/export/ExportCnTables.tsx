@@ -12,7 +12,7 @@ import {
 } from '../../utils/interfaces'
 import { fetchExportTableData } from '../../utils/queries'
 import '../import/DbTables.scss'
-import EditTableModal from '../../components/EditTableModal'
+import EditTableModal from '../../components/modals/EditTableModal'
 import {
   transformBulkChanges,
   updateExportTableData
@@ -29,12 +29,12 @@ import {
   bulkExportFieldsData,
   exportCnTablesEditSettings
 } from '../../utils/cardRenderFormatting'
-import ConfirmationModal from '../../components/ConfirmationModal'
 import Button from '../../components/Button'
-import BulkEditModal from '../../components/BulkEditModal'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { useAtom } from 'jotai'
 import { clearRowSelectionAtom } from '../../atoms/atoms'
+import BulkEditModal from '../../components/modals/BulkEditModal'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
 
 function ExportCnTables({
   data,

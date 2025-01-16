@@ -6,58 +6,51 @@ import {
   useRef,
   useState
 } from 'react'
-import {
-  EditSetting,
-  EditSettingValueTypes,
-  ImportSearchFilter
-} from '../utils/interfaces'
-import { useConnections, useSearchImportTables } from '../utils/queries'
-import Button from './Button'
+import { EditSetting, EditSettingValueTypes } from '../../utils/interfaces'
+import { useAllAirflows } from '../../utils/queries'
+import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
-import TableInputFields from '../utils/TableInputFields'
-import RequiredFieldsInfo from './RequiredFieldsInfo'
+import TableInputFields from '../../utils/TableInputFields'
+import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import { initialCreateImportTableSettings } from '../utils/cardRenderFormatting'
-import InfoText from './InfoText'
-import { debounce } from 'lodash'
-import { getUpdatedSettingValue } from '../utils/functions'
-import { useFocusTrap } from '../utils/hooks'
-import { isMainSidebarMinimized } from '../atoms/atoms'
+import { initialCreateAirflowSettings } from '../../utils/cardRenderFormatting'
+import InfoText from '../InfoText'
+import { useFocusTrap } from '../../utils/hooks'
 import { useAtom } from 'jotai'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 
-interface CreateTableModalProps {
+interface CreateAirflowModalProps {
   isCreateModalOpen: boolean
-  prefilledDatabase: string | null
-  prefilledConnection: string | null
+  type: 'import' | 'export' | 'custom'
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
-function CreateImportTableModal({
+function CreateAirflowModal({
   isCreateModalOpen,
-  prefilledDatabase,
-  prefilledConnection,
+  type,
   onSave,
   onClose
-}: CreateTableModalProps) {
-  const settings = initialCreateImportTableSettings(
-    prefilledDatabase,
-    prefilledConnection
-  )
-  const { data: connectionsData } = useConnections(true)
-  const connectionNames = useMemo(
+}: CreateAirflowModalProps) {
+  const settings = initialCreateAirflowSettings(type)
+
+  const { data: airflowsData } = useAllAirflows()
+  const airflowNames = useMemo(
     () =>
-      Array.isArray(connectionsData)
-        ? connectionsData.map((connection) => connection.name)
+      Array.isArray(airflowsData)
+        ? airflowsData.map((airflow) => airflow.name)
         : [],
-    [connectionsData]
+    [airflowsData]
   )
 
-  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
+  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
+    settings ? settings : []
+  )
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [isValidationError, setIsValidationError] = useState(false)
-  const [validationMessage, setValidationMessage] = useState('')
+
+  // For validating unique pk so it becomes a create and not an update
+  const [duplicateDagName, setDuplicateDagName] = useState(false)
   const [pendingValidation, setPendingValidation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(700)
@@ -72,136 +65,13 @@ function CreateImportTableModal({
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Database',
-      'Table',
-      'Connection',
-      'Source Schema',
-      'Source Table'
-    ]
-
+    const requiredLabels = ['DAG Name']
     return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
+      (setting) =>
+        (requiredLabels.includes(setting.label) && setting.value === null) ||
+        setting.value === ''
     )
   }, [editedSettings])
-
-  // For validating unique combination of pk's so it becomes a create and not an update
-  const [filter, setFilter] = useState<ImportSearchFilter>({
-    connection: null,
-    database: null,
-    table: null,
-    includeInAirflow: null,
-    importPhaseType: null,
-    etlPhaseType: null,
-    importTool: null,
-    etlEngine: null
-  })
-
-  const updateFilter = useMemo(
-    () =>
-      debounce((updatedFilter) => {
-        setFilter(updatedFilter)
-        setPendingValidation(false)
-      }, 500),
-    [setFilter]
-  )
-
-  const {
-    data,
-    isLoading: validationIsLoading,
-    isError
-  } = useSearchImportTables(
-    filter.database && filter.table ? filter : null,
-    true
-  )
-
-  useEffect(() => {
-    if (!validationIsLoading && data) {
-      setPendingValidation(false)
-      if (data.tables.length > 0) {
-        setIsValidationError(true)
-        setValidationMessage('Table name already exists in the given database.')
-      } else {
-        setIsValidationError(false)
-        setValidationMessage('')
-      }
-    } else if (isError) {
-      setPendingValidation(false)
-      setIsValidationError(true)
-      setValidationMessage('Error validating table name. Please try again.')
-    }
-  }, [data, isError, validationIsLoading])
-
-  const handleInputChange = (
-    index: number,
-    newValue: EditSettingValueTypes | null
-  ) => {
-    if (index < 0 || index >= editedSettings.length) {
-      console.warn(`Invalid index: ${index}`)
-      return
-    }
-
-    const updatedSettings = editedSettings?.map((setting, i) =>
-      i === index ? { ...setting, value: newValue } : setting
-    )
-
-    setEditedSettings(updatedSettings)
-    setHasChanges(true)
-    setPendingValidation(false)
-
-    const updatedDatabase = getUpdatedSettingValue('Database', updatedSettings)
-    const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
-
-    if (updatedDatabase && updatedTable) {
-      updateFilter({
-        ...filter,
-        database: updatedDatabase,
-        table: updatedTable
-      })
-    }
-  }
-
-  const handleSelect = (
-    item: EditSettingValueTypes | null,
-    keyLabel?: string
-  ) => {
-    const index = editedSettings.findIndex(
-      (setting) => setting.label === keyLabel
-    )
-    if (index !== -1) {
-      handleInputChange(index, item)
-    }
-  }
-
-  const handleSave = () => {
-    const newTableSettings = settings.map((setting) => {
-      const editedSetting = editedSettings.find(
-        (es) => es.label === setting.label
-      )
-
-      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
-    })
-
-    onSave(newTableSettings)
-    onClose()
-  }
-
-  const handleCancelClick = () => {
-    if (hasChanges) {
-      setShowConfirmation(true)
-    } else {
-      onClose()
-    }
-  }
-
-  const handleConfirmCancel = () => {
-    setShowConfirmation(false)
-    onClose()
-  }
-
-  const handleCloseConfirmation = () => {
-    setShowConfirmation(false)
-  }
 
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)
@@ -239,6 +109,87 @@ function CreateImportTableModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
+  if (!settings) {
+    console.error('DAG data is not available.')
+    return
+  }
+
+  const handleInputChange = (
+    index: number,
+    newValue: EditSettingValueTypes | null
+  ) => {
+    setPendingValidation(true)
+
+    if (index < 0 || index >= editedSettings.length) {
+      console.warn(`Invalid index: ${index}`)
+      return
+    }
+
+    const updatedSettings = editedSettings?.map((setting, i) =>
+      i === index ? { ...setting, value: newValue } : setting
+    )
+
+    const dagNameSetting = updatedSettings.find(
+      (setting) => setting.label === 'DAG Name'
+    )
+    if (
+      dagNameSetting &&
+      airflowNames.includes(dagNameSetting.value as string)
+    ) {
+      setDuplicateDagName(true)
+    } else {
+      setDuplicateDagName(false)
+      setPendingValidation(false)
+    }
+
+    setEditedSettings(updatedSettings)
+    setHasChanges(true)
+  }
+
+  const handleSelect = (
+    item: EditSettingValueTypes | null,
+    keyLabel?: string
+  ) => {
+    const index = editedSettings.findIndex(
+      (setting) => setting.label === keyLabel
+    )
+    if (index !== -1) {
+      handleInputChange(index, item)
+    }
+  }
+
+  const handleSave = () => {
+    if (duplicateDagName) return
+
+    const newDagSettings = settings.map((setting) => {
+      const editedSetting = editedSettings.find(
+        (es) => es.label === setting.label
+      )
+
+      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
+    })
+
+    onSave(newDagSettings)
+    onClose()
+  }
+
+  const handleCancelClick = () => {
+    if (hasChanges) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
+  }
+
+  const handleConfirmCancel = () => {
+    setShowConfirmation(false)
+    onClose()
+  }
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false)
+  }
+
   return (
     <div className="table-modal-backdrop">
       <div
@@ -256,7 +207,7 @@ function CreateImportTableModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">Create table</h2>
+        <h2 className="table-modal-h2">Create DAG</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -280,7 +231,6 @@ function CreateImportTableModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
-                    dataNames={connectionNames}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
@@ -292,11 +242,12 @@ function CreateImportTableModal({
               ))}
           </div>
           <RequiredFieldsInfo
-            validation={true}
-            isValidationSad={isValidationError}
-            validationText={validationMessage}
             isRequiredFieldEmpty={isRequiredFieldEmpty}
+            validation={true}
+            isValidationSad={duplicateDagName}
+            validationText="DAG Name already exists. Please choose a different name."
           />
+
           <div className="table-modal-footer">
             <Button
               title="Cancel"
@@ -307,10 +258,7 @@ function CreateImportTableModal({
               type="submit"
               title="Save"
               disabled={
-                isRequiredFieldEmpty ||
-                isValidationError ||
-                validationIsLoading ||
-                pendingValidation
+                isRequiredFieldEmpty || duplicateDagName || pendingValidation
               }
             />
           </div>
@@ -318,7 +266,7 @@ function CreateImportTableModal({
       </div>
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Create table"
+          title="Cancel Create DAG"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -331,4 +279,4 @@ function CreateImportTableModal({
   )
 }
 
-export default CreateImportTableModal
+export default CreateAirflowModal

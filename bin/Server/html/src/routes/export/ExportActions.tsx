@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ExportSearchFilterTables from '../../components/ExportSearchFilterTables'
-import CreateExportTableModal from '../../components/CreateExportTableModal'
+import CreateExportTableModal from '../../components/modals/CreateExportTableModal'
 import { useQueryClient } from '@tanstack/react-query'
 import { createExportTableData } from '../../utils/dataFunctions'
 import {
@@ -18,7 +18,7 @@ import {
 } from '../../atoms/atoms'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
-import DiscoverImportModal from '../../components/DiscoverImportModal'
+import DiscoverImportModal from '../../components/modals/DiscoverImportModal'
 import DropdownActions from '../../components/DropdownActions'
 
 interface ExportActionsProps {

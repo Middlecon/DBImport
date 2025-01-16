@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './Card.scss'
 import Button from '../../../../components/Button'
-import EditTableModal from '../../../../components/EditTableModal'
+import EditTableModal from '../../../../components/modals/EditTableModal'
 import Setting from './Setting'
 import {
   EditSetting,

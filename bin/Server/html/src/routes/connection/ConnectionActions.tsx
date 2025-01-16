@@ -11,7 +11,7 @@ import {
 import { useAtom } from 'jotai'
 import { connectionPersistStateAtom } from '../../atoms/atoms'
 import ConnectionSearchFilterCns from '../../components/ConnectionSearchFilterCns'
-import CreateConnectionModal from '../../components/CreateConnectionModal'
+import CreateConnectionModal from '../../components/modals/CreateConnectionModal'
 import { createConnectionData } from '../../utils/dataFunctions'
 import { useCreateOrUpdateConnection } from '../../utils/mutations'
 

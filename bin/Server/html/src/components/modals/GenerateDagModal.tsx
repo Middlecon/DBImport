@@ -1,10 +1,10 @@
 import { AxiosError } from 'axios'
 import { useState } from 'react'
 import EditTableModal from './EditTableModal'
-import { generateDagSettings } from '../utils/cardRenderFormatting'
-import { useGenerateDag } from '../utils/mutations'
-import { ErrorData } from '../utils/interfaces'
-import infoTexts from '../infoTexts.json'
+import { generateDagSettings } from '../../utils/cardRenderFormatting'
+import { useGenerateDag } from '../../utils/mutations'
+import { ErrorData } from '../../utils/interfaces'
+import infoTexts from '../../infoTexts.json'
 
 interface GenerateDagModalProps {
   dagName: string
