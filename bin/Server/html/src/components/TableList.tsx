@@ -20,6 +20,7 @@ import './TableList.scss'
 import UrlLinkIcon from '../assets/icons/UrlLinkIcon'
 import GenerateDAGIcon from '../assets/icons/GenerateDAGIcon'
 import RepairIcon from '../assets/icons/RepairIcon'
+import ResetIcon from '../assets/icons/ResetIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -33,6 +34,7 @@ interface TableProps<T> {
   onDelete?: (row: T) => void
   onGenerate?: (row: T) => void
   onRepair?: (row: T) => void
+  onReset?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
@@ -51,6 +53,7 @@ function TableList<T>({
   onDelete,
   onGenerate,
   onRepair,
+  onReset,
   airflowType,
   noLinkOnTableName = false,
   enableSourceTableOverflow = false,
@@ -539,6 +542,7 @@ function TableList<T>({
                 {showTooltip && <span className="tooltip">Delete</span>}
               </button>
             ) : null}
+
             {column.isAction === 'generateDag' ? (
               <button
                 className={`actions-edit-button ${
@@ -557,7 +561,8 @@ function TableList<T>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'repairTable' ? (
+            {column.isAction === 'repairTable' ||
+            column.isAction === 'repairAndResetTable' ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
@@ -571,6 +576,25 @@ function TableList<T>({
                 {showTooltip && (
                   <span className="tooltip" style={{ left: 'unset', right: 7 }}>
                     Repair table
+                  </span>
+                )}
+              </button>
+            ) : null}
+            {column.isAction === 'resetTable' ||
+            column.isAction === 'repairAndResetTable' ? (
+              <button
+                className={`actions-reset-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => onReset && onReset(row)}
+                disabled={!onReset}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <ResetIcon />
+                {showTooltip && (
+                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
+                    Reset table
                   </span>
                 )}
               </button>

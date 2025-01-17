@@ -571,7 +571,14 @@ export interface HeadersRowInfo {
 export interface Column<T> {
   header: string
   accessor?: keyof T
-  isAction?: 'edit' | 'delete' | 'editAndDelete' | 'generateDag' | 'repairTable'
+  isAction?:
+    | 'edit'
+    | 'delete'
+    | 'editAndDelete'
+    | 'generateDag'
+    | 'repairTable'
+    | 'resetTable'
+    | 'repairAndResetTable'
   isLink?: 'connectionLink' | 'airflowLink'
 }
 

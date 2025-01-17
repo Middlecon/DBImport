@@ -2,9 +2,11 @@ import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
 import { useEffect, useMemo, useState } from 'react'
 import '../tableDetailed/DetailedView.scss'
-import GenerateDAGIcon from '../../../assets/icons/GenerateDAGIcon'
 import DropdownActions from '../../../components/DropdownActions'
 import RepairTableModal from '../../../components/modals/RepairTableModal'
+import RepairIcon from '../../../assets/icons/RepairIcon'
+import ResetIcon from '../../../assets/icons/ResetIcon'
+import ResetTableModal from '../../../components/modals/ResetTableModal'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -15,6 +17,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
 
   const encodedDatabase = encodeURIComponent(database ? database : '')
   const encodedTable = encodeURIComponent(table ? table : '')
@@ -84,6 +87,10 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     setIsRepairTableModalOpen(true)
   }
 
+  const handleResetTableClick = () => {
+    setIsResetTableModalOpen(true)
+  }
+
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
       setOpenDropdown(dropdownId)
@@ -117,9 +124,14 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             }
             items={[
               {
-                icon: <GenerateDAGIcon />,
+                icon: <RepairIcon />,
                 label: `Repair table`,
                 onClick: handleRepairTableClick
+              },
+              {
+                icon: <ResetIcon />,
+                label: `Reset table`,
+                onClick: handleResetTableClick
               }
             ]}
           />
@@ -152,6 +164,14 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             primaryKeys={primaryKeys}
             isRepairTableModalOpen={isRepairTableModalOpen}
             onClose={() => setIsRepairTableModalOpen(false)}
+          />
+        )}
+        {isResetTableModalOpen && primaryKeys && (
+          <ResetTableModal
+            type={type}
+            primaryKeys={primaryKeys}
+            isResetTableModalOpen={isResetTableModalOpen}
+            onClose={() => setIsResetTableModalOpen(false)}
           />
         )}
       </ViewBaseLayout>

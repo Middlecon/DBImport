@@ -941,7 +941,7 @@ export const initialCreateConnectionSettings: EditSetting[] = [
 
 // Import and Export
 
-export function repairTableSettings(label: string, tableName: string) {
+export function tableNameReadonlySettings(label: string, tableName: string) {
   const settings: EditSetting[] = [
     {
       label: label,

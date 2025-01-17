@@ -215,11 +215,19 @@
     background-color: inherit;
     padding: 0;
   }
-  .actions-delete-button {
+  .actions-delete-button,
+  .actions-reset-button {
     cursor: pointer;
     padding-left: 15px;
+  }
+
+  .actions-delete-button {
     color: #d86060;
     // color: #ca6658; // Alternative color, a tiny bit more orange and dull
+  }
+
+  .actions-reset-button {
+    color: #2b2b2b;
   }
 
   .actions-link-button {
@@ -259,6 +267,7 @@
 
 .actions-edit-button:hover .tooltip,
 .actions-delete-button:hover .tooltip,
+.actions-reset-button:hover .tooltip,
 .actions-link-button:hover .tooltip {
   visibility: visible;
   opacity: 7;
@@ -268,6 +277,7 @@
 
 .actions-edit-button.first:hover .tooltip,
 .actions-delete-button.first:hover .tooltip,
+.actions-reset-button.first:hover .tooltip,
 .actions-link-button.first:hover .tooltip {
   transform: translateY(4px) translateX(7px);
 }

@@ -2,28 +2,28 @@ import { AxiosError } from 'axios'
 import { useState } from 'react'
 import EditTableModal from './EditTableModal'
 import { tableNameReadonlySettings } from '../../utils/cardRenderFormatting'
-import { useRepairTable } from '../../utils/mutations'
+import { useResetTable } from '../../utils/mutations'
 import { ErrorData, ExportPKs, ImportPKs } from '../../utils/interfaces'
 import infoTexts from '../../infoTexts.json'
 
-interface RepairTableModalProps {
+interface ResetTableModalProps {
   type: 'import' | 'export'
   primaryKeys: ImportPKs | ExportPKs
-  isRepairTableModalOpen: boolean
+  isResetTableModalOpen: boolean
   onClose: () => void
 }
 
-function RepairTableModal({
+function ResetTableModal({
   type,
   primaryKeys,
-  isRepairTableModalOpen,
+  isResetTableModalOpen,
   onClose
-}: RepairTableModalProps) {
+}: ResetTableModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const { mutate: repairTable } = useRepairTable()
+  const { mutate: resetTable } = useResetTable()
 
   function isImportPKs(
     primaryKeys: ImportPKs | ExportPKs,
@@ -40,7 +40,7 @@ function RepairTableModal({
 
   const settings = tableNameReadonlySettings(label, tableName)
 
-  const handleRepairTable = () => {
+  const handleResetTable = () => {
     if (!tableName) {
       console.log('No selected row or table name', tableName)
       return
@@ -48,13 +48,13 @@ function RepairTableModal({
 
     setIsLoading(true)
 
-    repairTable(
+    resetTable(
       { type, primaryKeys },
       {
         onSuccess: (response) => {
           setIsLoading(false)
-          setSuccessMessage('Repair table succeeded')
-          console.log('Repair table succeeded, result:', response)
+          setSuccessMessage('Reset table succeeded')
+          console.log('Reset table succeeded, result:', response)
         },
         onError: (error: AxiosError<ErrorData>) => {
           const errorMessage =
@@ -62,7 +62,7 @@ function RepairTableModal({
           setIsLoading(false)
           setErrorMessage(errorMessage)
           console.log('error', error)
-          console.error('Repair table failed', error.message)
+          console.error('Reset table failed', error.message)
         }
       }
     )
@@ -70,11 +70,11 @@ function RepairTableModal({
 
   return (
     <EditTableModal
-      isEditModalOpen={isRepairTableModalOpen}
-      title={`Repair table`}
-      titleInfoText={infoTexts.actions.repairTable}
+      isEditModalOpen={isResetTableModalOpen}
+      title={`Reset table`}
+      titleInfoText={infoTexts.actions.resetTable}
       settings={settings}
-      onSave={handleRepairTable}
+      onSave={handleResetTable}
       onClose={() => {
         onClose()
         setErrorMessage(null)
@@ -83,14 +83,14 @@ function RepairTableModal({
       isNoCloseOnSave={true}
       initWidth={300}
       isLoading={isLoading}
-      loadingText="Repairing"
+      loadingText="Reseting"
       successMessage={successMessage}
       errorMessage={errorMessage ? errorMessage : null}
       onResetErrorMessage={() => setErrorMessage(null)}
-      submitButtonTitle="Repair"
+      submitButtonTitle="Reset"
       closeButtonTitle="Close"
     />
   )
 }
 
-export default RepairTableModal
+export default ResetTableModal

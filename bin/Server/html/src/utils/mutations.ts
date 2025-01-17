@@ -175,6 +175,49 @@ export const useRepairTable = () => {
   })
 }
 
+// Reset table
+
+// Repair table
+
+const postResetTable = async (
+  type: 'import' | 'export',
+  primaryKeys: ImportPKs | ExportPKs
+) => {
+  switch (type) {
+    case 'import': {
+      const { database, table } = primaryKeys as ImportPKs
+      const encodedDatabase = encodeURIComponent(database)
+      const encodedTable = encodeURIComponent(table)
+
+      const postUrl = `/${type}/table/${encodedDatabase}/${encodedTable}/reset`
+      console.log('postUrl import', postUrl)
+
+      const response = await axiosInstance.post(postUrl)
+      return response.data
+    }
+    case 'export': {
+      const { connection, targetSchema, targetTable } = primaryKeys as ExportPKs
+      const encodedConnection = encodeURIComponent(connection)
+      const encodedTargetSchema = encodeURIComponent(targetSchema)
+      const encodedTargetTable = encodeURIComponent(targetTable)
+
+      const postUrl = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/reset`
+      console.log('postUrl export', postUrl)
+
+      const response = await axiosInstance.post(postUrl)
+      return response.data
+    }
+  }
+}
+
+export const useResetTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, TablePkProps>({
+    mutationFn: ({ type, primaryKeys }) => {
+      return postResetTable(type, primaryKeys)
+    }
+  })
+}
+
 // Update table, Import or Export
 
 interface PostTableProps {

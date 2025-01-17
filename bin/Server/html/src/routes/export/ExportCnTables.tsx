@@ -36,6 +36,7 @@ import { clearRowSelectionAtom } from '../../atoms/atoms'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
+import ResetTableModal from '../../components/modals/ResetTableModal'
 
 function ExportCnTables({
   data,
@@ -61,6 +62,8 @@ function ExportCnTables({
   // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+
   const [selectedRow, setSelectedRow] = useState<UIExportCnTables>()
 
   const getPrimaryKeys = (
@@ -111,7 +114,7 @@ function ExportCnTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairTable' }
+      { header: 'Actions', isAction: 'repairAndResetTable' }
     ],
     []
   )
@@ -200,6 +203,11 @@ function ExportCnTables({
   const handleRepairIconClick = (row: UIExportCnTables) => {
     setSelectedRow(row)
     setIsRepairTableModalOpen(true)
+  }
+
+  const handleResetIconClick = (row: UIExportCnTables) => {
+    setSelectedRow(row)
+    setIsResetTableModalOpen(true)
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -344,6 +352,7 @@ function ExportCnTables({
             // onEdit={handleEditClick}
             // onDelete={handleDeleteIconClick}
             onRepair={handleRepairIconClick}
+            onReset={handleResetIconClick}
             isLoading={isLoading}
             noLinkOnTableName={true}
             rowSelection={rowSelection}
@@ -411,6 +420,14 @@ function ExportCnTables({
           primaryKeys={primaryKeys}
           isRepairTableModalOpen={isRepairTableModalOpen}
           onClose={() => setIsRepairTableModalOpen(false)}
+        />
+      )}
+      {isResetTableModalOpen && primaryKeys && (
+        <ResetTableModal
+          type="export"
+          primaryKeys={primaryKeys}
+          isResetTableModalOpen={isResetTableModalOpen}
+          onClose={() => setIsResetTableModalOpen(false)}
         />
       )}
     </div>

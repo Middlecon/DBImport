@@ -35,6 +35,7 @@ import { clearRowSelectionAtom } from '../../atoms/atoms'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
+import ResetTableModal from '../../components/modals/ResetTableModal'
 
 function DbTables({
   data,
@@ -63,6 +64,8 @@ function DbTables({
   // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+
   const [selectedRow, setSelectedRow] = useState<UiDbTable>()
 
   const getPrimaryKeys = (
@@ -103,7 +106,7 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairTable' }
+      { header: 'Actions', isAction: 'repairAndResetTable' }
     ],
     []
   )
@@ -185,6 +188,11 @@ function DbTables({
   const handleRepairIconClick = (row: UiDbTable) => {
     setSelectedRow(row)
     setIsRepairTableModalOpen(true)
+  }
+
+  const handleResetIconClick = (row: UiDbTable) => {
+    setSelectedRow(row)
+    setIsResetTableModalOpen(true)
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -321,6 +329,7 @@ function DbTables({
             // onEdit={handleEditClick}
             // onDelete={handleDeleteIconClick}
             onRepair={handleRepairIconClick}
+            onReset={handleResetIconClick}
             isLoading={isLoading}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
@@ -385,6 +394,14 @@ function DbTables({
           primaryKeys={primaryKeys}
           isRepairTableModalOpen={isRepairTableModalOpen}
           onClose={() => setIsRepairTableModalOpen(false)}
+        />
+      )}
+      {isResetTableModalOpen && primaryKeys && (
+        <ResetTableModal
+          type="import"
+          primaryKeys={primaryKeys}
+          isResetTableModalOpen={isResetTableModalOpen}
+          onClose={() => setIsResetTableModalOpen(false)}
         />
       )}
     </div>
