@@ -65,6 +65,7 @@ function EditTableModal({
       const isDisplayReadonly =
         setting.label === 'Database' ||
         setting.label === 'Table' ||
+        setting.label === 'Target Table' ||
         setting.label === 'Connection' ||
         setting.label === 'DAG Name'
 

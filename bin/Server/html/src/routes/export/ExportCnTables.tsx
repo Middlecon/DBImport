@@ -3,31 +3,31 @@ import TableList from '../../components/TableList'
 import {
   BulkUpdateExportTables,
   Column,
-  EditSetting,
+  // EditSetting,
   ExportCnTablesWithoutEnum,
   ExportSearchFilter,
   HeadersRowInfo,
-  UIExportCnTables,
-  UIExportTable
+  UIExportCnTables
+  // UIExportTable
 } from '../../utils/interfaces'
-import { fetchExportTableData } from '../../utils/queries'
+// import { fetchExportTableData } from '../../utils/queries'
 import '../import/DbTables.scss'
-import EditTableModal from '../../components/modals/EditTableModal'
+// import EditTableModal from '../../components/modals/EditTableModal'
 import {
-  transformBulkChanges,
-  updateExportTableData
+  transformBulkChanges
+  // updateExportTableData
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
-  useBulkUpdateTable,
-  useDeleteExportTable,
-  useUpdateTable
+  useBulkUpdateTable
+  // useDeleteExportTable,
+  // useUpdateTable
 } from '../../utils/mutations'
 
 import {
-  bulkExportFieldsData,
-  exportCnTablesEditSettings
+  bulkExportFieldsData
+  // exportCnTablesEditSettings
 } from '../../utils/cardRenderFormatting'
 import Button from '../../components/Button'
 import ListRowsInfo from '../../components/ListRowsInfo'
@@ -35,6 +35,7 @@ import { useAtom } from 'jotai'
 import { clearRowSelectionAtom } from '../../atoms/atoms'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import RepairTableModal from '../../components/modals/RepairTableModal'
 
 function ExportCnTables({
   data,
@@ -49,14 +50,34 @@ function ExportCnTables({
 }) {
   const queryClient = useQueryClient()
 
-  const { mutate: updateTable } = useUpdateTable()
-  const { mutate: deleteTable } = useDeleteExportTable()
+  // For edit or delete row by Actions icon in table list, may be removed
+  // const { mutate: updateTable } = useUpdateTable()
+  // const { mutate: deleteTable } = useDeleteExportTable()
+  // const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  // const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
+  // const [selectedDeleteRow, setSelectedDeleteRow] = useState<UIExportCnTables>()
+  // const [tableData, setTableData] = useState<UIExportTable | null>(null)
+  // const [tableName, setTableName] = useState<string>('')
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState<UIExportCnTables>()
+
+  const getPrimaryKeys = (
+    row: UIExportCnTables | undefined
+  ): {
+    connection: string
+    targetSchema: string
+    targetTable: string
+  } | null => {
+    if (!row) return null
+    const { connection, targetSchema, targetTable } = row
+    return { connection, targetSchema, targetTable }
+  }
+  const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
 
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
-
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
@@ -64,10 +85,6 @@ function ExportCnTables({
     UIExportCnTables[] | []
   >([])
 
-  const [selectedDeleteRow, setSelectedDeleteRow] = useState<UIExportCnTables>()
-  const [tableData, setTableData] = useState<UIExportTable | null>(null)
-  const [tableName, setTableName] = useState<string>('')
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -93,32 +110,96 @@ function ExportCnTables({
       {
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
-      }
-      // { header: 'Actions', isAction: 'delete' }
+      },
+      { header: 'Actions', isAction: 'repairTable' }
     ],
     []
   )
 
-  const handleEditClick = async (row: UIExportCnTables) => {
-    const { connection, targetSchema, targetTable } = row
-    setTableName(targetTable)
+  // For edit or delete row by Actions icon in table list, may be removed
+  // const handleEditClick = async (row: UIExportCnTables) => {
+  //   const { connection, targetSchema, targetTable } = row
+  //   setTableName(targetTable)
 
-    try {
-      const fetchedTableData = await queryClient.fetchQuery({
-        queryKey: ['export', connection, targetTable],
-        queryFn: () =>
-          fetchExportTableData(connection, targetSchema, targetTable)
-      })
+  //   try {
+  //     const fetchedTableData = await queryClient.fetchQuery({
+  //       queryKey: ['export', connection, targetTable],
+  //       queryFn: () =>
+  //         fetchExportTableData(connection, targetSchema, targetTable)
+  //     })
 
-      setTableData(fetchedTableData)
+  //     setTableData(fetchedTableData)
 
-      const rowData: EditSetting[] = exportCnTablesEditSettings(row)
+  //     const rowData: EditSetting[] = exportCnTablesEditSettings(row)
 
-      setSelectedRow(rowData)
-      setIsEditModalOpen(true)
-    } catch (error) {
-      console.error('Failed to fetch table data:', error)
-    }
+  //     setSelectedRow(rowData)
+  //     setIsEditModalOpen(true)
+  //   } catch (error) {
+  //     console.error('Failed to fetch table data:', error)
+  //   }
+  // }
+  // const handleDeleteIconClick = (row: UIExportCnTables) => {
+  //   setShowDeleteConfirmation(true)
+  //   setSelectedDeleteRow(row)
+  // }
+
+  // const handleDelete = async (row: UIExportCnTables) => {
+  //   setShowDeleteConfirmation(false)
+
+  //   const {
+  //     connection: connectionDelete,
+  //     targetSchema: targetSchemaDelete,
+  //     targetTable: targetTableDelete
+  //   } = row
+
+  //   deleteTable(
+  //     {
+  //       connection: connectionDelete,
+  //       targetSchema: targetSchemaDelete,
+  //       targetTable: targetTableDelete
+  //     },
+  //     {
+  //       onSuccess: () => {
+  //         queryClient.invalidateQueries({
+  //           queryKey: ['export'], // Matches all related queries that starts the queryKey with 'export'
+  //           exact: false
+  //         })
+  //         console.log('Delete successful')
+  //       },
+  //       onError: (error) => {
+  //         console.error('Error deleting item', error)
+  //       }
+  //     }
+  //   )
+  // }
+  //
+  // const handleSave = (updatedSettings: EditSetting[]) => {
+  //   if (!tableData) {
+  //     console.error('Table data is not available.')
+  //     return
+  //   }
+
+  //   const editedTableData = updateExportTableData(tableData, updatedSettings)
+  //   updateTable(
+  //     { type: 'export', table: editedTableData },
+  //     {
+  //       onSuccess: (response) => {
+  //         queryClient.invalidateQueries({
+  //           queryKey: ['export', 'search', queryKeyFilters]
+  //         })
+  //         console.log('Update successful', response)
+  //         setIsEditModalOpen(false)
+  //       },
+  //       onError: (error) => {
+  //         console.error('Error updating table', error)
+  //       }
+  //     }
+  //   )
+  // }
+
+  const handleRepairIconClick = (row: UIExportCnTables) => {
+    setSelectedRow(row)
+    setIsRepairTableModalOpen(true)
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -130,65 +211,6 @@ function ExportCnTables({
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, data])
-
-  const handleDeleteIconClick = (row: UIExportCnTables) => {
-    setShowDeleteConfirmation(true)
-    setSelectedDeleteRow(row)
-  }
-
-  const handleDelete = async (row: UIExportCnTables) => {
-    setShowDeleteConfirmation(false)
-
-    const {
-      connection: connectionDelete,
-      targetSchema: targetSchemaDelete,
-      targetTable: targetTableDelete
-    } = row
-
-    deleteTable(
-      {
-        connection: connectionDelete,
-        targetSchema: targetSchemaDelete,
-        targetTable: targetTableDelete
-      },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ['export'], // Matches all related queries that starts the queryKey with 'export'
-            exact: false
-          })
-          console.log('Delete successful')
-        },
-        onError: (error) => {
-          console.error('Error deleting item', error)
-        }
-      }
-    )
-  }
-
-  const handleSave = (updatedSettings: EditSetting[]) => {
-    if (!tableData) {
-      console.error('Table data is not available.')
-      return
-    }
-
-    const editedTableData = updateExportTableData(tableData, updatedSettings)
-    updateTable(
-      { type: 'export', table: editedTableData },
-      {
-        onSuccess: (response) => {
-          queryClient.invalidateQueries({
-            queryKey: ['export', 'search', queryKeyFilters]
-          })
-          console.log('Update successful', response)
-          setIsEditModalOpen(false)
-        },
-        onError: (error) => {
-          console.error('Error updating table', error)
-        }
-      }
-    )
-  }
 
   const handleBulkEditSave = (
     bulkChanges: Record<string, string | number | boolean | null>
@@ -220,7 +242,7 @@ function ExportCnTables({
             queryKey: ['export', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsEditModalOpen(false)
+          setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -318,8 +340,10 @@ function ExportCnTables({
           <TableList
             columns={columns}
             data={data}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteIconClick}
+            // For edit or delete row by Actions icon in table list, may be removed
+            // onEdit={handleEditClick}
+            // onDelete={handleDeleteIconClick}
+            onRepair={handleRepairIconClick}
             isLoading={isLoading}
             noLinkOnTableName={true}
             rowSelection={rowSelection}
@@ -330,7 +354,9 @@ function ExportCnTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isEditModalOpen && selectedRow && (
+
+      {/* For edit or delete row by Actions icon in table list, may be removed  */}
+      {/* {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
@@ -349,7 +375,7 @@ function ExportCnTables({
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />
-      )}
+      )} */}
       {isBulkEditModalOpen && (
         <BulkEditModal
           isBulkEditModalOpen={isBulkEditModalOpen}
@@ -376,7 +402,15 @@ function ExportCnTables({
           buttonTitleConfirm="Yes, Delete"
           onConfirm={() => handleBulkDelete(selectedRowsBulk)}
           onCancel={() => setShowBulkDeleteConfirmation(false)}
-          isActive={showDeleteConfirmation}
+          isActive={showBulkDeleteConfirmation}
+        />
+      )}
+      {isRepairTableModalOpen && primaryKeys && (
+        <RepairTableModal
+          type="export"
+          primaryKeys={primaryKeys}
+          isRepairTableModalOpen={isRepairTableModalOpen}
+          onClose={() => setIsRepairTableModalOpen(false)}
         />
       )}
     </div>

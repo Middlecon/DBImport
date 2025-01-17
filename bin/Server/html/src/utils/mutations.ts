@@ -129,7 +129,58 @@ export const useDeleteConnection = () => {
 
 // IMPORT AND EXPORT
 
+interface TablePkProps {
+  type: 'import' | 'export'
+  primaryKeys: ImportPKs | ExportPKs
+}
+
+// Repair table
+
+const postRepairTable = async (
+  type: 'import' | 'export',
+  primaryKeys: ImportPKs | ExportPKs
+) => {
+  switch (type) {
+    case 'import': {
+      const { database, table } = primaryKeys as ImportPKs
+      const encodedDatabase = encodeURIComponent(database)
+      const encodedTable = encodeURIComponent(table)
+
+      const postUrl = `/${type}/table/${encodedDatabase}/${encodedTable}/repair`
+      console.log('postUrl import', postUrl)
+
+      const response = await axiosInstance.post(postUrl)
+      return response.data
+    }
+    case 'export': {
+      const { connection, targetSchema, targetTable } = primaryKeys as ExportPKs
+      const encodedConnection = encodeURIComponent(connection)
+      const encodedTargetSchema = encodeURIComponent(targetSchema)
+      const encodedTargetTable = encodeURIComponent(targetTable)
+
+      const postUrl = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/repair`
+      console.log('postUrl export', postUrl)
+
+      const response = await axiosInstance.post(postUrl)
+      return response.data
+    }
+  }
+}
+
+export const useRepairTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, TablePkProps>({
+    mutationFn: ({ type, primaryKeys }) => {
+      return postRepairTable(type, primaryKeys)
+    }
+  })
+}
+
 // Update table, Import or Export
+
+interface PostTableProps {
+  type: 'import' | 'export'
+  table: UITableWithoutEnum | UIExportTableWithoutEnum
+}
 
 const postUpdateTable = async (
   type: 'import' | 'export',
@@ -157,11 +208,6 @@ const postUpdateTable = async (
   console.log('postTable response.data', response.data)
 
   return response.data
-}
-
-interface PostTableProps {
-  type: 'import' | 'export'
-  table: UITableWithoutEnum | UIExportTableWithoutEnum
 }
 
 export const useUpdateTable = () => {

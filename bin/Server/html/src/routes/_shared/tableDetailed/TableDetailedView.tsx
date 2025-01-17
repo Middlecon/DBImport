@@ -1,7 +1,10 @@
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import '../tableDetailed/DetailedView.scss'
+import GenerateDAGIcon from '../../../assets/icons/GenerateDAGIcon'
+import DropdownActions from '../../../components/DropdownActions'
+import RepairTableModal from '../../../components/modals/RepairTableModal'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -9,6 +12,10 @@ interface TableDetailedViewProps {
 
 function TableDetailedView({ type }: TableDetailedViewProps) {
   const { database, table, connection, targetSchema, targetTable } = useParams()
+
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+
   const encodedDatabase = encodeURIComponent(database ? database : '')
   const encodedTable = encodeURIComponent(table ? table : '')
   const encodedConnection = encodeURIComponent(connection ? connection : '')
@@ -73,6 +80,27 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     }
   }
 
+  const handleRepairTableClick = () => {
+    setIsRepairTableModalOpen(true)
+  }
+
+  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
+    if (isOpen) {
+      setOpenDropdown(dropdownId)
+    } else if (openDropdown === dropdownId) {
+      setOpenDropdown(null)
+    }
+  }
+
+  const primaryKeys =
+    type === 'import'
+      ? database && table
+        ? { database, table }
+        : null
+      : connection && targetSchema && targetTable
+      ? { connection, targetSchema, targetTable }
+      : null
+
   return (
     <>
       <ViewBaseLayout>
@@ -81,6 +109,20 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
           {type === 'export' && (
             <h1>{`${connection}.${targetSchema}.${targetTable}`}</h1>
           )}
+          <DropdownActions
+            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+            marginTop={5}
+            onToggle={(isDropdownActionsOpen: boolean) =>
+              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+            }
+            items={[
+              {
+                icon: <GenerateDAGIcon />,
+                label: `Repair table`,
+                onClick: handleRepairTableClick
+              }
+            ]}
+          />
         </div>
         <div className="tabs">
           <h2
@@ -104,6 +146,14 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
           </h2>
         </div>
         <Outlet />
+        {isRepairTableModalOpen && primaryKeys && (
+          <RepairTableModal
+            type={type}
+            primaryKeys={primaryKeys}
+            isRepairTableModalOpen={isRepairTableModalOpen}
+            onClose={() => setIsRepairTableModalOpen(false)}
+          />
+        )}
       </ViewBaseLayout>
     </>
   )

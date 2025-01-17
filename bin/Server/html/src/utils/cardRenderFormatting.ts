@@ -635,9 +635,8 @@ export function generateDagSettings(dagName: string) {
     {
       label: 'DAG Name',
       value: dagName,
-      type: SettingType.Readonly,
-      maxChar: 256
-    } // Readonly, varchar(64)
+      type: SettingType.Readonly
+    } // Readonly
   ]
   return settings
 }
@@ -939,6 +938,19 @@ export const initialCreateConnectionSettings: EditSetting[] = [
     type: SettingType.GroupingSpace
   } // Layout space
 ]
+
+// Import and Export
+
+export function repairTableSettings(label: string, tableName: string) {
+  const settings: EditSetting[] = [
+    {
+      label: label,
+      value: tableName,
+      type: SettingType.Readonly
+    } // Readonly
+  ]
+  return settings
+}
 
 // Import
 

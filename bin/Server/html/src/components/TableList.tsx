@@ -19,6 +19,7 @@ import DeleteIcon from '../assets/icons/DeleteIcon'
 import './TableList.scss'
 import UrlLinkIcon from '../assets/icons/UrlLinkIcon'
 import GenerateDAGIcon from '../assets/icons/GenerateDAGIcon'
+import RepairIcon from '../assets/icons/RepairIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -31,6 +32,7 @@ interface TableProps<T> {
   onEdit?: (row: T, rowIndex?: number) => void
   onDelete?: (row: T) => void
   onGenerate?: (row: T) => void
+  onRepair?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
@@ -48,6 +50,7 @@ function TableList<T>({
   onEdit,
   onDelete,
   onGenerate,
+  onRepair,
   airflowType,
   noLinkOnTableName = false,
   enableSourceTableOverflow = false,
@@ -554,6 +557,24 @@ function TableList<T>({
                 )}
               </button>
             ) : null}
+            {column.isAction === 'repairTable' ? (
+              <button
+                className={`actions-edit-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => onRepair && onRepair(row)}
+                disabled={!onRepair}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <RepairIcon />
+                {showTooltip && (
+                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
+                    Repair table
+                  </span>
+                )}
+              </button>
+            ) : null}
           </div>
         )
       }
@@ -570,6 +591,7 @@ function TableList<T>({
       hoveredButton,
       showTooltip,
       onGenerate,
+      onRepair,
       onDelete
     ]
   )

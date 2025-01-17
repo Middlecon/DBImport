@@ -3,29 +3,29 @@ import {
   BulkUpdateImportTables,
   Column,
   DbTable,
-  EditSetting,
+  // EditSetting,
   HeadersRowInfo,
   ImportSearchFilter,
-  UiDbTable,
-  UITable
+  UiDbTable
+  // UITable
 } from '../../utils/interfaces'
-import { fetchTableData } from '../../utils/queries'
+// import { fetchTableData } from '../../utils/queries'
 import './DbTables.scss'
-import EditTableModal from '../../components/modals/EditTableModal'
+// import EditTableModal from '../../components/modals/EditTableModal'
 import {
-  transformBulkChanges,
-  updateTableData
+  transformBulkChanges
+  // updateTableData
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
-  useBulkUpdateTable,
-  useDeleteImportTable,
-  useUpdateTable
+  useBulkUpdateTable
+  // useDeleteImportTable,
+  // useUpdateTable
 } from '../../utils/mutations'
 import {
-  bulkImportFieldsData,
-  importDbTablesEditSettings
+  bulkImportFieldsData
+  // importDbTablesEditSettings
 } from '../../utils/cardRenderFormatting'
 import TableList from '../../components/TableList'
 import ListRowsInfo from '../../components/ListRowsInfo'
@@ -34,6 +34,7 @@ import { useAtom } from 'jotai'
 import { clearRowSelectionAtom } from '../../atoms/atoms'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import RepairTableModal from '../../components/modals/RepairTableModal'
 
 function DbTables({
   data,
@@ -48,23 +49,35 @@ function DbTables({
 }) {
   const queryClient = useQueryClient()
 
-  const { mutate: updateTable } = useUpdateTable()
-  const { mutate: deleteTable } = useDeleteImportTable()
-
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
+  // For edit or delete row by Actions icon in table list, may be removed
+  // const { mutate: updateTable } = useUpdateTable()
+  // const { mutate: deleteTable } = useDeleteImportTable()
+  // const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  // const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
+  // const [selectedDeleteRow, setSelectedDeleteRow] = useState<UiDbTable>()
+  // const [tableData, setTableData] = useState<UITable | null>(null)
+  // const [tableName, setTableName] = useState<string>('')
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState<UiDbTable>()
+
+  const getPrimaryKeys = (
+    row: UiDbTable | undefined
+  ): { database: string; table: string } | null => {
+    if (!row) return null
+    const { database, table } = row
+    return { database, table }
+  }
+  const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
   const [selectedRowsBulk, setSelectedRowsBulk] = useState<UiDbTable[] | []>([])
 
-  const [selectedDeleteRow, setSelectedDeleteRow] = useState<UiDbTable>()
-  const [tableData, setTableData] = useState<UITable | null>(null)
-  const [tableName, setTableName] = useState<string>('')
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -89,83 +102,89 @@ function DbTables({
       {
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
-      }
-      // { header: 'Actions', isAction: 'delete' }
+      },
+      { header: 'Actions', isAction: 'repairTable' }
     ],
     []
   )
 
-  const handleEditClick = async (row: UiDbTable) => {
-    console.log('handleEditClick row', row)
-    const { database, table } = row
-    setTableName(table)
+  // For edit or delete row by Actions icon in table list, may be removed
+  // const handleEditClick = async (row: UiDbTable) => {
+  //   console.log('handleEditClick row', row)
+  //   const { database, table } = row
+  //   setTableName(table)
 
-    try {
-      const fetchedTableData = await queryClient.fetchQuery({
-        queryKey: ['import', database, table],
-        queryFn: () => fetchTableData(database, table)
-      })
+  //   try {
+  //     const fetchedTableData = await queryClient.fetchQuery({
+  //       queryKey: ['import', database, table],
+  //       queryFn: () => fetchTableData(database, table)
+  //     })
 
-      setTableData(fetchedTableData)
+  //     setTableData(fetchedTableData)
 
-      const rowData: EditSetting[] = importDbTablesEditSettings(row)
+  //     const rowData: EditSetting[] = importDbTablesEditSettings(row)
 
-      setSelectedRow(rowData)
-      setIsEditModalOpen(true)
-    } catch (error) {
-      console.error('Failed to fetch table data:', error)
-    }
-  }
+  //     setSelectedRow(rowData)
+  //     setIsEditModalOpen(true)
+  //   } catch (error) {
+  //     console.error('Failed to fetch table data:', error)
+  //   }
+  // }
 
-  const handleDeleteIconClick = (row: UiDbTable) => {
-    setShowDeleteConfirmation(true)
-    setSelectedDeleteRow(row)
-  }
+  // const handleDeleteIconClick = (row: UiDbTable) => {
+  //   setShowDeleteConfirmation(true)
+  //   setSelectedDeleteRow(row)
+  // }
 
-  const handleDelete = async (row: UiDbTable) => {
-    setShowDeleteConfirmation(false)
+  // const handleDelete = async (row: UiDbTable) => {
+  //   setShowDeleteConfirmation(false)
 
-    const { database: databaseDelete, table: tableDelete } = row
+  //   const { database: databaseDelete, table: tableDelete } = row
 
-    deleteTable(
-      { database: databaseDelete, table: tableDelete },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ['import'], // Matches all related queries that starts the queryKey with 'import'
-            exact: false
-          })
-          console.log('Delete successful')
-        },
-        onError: (error) => {
-          console.error('Error deleting item', error)
-        }
-      }
-    )
-  }
+  //   deleteTable(
+  //     { database: databaseDelete, table: tableDelete },
+  //     {
+  //       onSuccess: () => {
+  //         queryClient.invalidateQueries({
+  //           queryKey: ['import'], // Matches all related queries that starts the queryKey with 'import'
+  //           exact: false
+  //         })
+  //         console.log('Delete successful')
+  //       },
+  //       onError: (error) => {
+  //         console.error('Error deleting item', error)
+  //       }
+  //     }
+  //   )
+  // }
 
-  const handleSave = (updatedSettings: EditSetting[]) => {
-    if (!tableData) {
-      console.error('Table data is not available.')
-      return
-    }
+  // const handleSave = (updatedSettings: EditSetting[]) => {
+  //   if (!tableData) {
+  //     console.error('Table data is not available.')
+  //     return
+  //   }
 
-    const editedTableData = updateTableData(tableData, updatedSettings)
-    updateTable(
-      { type: 'import', table: editedTableData },
-      {
-        onSuccess: (response) => {
-          queryClient.invalidateQueries({
-            queryKey: ['import', 'search', queryKeyFilters]
-          })
-          console.log('Update successful', response)
-          setIsEditModalOpen(false)
-        },
-        onError: (error) => {
-          console.error('Error updating table', error)
-        }
-      }
-    )
+  //   const editedTableData = updateTableData(tableData, updatedSettings)
+  //   updateTable(
+  //     { type: 'import', table: editedTableData },
+  //     {
+  //       onSuccess: (response) => {
+  //         queryClient.invalidateQueries({
+  //           queryKey: ['import', 'search', queryKeyFilters]
+  //         })
+  //         console.log('Update successful', response)
+  //         setIsEditModalOpen(false)
+  //       },
+  //       onError: (error) => {
+  //         console.error('Error updating table', error)
+  //       }
+  //     }
+  //   )
+  // }
+
+  const handleRepairIconClick = (row: UiDbTable) => {
+    setSelectedRow(row)
+    setIsRepairTableModalOpen(true)
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -205,7 +224,7 @@ function DbTables({
             queryKey: ['import', 'search', queryKeyFilters]
           })
           console.log('Update successful', response)
-          setIsEditModalOpen(false)
+          setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
           console.error('Error updating table', error)
@@ -298,8 +317,10 @@ function DbTables({
           <TableList
             columns={columns}
             data={data}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteIconClick}
+            // For edit or delete row by Actions icon in table list, may be removed
+            // onEdit={handleEditClick}
+            // onDelete={handleDeleteIconClick}
+            onRepair={handleRepairIconClick}
             isLoading={isLoading}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
@@ -309,7 +330,8 @@ function DbTables({
       ) : (
         <div>Loading....</div>
       )}
-      {isEditModalOpen && selectedRow && (
+      {/* For edit or delete row by Actions icon in table list, may be removed  */}
+      {/* {isEditModalOpen && selectedRow && (
         <EditTableModal
           isEditModalOpen={isEditModalOpen}
           title={`Edit table ${tableName}`}
@@ -328,7 +350,7 @@ function DbTables({
           onCancel={() => setShowDeleteConfirmation(false)}
           isActive={showDeleteConfirmation}
         />
-      )}
+      )} */}
       {isBulkEditModalOpen && (
         <BulkEditModal
           isBulkEditModalOpen={isBulkEditModalOpen}
@@ -354,7 +376,15 @@ function DbTables({
           buttonTitleConfirm="Yes, Delete"
           onConfirm={() => handleBulkDelete(selectedRowsBulk)}
           onCancel={() => setShowBulkDeleteConfirmation(false)}
-          isActive={showDeleteConfirmation}
+          isActive={showBulkDeleteConfirmation}
+        />
+      )}
+      {isRepairTableModalOpen && primaryKeys && (
+        <RepairTableModal
+          type="import"
+          primaryKeys={primaryKeys}
+          isRepairTableModalOpen={isRepairTableModalOpen}
+          onClose={() => setIsRepairTableModalOpen(false)}
         />
       )}
     </div>
