@@ -616,6 +616,7 @@ function TableList<T>({
       showTooltip,
       onGenerate,
       onRepair,
+      onReset,
       onDelete
     ]
   )
