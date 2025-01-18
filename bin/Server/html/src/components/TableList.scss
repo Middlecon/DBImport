@@ -211,14 +211,19 @@
   display: flex;
   justify-content: center;
   button {
+    cursor: pointer;
     border: none;
     background-color: inherit;
     padding: 0;
+    margin-right: 12px;
   }
-  .actions-delete-button,
-  .actions-reset-button {
-    cursor: pointer;
-    padding-left: 15px;
+
+  button:first-child {
+    margin-left: 10px;
+  }
+
+  button:last-child {
+    margin-right: 10px;
   }
 
   .actions-delete-button {
@@ -231,7 +236,6 @@
   }
 
   .actions-link-button {
-    cursor: pointer;
     margin-right: 7px;
     svg {
       color: #2b66ca;

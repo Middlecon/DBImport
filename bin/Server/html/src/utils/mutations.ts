@@ -283,9 +283,33 @@ const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
 }
 
 export const useCreateImportTable = () => {
-  return useMutation({
+  return useMutation<void, AxiosError<ErrorData>, TableCreateWithoutEnum>({
     mutationFn: (tableUpdated: TableCreateWithoutEnum) => {
       return postCreateImportTable(tableUpdated)
+    }
+  })
+}
+
+// Import copy table
+
+const postCopyImportTable = async (table: UITableWithoutEnum) => {
+  console.log('postTable table', table)
+
+  const { database, table: tableName, ...tableObject } = table
+  const encodedDatabase = encodeURIComponent(database)
+  const encodedTable = encodeURIComponent(tableName)
+
+  const response = await axiosInstance.post(
+    `/import/table/${encodedDatabase}/${encodedTable}`,
+    tableObject
+  )
+  return response.data
+}
+
+export const useCopyImportTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, UITableWithoutEnum>({
+    mutationFn: (tableUpdated: UITableWithoutEnum) => {
+      return postCopyImportTable(tableUpdated)
     }
   })
 }
@@ -351,6 +375,29 @@ export const useCreateExportTable = () => {
   return useMutation({
     mutationFn: (tableUpdated: ExportTableCreateWithoutEnum) => {
       return postCreateExportTable(tableUpdated)
+    }
+  })
+}
+
+// Export copy table
+
+const postCopyExportTable = async (table: UIExportTableWithoutEnum) => {
+  const { connection, targetSchema, targetTable, ...exportTableObject } = table
+  const encodedConnection = encodeURIComponent(connection)
+  const encodedTargetSchema = encodeURIComponent(targetSchema)
+  const encodedTargetTable = encodeURIComponent(targetTable)
+
+  const response = await axiosInstance.post(
+    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`,
+    exportTableObject
+  )
+  return response.data
+}
+
+export const useCopyExportTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, UIExportTableWithoutEnum>({
+    mutationFn: (table: UIExportTableWithoutEnum) => {
+      return postCopyExportTable(table)
     }
   })
 }

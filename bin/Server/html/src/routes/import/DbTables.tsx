@@ -3,6 +3,7 @@ import {
   BulkUpdateImportTables,
   Column,
   DbTable,
+  EditSetting,
   // EditSetting,
   HeadersRowInfo,
   ImportSearchFilter,
@@ -13,13 +14,15 @@ import {
 import './DbTables.scss'
 // import EditTableModal from '../../components/modals/EditTableModal'
 import {
+  newCopyImportTableData,
   transformBulkChanges
   // updateTableData
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
-  useBulkUpdateTable
+  useBulkUpdateTable,
+  useCopyImportTable
   // useDeleteImportTable,
   // useUpdateTable
 } from '../../utils/mutations'
@@ -36,6 +39,8 @@ import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
 import ResetTableModal from '../../components/modals/ResetTableModal'
+import CopyImportTableModal from '../../components/modals/CopyImportTableModal'
+import { useRawImportTable } from '../../utils/queries'
 
 function DbTables({
   data,
@@ -49,6 +54,8 @@ function DbTables({
   headersRowInfo: HeadersRowInfo
 }) {
   const queryClient = useQueryClient()
+
+  const { mutate: copyTable } = useCopyImportTable()
 
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
@@ -65,6 +72,7 @@ function DbTables({
 
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+  const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
 
   const [selectedRow, setSelectedRow] = useState<UiDbTable>()
 
@@ -76,6 +84,11 @@ function DbTables({
     return { database, table }
   }
   const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
+
+  const { data: tableData } = useRawImportTable(
+    primaryKeys?.database,
+    primaryKeys?.table
+  )
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
@@ -106,7 +119,7 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairAndResetTable' }
+      { header: 'Actions', isAction: 'repairAndResetAndCopyTable' }
     ],
     []
   )
@@ -193,6 +206,42 @@ function DbTables({
   const handleResetIconClick = (row: UiDbTable) => {
     setSelectedRow(row)
     setIsResetTableModalOpen(true)
+  }
+
+  const handleCopyIconClick = (row: UiDbTable) => {
+    setSelectedRow(row)
+    setIsCopyTableModalOpen(true)
+  }
+
+  const handleCopySave = (tablePrimaryKeysSettings: EditSetting[]) => {
+    if (!tableData) return
+    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
+    console.log('tableData', tableData)
+
+    const newCopyTableData = newCopyImportTableData(
+      tableData,
+      tablePrimaryKeysSettings
+    )
+
+    console.log(newCopyTableData)
+
+    copyTable(newCopyTableData, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['import', 'search'],
+          exact: false
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['databases'],
+          exact: false
+        })
+        console.log('Save table copy successful', response)
+        setIsCopyTableModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error copy table', error)
+      }
+    })
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -330,6 +379,7 @@ function DbTables({
             // onDelete={handleDeleteIconClick}
             onRepair={handleRepairIconClick}
             onReset={handleResetIconClick}
+            onCopy={handleCopyIconClick}
             isLoading={isLoading}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
@@ -402,6 +452,14 @@ function DbTables({
           primaryKeys={primaryKeys}
           isResetTableModalOpen={isResetTableModalOpen}
           onClose={() => setIsResetTableModalOpen(false)}
+        />
+      )}
+      {isCopyTableModalOpen && primaryKeys && selectedRow && tableData && (
+        <CopyImportTableModal
+          primaryKeys={primaryKeys}
+          isCopyTableModalOpen={isCopyTableModalOpen}
+          onSave={handleCopySave}
+          onClose={() => setIsCopyTableModalOpen(false)}
         />
       )}
     </div>

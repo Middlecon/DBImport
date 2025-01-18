@@ -508,6 +508,24 @@ export function createTableData(
   return finalCreateTableData
 }
 
+export function newCopyImportTableData(
+  tableData: UITableWithoutEnum,
+  tablePrimaryKeysSettings: EditSetting[]
+): UITableWithoutEnum {
+  // Creates a copy of the existing tableData to avoid mutations
+  const updatedTableData: UITableWithoutEnum = { ...tableData }
+
+  for (const setting of tablePrimaryKeysSettings) {
+    if (setting.label === 'Database' && typeof setting.value === 'string') {
+      updatedTableData.database = setting.value
+    } else if (setting.label === 'Table' && typeof setting.value === 'string') {
+      updatedTableData.table = setting.value
+    }
+  }
+
+  return updatedTableData
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // Export
 
@@ -706,6 +724,32 @@ export function createExportTableData(
   // const finalCreateTableData: Omit<TableCreateMapped, 'includeInAirflow'> = { ...part2, ...part1 };
 
   return finalCreateTableData
+}
+
+export function newCopyExportTableData(
+  tableData: UIExportTableWithoutEnum,
+  tablePrimaryKeysSettings: EditSetting[]
+): UIExportTableWithoutEnum {
+  // Creates a copy of the existing tableData to avoid mutations
+  const updatedTableData: UIExportTableWithoutEnum = { ...tableData }
+
+  for (const setting of tablePrimaryKeysSettings) {
+    if (setting.label === 'Connection' && typeof setting.value === 'string') {
+      updatedTableData.connection = setting.value
+    } else if (
+      setting.label === 'Target Table' &&
+      typeof setting.value === 'string'
+    ) {
+      updatedTableData.targetTable = setting.value
+    } else if (
+      setting.label === 'Target Schema' &&
+      typeof setting.value === 'string'
+    ) {
+      updatedTableData.targetSchema = setting.value
+    }
+  }
+
+  return updatedTableData
 }
 /////////////////////////////////////////////////////////////////////////////////////////
 // Airflow

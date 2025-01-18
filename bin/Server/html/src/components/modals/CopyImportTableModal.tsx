@@ -9,76 +9,80 @@ import {
 import {
   EditSetting,
   EditSettingValueTypes,
-  ExportSearchFilter
+  ImportPKs,
+  ImportSearchFilter
 } from '../../utils/interfaces'
+import { useSearchImportTables } from '../../utils/queries'
 import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../../utils/TableInputFields'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
+import { copyImportTableSettings } from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
-import { initialCreateExportTableSettings } from '../../utils/cardRenderFormatting'
-import { useConnections, useSearchExportTables } from '../../utils/queries'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../../utils/functions'
 import { useFocusTrap } from '../../utils/hooks'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
+import infoTexts from '../../infoTexts.json'
 
-interface CreateTableModalProps {
-  isCreateModalOpen: boolean
-  prefilledConnection: string | null
-  onSave: (newTableData: EditSetting[]) => void
+interface CopyImportTableModalProps {
+  primaryKeys: ImportPKs
+  isCopyTableModalOpen: boolean
+  onSave: (tablePrimaryKeysSettings: EditSetting[]) => void
   onClose: () => void
 }
 
-function CreateExportTableModal({
-  isCreateModalOpen,
-  prefilledConnection,
+function CopyImportTableModal({
+  primaryKeys,
+  isCopyTableModalOpen,
   onSave,
   onClose
-}: CreateTableModalProps) {
-  const settings = initialCreateExportTableSettings(prefilledConnection)
+}: CopyImportTableModalProps) {
+  const settings = copyImportTableSettings(
+    primaryKeys.database,
+    primaryKeys.table
+  )
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [isValidationError, setIsValidationError] = useState(false)
-  const [validationMessage, setValidationMessage] = useState('')
+  const [isValidationError, setIsValidationError] = useState(true)
+  const [validationMessage, setValidationMessage] = useState(
+    'Table name already exists in the given database.'
+  )
   const [pendingValidation, setPendingValidation] = useState(false)
 
-  const [modalWidth, setModalWidth] = useState(700)
+  const [modalWidth, setModalWidth] = useState(584)
   const [isResizing, setIsResizing] = useState(false)
   const [initialMouseX, setInitialMouseX] = useState(0)
   const [initialWidth, setInitialWidth] = useState(700)
   const MIN_WIDTH = 584
 
   const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isCreateModalOpen, showConfirmation)
+  useFocusTrap(containerRef, isCopyTableModalOpen, showConfirmation)
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Connection',
-      'Target Schema',
-      'Target Table',
-      'Database',
-      'Table'
-    ]
+    const requiredLabels = ['Database', 'Table']
+
     return editedSettings.some(
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
   }, [editedSettings])
 
-  // For validating unique combination of pk's so it becomes a create and not an update
-  const [filter, setFilter] = useState<ExportSearchFilter>({
+  // For validating unique combination of pk's so it becomes a copy and not an update
+  const [filter, setFilter] = useState<ImportSearchFilter>({
     connection: null,
-    targetSchema: null,
-    targetTable: null,
+    database: null,
+    table: null,
     includeInAirflow: null,
-    exportType: null,
-    exportTool: null
+    importPhaseType: null,
+    etlPhaseType: null,
+    importTool: null,
+    etlEngine: null
   })
 
   const updateFilter = useMemo(
@@ -90,23 +94,12 @@ function CreateExportTableModal({
     [setFilter]
   )
 
-  const { data: connectionsData } = useConnections(true)
-  const connectionNames = useMemo(
-    () =>
-      Array.isArray(connectionsData)
-        ? connectionsData?.map((connection) => connection.name)
-        : [],
-    [connectionsData]
-  )
-
   const {
     data,
     isLoading: validationIsLoading,
     isError
-  } = useSearchExportTables(
-    filter.connection && filter.targetSchema && filter.targetTable
-      ? filter
-      : null,
+  } = useSearchImportTables(
+    filter.database && filter.table ? filter : null,
     true
   )
 
@@ -115,9 +108,7 @@ function CreateExportTableModal({
       setPendingValidation(false)
       if (data.tables.length > 0) {
         setIsValidationError(true)
-        setValidationMessage(
-          'Table name already exists in the given connection and target schema.'
-        )
+        setValidationMessage('Table name already exists in the given database.')
       } else {
         setIsValidationError(false)
         setValidationMessage('')
@@ -144,27 +135,16 @@ function CreateExportTableModal({
 
     setEditedSettings(updatedSettings)
     setHasChanges(true)
-    setPendingValidation(true)
+    setPendingValidation(false)
 
-    const updatedConnection = getUpdatedSettingValue(
-      'Connection',
-      updatedSettings
-    )
-    const updatedTargetTable = getUpdatedSettingValue(
-      'Target Table',
-      updatedSettings
-    )
-    const updatedTargetSchema = getUpdatedSettingValue(
-      'Target Schema',
-      updatedSettings
-    )
+    const updatedDatabase = getUpdatedSettingValue('Database', updatedSettings)
+    const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
 
-    if (updatedConnection && updatedTargetTable && updatedTargetSchema) {
+    if (updatedDatabase && updatedTable) {
       updateFilter({
         ...filter,
-        connection: updatedConnection,
-        targetTable: updatedTargetTable,
-        targetSchema: updatedTargetSchema
+        database: updatedDatabase,
+        table: updatedTable
       })
     }
   }
@@ -182,15 +162,9 @@ function CreateExportTableModal({
   }
 
   const handleSave = () => {
-    const newTableSettings = settings.map((setting) => {
-      const editedSetting = editedSettings.find(
-        (es) => es.label === setting.label
-      )
+    console.log('editedSettings', editedSettings)
 
-      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
-    })
-
-    onSave(newTableSettings)
+    onSave(editedSettings)
     onClose()
   }
 
@@ -264,7 +238,16 @@ function CreateExportTableModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">Create table</h2>
+        <h2 className="table-modal-h2">
+          Copy table
+          <InfoText
+            label="Copy table"
+            infoText={infoTexts.actions.copyTable}
+            iconPosition={{ marginLeft: 12 }}
+            isInfoTextPositionRight={true}
+            infoTextMaxWidth={300}
+          />
+        </h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -286,7 +269,6 @@ function CreateExportTableModal({
                   <TableInputFields
                     index={index}
                     setting={setting}
-                    dataNames={connectionNames}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                   />
@@ -326,7 +308,7 @@ function CreateExportTableModal({
       </div>
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Create table"
+          title="Cancel Copy table"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -339,4 +321,4 @@ function CreateExportTableModal({
   )
 }
 
-export default CreateExportTableModal
+export default CopyImportTableModal

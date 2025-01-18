@@ -1,7 +1,7 @@
 import { Column, Columns, EditSetting } from '../../../utils/interfaces'
 import TableList from '../../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
-import { useTable } from '../../../utils/queries'
+import { useImportTable } from '../../../utils/queries'
 import EditTableModal from '../../../components/modals/EditTableModal'
 import { updateTableData } from '../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
@@ -16,7 +16,11 @@ function TableColumns() {
     table: string
   }>()
 
-  const { data: tableData, isLoading, isError } = useTable(database, tableParam)
+  const {
+    data: tableData,
+    isLoading,
+    isError
+  } = useImportTable(database, tableParam)
 
   const queryClient = useQueryClient()
   const { mutate: updateTable } = useUpdateTable()

@@ -952,6 +952,65 @@ export function tableNameReadonlySettings(label: string, tableName: string) {
   return settings
 }
 
+export function copyImportTableSettings(
+  prefilledDatabase: string,
+  prefilledTable: string
+) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Database',
+      value: prefilledDatabase,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.import.database,
+      isRequired: true
+    }, //Free-text, required
+    {
+      label: 'Table',
+      value: prefilledTable,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.import.table,
+      isRequired: true
+    } // Free-text, required
+  ]
+  return settings
+}
+
+export function copyExportTableSettings(
+  prefilledConnection: string,
+  prefilledTargetTable: string,
+  prefilledTargetSchema: string
+) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Connection',
+      value: prefilledConnection,
+      type: SettingType.DataReferenceRequired,
+      maxChar: 256,
+      infoText: infoTexts.table.export.connection,
+      isRequired: true
+    }, //Connections-dropdown, default selected connection, varchar(256), required
+    {
+      label: 'Target Table',
+      value: prefilledTargetTable,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetTable,
+      isRequired: true
+    }, // Free-text, varchar(256), required
+    {
+      label: 'Target Schema',
+      value: prefilledTargetSchema,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetSchema,
+      isRequired: true
+    } // Free-text, varchar(256), required
+  ]
+  return settings
+}
+
 // Import
 
 export function initEnumDropdownFilters(

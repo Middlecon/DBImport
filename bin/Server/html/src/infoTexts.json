@@ -361,6 +361,7 @@
   "actions": {
     "generateDag": "",
     "repairTable": "",
-    "resetTable": ""
+    "resetTable": "",
+    "copyTable": ""
   }
 }

@@ -578,7 +578,8 @@ export interface Column<T> {
     | 'generateDag'
     | 'repairTable'
     | 'resetTable'
-    | 'repairAndResetTable'
+    | 'copyTable'
+    | 'repairAndResetAndCopyTable'
   isLink?: 'connectionLink' | 'airflowLink'
 }
 

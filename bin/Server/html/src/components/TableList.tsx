@@ -21,6 +21,7 @@ import UrlLinkIcon from '../assets/icons/UrlLinkIcon'
 import GenerateDAGIcon from '../assets/icons/GenerateDAGIcon'
 import RepairIcon from '../assets/icons/RepairIcon'
 import ResetIcon from '../assets/icons/ResetIcon'
+import CopyIcon from '../assets/icons/CopyIcon'
 
 interface TableProps<T> {
   columns: Column<T>[]
@@ -35,6 +36,7 @@ interface TableProps<T> {
   onGenerate?: (row: T) => void
   onRepair?: (row: T) => void
   onReset?: (row: T) => void
+  onCopy?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
@@ -54,6 +56,7 @@ function TableList<T>({
   onGenerate,
   onRepair,
   onReset,
+  onCopy,
   airflowType,
   noLinkOnTableName = false,
   enableSourceTableOverflow = false,
@@ -66,7 +69,7 @@ function TableList<T>({
   const lastSelectedRowIndexRef = useRef<number | null>(null)
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState<string>('')
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
+  const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
 
   useEffect(() => {
@@ -500,15 +503,15 @@ function TableList<T>({
 
         let timeoutId: string | number | NodeJS.Timeout | undefined
 
-        const handleMouseEnter = () => {
+        const handleMouseEnter = (action: string) => {
           timeoutId = setTimeout(() => {
-            setShowTooltip(true)
+            setShowTooltip(action)
           }, 1000)
         }
 
         const handleMouseLeave = () => {
           clearTimeout(timeoutId)
-          setShowTooltip(false)
+          setShowTooltip(null)
         }
         return (
           <div className="actions-row">
@@ -520,7 +523,7 @@ function TableList<T>({
                 }`}
                 onClick={() => onEdit && onEdit(row, rowIndex)}
                 disabled={!onEdit}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => handleMouseEnter('edit')}
                 onMouseLeave={handleMouseLeave}
               >
                 <EditIcon />
@@ -535,7 +538,7 @@ function TableList<T>({
                 }`}
                 onClick={() => onDelete && onDelete(row)}
                 style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => handleMouseEnter('delete')}
                 onMouseLeave={handleMouseLeave}
               >
                 <DeleteIcon />
@@ -550,7 +553,7 @@ function TableList<T>({
                 }`}
                 onClick={() => onGenerate && onGenerate(row)}
                 disabled={!onGenerate}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => handleMouseEnter('generateDag')}
                 onMouseLeave={handleMouseLeave}
               >
                 <GenerateDAGIcon />
@@ -562,14 +565,14 @@ function TableList<T>({
               </button>
             ) : null}
             {column.isAction === 'repairTable' ||
-            column.isAction === 'repairAndResetTable' ? (
+            column.isAction === 'repairAndResetAndCopyTable' ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
                 onClick={() => onRepair && onRepair(row)}
                 disabled={!onRepair}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => handleMouseEnter('repairTable')}
                 onMouseLeave={handleMouseLeave}
               >
                 <RepairIcon />
@@ -581,20 +584,42 @@ function TableList<T>({
               </button>
             ) : null}
             {column.isAction === 'resetTable' ||
-            column.isAction === 'repairAndResetTable' ? (
+            column.isAction === 'repairAndResetAndCopyTable' ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
                 onClick={() => onReset && onReset(row)}
                 disabled={!onReset}
-                onMouseEnter={handleMouseEnter}
+                onMouseEnter={() => handleMouseEnter('resetTable')}
                 onMouseLeave={handleMouseLeave}
               >
                 <ResetIcon />
                 {showTooltip && (
                   <span className="tooltip" style={{ left: 'unset', right: 7 }}>
                     Reset table
+                  </span>
+                )}
+              </button>
+            ) : null}
+            {column.isAction === 'copyTable' ||
+            column.isAction === 'repairAndResetAndCopyTable' ? (
+              <button
+                className={`actions-reset-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => onCopy && onCopy(row)}
+                disabled={!onCopy}
+                onMouseEnter={() => handleMouseEnter('copyTable')}
+                onMouseLeave={handleMouseLeave}
+              >
+                <CopyIcon />
+                {showTooltip === 'copyTable' && (
+                  <span
+                    className="tooltip"
+                    style={{ left: 'unset', right: 10 }}
+                  >
+                    Copy table
                   </span>
                 )}
               </button>
@@ -617,6 +642,7 @@ function TableList<T>({
       onGenerate,
       onRepair,
       onReset,
+      onCopy,
       onDelete
     ]
   )

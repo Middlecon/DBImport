@@ -29,7 +29,7 @@ function RepairTableModal({
     primaryKeys: ImportPKs | ExportPKs,
     type: 'import' | 'export'
   ): primaryKeys is ImportPKs {
-    return type === 'import'
+    return type === 'import' && !!primaryKeys
   }
 
   const tableName = isImportPKs(primaryKeys, type)

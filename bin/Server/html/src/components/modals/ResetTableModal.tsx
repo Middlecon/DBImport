@@ -29,12 +29,14 @@ function ResetTableModal({
     primaryKeys: ImportPKs | ExportPKs,
     type: 'import' | 'export'
   ): primaryKeys is ImportPKs {
-    return type === 'import'
+    return type === 'import' && !!primaryKeys
   }
 
   const tableName = isImportPKs(primaryKeys, type)
     ? primaryKeys.table // Narrowed to ImportPKs
     : primaryKeys.targetTable
+
+  console.log('Derived table name:', tableName)
 
   const label: string = type === 'import' ? 'Table' : 'Target Table'
 

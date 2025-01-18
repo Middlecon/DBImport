@@ -28,7 +28,9 @@ import {
   Table,
   UIExportCnTables,
   UIExportTable,
+  UIExportTableWithoutEnum,
   UITable,
+  UITableWithoutEnum,
   UiAirflowsCustomData,
   UiAirflowsExportData,
   UiAirflowsImportData,
@@ -316,13 +318,24 @@ export const fetchTableData = async (
   return dataWithEnumTypes
 }
 
-export const useTable = (
+export const useImportTable = (
   database?: string,
   table?: string
 ): UseQueryResult<UITable, Error> => {
   return useQuery({
     queryKey: ['import', database, table],
     queryFn: () => fetchTableData(database!, table!), // We are sure that database and table is not null here because of the enabled flag
+    enabled: !!database && !!table
+  })
+}
+
+export const useRawImportTable = (
+  database?: string,
+  table?: string
+): UseQueryResult<UITableWithoutEnum, Error> => {
+  return useQuery({
+    queryKey: ['import', database, table],
+    queryFn: () => getTable(database!, table!), // We are sure that database and table is not null here because of the enabled flag
     enabled: !!database && !!table
   })
 }
@@ -486,6 +499,18 @@ export const useExportTable = (
     queryKey: ['export', connection, targetTable],
     queryFn: () =>
       fetchExportTableData(connection!, targetSchema!, targetTable!), // We are sure that database and table is not null here because of the enabled flag
+    enabled: !!connection && !!targetSchema && !!targetTable
+  })
+}
+
+export const useRawExportTable = (
+  connection?: string,
+  targetSchema?: string,
+  targetTable?: string
+): UseQueryResult<UIExportTableWithoutEnum, Error> => {
+  return useQuery({
+    queryKey: ['export', connection, targetTable],
+    queryFn: () => getExportTable(connection!, targetSchema!, targetTable!), // We are sure that database and table is not null here because of the enabled flag
     enabled: !!connection && !!targetSchema && !!targetTable
   })
 }

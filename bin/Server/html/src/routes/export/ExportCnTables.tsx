@@ -3,6 +3,7 @@ import TableList from '../../components/TableList'
 import {
   BulkUpdateExportTables,
   Column,
+  EditSetting,
   // EditSetting,
   ExportCnTablesWithoutEnum,
   ExportSearchFilter,
@@ -14,13 +15,15 @@ import {
 import '../import/DbTables.scss'
 // import EditTableModal from '../../components/modals/EditTableModal'
 import {
+  newCopyExportTableData,
   transformBulkChanges
   // updateExportTableData
 } from '../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
-  useBulkUpdateTable
+  useBulkUpdateTable,
+  useCopyExportTable
   // useDeleteExportTable,
   // useUpdateTable
 } from '../../utils/mutations'
@@ -37,6 +40,8 @@ import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
 import ResetTableModal from '../../components/modals/ResetTableModal'
+import { useRawExportTable } from '../../utils/queries'
+import CopyExportTableModal from '../../components/modals/CopyExportTableModal'
 
 function ExportCnTables({
   data,
@@ -51,6 +56,10 @@ function ExportCnTables({
 }) {
   const queryClient = useQueryClient()
 
+  const { mutate: copyTable } = useCopyExportTable()
+  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
+  const { mutate: bulkDeleteTable } = useBulkDeleteTables()
+
   // For edit or delete row by Actions icon in table list, may be removed
   // const { mutate: updateTable } = useUpdateTable()
   // const { mutate: deleteTable } = useDeleteExportTable()
@@ -63,6 +72,7 @@ function ExportCnTables({
 
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+  const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
 
   const [selectedRow, setSelectedRow] = useState<UIExportCnTables>()
 
@@ -79,8 +89,11 @@ function ExportCnTables({
   }
   const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
 
-  const { mutate: bulkUpdateTable } = useBulkUpdateTable()
-  const { mutate: bulkDeleteTable } = useBulkDeleteTables()
+  const { data: tableData } = useRawExportTable(
+    primaryKeys?.connection,
+    primaryKeys?.targetSchema,
+    primaryKeys?.targetTable
+  )
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
@@ -114,7 +127,7 @@ function ExportCnTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairAndResetTable' }
+      { header: 'Actions', isAction: 'repairAndResetAndCopyTable' }
     ],
     []
   )
@@ -208,6 +221,38 @@ function ExportCnTables({
   const handleResetIconClick = (row: UIExportCnTables) => {
     setSelectedRow(row)
     setIsResetTableModalOpen(true)
+  }
+
+  const handleCopyIconClick = (row: UIExportCnTables) => {
+    setSelectedRow(row)
+    setIsCopyTableModalOpen(true)
+  }
+
+  const handleCopySave = (tablePrimaryKeysSettings: EditSetting[]) => {
+    if (!tableData) return
+    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
+    console.log('tableData', tableData)
+
+    const newCopyTableData = newCopyExportTableData(
+      tableData,
+      tablePrimaryKeysSettings
+    )
+
+    console.log(newCopyTableData)
+
+    copyTable(newCopyTableData, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: ['export', 'search'],
+          exact: false
+        })
+        console.log('Save table copy successful', response)
+        setIsCopyTableModalOpen(false)
+      },
+      onError: (error) => {
+        console.error('Error copy table', error)
+      }
+    })
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -353,6 +398,7 @@ function ExportCnTables({
             // onDelete={handleDeleteIconClick}
             onRepair={handleRepairIconClick}
             onReset={handleResetIconClick}
+            onCopy={handleCopyIconClick}
             isLoading={isLoading}
             noLinkOnTableName={true}
             rowSelection={rowSelection}
@@ -428,6 +474,14 @@ function ExportCnTables({
           primaryKeys={primaryKeys}
           isResetTableModalOpen={isResetTableModalOpen}
           onClose={() => setIsResetTableModalOpen(false)}
+        />
+      )}
+      {isCopyTableModalOpen && primaryKeys && selectedRow && tableData && (
+        <CopyExportTableModal
+          primaryKeys={primaryKeys}
+          isCopyTableModalOpen={isCopyTableModalOpen}
+          onSave={handleCopySave}
+          onClose={() => setIsCopyTableModalOpen(false)}
         />
       )}
     </div>

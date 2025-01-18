@@ -2,7 +2,7 @@ import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import { useParams } from 'react-router-dom'
 import '../../../components/Loading.scss'
 import { importCardRenderSettings } from '../../../utils/cardRenderFormatting'
-import { useTable } from '../../../utils/queries'
+import { useImportTable } from '../../../utils/queries'
 import Card from '../../_shared/tableDetailed/settings/Card'
 
 function ImportTableSettings() {
@@ -10,7 +10,7 @@ function ImportTableSettings() {
     database: string
     table: string
   }>()
-  const { data: table, isError } = useTable(database, tableParam)
+  const { data: table, isError } = useImportTable(database, tableParam)
 
   if (isError) {
     return <div className="error">Server error occurred.</div>
