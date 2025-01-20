@@ -13,7 +13,8 @@ interface TableInputFieldsProps {
   setting: EditSetting
   handleInputChange: (
     index: number,
-    newValue: string | number | boolean | null
+    newValue: string | number | boolean | null,
+    isBlur?: boolean
   ) => void
   handleSelect: (
     item: string | number | boolean | null,
@@ -542,7 +543,8 @@ function TableInputFields({
                 const trimmedValue = event.target.value.trim()
                 handleInputChange(
                   index,
-                  trimmedValue === '' ? prevValue : trimmedValue
+                  trimmedValue === '' ? prevValue : trimmedValue,
+                  true
                 )
               }}
               required={isRequired}

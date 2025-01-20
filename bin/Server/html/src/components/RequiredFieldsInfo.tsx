@@ -19,7 +19,7 @@ function RequiredFieldsInfo({
             isValidationSad ? 'required-info' : 'disabled-required-info'
           }
         >
-          {validationText}
+          {!isRequiredFieldEmpty ? validationText : ''}
         </p>
       )}
       <p

@@ -122,8 +122,11 @@ function CopyImportTableModal({
 
   const handleInputChange = (
     index: number,
-    newValue: EditSettingValueTypes | null
+    newValue: EditSettingValueTypes | null,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
@@ -240,13 +243,16 @@ function CopyImportTableModal({
         ></div>
         <h2 className="table-modal-h2">
           Copy table
-          <InfoText
-            label="Copy table"
-            infoText={infoTexts.actions.copyTable}
-            iconPosition={{ marginLeft: 12 }}
-            isInfoTextPositionRight={true}
-            infoTextMaxWidth={300}
-          />
+          {infoTexts.actions.copyTable &&
+            infoTexts.actions.copyTable.length > 0 && (
+              <InfoText
+                label="Copy table"
+                infoText={infoTexts.actions.copyTable}
+                iconPosition={{ marginLeft: 12 }}
+                isInfoTextPositionRight={true}
+                infoTextMaxWidth={300}
+              />
+            )}
         </h2>
         <form
           onSubmit={(event) => {
