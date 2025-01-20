@@ -83,17 +83,17 @@ function Import() {
     'etlType',
     'etlEngine'
   ]
-  const allParams = Array.from(query.keys())
+  const allSearchParams = Array.from(query.keys())
 
   useEffect(() => {
-    const hasInvalidParams = allParams.some(
+    const hasInvalidParams = allSearchParams.some(
       (param) => !validParams.includes(param)
     )
     if (hasInvalidParams) {
       navigate('/import', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allParams, navigate])
+  }, [allSearchParams, navigate])
 
   const connection = query.get('connection') || null
   const database = query.get('database') || null

@@ -45,17 +45,17 @@ function Connection() {
   const query = new URLSearchParams(location.search)
 
   const validParams = ['name', 'connectionString', 'serverType']
-  const allParams = Array.from(query.keys())
+  const allSearchParams = Array.from(query.keys())
 
   useEffect(() => {
-    const hasInvalidParams = allParams.some(
+    const hasInvalidParams = allSearchParams.some(
       (param) => !validParams.includes(param)
     )
     if (hasInvalidParams) {
       navigate('/connection', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allParams, navigate])
+  }, [allSearchParams, navigate])
 
   const name = query.get('name') || null
   const connectionString = query.get('connectionString') || null

@@ -11,13 +11,12 @@ import {
   EditSetting,
   EditSettingValueTypes
 } from '../../utils/interfaces'
-// import { useAllAirflows } from '../utils/queries'
 import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../../utils/TableInputFields'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import { initialCreateAirflowTaskSettings } from '../../utils/cardRenderFormatting'
+import { copyAirflowTaskSettings } from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
 import { AirflowDAGTaskType } from '../../utils/enums'
 import { useConnections } from '../../utils/queries'
@@ -25,23 +24,23 @@ import { useFocusTrap } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
-interface CreateAirflowModalProps {
-  isCreateModalOpen: boolean
+interface CopyAirflowModalProps {
+  isCopyModalOpen: boolean
   type: 'import' | 'export' | 'custom'
+  taskName: string
   tasksData: AirflowTask[]
   onSave: (newTableData: EditSetting[]) => void
   onClose: () => void
 }
 
-function CreateAirflowTaskModal({
-  isCreateModalOpen,
+function CopyAirflowTaskModal({
+  isCopyModalOpen,
   type,
+  taskName,
   tasksData,
   onSave,
   onClose
-}: CreateAirflowModalProps) {
-  // const { data: airflowsData } = useAllAirflows()
-
+}: CopyAirflowModalProps) {
   const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(
     () =>
@@ -51,7 +50,7 @@ function CreateAirflowTaskModal({
     [connectionsData]
   )
 
-  const settings = initialCreateAirflowTaskSettings
+  const settings = copyAirflowTaskSettings(taskName)
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
     settings ? settings : []
@@ -61,7 +60,7 @@ function CreateAirflowTaskModal({
     () => (Array.isArray(tasksData) ? tasksData.map((task) => task.name) : []),
     [tasksData]
   )
-  const [duplicateTaskName, setDuplicateTaskName] = useState(false)
+  const [duplicateTaskName, setDuplicateTaskName] = useState(true)
   const [reservedValue, setReservedValue] = useState(false)
 
   const [hasChanges, setHasChanges] = useState(false)
@@ -75,7 +74,7 @@ function CreateAirflowTaskModal({
   const MIN_WIDTH = 584
 
   const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isCreateModalOpen, showConfirmation)
+  useFocusTrap(containerRef, isCopyModalOpen, showConfirmation)
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
@@ -131,8 +130,11 @@ function CreateAirflowTaskModal({
 
   const handleInputChange = (
     index: number,
-    newValue: EditSettingValueTypes | null
+    newValue: EditSettingValueTypes | null,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     setPendingValidation(true)
 
     if (index < 0 || index >= editedSettings.length) {
@@ -248,7 +250,7 @@ function CreateAirflowTaskModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">{`Create ${
+        <h2 className="table-modal-h2">{`Copy ${
           type.charAt(0).toUpperCase() + type.slice(1)
         } DAG task`}</h2>
         <form
@@ -329,7 +331,7 @@ function CreateAirflowTaskModal({
       </div>
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Create DAG task"
+          title="Cancel Copy DAG task"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -342,4 +344,4 @@ function CreateAirflowTaskModal({
   )
 }
 
-export default CreateAirflowTaskModal
+export default CopyAirflowTaskModal

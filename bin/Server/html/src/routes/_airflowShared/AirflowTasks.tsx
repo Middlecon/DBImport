@@ -10,6 +10,7 @@ import {
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 import { useCallback, useMemo, useState } from 'react'
+import cloneDeep from 'lodash/cloneDeep'
 import { useAirflowDAG } from '../../utils/queries'
 import EditTableModal from '../../components/modals/EditTableModal'
 import { useParams } from 'react-router-dom'
@@ -28,6 +29,7 @@ import {
 import Button from '../../components/Button'
 import CreateAirflowTaskModal from '../../components/modals/CreateAirflowTaskModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import CopyAirflowTaskModal from '../../components/modals/CopyAirflowTaskModal'
 
 function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
@@ -46,6 +48,10 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
+
+  const [isCopyTaskModalOpen, setIsCopyTaskModalOpen] = useState(false)
+  const [selectedCopyRow, setSelectedCopyRow] = useState<AirflowTask>()
+  const taskName = selectedCopyRow ? selectedCopyRow.name : null
 
   const [selectedDeleteRow, setSelectedDeleteRow] = useState<AirflowTask>()
   const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
@@ -94,7 +100,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       },
       { header: 'Sensor Soft Fail', accessor: 'sensorSoftFail' },
       { header: 'Sudo User', accessor: 'sudoUser' },
-      { header: 'Actions', isAction: 'delete' }
+      { header: 'Actions', isAction: 'copyAndDelete' }
     ],
     []
   )
@@ -122,6 +128,15 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   if (!originalDagData && !isError)
     return <div className="loading">Loading...</div>
 
+  const handleCopyIconClick = (
+    row: AirflowTask,
+    rowIndex: number | undefined
+  ) => {
+    setRowIndex(rowIndex)
+    setSelectedCopyRow(row)
+    setIsCopyTaskModalOpen(true)
+  }
+
   const handleSave = (updatedSettings: EditSetting[]) => {
     const dagDataCopy = { ...originalDagData }
 
@@ -139,7 +154,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       editedDagData = updateImportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings,
-        false,
+        null,
         true,
         rowIndex
       )
@@ -152,7 +167,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       editedDagData = updateExportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
         updatedSettings,
-        false,
+        null,
         true,
         rowIndex
       )
@@ -165,7 +180,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       editedDagData = updateCustomDagData(
         dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
         updatedSettings,
-        false,
+        null,
         true,
         rowIndex
       )
@@ -209,21 +224,93 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       editedDagData = updateImportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
         updatedSettings,
-        true
+        'create'
       )
     } else if (type === 'export') {
       editedDagData = updateExportDagData(
         dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
         updatedSettings,
-        true
+        'create'
       )
     } else if (type === 'custom') {
       editedDagData = updateCustomDagData(
         dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
         updatedSettings,
-        true
+        'create'
       )
     }
+
+    if (editedDagData && type) {
+      queryClient.setQueryData(['airflows', type, dagName], editedDagData)
+      updateDag(
+        { type, dagData: editedDagData },
+        {
+          onSuccess: (response) => {
+            queryClient.invalidateQueries({
+              queryKey: ['airflows', type, dagName]
+            }) // For getting fresh data from database to the cache
+            setDataRefreshTrigger((prev) => prev + 1)
+            console.log('Update successful', response)
+            setIsEditModalOpen(false)
+          },
+          onError: (error) => {
+            queryClient.setQueryData(
+              ['airflows', type, dagName],
+              originalDagData
+            )
+
+            console.error('Error updating table', error)
+          }
+        }
+      )
+    }
+  }
+
+  const handleSaveCopyTask = (updatedSettings: EditSetting[]) => {
+    // const dagDataCopy = { ...originalDagData }
+    const dagDataCopy = cloneDeep(originalDagData)
+    console.log('updatedSettings', updatedSettings)
+    console.log('originalDagData', originalDagData)
+    let editedDagData:
+      | ImportAirflowDAG
+      | BaseAirflowDAG
+      | ExportAirflowDAG
+      | null = null
+    if (type === 'import' && typeof rowIndex !== 'undefined' && rowIndex >= 0) {
+      editedDagData = updateImportDagData(
+        dagDataCopy as AirflowWithDynamicKeys<ImportAirflowDAG>,
+        updatedSettings,
+        'copy',
+        false,
+        rowIndex
+      )
+    } else if (
+      type === 'export' &&
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0
+    ) {
+      editedDagData = updateExportDagData(
+        dagDataCopy as AirflowWithDynamicKeys<ExportAirflowDAG>,
+        updatedSettings,
+        'copy',
+        false,
+        rowIndex
+      )
+    } else if (
+      type === 'custom' &&
+      typeof rowIndex !== 'undefined' &&
+      rowIndex >= 0
+    ) {
+      editedDagData = updateCustomDagData(
+        dagDataCopy as AirflowWithDynamicKeys<CustomAirflowDAG>,
+        updatedSettings,
+        'copy',
+        false,
+        rowIndex
+      )
+    }
+
+    console.log('editedDagData', editedDagData)
 
     if (editedDagData && type) {
       queryClient.setQueryData(['airflows', type, dagName], editedDagData)
@@ -296,6 +383,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           data={tasksData}
           onEdit={handleEditClick}
           onDelete={handleDeleteIconClick}
+          onCopy={handleCopyIconClick}
           isLoading={isLoading}
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
@@ -331,6 +419,16 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           tasksData={tasksData}
           onSave={handleSaveCreateTask}
           onClose={() => setCreateModalOpen(false)}
+        />
+      )}
+      {isCopyTaskModalOpen && taskName && (
+        <CopyAirflowTaskModal
+          isCopyModalOpen={isCopyTaskModalOpen}
+          type={type}
+          taskName={taskName}
+          tasksData={tasksData}
+          onSave={handleSaveCopyTask}
+          onClose={() => setIsCopyTaskModalOpen(false)}
         />
       )}
       {showDeleteConfirmation && selectedDeleteRow && (

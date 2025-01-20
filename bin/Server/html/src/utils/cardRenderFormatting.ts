@@ -630,6 +630,20 @@ export const initialCreateAirflowTaskSettings: EditSetting[] = [
   } // Free-text, The task will use this user for sudo instead of default, varchar(64)
 ]
 
+export function copyAirflowTaskSettings(taskName: string) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Task Name',
+      value: taskName,
+      type: SettingType.Text,
+      maxChar: 64,
+      infoText: infoTexts.airflow.tasks.name,
+      isRequired: true
+    } // Free-text, varchar(64), have to be unique in the actual DAG and can not be reserved values start or Start or stop or Stop, required
+  ]
+  return settings
+}
+
 export function generateDagSettings(dagName: string) {
   const settings: EditSetting[] = [
     {

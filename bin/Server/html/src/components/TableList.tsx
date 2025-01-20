@@ -36,7 +36,7 @@ interface TableProps<T> {
   onGenerate?: (row: T) => void
   onRepair?: (row: T) => void
   onReset?: (row: T) => void
-  onCopy?: (row: T) => void
+  onCopy?: (row: T, rowIndex?: number) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
@@ -530,22 +530,6 @@ function TableList<T>({
                 {showTooltip && <span className="tooltip">Edit</span>}
               </button>
             ) : null}
-            {column.isAction === 'delete' ||
-            column.isAction === 'editAndDelete' ? (
-              <button
-                className={`actions-delete-button ${
-                  isFirstActionCell ? 'first' : ''
-                }`}
-                onClick={() => onDelete && onDelete(row)}
-                style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
-                onMouseEnter={() => handleMouseEnter('delete')}
-                onMouseLeave={handleMouseLeave}
-              >
-                <DeleteIcon />
-                {showTooltip && <span className="tooltip">Delete</span>}
-              </button>
-            ) : null}
-
             {column.isAction === 'generateDag' ? (
               <button
                 className={`actions-edit-button ${
@@ -564,8 +548,8 @@ function TableList<T>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'repairTable' ||
-            column.isAction === 'repairAndResetAndCopyTable' ? (
+            {column.isAction === 'repair' ||
+            column.isAction === 'repairAndResetAndCopy' ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
@@ -578,13 +562,13 @@ function TableList<T>({
                 <RepairIcon />
                 {showTooltip && (
                   <span className="tooltip" style={{ left: 'unset', right: 7 }}>
-                    Repair table
+                    Repair
                   </span>
                 )}
               </button>
             ) : null}
-            {column.isAction === 'resetTable' ||
-            column.isAction === 'repairAndResetAndCopyTable' ? (
+            {column.isAction === 'reset' ||
+            column.isAction === 'repairAndResetAndCopy' ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
@@ -597,18 +581,19 @@ function TableList<T>({
                 <ResetIcon />
                 {showTooltip && (
                   <span className="tooltip" style={{ left: 'unset', right: 7 }}>
-                    Reset table
+                    Reset
                   </span>
                 )}
               </button>
             ) : null}
-            {column.isAction === 'copyTable' ||
-            column.isAction === 'repairAndResetAndCopyTable' ? (
+            {column.isAction === 'copy' ||
+            column.isAction === 'repairAndResetAndCopy' ||
+            column.isAction === 'copyAndDelete' ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onCopy && onCopy(row)}
+                onClick={() => onCopy && onCopy(row, rowIndex)}
                 disabled={!onCopy}
                 onMouseEnter={() => handleMouseEnter('copyTable')}
                 onMouseLeave={handleMouseLeave}
@@ -619,9 +604,25 @@ function TableList<T>({
                     className="tooltip"
                     style={{ left: 'unset', right: 10 }}
                   >
-                    Copy table
+                    Copy
                   </span>
                 )}
+              </button>
+            ) : null}
+            {column.isAction === 'delete' ||
+            column.isAction === 'editAndDelete' ||
+            column.isAction === 'copyAndDelete' ? (
+              <button
+                className={`actions-delete-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => onDelete && onDelete(row)}
+                style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
+                onMouseEnter={() => handleMouseEnter('delete')}
+                onMouseLeave={handleMouseLeave}
+              >
+                <DeleteIcon />
+                {showTooltip && <span className="tooltip">Delete</span>}
               </button>
             ) : null}
           </div>

@@ -43,18 +43,17 @@ function AirflowExport() {
   const query = new URLSearchParams(location.search)
 
   const validParams = ['name', 'scheduleInterval', 'autoRegenerateDag']
-  const allParams = Array.from(query.keys())
+  const allSearchParams = Array.from(query.keys())
 
   useEffect(() => {
-    console.log('allParams', allParams)
-    const hasInvalidParams = allParams.some(
+    const hasInvalidParams = allSearchParams.some(
       (param) => !validParams.includes(param)
     )
     if (hasInvalidParams) {
       navigate('/airflow/import', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allParams, navigate])
+  }, [allSearchParams, navigate])
 
   const name = query.get('name') || null
   const scheduleInterval = query.get('scheduleInterval') || null

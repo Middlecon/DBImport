@@ -576,10 +576,11 @@ export interface Column<T> {
     | 'delete'
     | 'editAndDelete'
     | 'generateDag'
-    | 'repairTable'
-    | 'resetTable'
-    | 'copyTable'
-    | 'repairAndResetAndCopyTable'
+    | 'repair'
+    | 'reset'
+    | 'copy'
+    | 'repairAndResetAndCopy'
+    | 'copyAndDelete'
   isLink?: 'connectionLink' | 'airflowLink'
 }
 

@@ -46,6 +46,8 @@ import {
   reverseMapEnumValue
 } from './nameMappings'
 
+import cloneDeep from 'lodash/cloneDeep'
+
 // Connection
 
 export const transformEncryptCredentialsSettings = (
@@ -836,10 +838,11 @@ function updateTasksData(
 export function updateImportDagData(
   dagData: AirflowWithDynamicKeys<ImportAirflowDAG>,
   updatedSettings: EditSetting[],
-  newTask?: boolean,
-  task?: boolean,
+  addTask?: 'create' | 'copy' | null,
+  editTask?: boolean,
   indexInTasks?: number
 ): ImportAirflowDAG {
+  console.log('indexInTasks', indexInTasks)
   const updatedDagData: AirflowWithDynamicKeys<ImportAirflowDAG> = {
     ...dagData
   }
@@ -848,7 +851,7 @@ export function updateImportDagData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  if (newTask) {
+  if (addTask === 'create') {
     const part1 = {
       name: '',
       type: '',
@@ -899,9 +902,35 @@ export function updateImportDagData(
       }
     })
 
+    console.log('part1', part1)
+
     const finalTasksData: AirflowTask = { ...part2, ...part1 }
     updatedDagData.tasks.push(finalTasksData)
-  } else if (task && indexInTasks !== undefined) {
+  } else if (addTask === 'copy') {
+    if (
+      indexInTasks === undefined ||
+      !dagData.tasks ||
+      !dagData.tasks[indexInTasks]
+    ) {
+      console.error('Invalid rowIndex or tasks array.')
+      return dagData
+    }
+
+    // const taskCopy = { ...dagData.tasks[indexInTasks] }
+    const taskCopy = cloneDeep(dagData.tasks[indexInTasks])
+
+    const nameSetting = updatedSettings.find(
+      (setting) => setting.label === 'Task Name'
+    )
+    if (nameSetting && typeof nameSetting.value === 'string') {
+      taskCopy.name = nameSetting.value
+    } else {
+      console.error('Task Name setting is missing or invalid.')
+      return dagData
+    }
+
+    updatedDagData.tasks.push(taskCopy)
+  } else if (editTask && indexInTasks !== undefined) {
     filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
     })
@@ -932,8 +961,8 @@ export function updateImportDagData(
 export function updateExportDagData(
   dagData: AirflowWithDynamicKeys<ExportAirflowDAG>,
   updatedSettings: EditSetting[],
-  newTask?: boolean,
-  task?: boolean,
+  addTask?: 'create' | 'copy' | null,
+  editTask?: boolean,
   indexInTasks?: number
 ): ExportAirflowDAG {
   const updatedDagData: AirflowWithDynamicKeys<ExportAirflowDAG> = {
@@ -944,7 +973,7 @@ export function updateExportDagData(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  if (newTask) {
+  if (addTask === 'create') {
     const part1 = {
       name: '',
       type: '',
@@ -997,7 +1026,31 @@ export function updateExportDagData(
 
     const finalTasksData: AirflowTask = { ...part2, ...part1 }
     updatedDagData.tasks.push(finalTasksData)
-  } else if (task && indexInTasks !== undefined) {
+  } else if (addTask === 'copy') {
+    if (
+      indexInTasks === undefined ||
+      !dagData.tasks ||
+      !dagData.tasks[indexInTasks]
+    ) {
+      console.error('Invalid rowIndex or tasks array.')
+      return dagData
+    }
+
+    // const taskCopy = { ...dagData.tasks[indexInTasks] }
+    const taskCopy = cloneDeep(dagData.tasks[indexInTasks])
+
+    const nameSetting = updatedSettings.find(
+      (setting) => setting.label === 'Task Name'
+    )
+    if (nameSetting && typeof nameSetting.value === 'string') {
+      taskCopy.name = nameSetting.value
+    } else {
+      console.error('Task Name setting is missing or invalid.')
+      return dagData
+    }
+
+    updatedDagData.tasks.push(taskCopy)
+  } else if (editTask && indexInTasks !== undefined) {
     filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
     })
@@ -1026,19 +1079,18 @@ export function updateExportDagData(
 export function updateCustomDagData(
   dagData: AirflowWithDynamicKeys<CustomAirflowDAG>,
   updatedSettings: EditSetting[],
-  newTask?: boolean,
-  task?: boolean,
+  addTask?: 'create' | 'copy' | null,
+  editTask?: boolean,
   indexInTasks?: number
 ): CustomAirflowDAG {
   const updatedDagData: AirflowWithDynamicKeys<CustomAirflowDAG> = {
     ...dagData
   }
-  console.log('typeof updatedTableData', typeof updatedDagData)
   const filteredSettings = updatedSettings.filter(
     (setting) => setting.type !== 'groupingSpace'
   )
 
-  if (newTask) {
+  if (addTask === 'create') {
     const part1 = {
       name: '',
       type: '',
@@ -1091,7 +1143,31 @@ export function updateCustomDagData(
 
     const finalTasksData: AirflowTask = { ...part2, ...part1 }
     updatedDagData.tasks.push(finalTasksData)
-  } else if (task && indexInTasks !== undefined) {
+  } else if (addTask === 'copy') {
+    if (
+      indexInTasks === undefined ||
+      !dagData.tasks ||
+      !dagData.tasks[indexInTasks]
+    ) {
+      console.error('Invalid rowIndex or tasks array.')
+      return dagData
+    }
+
+    // const taskCopy = { ...dagData.tasks[indexInTasks] }
+    const taskCopy = cloneDeep(dagData.tasks[indexInTasks])
+
+    const nameSetting = updatedSettings.find(
+      (setting) => setting.label === 'Task Name'
+    )
+    if (nameSetting && typeof nameSetting.value === 'string') {
+      taskCopy.name = nameSetting.value
+    } else {
+      console.error('Task Name setting is missing or invalid.')
+      return dagData
+    }
+
+    updatedDagData.tasks.push(taskCopy)
+  } else if (editTask && indexInTasks !== undefined) {
     filteredSettings.forEach((setting) => {
       updateTasksData(updatedDagData, setting, indexInTasks)
     })

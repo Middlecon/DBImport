@@ -121,7 +121,7 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairAndResetAndCopyTable' }
+      { header: 'Actions', isAction: 'repairAndResetAndCopy' }
     ],
     []
   )

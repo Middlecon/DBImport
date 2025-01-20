@@ -16,12 +16,10 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   }
   if (!dagName && !dagData && !isError)
     return <div className="loading">Loading...</div>
-  console.log('dagName', dagName)
 
   if (!dagData) {
     return
   }
-  console.log('dagData', dagData)
   const airflowDagSettings = airflowCardRenderSettings(type, dagData)
 
   if (!airflowDagSettings) {
