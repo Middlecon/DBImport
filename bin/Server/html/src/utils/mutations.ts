@@ -177,8 +177,6 @@ export const useRepairTable = () => {
 
 // Reset table
 
-// Repair table
-
 const postResetTable = async (
   type: 'import' | 'export',
   primaryKeys: ImportPKs | ExportPKs
@@ -212,13 +210,57 @@ const postResetTable = async (
 
 export const useResetTable = () => {
   return useMutation<void, AxiosError<ErrorData>, TablePkProps>({
-    mutationFn: ({ type, primaryKeys }) => {
-      return postResetTable(type, primaryKeys)
-    }
+    mutationFn: ({ type, primaryKeys }) => postResetTable(type, primaryKeys)
   })
 }
 
-// Update table, Import or Export
+// Copy table
+
+interface CopyTableProps {
+  type: 'import' | 'export'
+  table: UITableWithoutEnum | UIExportTableWithoutEnum
+}
+
+const postCopyTable = async (
+  type: 'import' | 'export',
+  table: UITableWithoutEnum | UIExportTableWithoutEnum
+) => {
+  if (type === 'import') {
+    const {
+      database,
+      table: tableName,
+      ...tableObject
+    } = table as UITableWithoutEnum
+    const encodedDatabase = encodeURIComponent(database)
+    const encodedTable = encodeURIComponent(tableName)
+
+    const response = await axiosInstance.post(
+      `/import/table/${encodedDatabase}/${encodedTable}`,
+      tableObject
+    )
+    return response.data
+  } else if (type === 'export') {
+    const { connection, targetSchema, targetTable, ...exportTableObject } =
+      table as UIExportTableWithoutEnum
+    const encodedConnection = encodeURIComponent(connection)
+    const encodedTargetSchema = encodeURIComponent(targetSchema)
+    const encodedTargetTable = encodeURIComponent(targetTable)
+
+    const response = await axiosInstance.post(
+      `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`,
+      exportTableObject
+    )
+    return response.data
+  }
+}
+
+export const useCopyTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, CopyTableProps>({
+    mutationFn: ({ type, table }) => postCopyTable(type, table)
+  })
+}
+
+// Update table
 
 interface PostTableProps {
   type: 'import' | 'export'
@@ -290,30 +332,6 @@ export const useCreateImportTable = () => {
   })
 }
 
-// Import copy table
-
-const postCopyImportTable = async (table: UITableWithoutEnum) => {
-  console.log('postTable table', table)
-
-  const { database, table: tableName, ...tableObject } = table
-  const encodedDatabase = encodeURIComponent(database)
-  const encodedTable = encodeURIComponent(tableName)
-
-  const response = await axiosInstance.post(
-    `/import/table/${encodedDatabase}/${encodedTable}`,
-    tableObject
-  )
-  return response.data
-}
-
-export const useCopyImportTable = () => {
-  return useMutation<void, AxiosError<ErrorData>, UITableWithoutEnum>({
-    mutationFn: (tableUpdated: UITableWithoutEnum) => {
-      return postCopyImportTable(tableUpdated)
-    }
-  })
-}
-
 // Import delete table
 
 type DeleteImportTableArgs = {
@@ -375,29 +393,6 @@ export const useCreateExportTable = () => {
   return useMutation({
     mutationFn: (tableUpdated: ExportTableCreateWithoutEnum) => {
       return postCreateExportTable(tableUpdated)
-    }
-  })
-}
-
-// Export copy table
-
-const postCopyExportTable = async (table: UIExportTableWithoutEnum) => {
-  const { connection, targetSchema, targetTable, ...exportTableObject } = table
-  const encodedConnection = encodeURIComponent(connection)
-  const encodedTargetSchema = encodeURIComponent(targetSchema)
-  const encodedTargetTable = encodeURIComponent(targetTable)
-
-  const response = await axiosInstance.post(
-    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`,
-    exportTableObject
-  )
-  return response.data
-}
-
-export const useCopyExportTable = () => {
-  return useMutation<void, AxiosError<ErrorData>, UIExportTableWithoutEnum>({
-    mutationFn: (table: UIExportTableWithoutEnum) => {
-      return postCopyExportTable(table)
     }
   })
 }

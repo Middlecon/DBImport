@@ -7,7 +7,8 @@ import {
   // EditSetting,
   HeadersRowInfo,
   ImportSearchFilter,
-  UiDbTable
+  UiDbTable,
+  UITableWithoutEnum
   // UITable
 } from '../../utils/interfaces'
 // import { fetchTableData } from '../../utils/queries'
@@ -22,7 +23,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
   useBulkUpdateTable,
-  useCopyImportTable
+  useCopyTable
   // useDeleteImportTable,
   // useUpdateTable
 } from '../../utils/mutations'
@@ -39,8 +40,8 @@ import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
 import ResetTableModal from '../../components/modals/ResetTableModal'
-import CopyImportTableModal from '../../components/modals/CopyImportTableModal'
-import { useRawImportTable } from '../../utils/queries'
+import { useRawTable } from '../../utils/queries'
+import CopyTableModal from '../../components/modals/CopyTableModal'
 
 function DbTables({
   data,
@@ -55,7 +56,7 @@ function DbTables({
 }) {
   const queryClient = useQueryClient()
 
-  const { mutate: copyTable } = useCopyImportTable()
+  const { mutate: copyTable } = useCopyTable()
 
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
@@ -85,10 +86,11 @@ function DbTables({
   }
   const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
 
-  const { data: tableData } = useRawImportTable(
-    primaryKeys?.database,
-    primaryKeys?.table
-  )
+  const { data: tableData } = useRawTable({
+    type: 'import',
+    databaseOrConnection: primaryKeys?.database,
+    table: primaryKeys?.table
+  })
 
   const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] =
     useState(false)
@@ -213,35 +215,41 @@ function DbTables({
     setIsCopyTableModalOpen(true)
   }
 
-  const handleCopySave = (tablePrimaryKeysSettings: EditSetting[]) => {
+  const handleCopySave = (
+    type: 'import' | 'export',
+    tablePrimaryKeysSettings: EditSetting[]
+  ) => {
     if (!tableData) return
     console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
     console.log('tableData', tableData)
 
     const newCopyTableData = newCopyImportTableData(
-      tableData,
+      tableData as UITableWithoutEnum,
       tablePrimaryKeysSettings
     )
 
-    console.log(newCopyTableData)
+    console.log('newCopyTableData', newCopyTableData)
 
-    copyTable(newCopyTableData, {
-      onSuccess: (response) => {
-        queryClient.invalidateQueries({
-          queryKey: ['import', 'search'],
-          exact: false
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['databases'],
-          exact: false
-        })
-        console.log('Save table copy successful', response)
-        setIsCopyTableModalOpen(false)
-      },
-      onError: (error) => {
-        console.error('Error copy table', error)
+    copyTable(
+      { type, table: newCopyTableData },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: ['import', 'search'],
+            exact: false
+          })
+          queryClient.invalidateQueries({
+            queryKey: ['databases'],
+            exact: false
+          })
+          console.log('Save table copy successful', response)
+          setIsCopyTableModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error copy table', error)
+        }
       }
-    })
+    )
   }
 
   const handleBulkEditClick = useCallback(() => {
@@ -455,7 +463,8 @@ function DbTables({
         />
       )}
       {isCopyTableModalOpen && primaryKeys && selectedRow && tableData && (
-        <CopyImportTableModal
+        <CopyTableModal
+          type="import"
           primaryKeys={primaryKeys}
           isCopyTableModalOpen={isCopyTableModalOpen}
           onSave={handleCopySave}

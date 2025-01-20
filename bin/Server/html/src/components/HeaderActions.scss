@@ -81,6 +81,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 15px 10px 10px;
+  border-top: 1px solid #e0e0e0;
+  &:first-child {
+    border-top: none;
+  }
 
   &:hover,
   &.highlighted {
@@ -99,7 +103,6 @@
 }
 
 .actions-dropdown-item.last {
-  border-top: 1px solid #ababac;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
   line-height: 1.4;

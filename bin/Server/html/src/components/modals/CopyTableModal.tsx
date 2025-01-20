@@ -10,15 +10,23 @@ import {
   EditSetting,
   EditSettingValueTypes,
   ExportPKs,
-  ExportSearchFilter
+  ExportSearchFilter,
+  ImportPKs,
+  ImportSearchFilter
 } from '../../utils/interfaces'
-import { useConnections, useSearchExportTables } from '../../utils/queries'
+import {
+  useSearchExportTables,
+  useSearchImportTables
+} from '../../utils/queries'
 import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../../utils/TableInputFields'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
-import { copyExportTableSettings } from '../../utils/cardRenderFormatting'
+import {
+  copyExportTableSettings,
+  copyImportTableSettings
+} from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../../utils/functions'
@@ -27,40 +35,47 @@ import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 import infoTexts from '../../infoTexts.json'
 
-interface CopyExportTableModalProps {
-  primaryKeys: ExportPKs
+interface CopyTableModalProps {
+  type: 'import' | 'export'
+  primaryKeys: ImportPKs | ExportPKs
   isCopyTableModalOpen: boolean
-  onSave: (tablePrimaryKeysSettings: EditSetting[]) => void
+  onSave: (
+    type: 'import' | 'export',
+    tablePrimaryKeysSettings: EditSetting[]
+  ) => void
   onClose: () => void
 }
 
-function CopyExportTableModal({
+function CopyTableModal({
+  type,
   primaryKeys,
   isCopyTableModalOpen,
   onSave,
   onClose
-}: CopyExportTableModalProps) {
-  const { data: connectionsData } = useConnections(true)
-  const connectionNames = useMemo(
-    () =>
-      Array.isArray(connectionsData)
-        ? connectionsData?.map((connection) => connection.name)
-        : [],
-    [connectionsData]
-  )
+}: CopyTableModalProps) {
+  const settings =
+    type === 'import'
+      ? copyImportTableSettings(
+          (primaryKeys as ImportPKs).database,
+          (primaryKeys as ImportPKs).table
+        )
+      : copyExportTableSettings(
+          (primaryKeys as ExportPKs).connection,
+          (primaryKeys as ExportPKs).targetTable,
+          (primaryKeys as ExportPKs).targetSchema
+        )
 
-  const settings = copyExportTableSettings(
-    primaryKeys.connection,
-    primaryKeys.targetTable,
-    primaryKeys.targetSchema
-  )
+  const validationMessageTemplate =
+    type === 'import'
+      ? 'Table name already exists in the given database.'
+      : 'Table name already exists in the given connection and target schema.'
 
   const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isValidationError, setIsValidationError] = useState(true)
   const [validationMessage, setValidationMessage] = useState(
-    'Table name already exists in the given connection and target schema.'
+    validationMessageTemplate
   )
   const [pendingValidation, setPendingValidation] = useState(false)
 
@@ -76,19 +91,29 @@ function CopyExportTableModal({
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Connection', 'Target Schema', 'Target Table']
-
+    const requiredLabels =
+      type === 'import'
+        ? ['Database', 'Table']
+        : ['Connection', 'Target Schema', 'Target Table']
     return editedSettings.some(
       (setting) => requiredLabels.includes(setting.label) && !setting.value
     )
-  }, [editedSettings])
+  }, [editedSettings, type])
 
   // For validating unique combination of pk's so it becomes a copy and not an update
-  const [filter, setFilter] = useState<ExportSearchFilter>({
+  const [filter, setFilter] = useState<
+    Partial<ImportSearchFilter & ExportSearchFilter>
+  >({
     connection: null,
+    database: null,
+    table: null,
     targetSchema: null,
     targetTable: null,
     includeInAirflow: null,
+    importPhaseType: null,
+    etlPhaseType: null,
+    importTool: null,
+    etlEngine: null,
     exportType: null,
     exportTool: null
   })
@@ -103,24 +128,40 @@ function CopyExportTableModal({
   )
 
   const {
-    data,
-    isLoading: validationIsLoading,
-    isError
-  } = useSearchExportTables(
-    filter.connection && filter.targetSchema && filter.targetTable
-      ? filter
+    data: importData,
+    isLoading: importLoading,
+    isError: importError
+  } = useSearchImportTables(
+    type === 'import' && filter.database && filter.table
+      ? (filter as ImportSearchFilter)
       : null,
     true
   )
+
+  const {
+    data: exportData,
+    isLoading: exportLoading,
+    isError: exportError
+  } = useSearchExportTables(
+    type === 'export' &&
+      filter.connection &&
+      filter.targetSchema &&
+      filter.targetTable
+      ? (filter as ExportSearchFilter)
+      : null,
+    true
+  )
+
+  const data = type === 'import' ? importData : exportData
+  const validationIsLoading = type === 'import' ? importLoading : exportLoading
+  const isError = type === 'import' ? importError : exportError
 
   useEffect(() => {
     if (!validationIsLoading && data) {
       setPendingValidation(false)
       if (data.tables.length > 0) {
         setIsValidationError(true)
-        setValidationMessage(
-          'Table name already exists in the given connection and target schema.'
-        )
+        setValidationMessage(validationMessageTemplate)
       } else {
         setIsValidationError(false)
         setValidationMessage('')
@@ -130,7 +171,7 @@ function CopyExportTableModal({
       setIsValidationError(true)
       setValidationMessage('Error validating table name. Please try again.')
     }
-  }, [data, isError, validationIsLoading])
+  }, [data, isError, validationIsLoading, validationMessageTemplate])
 
   const handleInputChange = (
     index: number,
@@ -147,6 +188,7 @@ function CopyExportTableModal({
       return
     }
 
+    // Update the edited settings
     const updatedSettings = editedSettings?.map((setting, i) =>
       i === index ? { ...setting, value: trimmedValue } : setting
     )
@@ -155,26 +197,43 @@ function CopyExportTableModal({
     setHasChanges(true)
     setPendingValidation(true)
 
-    const updatedConnection = getUpdatedSettingValue(
-      'Connection',
-      updatedSettings
-    )
-    const updatedTargetTable = getUpdatedSettingValue(
-      'Target Table',
-      updatedSettings
-    )
-    const updatedTargetSchema = getUpdatedSettingValue(
-      'Target Schema',
-      updatedSettings
-    )
+    // Define fields to check based on the type
+    if (type === 'import') {
+      const updatedDatabase = getUpdatedSettingValue(
+        'Database',
+        updatedSettings
+      )
+      const updatedTable = getUpdatedSettingValue('Table', updatedSettings)
 
-    if (updatedConnection && updatedTargetTable && updatedTargetSchema) {
-      updateFilter({
-        ...filter,
-        connection: updatedConnection,
-        targetTable: updatedTargetTable,
-        targetSchema: updatedTargetSchema
-      })
+      if (updatedDatabase && updatedTable) {
+        updateFilter({
+          ...filter,
+          database: updatedDatabase,
+          table: updatedTable
+        })
+      }
+    } else if (type === 'export') {
+      const updatedConnection = getUpdatedSettingValue(
+        'Connection',
+        updatedSettings
+      )
+      const updatedTargetTable = getUpdatedSettingValue(
+        'Target Table',
+        updatedSettings
+      )
+      const updatedTargetSchema = getUpdatedSettingValue(
+        'Target Schema',
+        updatedSettings
+      )
+
+      if (updatedConnection && updatedTargetTable && updatedTargetSchema) {
+        updateFilter({
+          ...filter,
+          connection: updatedConnection,
+          targetTable: updatedTargetTable,
+          targetSchema: updatedTargetSchema
+        })
+      }
     }
   }
 
@@ -193,7 +252,7 @@ function CopyExportTableModal({
   const handleSave = () => {
     console.log('editedSettings', editedSettings)
 
-    onSave(editedSettings)
+    onSave(type, editedSettings)
     onClose()
   }
 
@@ -301,7 +360,6 @@ function CopyExportTableModal({
                   <TableInputFields
                     index={index}
                     setting={setting}
-                    dataNames={connectionNames}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
                   />
@@ -354,4 +412,4 @@ function CopyExportTableModal({
   )
 }
 
-export default CopyExportTableModal
+export default CopyTableModal

@@ -329,17 +329,6 @@ export const useImportTable = (
   })
 }
 
-export const useRawImportTable = (
-  database?: string,
-  table?: string
-): UseQueryResult<UITableWithoutEnum, Error> => {
-  return useQuery({
-    queryKey: ['import', database, table],
-    queryFn: () => getTable(database!, table!), // We are sure that database and table is not null here because of the enabled flag
-    enabled: !!database && !!table
-  })
-}
-
 // EXPORT
 
 // Get connections with exports
@@ -503,15 +492,34 @@ export const useExportTable = (
   })
 }
 
-export const useRawExportTable = (
-  connection?: string,
-  targetSchema?: string,
-  targetTable?: string
-): UseQueryResult<UIExportTableWithoutEnum, Error> => {
+// Raw table, import and export
+interface UseRawTableParams {
+  type: 'import' | 'export'
+  databaseOrConnection?: string // 'database' for import, 'connection' for export
+  schema?: string // Used only for export
+  table?: string
+}
+
+export const useRawTable = ({
+  type,
+  databaseOrConnection,
+  schema,
+  table
+}: UseRawTableParams): UseQueryResult<
+  UITableWithoutEnum | UIExportTableWithoutEnum,
+  Error
+> => {
   return useQuery({
-    queryKey: ['export', connection, targetTable],
-    queryFn: () => getExportTable(connection!, targetSchema!, targetTable!), // We are sure that database and table is not null here because of the enabled flag
-    enabled: !!connection && !!targetSchema && !!targetTable
+    queryKey: [type, databaseOrConnection, schema, table],
+    queryFn: () => {
+      if (type === 'import') {
+        return getTable(databaseOrConnection!, table!)
+      } else {
+        return getExportTable(databaseOrConnection!, schema!, table!)
+      }
+    },
+    enabled:
+      !!databaseOrConnection && !!table && (type === 'import' || !!schema)
   })
 }
 

@@ -7,6 +7,20 @@ import RepairTableModal from '../../../components/modals/RepairTableModal'
 import RepairIcon from '../../../assets/icons/RepairIcon'
 import ResetIcon from '../../../assets/icons/ResetIcon'
 import ResetTableModal from '../../../components/modals/ResetTableModal'
+import CopyTableModal from '../../../components/modals/CopyTableModal'
+import {
+  newCopyExportTableData,
+  newCopyImportTableData
+} from '../../../utils/dataFunctions'
+import {
+  EditSetting,
+  UIExportTableWithoutEnum,
+  UITableWithoutEnum
+} from '../../../utils/interfaces'
+import { useCopyTable } from '../../../utils/mutations'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRawTable } from '../../../utils/queries'
+import CopyIcon from '../../../assets/icons/CopyIcon'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -15,9 +29,29 @@ interface TableDetailedViewProps {
 function TableDetailedView({ type }: TableDetailedViewProps) {
   const { database, table, connection, targetSchema, targetTable } = useParams()
 
+  const primaryKeys =
+    type === 'import'
+      ? database && table
+        ? { database, table }
+        : null
+      : connection && targetSchema && targetTable
+      ? { connection, targetSchema, targetTable }
+      : null
+
+  const { data: tableData } = useRawTable({
+    type,
+    databaseOrConnection: type === 'import' ? database : connection,
+    schema: type === 'export' ? targetSchema : undefined,
+    table: type === 'import' ? table : targetTable
+  })
+
+  const queryClient = useQueryClient()
+  const { mutate: copyTable } = useCopyTable()
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+  const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
 
   const encodedDatabase = encodeURIComponent(database ? database : '')
   const encodedTable = encodeURIComponent(table ? table : '')
@@ -91,6 +125,10 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     setIsResetTableModalOpen(true)
   }
 
+  const handleCopyIconClick = () => {
+    setIsCopyTableModalOpen(true)
+  }
+
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
     if (isOpen) {
       setOpenDropdown(dropdownId)
@@ -99,14 +137,54 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     }
   }
 
-  const primaryKeys =
-    type === 'import'
-      ? database && table
-        ? { database, table }
-        : null
-      : connection && targetSchema && targetTable
-      ? { connection, targetSchema, targetTable }
-      : null
+  const handleCopySave = (
+    type: 'import' | 'export',
+    tablePrimaryKeysSettings: EditSetting[]
+  ) => {
+    if (!tableData) return
+    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
+    console.log('tableData', tableData)
+
+    // Dynamically determine the new table data based on type
+    const newCopyTableData =
+      type === 'import'
+        ? newCopyImportTableData(
+            tableData as UITableWithoutEnum,
+            tablePrimaryKeysSettings
+          )
+        : newCopyExportTableData(
+            tableData as UIExportTableWithoutEnum,
+            tablePrimaryKeysSettings
+          )
+
+    console.log(newCopyTableData)
+
+    // Set the appropriate query keys and handle copy logic
+    copyTable(
+      { type, table: newCopyTableData },
+      {
+        onSuccess: (response) => {
+          queryClient.invalidateQueries({
+            queryKey: [type, 'search'], // Dynamic queryKey for import/export
+            exact: false
+          })
+
+          if (type === 'import') {
+            queryClient.invalidateQueries({
+              queryKey: ['databases'], // Additional invalidation for import
+              exact: false
+            })
+          }
+
+          console.log('Save table copy successful', response)
+          setIsCopyTableModalOpen(false)
+        },
+        onError: (error) => {
+          console.error('Error copy table', error)
+        }
+      }
+    )
+  }
 
   return (
     <>
@@ -132,6 +210,11 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
                 icon: <ResetIcon />,
                 label: `Reset table`,
                 onClick: handleResetTableClick
+              },
+              {
+                icon: <CopyIcon />,
+                label: `Copy table`,
+                onClick: handleCopyIconClick
               }
             ]}
           />
@@ -172,6 +255,15 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             primaryKeys={primaryKeys}
             isResetTableModalOpen={isResetTableModalOpen}
             onClose={() => setIsResetTableModalOpen(false)}
+          />
+        )}
+        {isCopyTableModalOpen && primaryKeys && tableData && (
+          <CopyTableModal
+            type={type}
+            primaryKeys={primaryKeys}
+            isCopyTableModalOpen={isCopyTableModalOpen}
+            onSave={handleCopySave}
+            onClose={() => setIsCopyTableModalOpen(false)}
           />
         )}
       </ViewBaseLayout>
