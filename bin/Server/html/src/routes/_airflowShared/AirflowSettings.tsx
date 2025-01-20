@@ -20,6 +20,7 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   if (!dagData) {
     return
   }
+
   const airflowDagSettings = airflowCardRenderSettings(type, dagData)
 
   if (!airflowDagSettings) {

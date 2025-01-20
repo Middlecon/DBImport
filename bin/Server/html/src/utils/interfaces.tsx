@@ -958,6 +958,14 @@ export interface BaseAirflowsData {
   name: string
   scheduleInterval: string
   autoRegenerateDag: boolean
+  airflowLink: string | null
+  timezone: string | null
+  email: string | null
+  emailOnFailure: boolean | null
+  emailOnRetries: boolean | null
+  concurrency: number | null
+  slaWarningTime: string | null
+  operatorNotes: string | null
 }
 
 export interface AirflowsData extends BaseAirflowsData {
@@ -1011,6 +1019,7 @@ export interface BaseAirflowDAG {
   slaWarningTime: string
   retryExponentialBackoff: boolean
   concurrency: number
+  airflowLink: string | null
   tasks: AirflowTask[]
 }
 

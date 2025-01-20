@@ -15,6 +15,7 @@ interface DropdownActionsProps {
   onToggle: (isDropdownActionsOpen: boolean) => void
   disabled?: boolean
   marginTop?: number
+  maxWidth?: number
 }
 
 function DropdownActions({
@@ -22,7 +23,8 @@ function DropdownActions({
   isDropdownActionsOpen,
   onToggle,
   disabled = false,
-  marginTop = 0
+  marginTop = 0,
+  maxWidth
 }: DropdownActionsProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -101,7 +103,16 @@ function DropdownActions({
                 onClick={item.onClick}
                 tabIndex={0}
               >
-                {item.icon} {item.label}
+                {item.icon}{' '}
+                <p
+                  style={{
+                    margin: 0,
+                    maxWidth: maxWidth,
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>

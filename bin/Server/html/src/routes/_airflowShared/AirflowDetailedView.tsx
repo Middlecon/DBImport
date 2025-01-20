@@ -5,6 +5,8 @@ import '../_shared/tableDetailed/DetailedView.scss'
 import GenerateDAGIcon from '../../assets/icons/GenerateDAGIcon'
 import DropdownActions from '../../components/DropdownActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
+import UrlLinkIcon from '../../assets/icons/UrlLinkIcon'
+import { useAirflowDAG } from '../../utils/queries'
 
 function AirflowDetailedView({
   type
@@ -39,12 +41,32 @@ function AirflowDetailedView({
     }
   }, [tab, navigate, validTabs, dagName, type, encodedType, encodedDagName])
 
+  const { data: dagData, isError } = useAirflowDAG(type, dagName)
+  if (isError) {
+    return <div className="error">Server error occurred.</div>
+  }
+  if (!dagName && !dagData && !isError)
+    return <div className="loading">Loading...</div>
+
+  if (!dagData) {
+    return
+  }
+
   const handleTabClick = (tabName: string) => {
     navigate(`/airflow/${encodedType}/${encodedDagName}/${tabName}`)
   }
 
   const handleGenerateDagClick = () => {
     setIsGenDagModalOpen(true)
+  }
+
+  const handleLinkClick = () => {
+    console.log('item', dagData.airflowLink)
+    if (dagData.airflowLink) {
+      window.open(dagData.airflowLink, '_blank')
+    } else {
+      console.error('No Airlow link on DAG.')
+    }
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -60,21 +82,30 @@ function AirflowDetailedView({
       <ViewBaseLayout>
         <div className="detailed-view-header">
           <h1>{`${dagName}`}</h1>
-          <DropdownActions
-            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
-            marginTop={5}
-            onToggle={(isDropdownActionsOpen: boolean) =>
-              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
-            }
-            items={[
-              {
-                icon: <GenerateDAGIcon />,
-                label: `Generate DAG`,
-                onClick: handleGenerateDagClick
+          <div className="actions-dropdown-generated-br">
+            <DropdownActions
+              isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+              marginTop={5}
+              maxWidth={107}
+              onToggle={(isDropdownActionsOpen: boolean) =>
+                handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
               }
-            ]}
-          />
+              items={[
+                {
+                  icon: <GenerateDAGIcon />,
+                  label: 'Generate DAG',
+                  onClick: handleGenerateDagClick
+                },
+                {
+                  icon: <UrlLinkIcon />,
+                  label: 'Generated DAG external link',
+                  onClick: handleLinkClick
+                }
+              ]}
+            />
+          </div>
         </div>
+
         <div className="tabs">
           <h2
             className={selectedTab === 'settings' ? 'active-tab' : ''}

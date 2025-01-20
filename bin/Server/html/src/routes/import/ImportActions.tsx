@@ -146,35 +146,36 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
   return (
     <>
       <div className="header-buttons">
-        <div className="actions-dropdown-discover-br">
-          <DropdownActions
-            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
-            onToggle={(isDropdownActionsOpen: boolean) =>
-              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
-            }
-            items={[
-              {
-                icon: <PlusIcon />,
-                label: 'Create table',
-                onClick: () => {
-                  setClearRowSelectionTrigger((prev) => prev + 1)
-                  setIsCreateModalOpen(true)
-                  setOpenDropdown(null)
-                }
-              },
-              {
-                icon: <DiscoverIcon />,
-                label: `Discover and Add tables`,
-                onClick: () => {
-                  setClearRowSelectionTrigger((prev) => prev + 1)
-                  setIsDiscoverModalOpen(true)
-                  setOpenDropdown(null)
-                }
+        {/* <div className="actions-dropdown-discover-br"> */}
+        <DropdownActions
+          isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+          onToggle={(isDropdownActionsOpen: boolean) =>
+            handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+          }
+          maxWidth={90}
+          items={[
+            {
+              icon: <PlusIcon />,
+              label: 'Create table',
+              onClick: () => {
+                setClearRowSelectionTrigger((prev) => prev + 1)
+                setIsCreateModalOpen(true)
+                setOpenDropdown(null)
               }
-            ]}
-            disabled={!tables}
-          />
-        </div>
+            },
+            {
+              icon: <DiscoverIcon />,
+              label: `Discover and Add tables`,
+              onClick: () => {
+                setClearRowSelectionTrigger((prev) => prev + 1)
+                setIsDiscoverModalOpen(true)
+                setOpenDropdown(null)
+              }
+            }
+          ]}
+          disabled={!tables}
+        />
+        {/* </div> */}
         <ImportSearchFilterTables
           isSearchFilterOpen={openDropdown === 'searchFilter'}
           onToggle={(isSearchFilterOpen: boolean) =>

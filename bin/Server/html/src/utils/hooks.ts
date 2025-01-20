@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export function useCustomSelection(
   ref: React.RefObject<HTMLElement>,
@@ -92,4 +93,22 @@ export const useFocusTrap = (
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isActive, containerRef, isChildActive, firstFocus])
+}
+
+export const useHandleLinkClick = (
+  type: 'import' | 'export' | 'airflowLink',
+  item: string
+) => {
+  const navigate = useNavigate()
+
+  const encodedItem = encodeURIComponent(item)
+
+  if (type === 'import') {
+    navigate(`/import?connection=${encodedItem}`)
+  } else if (type === 'export') {
+    navigate(`/export?connection=${encodedItem}`)
+  } else {
+    console.log('item', item)
+    window.open(item, '_blank')
+  }
 }
