@@ -98,7 +98,7 @@ function AirflowDetailedView({
                 },
                 {
                   icon: <UrlLinkIcon />,
-                  label: 'Generated DAG external link',
+                  label: 'Airflow DAG external link',
                   onClick: handleLinkClick
                 }
               ]}
