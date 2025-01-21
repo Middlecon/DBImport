@@ -237,6 +237,16 @@ body.resizing {
   color: red;
 }
 
+.error-message.warning {
+  display: flex;
+  gap: 5px;
+  p {
+    margin: 0;
+    max-width: 400px;
+    color: rgba(227, 5, 5, 0.931);
+  }
+}
+
 .success-message {
   color: rgb(36, 131, 9);
 }

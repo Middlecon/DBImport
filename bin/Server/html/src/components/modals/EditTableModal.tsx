@@ -36,6 +36,7 @@ interface EditModalProps {
   successMessage?: string | null
   errorMessage?: string | null
   onResetErrorMessage?: () => void
+  warningMessage?: string
   submitButtonTitle?: string
   closeButtonTitle?: string
   titleInfoText?: string | null
@@ -54,6 +55,7 @@ function EditTableModal({
   successMessage,
   errorMessage,
   onResetErrorMessage,
+  warningMessage,
   submitButtonTitle = 'Save',
   closeButtonTitle = 'Cancel',
   titleInfoText = null
@@ -422,6 +424,12 @@ function EditTableModal({
               ))}
           </div>
           <div className="modal-message-container">
+            {warningMessage && (
+              <div className="error-message warning">
+                <p>Warning:</p>
+                <p>{warningMessage}</p>
+              </div>
+            )}
             {isLoading ? (
               <div className="modal-loading-container">
                 <div style={{ margin: 0 }}>{loadingText}</div>

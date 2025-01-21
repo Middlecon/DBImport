@@ -60,6 +60,8 @@ function ResetTableModal({
     schemaName ? schemaName : undefined
   )
 
+  const warningMessage = `This will truncate the Target table and force the next ${type} to start from the beginning with a full ${type}.`
+
   const handleResetTable = () => {
     if (!tableName) {
       console.log('No selected row or table name', tableName)
@@ -107,6 +109,7 @@ function ResetTableModal({
       successMessage={successMessage}
       errorMessage={errorMessage ? errorMessage : null}
       onResetErrorMessage={() => setErrorMessage(null)}
+      warningMessage={warningMessage}
       submitButtonTitle="Reset"
       closeButtonTitle="Close"
     />
