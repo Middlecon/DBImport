@@ -186,6 +186,38 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     )
   }
 
+  const dropdownActionsItems = useMemo(() => {
+    if (!tableData) return []
+
+    const items = [
+      {
+        icon: <CopyIcon />,
+        label: `Copy table`,
+        onClick: handleCopyIconClick
+      }
+    ]
+
+    if (
+      (type === 'import' && tableData.importPhaseType === 'incr') ||
+      (type === 'export' && tableData.exportType === 'incr')
+    ) {
+      items.unshift(
+        {
+          icon: <RepairIcon />,
+          label: `Repair table`,
+          onClick: handleRepairTableClick
+        },
+        {
+          icon: <ResetIcon />,
+          label: `Reset table`,
+          onClick: handleResetTableClick
+        }
+      )
+    }
+
+    return items
+  }, [tableData, type])
+
   return (
     <>
       <ViewBaseLayout>
@@ -200,23 +232,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             onToggle={(isDropdownActionsOpen: boolean) =>
               handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
             }
-            items={[
-              {
-                icon: <RepairIcon />,
-                label: `Repair table`,
-                onClick: handleRepairTableClick
-              },
-              {
-                icon: <ResetIcon />,
-                label: `Reset table`,
-                onClick: handleResetTableClick
-              },
-              {
-                icon: <CopyIcon />,
-                label: `Copy table`,
-                onClick: handleCopyIconClick
-              }
-            ]}
+            items={dropdownActionsItems}
           />
         </div>
         <div className="tabs">

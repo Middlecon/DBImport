@@ -510,7 +510,7 @@ export const useRawTable = ({
   Error
 > => {
   return useQuery({
-    queryKey: [type, databaseOrConnection, schema, table],
+    queryKey: [type, databaseOrConnection, table],
     queryFn: () => {
       if (type === 'import') {
         return getTable(databaseOrConnection!, table!)

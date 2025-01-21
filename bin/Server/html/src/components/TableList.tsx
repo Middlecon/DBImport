@@ -23,7 +23,7 @@ import RepairIcon from '../assets/icons/RepairIcon'
 import ResetIcon from '../assets/icons/ResetIcon'
 import CopyIcon from '../assets/icons/CopyIcon'
 
-interface TableProps<T> {
+interface TableProps<T extends object> {
   columns: Column<T>[]
   data: T[]
   isLoading: boolean
@@ -43,7 +43,7 @@ interface TableProps<T> {
   lightStickyHeadBoxShadow?: boolean
 }
 
-function TableList<T>({
+function TableList<T extends object>({
   columns,
   data,
   isLoading,
@@ -499,6 +499,13 @@ function TableList<T>({
       }
 
       if (column.isAction) {
+        const isImportOrExport = 'importPhaseType' in row || 'exportType' in row
+
+        const isRepairAndResetEnabled =
+          ('importPhaseType' in row &&
+            row['importPhaseType' as keyof T] === 'incr') ||
+          ('exportType' in row && row['exportType' as keyof T] === 'incr')
+
         const isFirstActionCell = rowIndex === 0
 
         let timeoutId: string | number | NodeJS.Timeout | undefined
@@ -514,7 +521,14 @@ function TableList<T>({
           setShowTooltip(null)
         }
         return (
-          <div className="actions-row">
+          <div
+            className="actions-row"
+            style={
+              isImportOrExport && !isRepairAndResetEnabled
+                ? { justifyContent: 'end' }
+                : {}
+            }
+          >
             {column.isAction === 'edit' ||
             column.isAction === 'editAndDelete' ? (
               <button
@@ -548,8 +562,9 @@ function TableList<T>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'repair' ||
-            column.isAction === 'repairAndResetAndCopy' ? (
+            {isRepairAndResetEnabled &&
+            (column.isAction === 'repair' ||
+              column.isAction === 'repairAndResetAndCopy') ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
@@ -567,8 +582,9 @@ function TableList<T>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'reset' ||
-            column.isAction === 'repairAndResetAndCopy' ? (
+            {isRepairAndResetEnabled &&
+            (column.isAction === 'reset' ||
+              column.isAction === 'repairAndResetAndCopy') ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
