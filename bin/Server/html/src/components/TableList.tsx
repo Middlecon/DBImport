@@ -22,6 +22,8 @@ import GenerateDAGIcon from '../assets/icons/GenerateDAGIcon'
 import RepairIcon from '../assets/icons/RepairIcon'
 import ResetIcon from '../assets/icons/ResetIcon'
 import CopyIcon from '../assets/icons/CopyIcon'
+import TestConnectionIcon from '../assets/icons/TestConnectionIcon'
+import EncryptIcon from '../assets/icons/EncryptIcon'
 
 interface TableProps<T extends object> {
   columns: Column<T>[]
@@ -37,10 +39,13 @@ interface TableProps<T extends object> {
   onRepair?: (row: T) => void
   onReset?: (row: T) => void
   onCopy?: (row: T, rowIndex?: number) => void
+  onTestConnection?: (row: T, rowIndex?: number) => void
+  onEncryptCredentials?: (row: T) => void
   airflowType?: string
   noLinkOnTableName?: boolean
   enableSourceTableOverflow?: boolean
   lightStickyHeadBoxShadow?: boolean
+  isTwoLinks?: boolean
 }
 
 function TableList<T extends object>({
@@ -52,15 +57,18 @@ function TableList<T extends object>({
   containerRef: externalRef,
   enableMultiSelection = true,
   onEdit,
-  onDelete,
   onGenerate,
   onRepair,
   onReset,
   onCopy,
+  onTestConnection,
+  onEncryptCredentials,
+  onDelete,
   airflowType,
   noLinkOnTableName = false,
   enableSourceTableOverflow = false,
-  lightStickyHeadBoxShadow = false
+  lightStickyHeadBoxShadow = false,
+  isTwoLinks = false
 }: TableProps<T>) {
   const internalRef = useRef<HTMLDivElement>(null)
   const containerRef = externalRef || internalRef
@@ -625,9 +633,46 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
+            {column.isAction === 'testAndEncryptAndDelete' ? (
+              <button
+                className={`actions-edit-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() =>
+                  onTestConnection && onTestConnection(row, rowIndex)
+                }
+                disabled={!onTestConnection}
+                onMouseEnter={() => handleMouseEnter('edit')}
+                onMouseLeave={handleMouseLeave}
+              >
+                <TestConnectionIcon />
+                {showTooltip && (
+                  <span className="tooltip">Test connection</span>
+                )}
+              </button>
+            ) : null}
+            {column.isAction === 'testAndEncryptAndDelete' ? (
+              <button
+                className={`actions-reset-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() =>
+                  onEncryptCredentials && onEncryptCredentials(row)
+                }
+                disabled={!onEncryptCredentials}
+                onMouseEnter={() => handleMouseEnter('edit')}
+                onMouseLeave={handleMouseLeave}
+              >
+                <EncryptIcon />
+                {showTooltip && (
+                  <span className="tooltip">Encrypt credentials</span>
+                )}
+              </button>
+            ) : null}
             {column.isAction === 'delete' ||
             column.isAction === 'editAndDelete' ||
-            column.isAction === 'copyAndDelete' ? (
+            column.isAction === 'copyAndDelete' ||
+            column.isAction === 'testAndEncryptAndDelete' ? (
               <button
                 className={`actions-delete-button ${
                   isFirstActionCell ? 'first' : ''
@@ -660,6 +705,8 @@ function TableList<T extends object>({
       onRepair,
       onReset,
       onCopy,
+      onTestConnection,
+      onEncryptCredentials,
       onDelete
     ]
   )
@@ -907,7 +954,7 @@ function TableList<T extends object>({
                       cell.column.columnDef.meta?.isSticky
                         ? `sticky-right ${
                             cell.column.columnDef.meta?.stickyType
-                          } ${
+                          } ${isTwoLinks ? 'two-links' : ''} ${
                             isBoxShadowApplied && !isScrolledToEnd
                               ? 'has-shadow'
                               : ''
@@ -931,7 +978,8 @@ function TableList<T extends object>({
       boxShadowColumnIndex,
       enableSourceTableOverflow,
       handleRowClick,
-      isScrolledToEnd
+      isScrolledToEnd,
+      isTwoLinks
     ]
   )
 
@@ -1000,7 +1048,7 @@ function TableList<T extends object>({
                           header.column.columnDef.meta?.isSticky
                             ? `sticky-right ${
                                 header.column.columnDef.meta?.stickyType
-                              } ${
+                              } ${isTwoLinks ? 'two-links' : ''} ${
                                 isBoxShadowApplied && !isScrolledToEnd
                                   ? lightStickyHeadBoxShadow
                                     ? 'has-shadow light'

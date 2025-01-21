@@ -165,6 +165,11 @@
   right: 72px;
 }
 
+.has-actions .th.sticky-right.links.two-links,
+.has-actions .td.sticky-right.links.two-links {
+  right: 95px !important;
+}
+
 .th.sticky-right.actions,
 .td.sticky-right.actions {
   right: 0;

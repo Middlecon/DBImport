@@ -54,25 +54,21 @@ function ConnectionDetailedView() {
 
     setIsTestCnModalOpen(true)
 
-    testConnection(
-      // 'hej',
-      connectionParam,
-      {
-        onSuccess: (response) => {
-          setIsTestLoading(false)
-          console.log('Connection test succeeded, result:', response)
-        },
-        onError: (error: AxiosError<ErrorData>) => {
-          const errorMessage =
-            error.response?.data?.result || 'An unknown error occurred'
-          setIsTestLoading(false)
-          setErrorMessageTest(errorMessage)
-          setIsTestCnModalOpen(true)
-          console.log('error', error)
-          console.error('Connection test failed', error.message)
-        }
+    testConnection(connectionParam, {
+      onSuccess: (response) => {
+        setIsTestLoading(false)
+        console.log('Connection test succeeded, result:', response)
+      },
+      onError: (error: AxiosError<ErrorData>) => {
+        const errorMessage =
+          error.response?.data?.result || 'An unknown error occurred'
+        setIsTestLoading(false)
+        setErrorMessageTest(errorMessage)
+        setIsTestCnModalOpen(true)
+        console.log('error', error)
+        console.error('Connection test failed', error.message)
       }
-    )
+    })
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -124,17 +120,17 @@ function ConnectionDetailedView() {
             }
             items={[
               {
+                icon: <TestConnectionIcon />,
+                label: 'Test connection',
+                onClick: handleTestConnection
+              },
+              {
                 icon: <EncryptIcon />,
                 label: `Encrypt credentials`,
                 onClick: () => {
                   setIsEncryptModalOpen(true)
                   setOpenDropdown(null)
                 }
-              },
-              {
-                icon: <TestConnectionIcon />,
-                label: 'Test connection',
-                onClick: handleTestConnection
               }
             ]}
             disabled={!connectionParam}

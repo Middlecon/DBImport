@@ -581,6 +581,7 @@ export interface Column<T> {
     | 'copy'
     | 'repairAndResetAndCopy'
     | 'copyAndDelete'
+    | 'testAndEncryptAndDelete'
   isLink?: 'connectionLink' | 'airflowLink'
 }
 

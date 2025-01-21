@@ -5,7 +5,9 @@ import { useSearchConnections } from '../../utils/queries'
 import {
   Column,
   Connections,
-  ConnectionSearchFilter
+  ConnectionSearchFilter,
+  EditSetting,
+  ErrorData
 } from '../../utils/interfaces'
 import TableList from '../../components/TableList'
 // import DropdownCheckbox from '../../components/DropdownCheckbox'
@@ -13,9 +15,17 @@ import TableList from '../../components/TableList'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDeleteConnection } from '../../utils/mutations'
+import {
+  useDeleteConnection,
+  useEncryptCredentials,
+  useTestConnection
+} from '../../utils/mutations'
 import ConnectionActions from './ConnectionActions'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import { AxiosError } from 'axios'
+import EditTableModal from '../../components/modals/EditTableModal'
+import { encryptCredentialsSettings } from '../../utils/cardRenderFormatting'
+import { transformEncryptCredentialsSettings } from '../../utils/dataFunctions'
 
 // const checkboxFilters = [
 //   {
@@ -74,9 +84,28 @@ function Connection() {
   const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
 
+  const [connectionParam, setConnectionParam] = useState<string | null>(null)
+
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [selectedDeleteRow, setSelectedDeleteRow] = useState<Connections>()
-  const [rowSelection, setRowSelection] = useState({})
+  const [rowSelection, setRowSelection] = useState({}) // Not used practically at the moment
+
+  const settings = encryptCredentialsSettings(
+    connectionParam ? connectionParam : ''
+  )
+
+  const [isEncryptModalOpen, setIsEncryptModalOpen] = useState(false)
+  const [isEncryptLoading, setIsEncryptLoading] = useState(false)
+  const [errorMessageEncrypt, setErrorMessageEncrypt] = useState<string | null>(
+    null
+  )
+  const { mutate: encryptCredentials } = useEncryptCredentials()
+
+  const [isTestCnModalOpen, setIsTestCnModalOpen] = useState(false)
+  const [isTestLoading, setIsTestLoading] = useState(true)
+  const [errorMessageTest, setErrorMessageTest] = useState<string | null>(null)
+  const { mutate: testConnection, isSuccess: isTestSuccess } =
+    useTestConnection()
 
   // const [selectedFilters, setSelectedFilters] = useAtom(connectionFilterAtom)
 
@@ -87,9 +116,64 @@ function Connection() {
   //   }))
   // }
 
+  const handleEncryptIconClick = (row: Connections) => {
+    setConnectionParam(row.name)
+    setIsEncryptModalOpen(true)
+  }
+
   const handleDeleteIconClick = (row: Connections) => {
     setShowDeleteConfirmation(true)
     setSelectedDeleteRow(row)
+  }
+
+  const handleTestConnection = (row: Connections) => {
+    setConnectionParam(row.name)
+
+    setIsTestCnModalOpen(true)
+
+    testConnection(row.name, {
+      onSuccess: (response) => {
+        setIsTestLoading(false)
+        console.log('Connection test succeeded, result:', response)
+      },
+      onError: (error: AxiosError<ErrorData>) => {
+        const errorMessage =
+          error.response?.data?.result || 'An unknown error occurred'
+        setIsTestLoading(false)
+        setErrorMessageTest(errorMessage)
+        setIsTestCnModalOpen(true)
+        console.log('error', error)
+        console.error('Connection test failed', error.message)
+      }
+    })
+  }
+
+  const handleSaveEncrypt = (updatedSettings: EditSetting[]) => {
+    setIsEncryptLoading(true)
+    console.log('updatedSettings', updatedSettings)
+    const encryptCredentialsData =
+      transformEncryptCredentialsSettings(updatedSettings)
+    console.log('encryptCredentialsData', encryptCredentialsData)
+
+    encryptCredentials(encryptCredentialsData, {
+      onSuccess: (response) => {
+        // For getting fresh data from database to the cache
+        queryClient.invalidateQueries({
+          queryKey: ['connection'],
+          exact: false
+        })
+        console.log('Update successful', response)
+        setIsEncryptLoading(false)
+        setIsEncryptModalOpen(false)
+      },
+      onError: (error: AxiosError<ErrorData>) => {
+        console.error('Error encrypt credentials', error)
+        const errorMessage =
+          error.response?.data?.result || 'An unknown error occurred'
+        setErrorMessageEncrypt(errorMessage)
+        setIsEncryptLoading(false)
+      }
+    })
   }
 
   const handleDelete = async (row: Connections) => {
@@ -121,7 +205,7 @@ function Connection() {
       { header: 'Server Type', accessor: 'serverType' },
       { header: 'Connection string', accessor: 'connectionString' },
       { header: 'Links', isLink: 'connectionLink' },
-      { header: 'Actions', isAction: 'delete' }
+      { header: 'Actions', isAction: 'testAndEncryptAndDelete' }
     ],
     []
   )
@@ -179,10 +263,13 @@ function Connection() {
                 columns={columns}
                 data={filteredData}
                 isLoading={isSearchLoading}
+                onTestConnection={handleTestConnection}
+                onEncryptCredentials={handleEncryptIconClick}
                 onDelete={handleDeleteIconClick}
                 rowSelection={rowSelection}
                 onRowSelectionChange={setRowSelection}
                 enableMultiSelection={false}
+                isTwoLinks={true}
               />
             )}
           </>
@@ -203,6 +290,46 @@ function Connection() {
             onConfirm={() => handleDelete(selectedDeleteRow)}
             onCancel={() => setShowDeleteConfirmation(false)}
             isActive={showDeleteConfirmation}
+          />
+        )}
+        {isEncryptModalOpen && connectionParam && (
+          <EditTableModal
+            isEditModalOpen={isEncryptModalOpen}
+            title={`Encrypt credentials`}
+            settings={settings}
+            onSave={handleSaveEncrypt}
+            onClose={() => setIsEncryptModalOpen(false)}
+            isNoCloseOnSave={true}
+            initWidth={400}
+            isLoading={isEncryptLoading}
+            loadingText="Encrypting"
+            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
+            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
+            submitButtonTitle="Encrypt"
+          />
+        )}
+        {isTestCnModalOpen && connectionParam && (
+          <ConfirmationModal
+            title={
+              isTestLoading
+                ? 'Testing'
+                : `Test ${isTestSuccess ? 'successful' : 'failed'}`
+            }
+            message={
+              isTestLoading
+                ? ''
+                : `Contact with connection ${connectionParam} ${
+                    isTestSuccess ? 'verified' : 'failed'
+                  }.`
+            }
+            isLoading={isTestLoading}
+            errorInfo={isTestSuccess ? null : errorMessageTest}
+            buttonTitleCancel="Close"
+            onCancel={() => {
+              setIsTestLoading(true)
+              setIsTestCnModalOpen(false)
+            }}
+            isActive={isTestCnModalOpen}
           />
         )}
       </ViewBaseLayout>
