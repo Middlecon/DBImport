@@ -90,6 +90,8 @@ function ExportCnTables({
   }
   const primaryKeys = useMemo(() => getPrimaryKeys(selectedRow), [selectedRow])
 
+  const exportDatabase = selectedRow?.database
+
   const { data: tableData } = useRawTable({
     type: 'export',
     databaseOrConnection: primaryKeys?.connection,
@@ -474,6 +476,7 @@ function ExportCnTables({
           primaryKeys={primaryKeys}
           isRepairTableModalOpen={isRepairTableModalOpen}
           onClose={() => setIsRepairTableModalOpen(false)}
+          exportDatabase={exportDatabase ? exportDatabase : ''}
         />
       )}
       {isResetTableModalOpen && primaryKeys && (
@@ -482,6 +485,7 @@ function ExportCnTables({
           primaryKeys={primaryKeys}
           isResetTableModalOpen={isResetTableModalOpen}
           onClose={() => setIsResetTableModalOpen(false)}
+          exportDatabase={exportDatabase ? exportDatabase : ''}
         />
       )}
       {isCopyTableModalOpen && primaryKeys && selectedRow && tableData && (

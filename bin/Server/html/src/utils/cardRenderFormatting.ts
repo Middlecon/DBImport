@@ -955,14 +955,33 @@ export const initialCreateConnectionSettings: EditSetting[] = [
 
 // Import and Export
 
-export function tableNameReadonlySettings(label: string, tableName: string) {
+export function tableNameReadonlySettings(
+  label: string,
+  databaseName: string,
+  tableName: string,
+  connectionName?: string | undefined,
+  schemaName?: string | undefined
+) {
   const settings: EditSetting[] = [
     {
       label: label,
-      value: tableName,
+      value: `${databaseName}.${
+        schemaName ? `${schemaName}.` : ''
+      }${tableName}`,
       type: SettingType.Readonly
     } // Readonly
   ]
+
+  if (connectionName) {
+    settings.unshift(
+      {
+        label: 'Connection',
+        value: connectionName,
+        type: SettingType.Readonly
+      } // Readonly
+    )
+  }
+
   return settings
 }
 

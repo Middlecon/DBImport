@@ -11,13 +11,15 @@ interface RepairTableModalProps {
   primaryKeys: ImportPKs | ExportPKs
   isRepairTableModalOpen: boolean
   onClose: () => void
+  exportDatabase?: string | null | undefined
 }
 
 function RepairTableModal({
   type,
   primaryKeys,
   isRepairTableModalOpen,
-  onClose
+  onClose,
+  exportDatabase
 }: RepairTableModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -36,9 +38,27 @@ function RepairTableModal({
     ? primaryKeys.table // Narrowed to ImportPKs
     : primaryKeys.targetTable
 
+  const databaseName = isImportPKs(primaryKeys, type)
+    ? primaryKeys.database // Narrowed to ImportPKs
+    : (exportDatabase as string)
+
+  const connectionName = isImportPKs(primaryKeys, type)
+    ? undefined
+    : primaryKeys.connection
+
+  const schemaName = isImportPKs(primaryKeys, type)
+    ? undefined
+    : primaryKeys.targetSchema
+
   const label: string = type === 'import' ? 'Table' : 'Target Table'
 
-  const settings = tableNameReadonlySettings(label, tableName)
+  const settings = tableNameReadonlySettings(
+    label,
+    databaseName,
+    tableName,
+    connectionName,
+    schemaName ? schemaName : undefined
+  )
 
   const handleRepairTable = () => {
     if (!tableName) {

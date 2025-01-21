@@ -45,6 +45,8 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     table: type === 'import' ? table : targetTable
   })
 
+  const exportDatabase = type === 'export' ? tableData?.database : null
+
   const queryClient = useQueryClient()
   const { mutate: copyTable } = useCopyTable()
 
@@ -263,6 +265,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             primaryKeys={primaryKeys}
             isRepairTableModalOpen={isRepairTableModalOpen}
             onClose={() => setIsRepairTableModalOpen(false)}
+            exportDatabase={exportDatabase ? exportDatabase : ''}
           />
         )}
         {isResetTableModalOpen && primaryKeys && (
@@ -271,6 +274,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             primaryKeys={primaryKeys}
             isResetTableModalOpen={isResetTableModalOpen}
             onClose={() => setIsResetTableModalOpen(false)}
+            exportDatabase={exportDatabase ? exportDatabase : ''}
           />
         )}
         {isCopyTableModalOpen && primaryKeys && tableData && (
