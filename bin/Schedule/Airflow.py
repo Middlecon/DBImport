@@ -2361,40 +2361,40 @@ class initialize(object):
 
 		session.close()
 
-#	def sendJSON(self, airflowDAG, status): 
-#		""" Sends a start JSON document to REST and/or Kafka """
-#		log.debug("Executing Airflow.sendStartJSON()")
-#
-#		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
-#		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
-#		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
-#
-##		self.postDataToREST = True
-#
-#		if airflowDAG == None:
-#			return
-#
-#		if self.postAirflowDAGoperations == False:
-#			log.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
-#			return
-#
-#		jsonData = {}
-#		jsonData["type"] = "airflow_dag"
-#		jsonData["status"] = status
-#		jsonData["dag"] = airflowDAG
-#		jsonData["airflow_timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-#
-#		if self.postDataToKafka == True:
-#			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
-#			if result == False:
-#				log.warning("Kafka publish failed! No start message posted")
-#
-#		if self.postDataToREST == True:
-#			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
-#			if response != 200:
-#				log.warn("REST call failed! No start message posted")
-#
-#		log.debug("Executing Airflow.sendStartJSON() - Finished")
+	def sendJSON(self, airflowDAG, status): 
+		""" Sends a start JSON document to REST and/or Kafka """
+		log.debug("Executing Airflow.sendStartJSON()")
+
+		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
+		self.postDataToREST = self.common_config.getConfigValue(key = "post_data_to_rest")
+		self.postDataToKafka = self.common_config.getConfigValue(key = "post_data_to_kafka")
+
+#		self.postDataToREST = True
+
+		if airflowDAG == None:
+			return
+
+		if self.postAirflowDAGoperations == False:
+			log.info("Airflow DAG post to Kafka and/or Rest have been disabled. No message will be sent")
+			return
+
+		jsonData = {}
+		jsonData["type"] = "airflow_dag"
+		jsonData["status"] = status
+		jsonData["dag"] = airflowDAG
+		jsonData["airflow_timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
+		if self.postDataToKafka == True:
+			result = self.sendStatistics.publishKafkaData(json.dumps(jsonData))
+			if result == False:
+				log.warning("Kafka publish failed! No start message posted")
+
+		if self.postDataToREST == True:
+			response = self.sendStatistics.sendRESTdata(json.dumps(jsonData))
+			if response != 200:
+				log.warn("REST call failed! No start message posted")
+
+		log.debug("Executing Airflow.sendStartJSON() - Finished")
 	
 
 
