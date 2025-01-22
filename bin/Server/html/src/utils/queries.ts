@@ -492,6 +492,25 @@ export const useExportTable = (
   })
 }
 
+// Discover export tables
+
+const postDiscoverExportTables = async (filters: ExportDiscoverSearch) => {
+  const response = await axiosInstance.post('/export/discover/search', filters)
+  console.log('response.data', response.data)
+  return response.data
+}
+
+export const useDiscoverExportTables = (
+  filters: ExportDiscoverSearch | null
+): UseQueryResult<ExportDiscoverTable[], Error> => {
+  return useQuery({
+    queryKey: ['export', 'discover', filters],
+    queryFn: async () => postDiscoverExportTables(filters!), // We are sure that filters is not null here because of the enabled flag
+    enabled: filters !== null, // Prevents query execution when filters is null
+    refetchOnWindowFocus: false
+  })
+}
+
 // Raw table, import and export
 interface UseRawTableParams {
   type: 'import' | 'export'
@@ -573,25 +592,6 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
 //     enabled: !!type
 //   })
 // }
-
-// Discover export tables
-
-const postDiscoverExportTables = async (filters: ExportDiscoverSearch) => {
-  const response = await axiosInstance.post('/export/discover/search', filters)
-  console.log('response.data', response.data)
-  return response.data
-}
-
-export const useDiscoverExportTables = (
-  filters: ExportDiscoverSearch | null
-): UseQueryResult<ExportDiscoverTable[], Error> => {
-  return useQuery({
-    queryKey: ['export', 'discover', filters],
-    queryFn: async () => postDiscoverExportTables(filters!), // We are sure that filters is not null here because of the enabled flag
-    enabled: filters !== null, // Prevents query execution when filters is null
-    refetchOnWindowFocus: false
-  })
-}
 
 // Get all import airflows
 
