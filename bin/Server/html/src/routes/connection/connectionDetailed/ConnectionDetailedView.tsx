@@ -167,22 +167,7 @@ function ConnectionDetailedView() {
           </div>
         )}
         <ConnectionSettings />
-        {isEncryptModalOpen && connectionParam && (
-          <EditTableModal
-            isEditModalOpen={isEncryptModalOpen}
-            title={`Encrypt credentials`}
-            settings={settings}
-            onSave={handleSave}
-            onClose={() => setIsEncryptModalOpen(false)}
-            isNoCloseOnSave={true}
-            initWidth={400}
-            isLoading={isEncryptLoading}
-            loadingText="Encrypting"
-            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
-            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
-            submitButtonTitle="Encrypt"
-          />
-        )}
+
         {isTestCnModalOpen && (
           <ConfirmationModal
             title={
@@ -205,6 +190,22 @@ function ConnectionDetailedView() {
               setIsTestCnModalOpen(false)
             }}
             isActive={isTestCnModalOpen}
+          />
+        )}
+        {isEncryptModalOpen && connectionParam && (
+          <EditTableModal
+            isEditModalOpen={isEncryptModalOpen}
+            title={`Encrypt credentials`}
+            settings={settings}
+            onSave={handleSave}
+            onClose={() => setIsEncryptModalOpen(false)}
+            isNoCloseOnSave={true}
+            initWidth={400}
+            isLoading={isEncryptLoading}
+            loadingText="Encrypting"
+            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
+            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
+            submitButtonTitle="Encrypt"
           />
         )}
       </ViewBaseLayout>

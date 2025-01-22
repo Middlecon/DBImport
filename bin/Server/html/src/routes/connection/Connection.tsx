@@ -212,7 +212,6 @@ function Connection() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.connections)) return []
-    console.log('serverType', serverType)
     return data.connections.filter((row) => {
       if (serverType === null) return true
 
@@ -281,33 +280,6 @@ function Connection() {
           </div>
         )}
 
-        {showDeleteConfirmation && selectedDeleteRow && (
-          <ConfirmationModal
-            title={`Delete ${selectedDeleteRow.name}`}
-            message={`Are you sure that you want to delete connection "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
-            buttonTitleCancel="No, Go Back"
-            buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleDelete(selectedDeleteRow)}
-            onCancel={() => setShowDeleteConfirmation(false)}
-            isActive={showDeleteConfirmation}
-          />
-        )}
-        {isEncryptModalOpen && connectionParam && (
-          <EditTableModal
-            isEditModalOpen={isEncryptModalOpen}
-            title={`Encrypt credentials`}
-            settings={settings}
-            onSave={handleSaveEncrypt}
-            onClose={() => setIsEncryptModalOpen(false)}
-            isNoCloseOnSave={true}
-            initWidth={400}
-            isLoading={isEncryptLoading}
-            loadingText="Encrypting"
-            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
-            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
-            submitButtonTitle="Encrypt"
-          />
-        )}
         {isTestCnModalOpen && connectionParam && (
           <ConfirmationModal
             title={
@@ -330,6 +302,33 @@ function Connection() {
               setIsTestCnModalOpen(false)
             }}
             isActive={isTestCnModalOpen}
+          />
+        )}
+        {isEncryptModalOpen && connectionParam && (
+          <EditTableModal
+            isEditModalOpen={isEncryptModalOpen}
+            title={`Encrypt credentials`}
+            settings={settings}
+            onSave={handleSaveEncrypt}
+            onClose={() => setIsEncryptModalOpen(false)}
+            isNoCloseOnSave={true}
+            initWidth={400}
+            isLoading={isEncryptLoading}
+            loadingText="Encrypting"
+            errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
+            onResetErrorMessage={() => setErrorMessageEncrypt(null)}
+            submitButtonTitle="Encrypt"
+          />
+        )}
+        {showDeleteConfirmation && selectedDeleteRow && (
+          <ConfirmationModal
+            title={`Delete ${selectedDeleteRow.name}`}
+            message={`Are you sure that you want to delete connection "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={() => handleDelete(selectedDeleteRow)}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>
