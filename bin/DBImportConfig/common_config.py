@@ -188,6 +188,19 @@ class config(object, metaclass=Singleton):
 		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
 		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
 
+		try:
+			if configuration.get("Spark", "s3_access_to_ozone", exitOnError=False).lower() == "true":
+				self.sparkS3AccessToOzone = True
+			else:
+				self.sparkS3AccessToOzone = False
+			self.sparkS3AccessKeyID = configuration.get("Spark", "s3_access_key_id")
+			self.sparkS3SecretAccessKey = configuration.get("Spark", "s3_secret_access_key")
+
+		except invalidConfiguration:
+			self.sparkS3AccessToOzone = False
+			self.sparkS3AccessKeyID = ""
+			self.sparkS3SecretAccessKey = ""
+
 		self.awsRegion = None
 		try:
 			self.awsRegion = configuration.get("AWS", "region", exitOnError=False)
