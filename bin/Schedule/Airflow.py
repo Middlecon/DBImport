@@ -2363,6 +2363,7 @@ class initialize(object):
 
 	def sendJSON(self, airflowDAG, status): 
 		""" Sends a start JSON document to REST and/or Kafka """
+		log = logging.getLogger(self.logger)
 		log.debug("Executing Airflow.sendStartJSON()")
 
 		self.postAirflowDAGoperations = self.common_config.getConfigValue(key = "post_airflow_dag_operations")
