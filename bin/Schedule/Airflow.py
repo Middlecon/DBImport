@@ -245,19 +245,19 @@ class initialize(object):
 		return returnValue
 
 
+	def checkExecution(self):
+		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
 
-#	def checkExecution(self):
-#		""" Checks the 'airflow_disable' settings and exit with 0 or 1 depending on that """
-#
-#		airflowExecutionDisabled = self.getConfigValue("airflow_disable")
-#		if airflowExecutionDisabled == False:
-#			print("Airflow execution is enabled")
-##			self.common_config.remove_temporary_files()
-##			sys.exit(0)
-#		else:
-#			print("Airflow execution is disabled")
-#			self.common_config.remove_temporary_files()
-#			sys.exit(1)
+		airflowExecutionDisabled = self.getConfigValue("airflow_disable")
+		if airflowExecutionDisabled == False:
+			print("Airflow execution is enabled")
+			self.common_config.remove_temporary_files()
+			sys.exit(0)
+		else:
+			print("Airflow execution is disabled")
+			self.common_config.remove_temporary_files()
+			sys.exit(1)
+
 
 	def getDBImportCommandPath(self, sudoUser=""):
 
