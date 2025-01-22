@@ -13,6 +13,7 @@ import { encryptCredentialsSettings } from '../../../utils/cardRenderFormatting'
 import { EditSetting, ErrorData } from '../../../utils/interfaces'
 import { transformEncryptCredentialsSettings } from '../../../utils/dataFunctions'
 import {
+  useDeleteConnection,
   useEncryptCredentials,
   useTestConnection
 } from '../../../utils/mutations'
@@ -22,6 +23,7 @@ import ConfirmationModal from '../../../components/modals/ConfirmationModal'
 import Button from '../../../components/Button'
 import ImportIconSmall from '../../../assets/icons/ImportIconSmall'
 import ExportIconSmall from '../../../assets/icons/ExportIconSmall'
+import DeleteIcon from '../../../assets/icons/DeleteIcon'
 
 function ConnectionDetailedView() {
   const navigate = useNavigate()
@@ -36,6 +38,9 @@ function ConnectionDetailedView() {
   )
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+  const { mutate: deleteConnection } = useDeleteConnection()
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   const [isEncryptModalOpen, setIsEncryptModalOpen] = useState(false)
   const [isEncryptLoading, setIsEncryptLoading] = useState(false)
@@ -111,6 +116,35 @@ function ConnectionDetailedView() {
     })
   }
 
+  const handleDeleteIconClick = () => {
+    if (!connectionParam) return
+
+    setShowDeleteConfirmation(true)
+  }
+
+  const handleDeleteCn = async () => {
+    if (!connectionParam) return
+
+    setShowDeleteConfirmation(false)
+
+    deleteConnection(
+      { connectionName: connectionParam },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['connection', 'search'], // Matches all related queries that starts the queryKey with 'connection'
+            exact: false
+          })
+          console.log('Delete successful')
+          navigate(`/connection`, { replace: true })
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
   const handleLinkClick = (type: 'import' | 'export', item: string) => {
     const encodedItem = encodeURIComponent(item)
 
@@ -159,6 +193,11 @@ function ConnectionDetailedView() {
                       setIsEncryptModalOpen(true)
                       setOpenDropdown(null)
                     }
+                  },
+                  {
+                    icon: <DeleteIcon />,
+                    label: `Delete connection`,
+                    onClick: handleDeleteIconClick
                   }
                 ]}
                 disabled={!connectionParam}
@@ -206,6 +245,17 @@ function ConnectionDetailedView() {
             errorMessage={errorMessageEncrypt ? errorMessageEncrypt : null}
             onResetErrorMessage={() => setErrorMessageEncrypt(null)}
             submitButtonTitle="Encrypt"
+          />
+        )}
+        {showDeleteConfirmation && connectionParam && (
+          <ConfirmationModal
+            title={`Delete ${connectionParam}`}
+            message={`Are you sure that you want to delete connection "${connectionParam}"? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={handleDeleteCn}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>
