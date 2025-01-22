@@ -294,7 +294,7 @@ export const labelToUIGlobalConfigKey: { [label: string]: keyof ConfigGlobal } =
     'DAG File Group': 'airflow_dag_file_group',
     'DAG File Permission': 'airflow_dag_file_permission',
     'DAG Staging Directory': 'airflow_dag_staging_directory',
-    'DBImport Commandpath': 'airflow_dbimport_commandpath',
+    'DBImport Command Path': 'airflow_dbimport_commandpath',
     'Default Pool Size': 'airflow_default_pool_size',
     'Dummy Task Queue': 'airflow_dummy_task_queue',
     'Major Version': 'airflow_major_version',
