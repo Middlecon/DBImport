@@ -3,6 +3,7 @@ import './Button.scss'
 
 interface ButtonProps {
   title: string
+  icon?: JSX.Element
   onClick?: () => void
   type?: 'button' | 'reset' | 'submit'
   disabled?: boolean
@@ -12,12 +13,14 @@ interface ButtonProps {
   fontSize?: string
   padding?: string
   marginRight?: string
+  marginTop?: string
   height?: string
 }
 
 function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
   const {
     title,
+    icon,
     type = 'button',
     disabled,
     onClick,
@@ -27,6 +30,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     fontSize,
     padding,
     marginRight,
+    marginTop,
     height
   } = props
 
@@ -39,6 +43,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
     fontSize,
     padding,
     marginRight,
+    marginTop,
     height
   }
 
@@ -57,6 +62,7 @@ function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
       style={buttonStyle}
       disabled={disabled}
     >
+      {icon && <div className="button-icon">{icon}</div>}
       <div className="button-title">{title}</div>
     </button>
   )

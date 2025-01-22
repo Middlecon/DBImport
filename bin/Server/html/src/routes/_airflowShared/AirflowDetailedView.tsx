@@ -5,8 +5,9 @@ import '../_shared/tableDetailed/DetailedView.scss'
 import GenerateDAGIcon from '../../assets/icons/GenerateDAGIcon'
 import DropdownActions from '../../components/DropdownActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
-import UrlLinkIcon from '../../assets/icons/UrlLinkIcon'
 import { useAirflowDAG } from '../../utils/queries'
+import Button from '../../components/Button'
+import ApacheAirflowIconSmall from '../../assets/icons/ApacheAirflowIconSmall'
 
 function AirflowDetailedView({
   type
@@ -82,27 +83,28 @@ function AirflowDetailedView({
       <ViewBaseLayout>
         <div className="detailed-view-header">
           <h1>{`${dagName}`}</h1>
-          <div className="actions-dropdown-generated-br">
-            <DropdownActions
-              isDropdownActionsOpen={openDropdown === 'dropdownActions'}
-              marginTop={5}
-              maxWidth={107}
-              onToggle={(isDropdownActionsOpen: boolean) =>
-                handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
-              }
-              items={[
-                {
-                  icon: <GenerateDAGIcon />,
-                  label: 'Generate DAG',
-                  onClick: handleGenerateDagClick
-                },
-                {
-                  icon: <UrlLinkIcon />,
-                  label: 'Airflow DAG external link',
-                  onClick: handleLinkClick
-                }
-              ]}
+          <div className="detailed-view-header-buttons">
+            <Button
+              title="Airflow"
+              icon={<ApacheAirflowIconSmall />}
+              onClick={handleLinkClick}
             />
+            <div className="actions-dropdown-generated-br">
+              <DropdownActions
+                isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+                maxWidth={107}
+                onToggle={(isDropdownActionsOpen: boolean) =>
+                  handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
+                }
+                items={[
+                  {
+                    icon: <GenerateDAGIcon />,
+                    label: 'Generate DAG',
+                    onClick: handleGenerateDagClick
+                  }
+                ]}
+              />
+            </div>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import ViewBaseLayout from '../../../components/ViewBaseLayout'
 import '../../_shared/tableDetailed/DetailedView.scss'
 import '../../_shared/tableDetailed/settings/TableSettings.scss'
@@ -19,8 +19,12 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import ConfirmationModal from '../../../components/modals/ConfirmationModal'
+import Button from '../../../components/Button'
+import ImportIconSmall from '../../../assets/icons/ImportIconSmall'
+import ExportIconSmall from '../../../assets/icons/ExportIconSmall'
 
 function ConnectionDetailedView() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const { connection: connectionParam } = useParams<{
@@ -107,35 +111,61 @@ function ConnectionDetailedView() {
     })
   }
 
+  const handleLinkClick = (type: 'import' | 'export', item: string) => {
+    const encodedItem = encodeURIComponent(item)
+
+    if (type === 'import') {
+      navigate(`/import?connection=${encodedItem}`)
+    } else if (type === 'export') {
+      navigate(`/export?connection=${encodedItem}`)
+    }
+  }
+
   return (
     <>
       <ViewBaseLayout>
-        <div className="detailed-view-header">
-          <h1>{`${connectionParam}`}</h1>
-          <DropdownActions
-            isDropdownActionsOpen={openDropdown === 'dropdownActions'}
-            marginTop={5}
-            onToggle={(isDropdownActionsOpen: boolean) =>
-              handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
-            }
-            items={[
-              {
-                icon: <TestConnectionIcon />,
-                label: 'Test connection',
-                onClick: handleTestConnection
-              },
-              {
-                icon: <EncryptIcon />,
-                label: `Encrypt credentials`,
-                onClick: () => {
-                  setIsEncryptModalOpen(true)
-                  setOpenDropdown(null)
+        {connectionParam && (
+          <div className="detailed-view-header" style={{ paddingBottom: 25 }}>
+            <h1>{`${connectionParam}`}</h1>
+            <div className="detailed-view-header-buttons">
+              <div>
+                <Button
+                  title="Import definintions"
+                  icon={<ImportIconSmall />}
+                  onClick={() => handleLinkClick('import', connectionParam)}
+                />
+                <Button
+                  title="Export definintions"
+                  icon={<ExportIconSmall />}
+                  onClick={() => handleLinkClick('export', connectionParam)}
+                  marginTop="8px"
+                />
+              </div>
+              <DropdownActions
+                isDropdownActionsOpen={openDropdown === 'dropdownActions'}
+                onToggle={(isDropdownActionsOpen: boolean) =>
+                  handleDropdownToggle('dropdownActions', isDropdownActionsOpen)
                 }
-              }
-            ]}
-            disabled={!connectionParam}
-          />
-        </div>
+                items={[
+                  {
+                    icon: <TestConnectionIcon />,
+                    label: 'Test connection',
+                    onClick: handleTestConnection
+                  },
+                  {
+                    icon: <EncryptIcon />,
+                    label: `Encrypt credentials`,
+                    onClick: () => {
+                      setIsEncryptModalOpen(true)
+                      setOpenDropdown(null)
+                    }
+                  }
+                ]}
+                disabled={!connectionParam}
+              />
+            </div>
+          </div>
+        )}
         <ConnectionSettings />
         {isEncryptModalOpen && connectionParam && (
           <EditTableModal

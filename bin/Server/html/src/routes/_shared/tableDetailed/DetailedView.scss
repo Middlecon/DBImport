@@ -8,6 +8,14 @@
     font-size: 25px;
     padding-right: 30px;
   }
+
+  .detailed-view-header-buttons {
+    display: flex;
+    gap: 25px;
+    margin-top: 5px;
+    margin-right: 2px;
+    max-height: 30px;
+  }
 }
 
 .tabs {

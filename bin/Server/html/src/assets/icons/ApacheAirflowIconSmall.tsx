@@ -1,8 +1,8 @@
-export default function ApacheAirflowIcon() {
+export default function ApacheAirflowIconSmall() {
   return (
     <svg
-      width="25"
-      height="25"
+      width="16"
+      height="16"
       viewBox="0 0 32 32"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
