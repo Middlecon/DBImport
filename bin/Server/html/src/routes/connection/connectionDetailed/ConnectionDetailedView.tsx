@@ -125,7 +125,7 @@ function ConnectionDetailedView() {
     <>
       <ViewBaseLayout>
         {connectionParam && (
-          <div className="detailed-view-header" style={{ paddingBottom: 25 }}>
+          <div className="detailed-view-header" style={{ paddingBottom: 30 }}>
             <h1>{`${connectionParam}`}</h1>
             <div className="detailed-view-header-buttons">
               <div>
