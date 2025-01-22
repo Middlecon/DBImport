@@ -61,16 +61,6 @@ function DbTables({
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
-  // For edit or delete row by Actions icon in table list, may be removed
-  // const { mutate: updateTable } = useUpdateTable()
-  // const { mutate: deleteTable } = useDeleteImportTable()
-  // const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  // const [selectedRow, setSelectedRow] = useState<EditSetting[] | []>([])
-  // const [selectedDeleteRow, setSelectedDeleteRow] = useState<UiDbTable>()
-  // const [tableData, setTableData] = useState<UITable | null>(null)
-  // const [tableName, setTableName] = useState<string>('')
-  // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
   const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
@@ -80,6 +70,7 @@ function DbTables({
   const getPrimaryKeys = (
     row: UiDbTable | undefined
   ): { database: string; table: string } | null => {
+    console.log('getPrimaryKeys row', row)
     if (!row) return null
     const { database, table } = row
     return { database, table }
@@ -126,80 +117,6 @@ function DbTables({
     []
   )
 
-  // For edit or delete row by Actions icon in table list, may be removed
-  // const handleEditClick = async (row: UiDbTable) => {
-  //   console.log('handleEditClick row', row)
-  //   const { database, table } = row
-  //   setTableName(table)
-
-  //   try {
-  //     const fetchedTableData = await queryClient.fetchQuery({
-  //       queryKey: ['import', database, table],
-  //       queryFn: () => fetchTableData(database, table)
-  //     })
-
-  //     setTableData(fetchedTableData)
-
-  //     const rowData: EditSetting[] = importDbTablesEditSettings(row)
-
-  //     setSelectedRow(rowData)
-  //     setIsEditModalOpen(true)
-  //   } catch (error) {
-  //     console.error('Failed to fetch table data:', error)
-  //   }
-  // }
-
-  // const handleDeleteIconClick = (row: UiDbTable) => {
-  //   setShowDeleteConfirmation(true)
-  //   setSelectedDeleteRow(row)
-  // }
-
-  // const handleDelete = async (row: UiDbTable) => {
-  //   setShowDeleteConfirmation(false)
-
-  //   const { database: databaseDelete, table: tableDelete } = row
-
-  //   deleteTable(
-  //     { database: databaseDelete, table: tableDelete },
-  //     {
-  //       onSuccess: () => {
-  //         queryClient.invalidateQueries({
-  //           queryKey: ['import'], // Matches all related queries that starts the queryKey with 'import'
-  //           exact: false
-  //         })
-  //         console.log('Delete successful')
-  //       },
-  //       onError: (error) => {
-  //         console.error('Error deleting item', error)
-  //       }
-  //     }
-  //   )
-  // }
-
-  // const handleSave = (updatedSettings: EditSetting[]) => {
-  //   if (!tableData) {
-  //     console.error('Table data is not available.')
-  //     return
-  //   }
-
-  //   const editedTableData = updateTableData(tableData, updatedSettings)
-  //   updateTable(
-  //     { type: 'import', table: editedTableData },
-  //     {
-  //       onSuccess: (response) => {
-  //         queryClient.invalidateQueries({
-  //           queryKey: ['import', 'search', queryKeyFilters]
-  //         })
-  //         console.log('Update successful', response)
-  //         setIsEditModalOpen(false)
-  //       },
-  //       onError: (error) => {
-  //         console.error('Error updating table', error)
-  //       }
-  //     }
-  //   )
-  // }
-
   const handleRepairIconClick = (row: UiDbTable) => {
     setSelectedRow(row)
     setIsRepairTableModalOpen(true)
@@ -211,11 +128,12 @@ function DbTables({
   }
 
   const handleCopyIconClick = (row: UiDbTable) => {
+    console.log('row', row)
     setSelectedRow(row)
     setIsCopyTableModalOpen(true)
   }
 
-  const handleCopySave = (
+  const handleSaveCopy = (
     type: 'import' | 'export',
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
@@ -382,9 +300,6 @@ function DbTables({
           <TableList
             columns={columns}
             data={data}
-            // For edit or delete row by Actions icon in table list, may be removed
-            // onEdit={handleEditClick}
-            // onDelete={handleDeleteIconClick}
             onRepair={handleRepairIconClick}
             onReset={handleResetIconClick}
             onCopy={handleCopyIconClick}
@@ -397,27 +312,6 @@ function DbTables({
       ) : (
         <div>Loading....</div>
       )}
-      {/* For edit or delete row by Actions icon in table list, may be removed  */}
-      {/* {isEditModalOpen && selectedRow && (
-        <EditTableModal
-          isEditModalOpen={isEditModalOpen}
-          title={`Edit table ${tableName}`}
-          settings={selectedRow}
-          onClose={() => setIsEditModalOpen(false)}
-          onSave={handleSave}
-        />
-      )}
-      {showDeleteConfirmation && selectedDeleteRow && (
-        <ConfirmationModal
-          title={`Delete ${selectedDeleteRow.table}`}
-          message={`Are you sure that you want to delete table "${selectedDeleteRow.table}"? \nDelete is irreversable.`}
-          buttonTitleCancel="No, Go Back"
-          buttonTitleConfirm="Yes, Delete"
-          onConfirm={() => handleDelete(selectedDeleteRow)}
-          onCancel={() => setShowDeleteConfirmation(false)}
-          isActive={showDeleteConfirmation}
-        />
-      )} */}
       {isBulkEditModalOpen && (
         <BulkEditModal
           isBulkEditModalOpen={isBulkEditModalOpen}
@@ -467,7 +361,7 @@ function DbTables({
           type="import"
           primaryKeys={primaryKeys}
           isCopyTableModalOpen={isCopyTableModalOpen}
-          onSave={handleCopySave}
+          onSave={handleSaveCopy}
           onClose={() => setIsCopyTableModalOpen(false)}
         />
       )}

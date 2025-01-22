@@ -332,32 +332,6 @@ export const useCreateImportTable = () => {
   })
 }
 
-// Import delete table
-
-type DeleteImportTableArgs = {
-  database: string
-  table: string
-}
-
-const deleteImportTable = async ({
-  database,
-  table
-}: DeleteImportTableArgs) => {
-  const encodedDatabase = encodeURIComponent(database)
-  const encodedTable = encodeURIComponent(table)
-
-  const response = await axiosInstance.delete(
-    `/import/table/${encodedDatabase}/${encodedTable}`
-  )
-  return response.data
-}
-
-export const useDeleteImportTable = () => {
-  return useMutation({
-    mutationFn: (args: DeleteImportTableArgs) => deleteImportTable(args)
-  })
-}
-
 // Add discovered tables
 
 const postAddImportTables = async (tables: ImportDiscoverTable[]) => {
@@ -394,35 +368,6 @@ export const useCreateExportTable = () => {
     mutationFn: (tableUpdated: ExportTableCreateWithoutEnum) => {
       return postCreateExportTable(tableUpdated)
     }
-  })
-}
-
-// Export delete table
-
-type DeleteExportTableArgs = {
-  connection: string
-  targetSchema: string
-  targetTable: string
-}
-
-const deleteExportTable = async ({
-  connection,
-  targetSchema,
-  targetTable
-}: DeleteExportTableArgs) => {
-  const encodedConnection = encodeURIComponent(connection)
-  const encodedTargetSchema = encodeURIComponent(targetSchema)
-  const encodedTargetTable = encodeURIComponent(targetTable)
-
-  const response = await axiosInstance.delete(
-    `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
-  )
-  return response.data
-}
-
-export const useDeleteExportTable = () => {
-  return useMutation({
-    mutationFn: (args: DeleteExportTableArgs) => deleteExportTable(args)
   })
 }
 
