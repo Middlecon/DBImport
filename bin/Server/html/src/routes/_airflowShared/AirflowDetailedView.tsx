@@ -8,6 +8,10 @@ import GenerateDagModal from '../../components/modals/GenerateDagModal'
 import { useAirflowDAG } from '../../utils/queries'
 import Button from '../../components/Button'
 import ApacheAirflowIconSmall from '../../assets/icons/ApacheAirflowIconSmall'
+import { useQueryClient } from '@tanstack/react-query'
+import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import { useDeleteAirflowDAG } from '../../utils/mutations'
+import DeleteIcon from '../../assets/icons/DeleteIcon'
 
 function AirflowDetailedView({
   type
@@ -17,9 +21,13 @@ function AirflowDetailedView({
   const { dagName } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
+
+  const { mutate: deleteDag } = useDeleteAirflowDAG()
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   const encodedType = encodeURIComponent(type)
   const encodedDagName = encodeURIComponent(dagName ? dagName : '')
@@ -78,6 +86,35 @@ function AirflowDetailedView({
     }
   }
 
+  const handleDeleteIconClick = () => {
+    if (!dagName) return
+
+    setShowDeleteConfirmation(true)
+  }
+
+  const handleDeleteDag = async () => {
+    if (!dagName) return
+
+    setShowDeleteConfirmation(false)
+
+    deleteDag(
+      { type, dagName },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['airflows', type],
+            exact: true
+          })
+          console.log('Delete successful')
+          navigate(`/airflow/${type}`, { replace: true })
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
+
   return (
     <>
       <ViewBaseLayout>
@@ -101,6 +138,11 @@ function AirflowDetailedView({
                     icon: <GenerateDAGIcon />,
                     label: 'Generate DAG',
                     onClick: handleGenerateDagClick
+                  },
+                  {
+                    icon: <DeleteIcon />,
+                    label: `Delete DAG`,
+                    onClick: handleDeleteIconClick
                   }
                 ]}
               />
@@ -128,6 +170,17 @@ function AirflowDetailedView({
             dagName={dagName}
             isGenDagModalOpen={isGenDagModalOpen}
             onClose={() => setIsGenDagModalOpen(false)}
+          />
+        )}
+        {showDeleteConfirmation && (
+          <ConfirmationModal
+            title={`Delete ${dagName}`}
+            message={`Are you sure that you want to delete DAG "${dagName}"? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={handleDeleteDag}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>
