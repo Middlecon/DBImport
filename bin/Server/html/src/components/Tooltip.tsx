@@ -12,7 +12,7 @@ function Tooltip({ tooltipText, position }: TooltipProps) {
         position: 'absolute',
         top: position.top,
         left: position.left,
-        zIndex: 9999,
+        zIndex: 99,
         backgroundColor: '#6e6e8c',
         color: '#fcfcfc',
         padding: '5px 10px',

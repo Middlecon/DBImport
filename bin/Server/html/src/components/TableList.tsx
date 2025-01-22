@@ -252,6 +252,12 @@ function TableList<T extends object>({
     (row: T, column: Column<T>, rowIndex: number) => {
       let timeoutId: string | number | NodeJS.Timeout | undefined
 
+      const clearTooltip = () => {
+        clearTimeout(timeoutId)
+        setTooltipText(null)
+        setTooltipPosition(null)
+      }
+
       const handleMouseEnter = (
         event: React.MouseEvent<HTMLButtonElement>,
         text: string
@@ -276,10 +282,7 @@ function TableList<T extends object>({
       }
 
       const handleMouseLeave = () => {
-        clearTimeout(timeoutId)
-        // setShowTooltip(null)
-        setTooltipText(null)
-        setTooltipPosition(null)
+        clearTooltip()
       }
 
       const handleTableClick = (database: string, table: string) => {
@@ -313,6 +316,8 @@ function TableList<T extends object>({
         type: 'import' | 'export' | 'airflowLink',
         item: string
       ) => {
+        clearTooltip()
+
         const encodedItem = encodeURIComponent(item)
 
         if (type === 'import') {
@@ -564,40 +569,6 @@ function TableList<T extends object>({
 
         const isFirstActionCell = rowIndex === 0
 
-        // let timeoutId: string | number | NodeJS.Timeout | undefined
-
-        // const handleMouseEnter = (
-        //   event: React.MouseEvent<HTMLButtonElement>,
-        //   text: string
-        // ) => {
-        //   const rect = event.currentTarget.getBoundingClientRect()
-
-        //   const tooltipWidth = 50
-
-        //   const left = Math.max(
-        //     0,
-        //     Math.min(
-        //       rect.left + rect.width / 2,
-        //       window.innerWidth - tooltipWidth
-        //     )
-        //   )
-        //   timeoutId = setTimeout(() => {
-        //     setTooltipText(text)
-
-        //     // Calculate position for the tooltip
-        //     setTooltipPosition({
-        //       top: rect.top - 5, // 10px above the element
-        //       left: left // Center horizontally
-        //     })
-        //   }, 1000)
-        // }
-
-        // const handleMouseLeave = () => {
-        //   clearTimeout(timeoutId)
-        //   // setShowTooltip(null)
-        //   setTooltipText(null)
-        //   setTooltipPosition(null)
-        // }
         return (
           <div
             className="actions-row"
@@ -613,7 +584,12 @@ function TableList<T extends object>({
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onEdit && onEdit(row, rowIndex)}
+                onClick={() => {
+                  if (onEdit) {
+                    onEdit(row, rowIndex)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onEdit}
                 onMouseEnter={(event) => handleMouseEnter(event, 'Edit')}
                 onMouseLeave={handleMouseLeave}
@@ -632,7 +608,12 @@ function TableList<T extends object>({
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onGenerate && onGenerate(row)}
+                onClick={() => {
+                  if (onGenerate) {
+                    onGenerate(row)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onGenerate}
                 onMouseEnter={(event) =>
                   handleMouseEnter(event, 'Generate DAG')
@@ -656,7 +637,12 @@ function TableList<T extends object>({
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onRepair && onRepair(row)}
+                onClick={() => {
+                  if (onRepair) {
+                    onRepair(row)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onRepair}
                 onMouseEnter={(event) =>
                   handleMouseEnter(event, 'Repair table')
@@ -680,7 +666,12 @@ function TableList<T extends object>({
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onReset && onReset(row)}
+                onClick={() => {
+                  if (onReset) {
+                    onReset(row)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onReset}
                 onMouseEnter={(event) => handleMouseEnter(event, 'Reset table')}
                 onMouseLeave={handleMouseLeave}
@@ -701,7 +692,12 @@ function TableList<T extends object>({
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onCopy && onCopy(row, rowIndex)}
+                onClick={() => {
+                  if (onCopy) {
+                    onCopy(row, rowIndex)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onCopy}
                 onMouseEnter={(event) => handleMouseEnter(event, 'Copy')}
                 onMouseLeave={handleMouseLeave}
@@ -720,9 +716,12 @@ function TableList<T extends object>({
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() =>
-                  onTestConnection && onTestConnection(row, rowIndex)
-                }
+                onClick={() => {
+                  if (onTestConnection) {
+                    onTestConnection(row, rowIndex)
+                  }
+                  clearTooltip()
+                }}
                 disabled={!onTestConnection}
                 onMouseEnter={(event) =>
                   handleMouseEnter(event, 'Test connection')
@@ -745,9 +744,12 @@ function TableList<T extends object>({
                     isFirstActionCell ? 'first' : ''
                   }`}
                   style={{ marginLeft: 0 }}
-                  onClick={() =>
-                    onEncryptCredentials && onEncryptCredentials(row)
-                  }
+                  onClick={() => {
+                    if (onEncryptCredentials) {
+                      onEncryptCredentials(row)
+                    }
+                    clearTooltip()
+                  }}
                   disabled={!onEncryptCredentials}
                   onMouseEnter={(event) =>
                     handleMouseEnter(event, 'Encrypt credentials')
@@ -772,7 +774,12 @@ function TableList<T extends object>({
                 className={`actions-delete-button ${
                   isFirstActionCell ? 'first' : ''
                 }`}
-                onClick={() => onDelete && onDelete(row)}
+                onClick={() => {
+                  if (onDelete) {
+                    onDelete(row)
+                  }
+                  clearTooltip()
+                }}
                 style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
                 onMouseEnter={(event) => handleMouseEnter(event, 'Delete')}
                 onMouseLeave={handleMouseLeave}
