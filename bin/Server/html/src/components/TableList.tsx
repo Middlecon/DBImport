@@ -24,6 +24,7 @@ import ResetIcon from '../assets/icons/ResetIcon'
 import CopyIcon from '../assets/icons/CopyIcon'
 import TestConnectionIcon from '../assets/icons/TestConnectionIcon'
 import EncryptIcon from '../assets/icons/EncryptIcon'
+import Tooltip from './Tooltip'
 
 interface TableProps<T extends object> {
   columns: Column<T>[]
@@ -77,8 +78,12 @@ function TableList<T extends object>({
   const lastSelectedRowIndexRef = useRef<number | null>(null)
   const [scrollbarMarginTop, setScrollbarMarginTop] = useState<string>('')
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false)
-  const [showTooltip, setShowTooltip] = useState<string | null>(null)
-  const [hoveredButton, setHoveredButton] = useState<string | null>(null)
+
+  const [tooltipText, setTooltipText] = useState<string | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    top: number
+    left: number
+  } | null>(null)
 
   useEffect(() => {
     const updateScrollbarMarginTop = () => {
@@ -245,6 +250,38 @@ function TableList<T extends object>({
 
   const renderCellContent = useCallback(
     (row: T, column: Column<T>, rowIndex: number) => {
+      let timeoutId: string | number | NodeJS.Timeout | undefined
+
+      const handleMouseEnter = (
+        event: React.MouseEvent<HTMLButtonElement>,
+        text: string
+      ) => {
+        const rect = event.currentTarget.getBoundingClientRect()
+
+        const tooltipWidth = 50
+
+        const left = Math.max(
+          0,
+          Math.min(rect.left + rect.width / 2, window.innerWidth - tooltipWidth)
+        )
+        timeoutId = setTimeout(() => {
+          setTooltipText(text)
+
+          // Calculate position for the tooltip
+          setTooltipPosition({
+            top: rect.top - 5, // 10px above the element
+            left: left // Center horizontally
+          })
+        }, 1000)
+      }
+
+      const handleMouseLeave = () => {
+        clearTimeout(timeoutId)
+        // setShowTooltip(null)
+        setTooltipText(null)
+        setTooltipPosition(null)
+      }
+
       const handleTableClick = (database: string, table: string) => {
         const encodedDatabase = encodeURIComponent(database)
         const encodedTable = encodeURIComponent(table)
@@ -300,7 +337,7 @@ function TableList<T extends object>({
               {String(cellValue)}
             </p>
             {overflowState[rowIndex] && (
-              <span className="tooltip">{String(cellValue)}</span>
+              <span className="overflow-tooltip">{String(cellValue)}</span>
             )}
           </>
         )
@@ -433,18 +470,18 @@ function TableList<T extends object>({
       if (column.isLink) {
         const isFirstActionCell = rowIndex === 0
 
-        let timeoutId: string | number | NodeJS.Timeout | undefined
+        // let timeoutId: string | number | NodeJS.Timeout | undefined
 
-        const handleMouseOver = (buttonId: string) => {
-          timeoutId = setTimeout(() => {
-            setHoveredButton(buttonId)
-          }, 1000)
-        }
+        // const handleMouseOver = (buttonId: string) => {
+        //   timeoutId = setTimeout(() => {
+        //     setHoveredButton(buttonId)
+        //   }, 1000)
+        // }
 
-        const handleMouseOut = () => {
-          clearTimeout(timeoutId)
-          setHoveredButton(null)
-        }
+        // const handleMouseOut = () => {
+        //   clearTimeout(timeoutId)
+        //   setHoveredButton(null)
+        // }
         return (
           <div className="actions-row">
             {column.isLink === 'connectionLink' ? (
@@ -456,12 +493,17 @@ function TableList<T extends object>({
                   onClick={() =>
                     handleLinkClick('import', String(row['name' as keyof T]))
                   }
-                  onMouseOver={() => handleMouseOver('import')}
-                  onMouseOut={handleMouseOut}
+                  onMouseEnter={(event) =>
+                    handleMouseEnter(event, 'Import definitions')
+                  }
+                  onMouseLeave={handleMouseLeave}
                 >
                   <ImportIcon />
-                  {hoveredButton === 'import' && (
-                    <span className="tooltip">Import</span>
+                  {tooltipPosition && tooltipText && (
+                    <Tooltip
+                      tooltipText={tooltipText}
+                      position={tooltipPosition}
+                    />
                   )}
                 </button>
                 <button
@@ -471,12 +513,17 @@ function TableList<T extends object>({
                   onClick={() =>
                     handleLinkClick('export', String(row['name' as keyof T]))
                   }
-                  onMouseOver={() => handleMouseOver('export')}
-                  onMouseOut={handleMouseOut}
+                  onMouseEnter={(event) =>
+                    handleMouseEnter(event, 'Export definitions')
+                  }
+                  onMouseLeave={handleMouseLeave}
                 >
                   <ExportIcon />
-                  {hoveredButton === 'export' && (
-                    <span className="tooltip">Export</span>
+                  {tooltipPosition && tooltipText && (
+                    <Tooltip
+                      tooltipText={tooltipText}
+                      position={tooltipPosition}
+                    />
                   )}
                 </button>
               </>
@@ -491,14 +538,15 @@ function TableList<T extends object>({
                     String(row['airflowLink' as keyof T])
                   )
                 }
-                onMouseOver={() => handleMouseOver('airflowLink')}
-                onMouseOut={handleMouseOut}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Airflow')}
+                onMouseLeave={handleMouseLeave}
               >
                 <UrlLinkIcon />
-                {hoveredButton === 'airflowLink' && (
-                  <span className="tooltip" style={{ marginLeft: -5 }}>
-                    External
-                  </span>
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             )}
@@ -516,18 +564,40 @@ function TableList<T extends object>({
 
         const isFirstActionCell = rowIndex === 0
 
-        let timeoutId: string | number | NodeJS.Timeout | undefined
+        // let timeoutId: string | number | NodeJS.Timeout | undefined
 
-        const handleMouseEnter = (action: string) => {
-          timeoutId = setTimeout(() => {
-            setShowTooltip(action)
-          }, 1000)
-        }
+        // const handleMouseEnter = (
+        //   event: React.MouseEvent<HTMLButtonElement>,
+        //   text: string
+        // ) => {
+        //   const rect = event.currentTarget.getBoundingClientRect()
 
-        const handleMouseLeave = () => {
-          clearTimeout(timeoutId)
-          setShowTooltip(null)
-        }
+        //   const tooltipWidth = 50
+
+        //   const left = Math.max(
+        //     0,
+        //     Math.min(
+        //       rect.left + rect.width / 2,
+        //       window.innerWidth - tooltipWidth
+        //     )
+        //   )
+        //   timeoutId = setTimeout(() => {
+        //     setTooltipText(text)
+
+        //     // Calculate position for the tooltip
+        //     setTooltipPosition({
+        //       top: rect.top - 5, // 10px above the element
+        //       left: left // Center horizontally
+        //     })
+        //   }, 1000)
+        // }
+
+        // const handleMouseLeave = () => {
+        //   clearTimeout(timeoutId)
+        //   // setShowTooltip(null)
+        //   setTooltipText(null)
+        //   setTooltipPosition(null)
+        // }
         return (
           <div
             className="actions-row"
@@ -545,11 +615,16 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onEdit && onEdit(row, rowIndex)}
                 disabled={!onEdit}
-                onMouseEnter={() => handleMouseEnter('edit')}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Edit')}
                 onMouseLeave={handleMouseLeave}
               >
                 <EditIcon />
-                {showTooltip && <span className="tooltip">Edit</span>}
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
+                )}
               </button>
             ) : null}
             {column.isAction === 'generateDag' ? (
@@ -559,14 +634,18 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onGenerate && onGenerate(row)}
                 disabled={!onGenerate}
-                onMouseEnter={() => handleMouseEnter('generateDag')}
+                onMouseEnter={(event) =>
+                  handleMouseEnter(event, 'Generate DAG')
+                }
                 onMouseLeave={handleMouseLeave}
               >
                 <GenerateDAGIcon />
-                {showTooltip && (
-                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
-                    Generate DAG
-                  </span>
+
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             ) : null}
@@ -579,14 +658,18 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onRepair && onRepair(row)}
                 disabled={!onRepair}
-                onMouseEnter={() => handleMouseEnter('repairTable')}
+                onMouseEnter={(event) =>
+                  handleMouseEnter(event, 'Repair table')
+                }
                 onMouseLeave={handleMouseLeave}
               >
                 <RepairIcon />
-                {showTooltip && (
-                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
-                    Repair
-                  </span>
+
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             ) : null}
@@ -599,14 +682,15 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onReset && onReset(row)}
                 disabled={!onReset}
-                onMouseEnter={() => handleMouseEnter('resetTable')}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Reset table')}
                 onMouseLeave={handleMouseLeave}
               >
                 <ResetIcon />
-                {showTooltip && (
-                  <span className="tooltip" style={{ left: 'unset', right: 7 }}>
-                    Reset
-                  </span>
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             ) : null}
@@ -619,17 +703,15 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onCopy && onCopy(row, rowIndex)}
                 disabled={!onCopy}
-                onMouseEnter={() => handleMouseEnter('copyTable')}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Copy')}
                 onMouseLeave={handleMouseLeave}
               >
                 <CopyIcon />
-                {showTooltip === 'copyTable' && (
-                  <span
-                    className="tooltip"
-                    style={{ left: 'unset', right: 10 }}
-                  >
-                    Copy
-                  </span>
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             ) : null}
@@ -642,32 +724,45 @@ function TableList<T extends object>({
                   onTestConnection && onTestConnection(row, rowIndex)
                 }
                 disabled={!onTestConnection}
-                onMouseEnter={() => handleMouseEnter('edit')}
+                onMouseEnter={(event) =>
+                  handleMouseEnter(event, 'Test connection')
+                }
                 onMouseLeave={handleMouseLeave}
               >
                 <TestConnectionIcon />
-                {showTooltip && (
-                  <span className="tooltip">Test connection</span>
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
                 )}
               </button>
             ) : null}
             {column.isAction === 'testAndEncryptAndDelete' ? (
-              <button
-                className={`actions-reset-button ${
-                  isFirstActionCell ? 'first' : ''
-                }`}
-                onClick={() =>
-                  onEncryptCredentials && onEncryptCredentials(row)
-                }
-                disabled={!onEncryptCredentials}
-                onMouseEnter={() => handleMouseEnter('edit')}
-                onMouseLeave={handleMouseLeave}
-              >
-                <EncryptIcon />
-                {showTooltip && (
-                  <span className="tooltip">Encrypt credentials</span>
-                )}
-              </button>
+              <div>
+                <button
+                  className={`actions-reset-button ${
+                    isFirstActionCell ? 'first' : ''
+                  }`}
+                  style={{ marginLeft: 0 }}
+                  onClick={() =>
+                    onEncryptCredentials && onEncryptCredentials(row)
+                  }
+                  disabled={!onEncryptCredentials}
+                  onMouseEnter={(event) =>
+                    handleMouseEnter(event, 'Encrypt credentials')
+                  }
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <EncryptIcon />
+                  {tooltipPosition && tooltipText && (
+                    <Tooltip
+                      tooltipText={tooltipText}
+                      position={tooltipPosition}
+                    />
+                  )}
+                </button>
+              </div>
             ) : null}
             {column.isAction === 'delete' ||
             column.isAction === 'editAndDelete' ||
@@ -679,11 +774,16 @@ function TableList<T extends object>({
                 }`}
                 onClick={() => onDelete && onDelete(row)}
                 style={column.isAction === 'delete' ? { paddingLeft: 0 } : {}}
-                onMouseEnter={() => handleMouseEnter('delete')}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Delete')}
                 onMouseLeave={handleMouseLeave}
               >
                 <DeleteIcon />
-                {showTooltip && <span className="tooltip">Delete</span>}
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
+                )}
               </button>
             ) : null}
           </div>
@@ -699,8 +799,8 @@ function TableList<T extends object>({
       navigate,
       overflowState,
       onEdit,
-      hoveredButton,
-      showTooltip,
+      tooltipPosition,
+      tooltipText,
       onGenerate,
       onRepair,
       onReset,
@@ -1103,6 +1203,8 @@ function TableList<T extends object>({
   )
 }
 
+export default TableList
+
 // Can be used for lifting out of Tablebody from TableList
 // interface TableBodyProps<T> {
 //   table: ReactTable<T>
@@ -1162,5 +1264,3 @@ function TableList<T extends object>({
 //     return prevProps.table.options.data === nextProps.table.options.data
 //   }
 // ) as typeof TableBody
-
-export default TableList

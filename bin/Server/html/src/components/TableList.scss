@@ -253,7 +253,7 @@
   }
 }
 
-.tooltip {
+.overflow-tooltip {
   position: absolute;
   width: max-content;
   height: min-content;
@@ -274,23 +274,6 @@
   transition: opacity 0.1s;
 }
 
-.actions-edit-button:hover .tooltip,
-.actions-delete-button:hover .tooltip,
-.actions-reset-button:hover .tooltip,
-.actions-link-button:hover .tooltip {
-  visibility: visible;
-  opacity: 7;
-  overflow: visible;
-  transform: translateY(-20px) translateX(7px);
-}
-
-.actions-edit-button.first:hover .tooltip,
-.actions-delete-button.first:hover .tooltip,
-.actions-reset-button.first:hover .tooltip,
-.actions-link-button.first:hover .tooltip {
-  transform: translateY(4px) translateX(7px);
-}
-
 .fixed-width {
   position: relative;
   max-width: 80px;
@@ -299,7 +282,7 @@
     overflow-x: hidden;
     text-overflow: ellipsis;
   }
-  &:hover .tooltip {
+  &:hover .overflow-tooltip {
     visibility: visible;
     opacity: 7;
     overflow: visible;
