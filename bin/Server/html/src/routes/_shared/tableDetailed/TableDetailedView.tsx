@@ -14,29 +14,74 @@ import {
 } from '../../../utils/dataFunctions'
 import {
   EditSetting,
+  ExportPKs,
+  ImportPKs,
   UIExportTableWithoutEnum,
   UITableWithoutEnum
 } from '../../../utils/interfaces'
-import { useCopyTable } from '../../../utils/mutations'
+import { useCopyTable, useDeleteTable } from '../../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRawTable } from '../../../utils/queries'
 import CopyIcon from '../../../assets/icons/CopyIcon'
+import DeleteIcon from '../../../assets/icons/DeleteIcon'
+import ConfirmationModal from '../../../components/modals/ConfirmationModal'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
 }
 
 function TableDetailedView({ type }: TableDetailedViewProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { database, table, connection, targetSchema, targetTable } = useParams()
 
-  const primaryKeys =
-    type === 'import'
-      ? database && table
-        ? { database, table }
+  const queryClient = useQueryClient()
+  const { mutate: copyTable } = useCopyTable()
+
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
+  const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+  const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
+
+  const { mutate: deleteTable } = useDeleteTable()
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+
+  const primaryKeys = useMemo(() => {
+    if (type === 'import') {
+      return database && table ? { database, table } : null
+    }
+    if (type === 'export') {
+      return connection && targetSchema && targetTable
+        ? { connection, targetSchema, targetTable }
         : null
-      : connection && targetSchema && targetTable
-      ? { connection, targetSchema, targetTable }
-      : null
+    }
+    return null
+  }, [type, database, table, connection, targetSchema, targetTable])
+
+  const handleDeleteIconClick = () => {
+    setShowDeleteConfirmation(true)
+  }
+
+  const handleDeleteTable = async () => {
+    setShowDeleteConfirmation(false)
+
+    deleteTable(
+      { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: [type, 'search'],
+            exact: false
+          })
+          console.log('Delete successful')
+          navigate(`/${type}`, { replace: true })
+        },
+        onError: (error) => {
+          console.error('Error deleting item', error)
+        }
+      }
+    )
+  }
 
   const { data: tableData } = useRawTable({
     type,
@@ -47,14 +92,6 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
 
   const exportDatabase = type === 'export' ? tableData?.database : null
 
-  const queryClient = useQueryClient()
-  const { mutate: copyTable } = useCopyTable()
-
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
-  const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
-  const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
-
   const encodedDatabase = encodeURIComponent(database ? database : '')
   const encodedTable = encodeURIComponent(table ? table : '')
   const encodedConnection = encodeURIComponent(connection ? connection : '')
@@ -62,9 +99,6 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     targetSchema ? targetSchema : ''
   )
   const encodedTargetTable = encodeURIComponent(targetTable ? targetTable : '')
-
-  const navigate = useNavigate()
-  const location = useLocation()
 
   const pathSegments =
     typeof location.pathname === 'string'
@@ -139,7 +173,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     }
   }
 
-  const handleCopySave = (
+  const handleSaveCopy = (
     type: 'import' | 'export',
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
@@ -147,7 +181,6 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
     console.log('tableData', tableData)
 
-    // Dynamically determine the new table data based on type
     const newCopyTableData =
       type === 'import'
         ? newCopyImportTableData(
@@ -161,19 +194,18 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
 
     console.log(newCopyTableData)
 
-    // Set the appropriate query keys and handle copy logic
     copyTable(
       { type, table: newCopyTableData },
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: [type, 'search'], // Dynamic queryKey for import/export
+            queryKey: [type, 'search'],
             exact: false
           })
 
           if (type === 'import') {
             queryClient.invalidateQueries({
-              queryKey: ['databases'], // Additional invalidation for import
+              queryKey: ['databases'],
               exact: false
             })
           }
@@ -196,6 +228,11 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
         icon: <CopyIcon />,
         label: `Copy table`,
         onClick: handleCopyIconClick
+      },
+      {
+        icon: <DeleteIcon />,
+        label: `Delete table`,
+        onClick: handleDeleteIconClick
       }
     ]
 
@@ -219,6 +256,9 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
 
     return items
   }, [tableData, type])
+
+  const tableName =
+    type === 'import' ? primaryKeys?.table : primaryKeys?.targetTable
 
   return (
     <>
@@ -282,8 +322,19 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             type={type}
             primaryKeys={primaryKeys}
             isCopyTableModalOpen={isCopyTableModalOpen}
-            onSave={handleCopySave}
+            onSave={handleSaveCopy}
             onClose={() => setIsCopyTableModalOpen(false)}
+          />
+        )}
+        {showDeleteConfirmation && (
+          <ConfirmationModal
+            title={`Delete ${tableName}`}
+            message={`Are you sure that you want to delete table "${tableName}"? \nDelete is irreversable.`}
+            buttonTitleCancel="No, Go Back"
+            buttonTitleConfirm="Yes, Delete"
+            onConfirm={handleDeleteTable}
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isActive={showDeleteConfirmation}
           />
         )}
       </ViewBaseLayout>

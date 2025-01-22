@@ -129,7 +129,7 @@ export const useDeleteConnection = () => {
 
 // IMPORT AND EXPORT
 
-interface TablePkProps {
+interface TablePkArgs {
   type: 'import' | 'export'
   primaryKeys: ImportPKs | ExportPKs
 }
@@ -168,7 +168,7 @@ const postRepairTable = async (
 }
 
 export const useRepairTable = () => {
-  return useMutation<void, AxiosError<ErrorData>, TablePkProps>({
+  return useMutation<void, AxiosError<ErrorData>, TablePkArgs>({
     mutationFn: ({ type, primaryKeys }) => {
       return postRepairTable(type, primaryKeys)
     }
@@ -209,7 +209,7 @@ const postResetTable = async (
 }
 
 export const useResetTable = () => {
-  return useMutation<void, AxiosError<ErrorData>, TablePkProps>({
+  return useMutation<void, AxiosError<ErrorData>, TablePkArgs>({
     mutationFn: ({ type, primaryKeys }) => postResetTable(type, primaryKeys)
   })
 }
@@ -304,6 +304,45 @@ export const useUpdateTable = () => {
     mutationFn: ({ type, table }) => {
       return postUpdateTable(type, table)
     }
+  })
+}
+
+// Delete table
+
+const deleteTable = async (
+  type: 'import' | 'export',
+  primaryKeys: ImportPKs | ExportPKs
+) => {
+  switch (type) {
+    case 'import': {
+      const { database, table } = primaryKeys as ImportPKs
+      const encodedDatabase = encodeURIComponent(database)
+      const encodedTable = encodeURIComponent(table)
+
+      const url = `/${type}/table/${encodedDatabase}/${encodedTable}`
+      console.log('url import', url)
+
+      const response = await axiosInstance.delete(url)
+      return response.data
+    }
+    case 'export': {
+      const { connection, targetSchema, targetTable } = primaryKeys as ExportPKs
+      const encodedConnection = encodeURIComponent(connection)
+      const encodedTargetSchema = encodeURIComponent(targetSchema)
+      const encodedTargetTable = encodeURIComponent(targetTable)
+
+      const url = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
+      console.log('url export', url)
+
+      const response = await axiosInstance.delete(url)
+      return response.data
+    }
+  }
+}
+
+export const useDeleteTable = () => {
+  return useMutation<void, AxiosError<ErrorData>, TablePkArgs>({
+    mutationFn: ({ type, primaryKeys }) => deleteTable(type, primaryKeys)
   })
 }
 

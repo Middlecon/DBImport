@@ -5,6 +5,7 @@ import { tableNameReadonlySettings } from '../../utils/cardRenderFormatting'
 import { useRepairTable } from '../../utils/mutations'
 import { ErrorData, ExportPKs, ImportPKs } from '../../utils/interfaces'
 import infoTexts from '../../infoTexts.json'
+import { isImportPKs } from '../../utils/functions'
 
 interface RepairTableModalProps {
   type: 'import' | 'export'
@@ -26,13 +27,6 @@ function RepairTableModal({
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const { mutate: repairTable } = useRepairTable()
-
-  function isImportPKs(
-    primaryKeys: ImportPKs | ExportPKs,
-    type: 'import' | 'export'
-  ): primaryKeys is ImportPKs {
-    return type === 'import' && !!primaryKeys
-  }
 
   const tableName = isImportPKs(primaryKeys, type)
     ? primaryKeys.table // Narrowed to ImportPKs

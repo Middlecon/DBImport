@@ -1,4 +1,4 @@
-import { EditSetting } from './interfaces'
+import { EditSetting, ExportPKs, ImportPKs } from './interfaces'
 
 /* eslint-disable no-useless-escape */
 export function validateEmails(input: HTMLInputElement) {
@@ -87,4 +87,11 @@ export const wildcardMatch = (
     // No wildcard: exact match
     return rowVal === inputVal
   }
+}
+
+export function isImportPKs(
+  primaryKeys: ImportPKs | ExportPKs,
+  type: 'import' | 'export'
+): primaryKeys is ImportPKs {
+  return type === 'import' && !!primaryKeys
 }
