@@ -713,7 +713,7 @@ export const generateConnectionStringFields: EditSetting[] = [
   {
     label: 'Port',
     value: null,
-    type: SettingType.Text,
+    type: SettingType.IntegerFromOneOrNull,
     maxChar: 8
     // infoText:
   }, // Free-text, varchar(8)
