@@ -993,9 +993,11 @@ export function renameImportTableSettings(
     {
       label: 'Database',
       value: prefilledDatabase,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.import.database
-    }, // Readonly here
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.import.database,
+      isRequired: true
+    }, //Free-text, required
     {
       label: 'Table',
       value: prefilledTable,
@@ -1017,16 +1019,19 @@ export function renameExportTableSettings(
     {
       label: 'Connection',
       value: prefilledConnection,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.export.connection
-    }, // Readonly here
-
+      type: SettingType.DataReferenceRequired,
+      maxChar: 256,
+      infoText: infoTexts.table.export.connection,
+      isRequired: true
+    }, //Connections-dropdown, default selected connection, varchar(256), required
     {
       label: 'Target Schema',
       value: prefilledTargetSchema,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.export.targetSchema
-    }, // Readonly here
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetSchema,
+      isRequired: true
+    }, // Free-text, varchar(256), required
     {
       label: 'Target Table',
       value: prefilledTargetTable,
