@@ -159,22 +159,19 @@ function ConnectionDetailedView() {
     <>
       <ViewBaseLayout>
         {connectionParam && (
-          <div className="detailed-view-header" style={{ paddingBottom: 30 }}>
+          <div className="detailed-view-header">
             <h1>{`${connectionParam}`}</h1>
             <div className="detailed-view-header-buttons">
-              <div>
-                <Button
-                  title="Import definintions"
-                  icon={<ImportIconSmall />}
-                  onClick={() => handleLinkClick('import', connectionParam)}
-                />
-                <Button
-                  title="Export definintions"
-                  icon={<ExportIconSmall />}
-                  onClick={() => handleLinkClick('export', connectionParam)}
-                  marginTop="8px"
-                />
-              </div>
+              <Button
+                title="Imports"
+                icon={<ImportIconSmall />}
+                onClick={() => handleLinkClick('import', connectionParam)}
+              />
+              <Button
+                title="Exports"
+                icon={<ExportIconSmall />}
+                onClick={() => handleLinkClick('export', connectionParam)}
+              />
               <DropdownActions
                 isDropdownActionsOpen={openDropdown === 'dropdownActions'}
                 onToggle={(isDropdownActionsOpen: boolean) =>

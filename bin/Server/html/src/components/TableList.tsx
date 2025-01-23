@@ -498,9 +498,7 @@ function TableList<T extends object>({
                   onClick={() =>
                     handleLinkClick('import', String(row['name' as keyof T]))
                   }
-                  onMouseEnter={(event) =>
-                    handleMouseEnter(event, 'Import definitions')
-                  }
+                  onMouseEnter={(event) => handleMouseEnter(event, 'Imports')}
                   onMouseLeave={handleMouseLeave}
                 >
                   <ImportIcon />
@@ -518,9 +516,7 @@ function TableList<T extends object>({
                   onClick={() =>
                     handleLinkClick('export', String(row['name' as keyof T]))
                   }
-                  onMouseEnter={(event) =>
-                    handleMouseEnter(event, 'Export definitions')
-                  }
+                  onMouseEnter={(event) => handleMouseEnter(event, 'Exports')}
                   onMouseLeave={handleMouseLeave}
                 >
                   <ExportIcon />
