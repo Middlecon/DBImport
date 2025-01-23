@@ -131,8 +131,11 @@ function CreateAirflowTaskModal({
 
   const handleInputChange = (
     index: number,
-    newValue: EditSettingValueTypes | null
+    newValue: EditSettingValueTypes | null,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     setPendingValidation(true)
 
     if (index < 0 || index >= editedSettings.length) {

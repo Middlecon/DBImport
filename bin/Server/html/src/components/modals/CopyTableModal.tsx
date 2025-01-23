@@ -239,8 +239,11 @@ function CopyTableModal({
 
   const handleSelect = (
     item: EditSettingValueTypes | null,
-    keyLabel?: string
+    keyLabel?: string,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     const index = editedSettings.findIndex(
       (setting) => setting.label === keyLabel
     )

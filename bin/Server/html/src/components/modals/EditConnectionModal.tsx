@@ -98,10 +98,12 @@ function EditConnectionModal({
 
   const handleInputChange = (
     index: number,
-    newValue: string | number | boolean | null
+    newValue: string | number | boolean | null,
+    isBlur?: boolean
   ) => {
-    // Creates a new array, copying all elements of editedSettings
+    if (isBlur) return
 
+    // Creates a new array, copying all elements of editedSettings
     const newSettings = [...editedSettings]
     const setting = newSettings[index]
     const currentValue = index === -1 ? null : newSettings[index].value

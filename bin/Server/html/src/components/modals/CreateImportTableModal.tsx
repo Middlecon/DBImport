@@ -134,8 +134,11 @@ function CreateImportTableModal({
 
   const handleInputChange = (
     index: number,
-    newValue: EditSettingValueTypes | null
+    newValue: EditSettingValueTypes | null,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return

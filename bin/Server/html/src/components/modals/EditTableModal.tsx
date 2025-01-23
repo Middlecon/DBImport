@@ -148,8 +148,11 @@ function EditTableModal({
 
   const handleInputChange = (
     index: number,
-    newValue: string | number | boolean | null
+    newValue: string | number | boolean | null,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     if (errorMessage && onResetErrorMessage) {
       onResetErrorMessage()
     }
