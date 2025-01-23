@@ -4,8 +4,10 @@ import {
   Column,
   DbTable,
   EditSetting,
+  ExportPKs,
   // EditSetting,
   HeadersRowInfo,
+  ImportPKs,
   ImportSearchFilter,
   UiDbTable,
   UITableWithoutEnum
@@ -23,7 +25,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteTables,
   useBulkUpdateTable,
-  useCopyTable
+  useCopyTable,
+  useDeleteTable
   // useDeleteImportTable,
   // useUpdateTable
 } from '../../utils/mutations'
@@ -42,6 +45,7 @@ import RepairTableModal from '../../components/modals/RepairTableModal'
 import ResetTableModal from '../../components/modals/ResetTableModal'
 import { useRawTable } from '../../utils/queries'
 import CopyTableModal from '../../components/modals/CopyTableModal'
+import RenameTableModal from '../../components/modals/RenameTableModal'
 
 function DbTables({
   data,
@@ -57,12 +61,14 @@ function DbTables({
   const queryClient = useQueryClient()
 
   const { mutate: copyTable } = useCopyTable()
+  const { mutate: deleteTable } = useDeleteTable()
 
   const { mutate: bulkUpdateTable } = useBulkUpdateTable()
   const { mutate: bulkDeleteTable } = useBulkDeleteTables()
 
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+  const [isRenameTableModalOpen, setIsRenameTableModalOpen] = useState(false)
   const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
 
   const [selectedRow, setSelectedRow] = useState<UiDbTable>()
@@ -112,7 +118,7 @@ function DbTables({
         header: 'Include in Airflow',
         accessor: 'includeInAirflow'
       },
-      { header: 'Actions', isAction: 'repairAndResetAndCopy' }
+      { header: 'Actions', isAction: 'repairAndResetAndRenameAndCopy' }
     ],
     []
   )
@@ -125,6 +131,66 @@ function DbTables({
   const handleResetIconClick = (row: UiDbTable) => {
     setSelectedRow(row)
     setIsResetTableModalOpen(true)
+  }
+
+  const handleRenameIconClick = (row: UiDbTable) => {
+    console.log('row', row)
+    setSelectedRow(row)
+    setIsRenameTableModalOpen(true)
+  }
+
+  const handleSaveRename = (
+    type: 'import' | 'export',
+    tablePrimaryKeysSettings: EditSetting[]
+  ) => {
+    if (!tableData) return
+    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
+    console.log('tableData', tableData)
+
+    const newCopyTableData = newCopyImportTableData(
+      tableData as UITableWithoutEnum,
+      tablePrimaryKeysSettings
+    )
+
+    console.log(newCopyTableData)
+
+    copyTable(
+      { type, table: newCopyTableData },
+      {
+        onSuccess: (response) => {
+          console.log('Save renamned copy successful', response)
+          console.log('primaryKeys', primaryKeys)
+
+          deleteTable(
+            { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({
+                  queryKey: [type, 'search'],
+                  exact: false
+                })
+                if (type === 'import') {
+                  queryClient.invalidateQueries({
+                    queryKey: ['databases'],
+                    exact: false
+                  })
+                }
+
+                console.log('Delete original successful, rename successful')
+
+                setIsRenameTableModalOpen(false)
+              },
+              onError: (error) => {
+                console.error('Error deleting table', error)
+              }
+            }
+          )
+        },
+        onError: (error) => {
+          console.error('Error copy table', error)
+        }
+      }
+    )
   }
 
   const handleCopyIconClick = (row: UiDbTable) => {
@@ -302,6 +368,7 @@ function DbTables({
             data={data}
             onRepair={handleRepairIconClick}
             onReset={handleResetIconClick}
+            onRename={handleRenameIconClick}
             onCopy={handleCopyIconClick}
             isLoading={isLoading}
             rowSelection={rowSelection}
@@ -354,6 +421,15 @@ function DbTables({
           primaryKeys={primaryKeys}
           isResetTableModalOpen={isResetTableModalOpen}
           onClose={() => setIsResetTableModalOpen(false)}
+        />
+      )}
+      {isRenameTableModalOpen && primaryKeys && tableData && (
+        <RenameTableModal
+          type="import"
+          primaryKeys={primaryKeys}
+          isRenameTableModalOpen={isRenameTableModalOpen}
+          onSave={handleSaveRename}
+          onClose={() => setIsRenameTableModalOpen(false)}
         />
       )}
       {isCopyTableModalOpen && primaryKeys && selectedRow && tableData && (

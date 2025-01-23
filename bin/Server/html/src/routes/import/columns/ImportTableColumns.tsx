@@ -6,11 +6,13 @@ import EditTableModal from '../../../components/modals/EditTableModal'
 import { updateTableData } from '../../../utils/dataFunctions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateTable } from '../../../utils/mutations'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import '../../../components/Loading.scss'
 import { importColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 
 function TableColumns() {
+  const navigate = useNavigate()
+
   const { database, table: tableParam } = useParams<{
     database: string
     table: string
@@ -19,7 +21,8 @@ function TableColumns() {
   const {
     data: tableData,
     isLoading,
-    isError
+    isError,
+    error
   } = useImportTable(database, tableParam)
 
   const queryClient = useQueryClient()
@@ -78,6 +81,12 @@ function TableColumns() {
   )
 
   if (isError) {
+    if (error.status === 404) {
+      console.log(
+        `GET table: ${error.message} ${error.response?.statusText}, re-routing to /import`
+      )
+      navigate(`/import`, { replace: true })
+    }
     return <div className="error">Server error occurred.</div>
   }
   if (!tableData && !isError) return <div className="loading">Loading...</div>

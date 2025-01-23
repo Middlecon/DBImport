@@ -25,6 +25,8 @@ import { useRawTable } from '../../../utils/queries'
 import CopyIcon from '../../../assets/icons/CopyIcon'
 import DeleteIcon from '../../../assets/icons/DeleteIcon'
 import ConfirmationModal from '../../../components/modals/ConfirmationModal'
+import RenameIcon from '../../../assets/icons/RenameIcon'
+import RenameTableModal from '../../../components/modals/RenameTableModal'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -41,6 +43,10 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isRepairTableModalOpen, setIsRepairTableModalOpen] = useState(false)
   const [isResetTableModalOpen, setIsResetTableModalOpen] = useState(false)
+
+  const [isRenameTableModalOpen, setIsRenameTableModalOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const [isCopyTableModalOpen, setIsCopyTableModalOpen] = useState(false)
 
   const { mutate: deleteTable } = useDeleteTable()
@@ -161,16 +167,106 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     setIsResetTableModalOpen(true)
   }
 
-  const handleCopyIconClick = () => {
-    setIsCopyTableModalOpen(true)
+  const handleRenameIconClick = () => {
+    setIsRenameTableModalOpen(true)
   }
 
-  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setOpenDropdown(dropdownId)
-    } else if (openDropdown === dropdownId) {
-      setOpenDropdown(null)
-    }
+  const handleSaveRename = (
+    type: 'import' | 'export',
+    tablePrimaryKeysSettings: EditSetting[]
+  ) => {
+    if (!tableData) return
+    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
+    console.log('tableData', tableData)
+
+    const newCopyTableData =
+      type === 'import'
+        ? newCopyImportTableData(
+            tableData as UITableWithoutEnum,
+            tablePrimaryKeysSettings
+          )
+        : newCopyExportTableData(
+            tableData as UIExportTableWithoutEnum,
+            tablePrimaryKeysSettings
+          )
+
+    console.log(newCopyTableData)
+
+    copyTable(
+      { type, table: newCopyTableData },
+      {
+        onSuccess: (response) => {
+          console.log('Save renamned copy successful', response)
+          console.log('primaryKeys', primaryKeys)
+
+          deleteTable(
+            { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({
+                  queryKey: [type, 'search'],
+                  exact: false
+                })
+
+                queryClient.removeQueries({
+                  queryKey: [
+                    type,
+                    type === 'import'
+                      ? primaryKeys?.database
+                      : primaryKeys?.connection,
+                    type === 'import'
+                      ? primaryKeys?.table
+                      : primaryKeys?.targetTable
+                  ],
+                  exact: true
+                })
+
+                console.log('Delete original successful, rename successful')
+
+                const encodedNewTableName = encodeURIComponent(
+                  newCopyTableData.table ? newCopyTableData.table : ''
+                )
+                const encodedNewTargetTableName = encodeURIComponent(
+                  newCopyTableData.targetTable
+                    ? (newCopyTableData.targetTable as string)
+                    : ''
+                )
+
+                setIsRenameTableModalOpen(false)
+
+                if (type === 'import') {
+                  navigate(
+                    `/import/${encodedDatabase}/${encodedNewTableName}/settings`,
+                    {
+                      replace: true
+                    }
+                  )
+                } else if (type === 'export') {
+                  navigate(
+                    `/export/${encodedConnection}/${encodedTargetSchema}/${encodedNewTargetTableName}/settings`,
+                    {
+                      replace: true
+                    }
+                  )
+                }
+              },
+              onError: (error) => {
+                console.error('Error deleting table', error)
+                setErrorMessage(error.message)
+              }
+            }
+          )
+        },
+        onError: (error) => {
+          console.error('Error copy table', error)
+          setErrorMessage(error.message)
+        }
+      }
+    )
+  }
+
+  const handleCopyIconClick = () => {
+    setIsCopyTableModalOpen(true)
   }
 
   const handleSaveCopy = (
@@ -211,7 +307,8 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
           }
 
           console.log('Save table copy successful', response)
-          setIsCopyTableModalOpen(false)
+          handleDeleteTable()
+          // setIsCopyTableModalOpen(false)
         },
         onError: (error) => {
           console.error('Error copy table', error)
@@ -220,18 +317,31 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     )
   }
 
+  const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
+    if (isOpen) {
+      setOpenDropdown(dropdownId)
+    } else if (openDropdown === dropdownId) {
+      setOpenDropdown(null)
+    }
+  }
+
   const dropdownActionsItems = useMemo(() => {
     if (!tableData) return []
 
     const items = [
       {
+        icon: <RenameIcon />,
+        label: 'Rename',
+        onClick: handleRenameIconClick
+      },
+      {
         icon: <CopyIcon />,
-        label: `Copy table`,
+        label: 'Copy',
         onClick: handleCopyIconClick
       },
       {
         icon: <DeleteIcon />,
-        label: `Delete table`,
+        label: 'Delete',
         onClick: handleDeleteIconClick
       }
     ]
@@ -243,12 +353,12 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
       items.unshift(
         {
           icon: <RepairIcon />,
-          label: `Repair table`,
+          label: 'Repair',
           onClick: handleRepairTableClick
         },
         {
           icon: <ResetIcon />,
-          label: `Reset table`,
+          label: 'Reset',
           onClick: handleResetTableClick
         }
       )
@@ -315,6 +425,16 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             isResetTableModalOpen={isResetTableModalOpen}
             onClose={() => setIsResetTableModalOpen(false)}
             exportDatabase={exportDatabase ? exportDatabase : ''}
+          />
+        )}
+        {isRenameTableModalOpen && primaryKeys && tableData && (
+          <RenameTableModal
+            type={type}
+            primaryKeys={primaryKeys}
+            isRenameTableModalOpen={isRenameTableModalOpen}
+            onSave={handleSaveRename}
+            onClose={() => setIsRenameTableModalOpen(false)}
+            errorMessage={errorMessage}
           />
         )}
         {isCopyTableModalOpen && primaryKeys && tableData && (

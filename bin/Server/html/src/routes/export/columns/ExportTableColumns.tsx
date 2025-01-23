@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import '../../../components/Loading.scss'
 import { Column, EditSetting, ExportColumns } from '../../../utils/interfaces'
 import { useUpdateTable } from '../../../utils/mutations'
@@ -11,6 +11,8 @@ import { updateExportTableData } from '../../../utils/dataFunctions'
 import { exportColumnRowDataEdit } from '../../../utils/cardRenderFormatting'
 
 function ExportTableColumns() {
+  const navigate = useNavigate()
+
   const { connection, targetSchema, targetTable } = useParams<{
     connection: string
     targetSchema: string
@@ -20,7 +22,8 @@ function ExportTableColumns() {
   const {
     data: tableData,
     isLoading,
-    isError
+    isError,
+    error
   } = useExportTable(connection, targetSchema, targetTable)
 
   const queryClient = useQueryClient()
@@ -69,8 +72,15 @@ function ExportTableColumns() {
   )
 
   if (isError) {
+    if (error.status === 404) {
+      console.log(
+        `GET table: ${error.message} ${error.response?.statusText}, re-routing to /export`
+      )
+      navigate(`/export`, { replace: true })
+    }
     return <div className="error">Server error occurred.</div>
   }
+
   if (!tableData && !isError) return <div className="loading">Loading...</div>
 
   const handleSave = (updatedSettings: EditSetting[]) => {

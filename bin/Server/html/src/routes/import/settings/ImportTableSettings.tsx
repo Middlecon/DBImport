@@ -1,18 +1,26 @@
 import '../../_shared/tableDetailed/settings/TableSettings.scss'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import '../../../components/Loading.scss'
 import { importCardRenderSettings } from '../../../utils/cardRenderFormatting'
 import { useImportTable } from '../../../utils/queries'
 import Card from '../../_shared/tableDetailed/settings/Card'
 
 function ImportTableSettings() {
+  const navigate = useNavigate()
+
   const { database, table: tableParam } = useParams<{
     database: string
     table: string
   }>()
-  const { data: table, isError } = useImportTable(database, tableParam)
+  const { data: table, isError, error } = useImportTable(database, tableParam)
 
   if (isError) {
+    if (error.status === 404) {
+      console.log(
+        `GET table: ${error.message} ${error.response?.statusText}, re-routing to /import`
+      )
+      navigate(`/import`, { replace: true })
+    }
     return <div className="error">Server error occurred.</div>
   }
   if (!table && !isError) return <div className="loading">Loading...</div>

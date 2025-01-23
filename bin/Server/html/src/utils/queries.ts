@@ -12,6 +12,7 @@ import {
   CustomAirflowDAG,
   Database,
   DbTable,
+  ErrorData,
   ExportAirflowDAG,
   ExportCnTable,
   ExportConnections,
@@ -55,7 +56,8 @@ import {
 import {
   AxiosResponseHeaders,
   AxiosHeaderValue,
-  RawAxiosResponseHeaders
+  RawAxiosResponseHeaders,
+  AxiosError
 } from 'axios'
 
 // CONNECTION
@@ -321,7 +323,7 @@ export const fetchTableData = async (
 export const useImportTable = (
   database?: string,
   table?: string
-): UseQueryResult<UITable, Error> => {
+): UseQueryResult<UITable, AxiosError<ErrorData>> => {
   return useQuery({
     queryKey: ['import', database, table],
     queryFn: () => fetchTableData(database!, table!), // We are sure that database and table is not null here because of the enabled flag
@@ -483,7 +485,7 @@ export const useExportTable = (
   connection?: string,
   targetSchema?: string,
   targetTable?: string
-): UseQueryResult<UIExportTable, Error> => {
+): UseQueryResult<UIExportTable, AxiosError<ErrorData>> => {
   return useQuery({
     queryKey: ['export', connection, targetTable],
     queryFn: () =>

@@ -362,6 +362,7 @@
     "generateDag": "",
     "repairTable": "",
     "resetTable": "",
+    "renameTable": "",
     "copyTable": ""
   }
 }

@@ -579,7 +579,7 @@ export interface Column<T> {
     | 'repair'
     | 'reset'
     | 'copy'
-    | 'repairAndResetAndCopy'
+    | 'repairAndResetAndRenameAndCopy'
     | 'copyAndDelete'
     | 'testAndEncryptAndDelete'
   isLink?: 'connectionLink' | 'airflowLink'

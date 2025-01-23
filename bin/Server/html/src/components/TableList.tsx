@@ -25,6 +25,7 @@ import CopyIcon from '../assets/icons/CopyIcon'
 import TestConnectionIcon from '../assets/icons/TestConnectionIcon'
 import EncryptIcon from '../assets/icons/EncryptIcon'
 import Tooltip from './Tooltip'
+import RenameIcon from '../assets/icons/RenameIcon'
 
 interface TableProps<T extends object> {
   columns: Column<T>[]
@@ -39,6 +40,7 @@ interface TableProps<T extends object> {
   onGenerate?: (row: T) => void
   onRepair?: (row: T) => void
   onReset?: (row: T) => void
+  onRename?: (row: T, rowIndex?: number) => void
   onCopy?: (row: T, rowIndex?: number) => void
   onTestConnection?: (row: T, rowIndex?: number) => void
   onEncryptCredentials?: (row: T) => void
@@ -61,6 +63,7 @@ function TableList<T extends object>({
   onGenerate,
   onRepair,
   onReset,
+  onRename,
   onCopy,
   onTestConnection,
   onEncryptCredentials,
@@ -628,7 +631,7 @@ function TableList<T extends object>({
             ) : null}
             {isRepairAndResetEnabled &&
             (column.isAction === 'repair' ||
-              column.isAction === 'repairAndResetAndCopy') ? (
+              column.isAction === 'repairAndResetAndRenameAndCopy') ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
@@ -640,9 +643,7 @@ function TableList<T extends object>({
                   clearTooltip()
                 }}
                 disabled={!onRepair}
-                onMouseEnter={(event) =>
-                  handleMouseEnter(event, 'Repair table')
-                }
+                onMouseEnter={(event) => handleMouseEnter(event, 'Repair')}
                 onMouseLeave={handleMouseLeave}
               >
                 <RepairIcon />
@@ -657,7 +658,7 @@ function TableList<T extends object>({
             ) : null}
             {isRepairAndResetEnabled &&
             (column.isAction === 'reset' ||
-              column.isAction === 'repairAndResetAndCopy') ? (
+              column.isAction === 'repairAndResetAndRenameAndCopy') ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
@@ -669,7 +670,7 @@ function TableList<T extends object>({
                   clearTooltip()
                 }}
                 disabled={!onReset}
-                onMouseEnter={(event) => handleMouseEnter(event, 'Reset table')}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Reset')}
                 onMouseLeave={handleMouseLeave}
               >
                 <ResetIcon />
@@ -681,8 +682,32 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
+            {column.isAction === 'repairAndResetAndRenameAndCopy' ? (
+              <button
+                className={`actions-reset-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => {
+                  if (onRename) {
+                    onRename(row)
+                  }
+                  clearTooltip()
+                }}
+                disabled={!onRename}
+                onMouseEnter={(event) => handleMouseEnter(event, 'Rename')}
+                onMouseLeave={handleMouseLeave}
+              >
+                <RenameIcon />
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
+                )}
+              </button>
+            ) : null}
             {column.isAction === 'copy' ||
-            column.isAction === 'repairAndResetAndCopy' ||
+            column.isAction === 'repairAndResetAndRenameAndCopy' ||
             column.isAction === 'copyAndDelete' ? (
               <button
                 className={`actions-reset-button ${
@@ -807,6 +832,7 @@ function TableList<T extends object>({
       onGenerate,
       onRepair,
       onReset,
+      onRename,
       onCopy,
       onTestConnection,
       onEncryptCredentials,

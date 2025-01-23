@@ -985,6 +985,60 @@ export function tableNameReadonlySettings(
   return settings
 }
 
+export function renameImportTableSettings(
+  prefilledDatabase: string,
+  prefilledTable: string
+) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Database',
+      value: prefilledDatabase,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.import.database
+    }, // Readonly here
+    {
+      label: 'Table',
+      value: prefilledTable,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.import.table,
+      isRequired: true
+    } // Free-text, required
+  ]
+  return settings
+}
+
+export function renameExportTableSettings(
+  prefilledConnection: string,
+  prefilledTargetTable: string,
+  prefilledTargetSchema: string
+) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Connection',
+      value: prefilledConnection,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.export.connection
+    }, // Readonly here
+
+    {
+      label: 'Target Schema',
+      value: prefilledTargetSchema,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.export.targetSchema
+    }, // Readonly here
+    {
+      label: 'Target Table',
+      value: prefilledTargetTable,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetTable,
+      isRequired: true
+    } // Free-text, varchar(256), required
+  ]
+  return settings
+}
+
 export function copyImportTableSettings(
   prefilledDatabase: string,
   prefilledTable: string
@@ -1025,19 +1079,19 @@ export function copyExportTableSettings(
       isRequired: true
     }, //Connections-dropdown, default selected connection, varchar(256), required
     {
-      label: 'Target Table',
-      value: prefilledTargetTable,
-      type: SettingType.Text,
-      maxChar: 256,
-      infoText: infoTexts.table.export.targetTable,
-      isRequired: true
-    }, // Free-text, varchar(256), required
-    {
       label: 'Target Schema',
       value: prefilledTargetSchema,
       type: SettingType.Text,
       maxChar: 256,
       infoText: infoTexts.table.export.targetSchema,
+      isRequired: true
+    }, // Free-text, varchar(256), required
+    {
+      label: 'Target Table',
+      value: prefilledTargetTable,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetTable,
       isRequired: true
     } // Free-text, varchar(256), required
   ]
@@ -2011,16 +2065,16 @@ export function exportCardRenderSettings(table: UIExportTable) {
       infoText: infoTexts.table.export.connection
     }, // Read-only, required
     {
-      label: 'Target Table',
-      value: table.targetTable,
-      type: SettingType.Readonly,
-      infoText: infoTexts.table.export.targetTable
-    }, // Read-only, required
-    {
       label: 'Target Schema',
       value: table.targetSchema,
       type: SettingType.Readonly,
       infoText: infoTexts.table.export.targetSchema
+    }, // Read-only, required
+    {
+      label: 'Target Table',
+      value: table.targetTable,
+      type: SettingType.Readonly,
+      infoText: infoTexts.table.export.targetTable
     }, // Read-only, required
 
     {
@@ -2394,19 +2448,19 @@ export function initialCreateExportTableSettings(
       isRequired: true
     }, //Connections-dropdown, default selected connection, varchar(256), required
     {
-      label: 'Target Table',
-      value: null,
-      type: SettingType.Text,
-      maxChar: 256,
-      infoText: infoTexts.table.export.targetTable,
-      isRequired: true
-    }, // Free-text, varchar(256), required
-    {
       label: 'Target Schema',
       value: null,
       type: SettingType.Text,
       maxChar: 256,
       infoText: infoTexts.table.export.targetSchema,
+      isRequired: true
+    }, // Free-text, varchar(256), required
+    {
+      label: 'Target Table',
+      value: null,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.table.export.targetTable,
       isRequired: true
     }, // Free-text, varchar(256), required
     {
