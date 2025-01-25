@@ -167,7 +167,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     setIsResetTableModalOpen(true)
   }
 
-  const handleRenameIconClick = () => {
+  const handleRenameTableClick = () => {
     setIsRenameTableModalOpen(true)
   }
 
@@ -236,14 +236,14 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
 
                 if (type === 'import') {
                   navigate(
-                    `/import/${encodedDatabase}/${encodedNewTableName}/settings`,
+                    `/import/${encodedDatabase}/${encodedNewTableName}/${selectedTab}`,
                     {
                       replace: true
                     }
                   )
                 } else if (type === 'export') {
                   navigate(
-                    `/export/${encodedConnection}/${encodedTargetSchema}/${encodedNewTargetTableName}/settings`,
+                    `/export/${encodedConnection}/${encodedTargetSchema}/${encodedNewTargetTableName}/${selectedTab}`,
                     {
                       replace: true
                     }
@@ -332,7 +332,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
       {
         icon: <RenameIcon />,
         label: 'Rename',
-        onClick: handleRenameIconClick
+        onClick: handleRenameTableClick
       },
       {
         icon: <CopyIcon />,

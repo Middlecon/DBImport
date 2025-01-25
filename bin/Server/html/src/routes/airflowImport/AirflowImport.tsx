@@ -1,7 +1,7 @@
 import '../import/Import.scss'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
-import { useImportAirflows } from '../../utils/queries'
+import { useAirflowDAG, useImportAirflows } from '../../utils/queries'
 import {
   AirflowsImportData,
   BulkUpdateAirflowDAG,
@@ -16,7 +16,9 @@ import TableList from '../../components/TableList'
 import Button from '../../components/Button'
 import {
   useBulkDeleteAirflowDags,
-  useBulkUpdateAirflowDag
+  useBulkUpdateAirflowDag,
+  useCreateAirflowDag,
+  useDeleteAirflowDAG
 } from '../../utils/mutations'
 import { useQueryClient } from '@tanstack/react-query'
 import ListRowsInfo from '../../components/ListRowsInfo'
@@ -28,6 +30,8 @@ import AirflowImportActions from './AirflowImportActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
+import { newCopyDagData } from '../../utils/dataFunctions'
 
 // const checkboxFilters = [
 //   {
@@ -64,12 +68,16 @@ function AirflowImport() {
   const { data: dags, isLoading } = useImportAirflows()
 
   const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
+  const [isRenameAirflowDagModalOpen, setIsRenameAirflowDagModalOpen] =
+    useState(false)
+
+  const { mutate: createDAG } = useCreateAirflowDag()
+  const { mutate: deleteDag } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
   const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
-  const [selectedGenerateRow, setSelectedGenerateRow] =
-    useState<UiAirflowsImportData>()
+  const [selectedRow, setSelectedRow] = useState<UiAirflowsImportData>()
 
   const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -89,9 +97,14 @@ function AirflowImport() {
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
       { header: 'Filter Table', accessor: 'filterTable' },
       { header: 'Links', isLink: 'airflowLink' },
-      { header: 'Actions', isAction: 'generateDag' }
+      { header: 'Actions', isAction: 'generateDagAndRename' }
     ],
     []
+  )
+
+  const { data: dagData } = useAirflowDAG(
+    'import',
+    selectedRow ? selectedRow.name : undefined
   )
 
   const bulkAirflowDagFields = bulkAirflowDagFieldsData('import')
@@ -104,8 +117,62 @@ function AirflowImport() {
   // }
 
   const handleGenerateIconClick = (row: UiAirflowsImportData) => {
-    setSelectedGenerateRow(row)
+    setSelectedRow(row)
     setIsGenDagModalOpen(true)
+  }
+
+  const handleRenameIconClick = (row: UiAirflowsImportData) => {
+    console.log('row', row)
+    setSelectedRow(row)
+    setIsRenameAirflowDagModalOpen(true)
+  }
+
+  const handleSaveRename = (newDagName: string) => {
+    if (!selectedRow || !dagData) return
+
+    const dagName = selectedRow.name
+    console.log('old dagName', dagName)
+    console.log('newDagName', newDagName)
+
+    const newDagDataCopy = newCopyDagData(newDagName, dagData)
+
+    console.log('newDagDataCopy', newDagDataCopy)
+
+    createDAG(
+      { type: 'import', dagData: newDagDataCopy },
+      {
+        onSuccess: (response) => {
+          console.log('Save renamned copy successful', response)
+
+          deleteDag(
+            { type: 'import', dagName },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({
+                  queryKey: ['airflows', 'import'],
+                  exact: true
+                })
+
+                queryClient.removeQueries({
+                  queryKey: [['airflows', 'import', dagName]],
+                  exact: true
+                })
+
+                console.log('Delete original successful, rename successful')
+
+                setIsRenameAirflowDagModalOpen(false)
+              },
+              onError: (error) => {
+                console.error('Error deleting DAG:', error)
+              }
+            }
+          )
+        },
+        onError: (error) => {
+          console.error('Error creating DAG:', error)
+        }
+      }
+    )
   }
 
   const filteredData = useMemo(() => {
@@ -276,6 +343,7 @@ function AirflowImport() {
               data={filteredData}
               isLoading={isLoading}
               onGenerate={handleGenerateIconClick}
+              onRename={handleRenameIconClick}
               airflowType="import"
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
@@ -320,11 +388,20 @@ function AirflowImport() {
           />
         )}
 
-        {isGenDagModalOpen && selectedGenerateRow && (
+        {isGenDagModalOpen && selectedRow && (
           <GenerateDagModal
-            dagName={selectedGenerateRow.name}
+            dagName={selectedRow.name}
             isGenDagModalOpen={isGenDagModalOpen}
             onClose={() => setIsGenDagModalOpen(false)}
+          />
+        )}
+        {isRenameAirflowDagModalOpen && selectedRow && (
+          <RenameAirflowModal
+            type="import"
+            dagName={selectedRow.name}
+            isRenameAirflowModalOpen={isRenameAirflowDagModalOpen}
+            onSave={handleSaveRename}
+            onClose={() => setIsRenameAirflowDagModalOpen(false)}
           />
         )}
       </ViewBaseLayout>

@@ -698,7 +698,7 @@ export const useAirflowDAG = (
   dagName?: string
 ): UseQueryResult<
   ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG,
-  Error
+  AxiosError<ErrorData>
 > => {
   return useQuery({
     queryKey: ['airflows', type, dagName],

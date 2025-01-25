@@ -40,11 +40,11 @@ function AirflowCustomActions({ dags }: AirflowCustomActionsProps) {
             queryClient.invalidateQueries({
               queryKey: ['airflows', 'custom']
             })
-            console.log('Update successful', response)
+            console.log('Create DAG successful', response)
             setIsCreateModalOpen(false)
           },
           onError: (error) => {
-            console.error('Error updating table', error)
+            console.error('Error creating DAG', error)
           }
         }
       )

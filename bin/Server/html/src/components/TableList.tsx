@@ -602,7 +602,8 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'generateDag' ? (
+            {column.isAction === 'generateDag' ||
+            column.isAction === 'generateDagAndRename' ? (
               <button
                 className={`actions-edit-button ${
                   isFirstActionCell ? 'first' : ''
@@ -614,9 +615,7 @@ function TableList<T extends object>({
                   clearTooltip()
                 }}
                 disabled={!onGenerate}
-                onMouseEnter={(event) =>
-                  handleMouseEnter(event, 'Generate DAG')
-                }
+                onMouseEnter={(event) => handleMouseEnter(event, 'Generate')}
                 onMouseLeave={handleMouseLeave}
               >
                 <GenerateDAGIcon />
@@ -682,7 +681,9 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'repairAndResetAndRenameAndCopy' ? (
+            {column.isAction === 'rename' ||
+            column.isAction === 'generateDagAndRename' ||
+            column.isAction === 'repairAndResetAndRenameAndCopy' ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''

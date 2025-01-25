@@ -1,7 +1,7 @@
 import '../import/Import.scss'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
-import { useCustomAirflows } from '../../utils/queries'
+import { useAirflowDAG, useCustomAirflows } from '../../utils/queries'
 import {
   AirflowsCustomData,
   BulkUpdateAirflowDAG,
@@ -15,7 +15,9 @@ import Button from '../../components/Button'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   useBulkDeleteAirflowDags,
-  useBulkUpdateAirflowDag
+  useBulkUpdateAirflowDag,
+  useCreateAirflowDag,
+  useDeleteAirflowDAG
 } from '../../utils/mutations'
 
 import ListRowsInfo from '../../components/ListRowsInfo'
@@ -26,6 +28,8 @@ import AirflowCustomActions from './AirflowCustomActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
 import BulkEditModal from '../../components/modals/BulkEditModal'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
+import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
+import { newCopyDagData } from '../../utils/dataFunctions'
 
 // const checkboxFilters = [
 //   {
@@ -50,7 +54,7 @@ function AirflowCustom() {
       (param) => !validParams.includes(param)
     )
     if (hasInvalidParams) {
-      navigate('/airflow/import', { replace: true })
+      navigate('/airflow/custom', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allSearchParams, navigate])
@@ -62,12 +66,16 @@ function AirflowCustom() {
   const { data: dags, isLoading } = useCustomAirflows()
 
   const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
+  const [isRenameAirflowDagModalOpen, setIsRenameAirflowDagModalOpen] =
+    useState(false)
+
+  const { mutate: createDAG } = useCreateAirflowDag()
+  const { mutate: deleteDag } = useDeleteAirflowDAG()
 
   const { mutate: bulkUpdateDag } = useBulkUpdateAirflowDag()
   const { mutate: bulkDeleteAirflowDags } = useBulkDeleteAirflowDags()
 
-  const [selectedGenerateRow, setSelectedGenerateRow] =
-    useState<UiAirflowsCustomData>()
+  const [selectedRow, setSelectedRow] = useState<UiAirflowsCustomData>()
 
   const [selectedRowsBulk, setSelectedRowsBulk] = useState<
     UiBulkAirflowDAG[] | []
@@ -86,9 +94,14 @@ function AirflowCustom() {
       { header: 'Schedule Interval', accessor: 'scheduleInterval' },
       { header: 'Auto Regenerate DAG', accessor: 'autoRegenerateDag' },
       { header: 'Links', isLink: 'airflowLink' },
-      { header: 'Actions', isAction: 'generateDag' }
+      { header: 'Actions', isAction: 'generateDagAndRename' }
     ],
     []
+  )
+
+  const { data: dagData } = useAirflowDAG(
+    'custom',
+    selectedRow ? selectedRow.name : undefined
   )
 
   const bulkAirflowDagFields = bulkAirflowDagFieldsData('custom')
@@ -101,8 +114,62 @@ function AirflowCustom() {
   // }
 
   const handleGenerateIconClick = (row: UiAirflowsCustomData) => {
-    setSelectedGenerateRow(row)
+    setSelectedRow(row)
     setIsGenDagModalOpen(true)
+  }
+
+  const handleRenameIconClick = (row: UiAirflowsCustomData) => {
+    console.log('row', row)
+    setSelectedRow(row)
+    setIsRenameAirflowDagModalOpen(true)
+  }
+
+  const handleSaveRename = (newDagName: string) => {
+    if (!selectedRow || !dagData) return
+
+    const dagName = selectedRow.name
+    console.log('old dagName', dagName)
+    console.log('newDagName', newDagName)
+
+    const newDagDataCopy = newCopyDagData(newDagName, dagData)
+
+    console.log('newDagDataCopy', newDagDataCopy)
+
+    createDAG(
+      { type: 'custom', dagData: newDagDataCopy },
+      {
+        onSuccess: (response) => {
+          console.log('Save renamned copy successful', response)
+
+          deleteDag(
+            { type: 'custom', dagName },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({
+                  queryKey: ['airflows', 'custom'],
+                  exact: true
+                })
+
+                queryClient.removeQueries({
+                  queryKey: [['airflows', 'custom', dagName]],
+                  exact: true
+                })
+
+                console.log('Delete original successful, rename successful')
+
+                setIsRenameAirflowDagModalOpen(false)
+              },
+              onError: (error) => {
+                console.error('Error deleting DAG:', error)
+              }
+            }
+          )
+        },
+        onError: (error) => {
+          console.error('Error creating DAG:', error)
+        }
+      }
+    )
   }
 
   const filteredData = useMemo(() => {
@@ -153,7 +220,7 @@ function AirflowCustom() {
       {
         onSuccess: (response) => {
           queryClient.invalidateQueries({
-            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'custom'
             exact: false
           })
           console.log('Update successful', response)
@@ -190,7 +257,7 @@ function AirflowCustom() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'import'
+            queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'custom'
             exact: false
           })
           console.log('Delete successful')
@@ -273,6 +340,7 @@ function AirflowCustom() {
               data={filteredData}
               isLoading={isLoading}
               onGenerate={handleGenerateIconClick}
+              onRename={handleRenameIconClick}
               airflowType="custom"
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
@@ -315,11 +383,20 @@ function AirflowCustom() {
             isActive={showBulkDeleteConfirmation}
           />
         )}
-        {isGenDagModalOpen && selectedGenerateRow && (
+        {isGenDagModalOpen && selectedRow && (
           <GenerateDagModal
-            dagName={selectedGenerateRow.name}
+            dagName={selectedRow.name}
             isGenDagModalOpen={isGenDagModalOpen}
             onClose={() => setIsGenDagModalOpen(false)}
+          />
+        )}
+        {isRenameAirflowDagModalOpen && selectedRow && (
+          <RenameAirflowModal
+            type="custom"
+            dagName={selectedRow.name}
+            isRenameAirflowModalOpen={isRenameAirflowDagModalOpen}
+            onSave={handleSaveRename}
+            onClose={() => setIsRenameAirflowDagModalOpen(false)}
           />
         )}
       </ViewBaseLayout>

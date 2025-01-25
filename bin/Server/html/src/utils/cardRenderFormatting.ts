@@ -402,6 +402,24 @@ export function initialCreateAirflowSettings(
   return combinedAirflowDagSettings
 }
 
+export function renameAirflowSettings(
+  airflowType: 'import' | 'export' | 'custom',
+  dagName: string
+) {
+  const settings: EditSetting[] = [
+    {
+      label: 'DAG Name',
+      value: dagName,
+      type: SettingType.Text,
+      maxChar: 64,
+      infoText: infoTexts.airflow[airflowType].name,
+      isRequired: true
+    } //Free-text, varchar(64), have to be unique across import, export and custom, required
+  ]
+
+  return settings
+}
+
 export function airflowTaskRowDataEdit(row: AirflowTask) {
   const rowData: EditSetting[] = [
     {

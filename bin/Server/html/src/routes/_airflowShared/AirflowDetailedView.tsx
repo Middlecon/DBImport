@@ -10,8 +10,11 @@ import Button from '../../components/Button'
 import ApacheAirflowIconSmall from '../../assets/icons/ApacheAirflowIconSmall'
 import { useQueryClient } from '@tanstack/react-query'
 import ConfirmationModal from '../../components/modals/ConfirmationModal'
-import { useDeleteAirflowDAG } from '../../utils/mutations'
+import { useCreateAirflowDag, useDeleteAirflowDAG } from '../../utils/mutations'
 import DeleteIcon from '../../assets/icons/DeleteIcon'
+import RenameIcon from '../../assets/icons/RenameIcon'
+import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
+import { newCopyDagData } from '../../utils/dataFunctions'
 
 function AirflowDetailedView({
   type
@@ -25,6 +28,11 @@ function AirflowDetailedView({
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isGenDagModalOpen, setIsGenDagModalOpen] = useState(false)
+
+  const [isRenameAirflowDagModalOpen, setIsRenameAirflowDagModalOpen] =
+    useState(false)
+
+  const { mutate: createDAG } = useCreateAirflowDag()
 
   const { mutate: deleteDag } = useDeleteAirflowDAG()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
@@ -50,16 +58,7 @@ function AirflowDetailedView({
     }
   }, [tab, navigate, validTabs, dagName, type, encodedType, encodedDagName])
 
-  const { data: dagData, isError } = useAirflowDAG(type, dagName)
-  if (isError) {
-    return <div className="error">Server error occurred.</div>
-  }
-  if (!dagName && !dagData && !isError)
-    return <div className="loading">Loading...</div>
-
-  if (!dagData) {
-    return
-  }
+  const { data: dagData } = useAirflowDAG(type, dagName)
 
   const handleTabClick = (tabName: string) => {
     navigate(`/airflow/${encodedType}/${encodedDagName}/${tabName}`)
@@ -70,6 +69,9 @@ function AirflowDetailedView({
   }
 
   const handleLinkClick = () => {
+    if (!dagData) {
+      return
+    }
     console.log('item', dagData.airflowLink)
     if (dagData.airflowLink) {
       window.open(dagData.airflowLink, '_blank')
@@ -86,9 +88,69 @@ function AirflowDetailedView({
     }
   }
 
-  const handleDeleteIconClick = () => {
-    if (!dagName) return
+  const handleRenameDagClick = () => {
+    setIsRenameAirflowDagModalOpen(true)
+  }
 
+  const handleSaveRename = (newDagName: string) => {
+    if (!dagName || !dagData) return
+    console.log('old dagName', dagName)
+    console.log('newDagName', newDagName)
+
+    const newDagDataCopy = newCopyDagData(newDagName, dagData)
+
+    console.log('newDagDataCopy', newDagDataCopy)
+
+    createDAG(
+      { type, dagData: newDagDataCopy },
+      {
+        onSuccess: (response) => {
+          console.log('Save renamned copy successful', response)
+
+          deleteDag(
+            { type, dagName },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({
+                  queryKey: ['airflows', type],
+                  exact: true
+                })
+
+                queryClient.removeQueries({
+                  queryKey: [['airflows', type, dagName]],
+                  exact: true
+                })
+
+                console.log('Delete original successful, rename successful')
+
+                const encodedNewDagName = encodeURIComponent(
+                  newDagName ? newDagName : ''
+                )
+
+                setIsRenameAirflowDagModalOpen(false)
+
+                navigate(
+                  `/airflow/${type}/${encodedNewDagName}/${selectedTab}`,
+                  {
+                    replace: true
+                  }
+                )
+              },
+              onError: (error) => {
+                console.error('Error deleting DAG:', error)
+              }
+            }
+          )
+        },
+        onError: (error) => {
+          console.error('Error creating DAG:', error)
+        }
+      }
+    )
+  }
+
+  const handleDeleteDagClick = () => {
+    if (!dagName) return
     setShowDeleteConfirmation(true)
   }
 
@@ -105,11 +167,15 @@ function AirflowDetailedView({
             queryKey: ['airflows', type],
             exact: true
           })
+          queryClient.removeQueries({
+            queryKey: [['airflows', type, dagName]],
+            exact: true
+          })
           console.log('Delete successful')
           navigate(`/airflow/${type}`, { replace: true })
         },
         onError: (error) => {
-          console.error('Error deleting item', error)
+          console.error('Error deleting DAG:', error)
         }
       }
     )
@@ -136,13 +202,18 @@ function AirflowDetailedView({
                 items={[
                   {
                     icon: <GenerateDAGIcon />,
-                    label: 'Generate DAG',
+                    label: 'Generate',
                     onClick: handleGenerateDagClick
                   },
                   {
+                    icon: <RenameIcon />,
+                    label: 'Rename',
+                    onClick: handleRenameDagClick
+                  },
+                  {
                     icon: <DeleteIcon />,
-                    label: `Delete DAG`,
-                    onClick: handleDeleteIconClick
+                    label: `Delete`,
+                    onClick: handleDeleteDagClick
                   }
                 ]}
               />
@@ -170,6 +241,15 @@ function AirflowDetailedView({
             dagName={dagName}
             isGenDagModalOpen={isGenDagModalOpen}
             onClose={() => setIsGenDagModalOpen(false)}
+          />
+        )}
+        {isRenameAirflowDagModalOpen && dagName && dagData && (
+          <RenameAirflowModal
+            type={type}
+            dagName={dagName}
+            isRenameAirflowModalOpen={isRenameAirflowDagModalOpen}
+            onSave={handleSaveRename}
+            onClose={() => setIsRenameAirflowDagModalOpen(false)}
           />
         )}
         {showDeleteConfirmation && (

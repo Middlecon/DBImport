@@ -6,53 +6,54 @@ import {
   useRef,
   useState
 } from 'react'
-import {
-  EditSetting,
-  EditSettingValueTypes,
-  GenerateJDBCconnectionString
-} from '../../utils/interfaces'
+import { EditSetting, EditSettingValueTypes } from '../../utils/interfaces'
+import { useAllAirflows } from '../../utils/queries'
 import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import TableInputFields from '../../utils/TableInputFields'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
+import { renameAirflowSettings } from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
-import { useJDBCDrivers } from '../../utils/queries'
-
-import { generateConnectionStringFields } from '../../utils/cardRenderFormatting'
-import { transformGenerateConnectionSettings } from '../../utils/dataFunctions'
-import { useGenerateConnectionString } from '../../utils/mutations'
 import { useFocusTrap } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
-interface GenerateConnectionStringModalProps {
-  isGenerateModalOpen: boolean
-  setGeneratedConnectionString: (value: string) => void
+interface RenameAirflowModalProps {
+  isRenameAirflowModalOpen: boolean
+  type: 'import' | 'export' | 'custom'
+  dagName: string
+  onSave: (newDagName: string) => void
   onClose: () => void
 }
 
-function GenerateConnectionStringModal({
-  isGenerateModalOpen,
-  setGeneratedConnectionString,
+function RenameAirflowModal({
+  isRenameAirflowModalOpen,
+  type,
+  dagName,
+  onSave,
   onClose
-}: GenerateConnectionStringModalProps) {
-  const { mutate: generateConnectionString } = useGenerateConnectionString()
+}: RenameAirflowModalProps) {
+  const settings = renameAirflowSettings(type, dagName)
 
-  const { data: originalDriverData, isLoading, isError } = useJDBCDrivers()
-  const databaseTypeNames = useMemo(() => {
-    return Array.isArray(originalDriverData)
-      ? Array.from(
-          new Set(originalDriverData.map((driver) => driver.databaseType))
-        )
-      : []
-  }, [originalDriverData])
+  const { data: airflowsData } = useAllAirflows()
+  const airflowNames = useMemo(
+    () =>
+      Array.isArray(airflowsData)
+        ? airflowsData.map((airflow) => airflow.name)
+        : [],
+    [airflowsData]
+  )
 
-  const settings = generateConnectionStringFields
-
-  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(settings)
+  const [editedSettings, setEditedSettings] = useState<EditSetting[]>(
+    settings ? settings : []
+  )
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+
+  // For validating unique pk so it becomes a create and not an update
+  const [duplicateDagName, setDuplicateDagName] = useState(true)
+  const [pendingValidation, setPendingValidation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(700)
   const [isResizing, setIsResizing] = useState(false)
@@ -61,33 +62,18 @@ function GenerateConnectionStringModal({
   const MIN_WIDTH = 584
 
   const containerRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(containerRef, isGenerateModalOpen, showConfirmation)
+  useFocusTrap(containerRef, isRenameAirflowModalOpen, showConfirmation)
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Database type', 'Version', 'Hostname', 'Database']
+    const requiredLabels = ['DAG Name']
     return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
+      (setting) =>
+        (requiredLabels.includes(setting.label) && setting.value === null) ||
+        setting.value === ''
     )
   }, [editedSettings])
-
-  const availableVersions = useMemo(() => {
-    const selectedDatabaseType = editedSettings.find(
-      (setting) => setting.label === 'Database type'
-    )?.value
-
-    return Array.isArray(originalDriverData)
-      ? originalDriverData
-          .filter((data) => data.databaseType === selectedDatabaseType)
-          .map((data) => data.version)
-      : []
-  }, [editedSettings, originalDriverData])
-
-  const isDropdownDisabled = useMemo(
-    () => availableVersions.length <= 1,
-    [availableVersions]
-  )
 
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)
@@ -125,59 +111,50 @@ function GenerateConnectionStringModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  if (isError) {
-    return <div className="error">Server error occurred.</div>
-  }
-  if (isLoading) {
-    return <div className="loading">Loading...</div>
-  }
-  if (!originalDriverData) {
-    return (
-      <div className="text-block">
-        <p>Error. No data from REST server.</p>
-      </div>
-    )
+  if (!settings) {
+    console.error('DAG data is not available.')
+    return
   }
 
   const handleInputChange = (
     index: number,
-    newValue: EditSettingValueTypes | null,
-    isBlur?: boolean
+    newValue: EditSettingValueTypes | null
   ) => {
-    if (isBlur) return
+    setPendingValidation(true)
 
     if (index < 0 || index >= editedSettings.length) {
       console.warn(`Invalid index: ${index}`)
       return
     }
 
-    const updatedSettings = editedSettings.map((setting, i) =>
+    const updatedSettings = editedSettings?.map((setting, i) =>
       i === index ? { ...setting, value: newValue } : setting
     )
 
-    setEditedSettings(updatedSettings)
-    setHasChanges(true)
-
-    // Resets Version when Database type changes
-    if (editedSettings[index].label === 'Database type') {
-      const versionIndex = updatedSettings.findIndex(
-        (s) => s.label === 'Version'
-      )
-      if (versionIndex !== -1) {
-        updatedSettings[versionIndex] = {
-          ...updatedSettings[versionIndex],
-          value: 'default'
-        }
-      }
+    const dagNameSetting = updatedSettings.find(
+      (setting) => setting.label === 'DAG Name'
+    )
+    if (
+      dagNameSetting &&
+      airflowNames.includes(dagNameSetting.value as string)
+    ) {
+      setDuplicateDagName(true)
+    } else {
+      setDuplicateDagName(false)
+      setPendingValidation(false)
     }
 
     setEditedSettings(updatedSettings)
+    setHasChanges(true)
   }
 
   const handleSelect = (
     item: EditSettingValueTypes | null,
-    keyLabel?: string
+    keyLabel?: string,
+    isBlur?: boolean
   ) => {
+    if (isBlur) return
+
     const index = editedSettings.findIndex(
       (setting) => setting.label === keyLabel
     )
@@ -186,29 +163,15 @@ function GenerateConnectionStringModal({
     }
   }
 
-  const handleGenerate = () => {
-    const newGenerateSettings: EditSetting[] = settings.map((setting) => {
-      const editedSetting = editedSettings.find(
-        (es) => es.label === setting.label
-      )
+  const handleSave = () => {
+    if (duplicateDagName) return
 
-      return editedSetting ? { ...setting, ...editedSetting } : { ...setting }
-    })
+    const newDagName: string = editedSettings.find(
+      (es) => es.label === 'DAG Name'
+    )?.value as string
 
-    const generateConnectionStringData: GenerateJDBCconnectionString =
-      transformGenerateConnectionSettings(newGenerateSettings)
-
-    generateConnectionString(generateConnectionStringData, {
-      onSuccess: (response) => {
-        console.log('Generate successful', response)
-        console.log('response.connectionString', response.connectionString)
-        setGeneratedConnectionString(response.connectionString)
-        onClose()
-      },
-      onError: (error) => {
-        console.error('Error updating JDBC Drivers', error)
-      }
-    })
+    onSave(newDagName)
+    onClose()
   }
 
   const handleCancelClick = () => {
@@ -245,7 +208,7 @@ function GenerateConnectionStringModal({
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
         ></div>
-        <h2 className="table-modal-h2">Generate connection string</h2>
+        <h2 className="table-modal-h2">Rename DAG</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -256,7 +219,7 @@ function GenerateConnectionStringModal({
               activeElement &&
               activeElement.getAttribute('type') === 'submit'
             ) {
-              handleGenerate()
+              handleSave()
             }
           }}
         >
@@ -269,9 +232,6 @@ function GenerateConnectionStringModal({
                     setting={setting}
                     handleInputChange={handleInputChange}
                     handleSelect={handleSelect}
-                    dataNames={databaseTypeNames}
-                    versionNames={availableVersions}
-                    disabled={setting.label === 'Version' && isDropdownDisabled}
                   />
                   {setting.infoText && setting.infoText.length > 0 && (
                     <InfoText
@@ -282,7 +242,13 @@ function GenerateConnectionStringModal({
                 </div>
               ))}
           </div>
-          <RequiredFieldsInfo isRequiredFieldEmpty={isRequiredFieldEmpty} />
+          <RequiredFieldsInfo
+            isRequiredFieldEmpty={isRequiredFieldEmpty}
+            validation={true}
+            isValidationSad={duplicateDagName}
+            validationText="DAG Name already exists. Please choose a different name."
+          />
+
           <div className="table-modal-footer">
             <Button
               title="Cancel"
@@ -291,15 +257,17 @@ function GenerateConnectionStringModal({
             />
             <Button
               type="submit"
-              title="Generate"
-              disabled={isRequiredFieldEmpty}
+              title="Save"
+              disabled={
+                isRequiredFieldEmpty || duplicateDagName || pendingValidation
+              }
             />
           </div>
         </form>
       </div>
       {showConfirmation && (
         <ConfirmationModal
-          title="Cancel Generate connection string"
+          title="Cancel Rename DAG"
           message="Any unsaved changes will be lost."
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Cancel"
@@ -312,4 +280,4 @@ function GenerateConnectionStringModal({
   )
 }
 
-export default GenerateConnectionStringModal
+export default RenameAirflowModal

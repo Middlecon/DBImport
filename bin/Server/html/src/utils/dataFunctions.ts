@@ -515,7 +515,7 @@ export function newCopyImportTableData(
   tablePrimaryKeysSettings: EditSetting[]
 ): UITableWithoutEnum {
   // Creates a copy of the existing tableData to avoid mutations
-  const updatedTableData: UITableWithoutEnum = { ...tableData }
+  const updatedTableData: UITableWithoutEnum = cloneDeep(tableData)
 
   for (const setting of tablePrimaryKeysSettings) {
     if (setting.label === 'Database' && typeof setting.value === 'string') {
@@ -733,7 +733,7 @@ export function newCopyExportTableData(
   tablePrimaryKeysSettings: EditSetting[]
 ): UIExportTableWithoutEnum {
   // Creates a copy of the existing tableData to avoid mutations
-  const updatedTableData: UIExportTableWithoutEnum = { ...tableData }
+  const updatedTableData: UIExportTableWithoutEnum = cloneDeep(tableData)
 
   for (const setting of tablePrimaryKeysSettings) {
     if (setting.label === 'Connection' && typeof setting.value === 'string') {
@@ -1429,6 +1429,21 @@ export function createCustomDagData(
   const finalCreateData: CustomCreateAirflowDAG = { ...part2, ...part1 }
 
   return finalCreateData
+}
+
+export function newCopyDagData(
+  dagName: string,
+  dagData: ImportAirflowDAG | ExportAirflowDAG | CustomAirflowDAG
+): ImportCreateAirflowDAG | ExportCreateAirflowDAG | CustomCreateAirflowDAG {
+  // Creates a copy of the existing dagData to avoid mutations
+  const dagDataCopy = cloneDeep(dagData)
+
+  const updatedDagData = { ...dagDataCopy, name: dagName } as
+    | ImportCreateAirflowDAG
+    | ExportCreateAirflowDAG
+    | CustomCreateAirflowDAG
+
+  return updatedDagData
 }
 
 // Configuration

@@ -39,11 +39,11 @@ function AirflowExportActions({ dags }: AirflowExportActionsProps) {
           queryClient.invalidateQueries({
             queryKey: ['airflows', 'export']
           })
-          console.log('Update successful', response)
+          console.log('Create DAG successful', response)
           setIsCreateModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.error('Error creating DAG', error)
         }
       }
     )

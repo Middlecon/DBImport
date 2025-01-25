@@ -13,7 +13,7 @@ import { useCallback, useMemo, useState } from 'react'
 import cloneDeep from 'lodash/cloneDeep'
 import { useAirflowDAG } from '../../utils/queries'
 import EditTableModal from '../../components/modals/EditTableModal'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import '../../components/Loading.scss'
 import { airflowTaskRowDataEdit } from '../../utils/cardRenderFormatting'
 import {
@@ -36,10 +36,13 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
     dagName: string
   }>()
 
+  const navigate = useNavigate()
+
   const {
     data: originalDagData,
     isLoading,
-    isError
+    isError,
+    error
   } = useAirflowDAG(type, dagName)
   const queryClient = useQueryClient()
   const { mutate: updateDag } = useUpdateAirflowDag()
@@ -122,6 +125,12 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   )
 
   if (isError) {
+    if (error.status === 404) {
+      console.log(
+        `GET DAG: ${error.message} ${error.response?.statusText}, re-routing to /airflow/${type}`
+      )
+      navigate(`/airflow/${type}`, { replace: true })
+    }
     return <div className="error">Server error occurred.</div>
   }
 

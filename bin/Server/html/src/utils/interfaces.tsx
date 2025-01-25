@@ -498,7 +498,7 @@ export interface TableCreateWithoutEnum {
   importTable: null
   historyDatabase: null
   historyTable: null
-  columns: []
+  columns: Columns[]
 }
 
 export interface TableCreate {
@@ -576,9 +576,11 @@ export interface Column<T> {
     | 'delete'
     | 'editAndDelete'
     | 'generateDag'
+    | 'generateDagAndRename'
     | 'repair'
     | 'reset'
     | 'copy'
+    | 'rename'
     | 'repairAndResetAndRenameAndCopy'
     | 'copyAndDelete'
     | 'testAndEncryptAndDelete'
