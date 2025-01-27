@@ -117,7 +117,7 @@ function AirflowDetailedView({
                 })
 
                 queryClient.removeQueries({
-                  queryKey: [['airflows', type, dagName]],
+                  queryKey: ['airflows', type, dagName],
                   exact: true
                 })
 
@@ -168,7 +168,7 @@ function AirflowDetailedView({
             exact: true
           })
           queryClient.removeQueries({
-            queryKey: [['airflows', type, dagName]],
+            queryKey: ['airflows', type, dagName],
             exact: true
           })
           console.log('Delete successful')

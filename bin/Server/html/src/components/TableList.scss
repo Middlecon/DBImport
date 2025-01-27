@@ -145,7 +145,7 @@
 .td.sticky-right {
   z-index: 5;
   background-color: inherit;
-  padding: 0 5px;
+  padding: 0 0 0 5px;
   height: 0px;
   outline: 0.3px solid #ccc;
   border: none;
@@ -167,7 +167,7 @@
 
 .has-actions .th.sticky-right.links.two-links,
 .has-actions .td.sticky-right.links.two-links {
-  right: 95px !important;
+  right: 121px !important;
 }
 
 .th.sticky-right.actions,

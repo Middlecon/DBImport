@@ -971,6 +971,20 @@ export const initialCreateConnectionSettings: EditSetting[] = [
   } // Layout space
 ]
 
+export function copyConnectionSettings(connectionName: string) {
+  const settings: EditSetting[] = [
+    {
+      label: 'Name',
+      value: connectionName,
+      type: SettingType.Text,
+      maxChar: 256,
+      infoText: infoTexts.connection.name
+    } //Free-text (varchar 256)
+  ]
+
+  return settings
+}
+
 // Import and Export
 
 export function tableNameReadonlySettings(

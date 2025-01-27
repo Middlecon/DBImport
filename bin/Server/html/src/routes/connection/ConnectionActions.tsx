@@ -4,7 +4,6 @@ import Button from '../../components/Button'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Connections,
-  ConnectionSearchFilter,
   EditSetting,
   UiConnectionSearchFilter
 } from '../../utils/interfaces'
@@ -17,10 +16,9 @@ import { useCreateOrUpdateConnection } from '../../utils/mutations'
 
 interface ConnectionActionsProps {
   connections: Connections[] | undefined
-  filters: ConnectionSearchFilter
 }
 
-function ConnectionActions({ connections, filters }: ConnectionActionsProps) {
+function ConnectionActions({ connections }: ConnectionActionsProps) {
   const { mutate: createConnection } = useCreateOrUpdateConnection()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -36,16 +34,18 @@ function ConnectionActions({ connections, filters }: ConnectionActionsProps) {
       onSuccess: (response) => {
         // For getting fresh data from database to the cache
         queryClient.invalidateQueries({
-          queryKey: ['connection', 'search', filters]
+          queryKey: ['connection', 'search'],
+          exact: false
         })
         queryClient.invalidateQueries({
-          queryKey: ['connection']
+          queryKey: ['connection'],
+          exact: true
         })
-        console.log('Update successful', response)
+        console.log('Create connection successful', response)
         setIsCreateModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error updating connection', error)
+        console.error('Error creating connection', error)
       }
     })
   }

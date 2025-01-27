@@ -11,8 +11,12 @@ import EncryptIcon from '../../../assets/icons/EncryptIcon'
 import EditTableModal from '../../../components/modals/EditTableModal'
 import { encryptCredentialsSettings } from '../../../utils/cardRenderFormatting'
 import { EditSetting, ErrorData } from '../../../utils/interfaces'
-import { transformEncryptCredentialsSettings } from '../../../utils/dataFunctions'
 import {
+  newCopyCnData,
+  transformEncryptCredentialsSettings
+} from '../../../utils/dataFunctions'
+import {
+  useCreateOrUpdateConnection,
   useDeleteConnection,
   useEncryptCredentials,
   useTestConnection
@@ -24,6 +28,9 @@ import Button from '../../../components/Button'
 import ImportIconSmall from '../../../assets/icons/ImportIconSmall'
 import ExportIconSmall from '../../../assets/icons/ExportIconSmall'
 import DeleteIcon from '../../../assets/icons/DeleteIcon'
+import CopyConnectionModal from '../../../components/modals/CopyConnectionModal'
+import { useConnection } from '../../../utils/queries'
+import CopyIcon from '../../../assets/icons/CopyIcon'
 
 function ConnectionDetailedView() {
   const navigate = useNavigate()
@@ -38,6 +45,11 @@ function ConnectionDetailedView() {
   )
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+  const [isCopyCnModalOpen, setIsCopyCnModalOpen] = useState(false)
+  const { mutate: createConnection } = useCreateOrUpdateConnection()
+
+  const { data: cnData } = useConnection(connectionParam)
 
   const { mutate: deleteConnection } = useDeleteConnection()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
@@ -88,6 +100,32 @@ function ConnectionDetailedView() {
     }
   }
 
+  const handleCopyClick = () => {
+    setIsCopyCnModalOpen(true)
+  }
+
+  const handleSaveCopy = (newCnName: string) => {
+    if (!connectionParam || !cnData) return
+
+    const newCnDataCopy = newCopyCnData(newCnName, cnData)
+
+    console.log('newCnDataCopy', newCnDataCopy)
+
+    createConnection(newCnDataCopy, {
+      onSuccess: (response) => {
+        console.log('Save connection copy successful', response)
+
+        queryClient.invalidateQueries({
+          queryKey: ['connection', 'search'],
+          exact: false
+        })
+      },
+      onError: (error) => {
+        console.error('Error copy connection', error)
+      }
+    })
+  }
+
   const handleSave = (updatedSettings: EditSetting[]) => {
     setIsEncryptLoading(true)
     console.log('updatedSettings', updatedSettings)
@@ -116,7 +154,7 @@ function ConnectionDetailedView() {
     })
   }
 
-  const handleDeleteIconClick = () => {
+  const handleDeleteClick = () => {
     if (!connectionParam) return
 
     setShowDeleteConfirmation(true)
@@ -180,12 +218,17 @@ function ConnectionDetailedView() {
                 items={[
                   {
                     icon: <TestConnectionIcon />,
-                    label: 'Test connection',
+                    label: 'Test',
                     onClick: handleTestConnection
                   },
                   {
+                    icon: <CopyIcon />,
+                    label: 'Copy',
+                    onClick: handleCopyClick
+                  },
+                  {
                     icon: <EncryptIcon />,
-                    label: `Encrypt credentials`,
+                    label: 'Encrypt credentials',
                     onClick: () => {
                       setIsEncryptModalOpen(true)
                       setOpenDropdown(null)
@@ -193,8 +236,8 @@ function ConnectionDetailedView() {
                   },
                   {
                     icon: <DeleteIcon />,
-                    label: `Delete connection`,
-                    onClick: handleDeleteIconClick
+                    label: 'Delete',
+                    onClick: handleDeleteClick
                   }
                 ]}
                 disabled={!connectionParam}
@@ -226,6 +269,14 @@ function ConnectionDetailedView() {
               setIsTestCnModalOpen(false)
             }}
             isActive={isTestCnModalOpen}
+          />
+        )}
+        {isCopyCnModalOpen && connectionParam && cnData && (
+          <CopyConnectionModal
+            connectionName={connectionParam}
+            isCopyCnModalOpen={isCopyCnModalOpen}
+            onSave={handleSaveCopy}
+            onClose={() => setIsCopyCnModalOpen(false)}
           />
         )}
         {isEncryptModalOpen && connectionParam && (

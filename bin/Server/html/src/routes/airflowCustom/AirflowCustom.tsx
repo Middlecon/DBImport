@@ -151,7 +151,7 @@ function AirflowCustom() {
                 })
 
                 queryClient.removeQueries({
-                  queryKey: [['airflows', 'custom', dagName]],
+                  queryKey: ['airflows', 'custom', dagName],
                   exact: true
                 })
 

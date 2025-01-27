@@ -154,7 +154,7 @@ function AirflowImport() {
                 })
 
                 queryClient.removeQueries({
-                  queryKey: [['airflows', 'import', dagName]],
+                  queryKey: ['airflows', 'import', dagName],
                   exact: true
                 })
 

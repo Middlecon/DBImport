@@ -1,7 +1,7 @@
 import '../import/Import.scss'
 import { useEffect, useMemo, useState } from 'react'
 import ViewBaseLayout from '../../components/ViewBaseLayout'
-import { useSearchConnections } from '../../utils/queries'
+import { useConnection, useSearchConnections } from '../../utils/queries'
 import {
   Column,
   Connections,
@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import ListRowsInfo from '../../components/ListRowsInfo'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  useCreateOrUpdateConnection,
   useDeleteConnection,
   useEncryptCredentials,
   useTestConnection
@@ -25,7 +26,11 @@ import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import { AxiosError } from 'axios'
 import EditTableModal from '../../components/modals/EditTableModal'
 import { encryptCredentialsSettings } from '../../utils/cardRenderFormatting'
-import { transformEncryptCredentialsSettings } from '../../utils/dataFunctions'
+import {
+  newCopyCnData,
+  transformEncryptCredentialsSettings
+} from '../../utils/dataFunctions'
+import CopyConnectionModal from '../../components/modals/CopyConnectionModal'
 
 // const checkboxFilters = [
 //   {
@@ -80,11 +85,16 @@ function Connection() {
   )
 
   const { data, isLoading: isSearchLoading } = useSearchConnections(filters)
+  const [connectionParam, setConnectionParam] = useState<string | null>(null)
+
+  const [isCopyCnModalOpen, setIsCopyCnModalOpen] = useState(false)
+  const { mutate: createConnection } = useCreateOrUpdateConnection()
+  const { data: cnData } = useConnection(
+    connectionParam ? connectionParam : undefined
+  )
 
   const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
-
-  const [connectionParam, setConnectionParam] = useState<string | null>(null)
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [selectedDeleteRow, setSelectedDeleteRow] = useState<Connections>()
@@ -116,16 +126,6 @@ function Connection() {
   //   }))
   // }
 
-  const handleEncryptIconClick = (row: Connections) => {
-    setConnectionParam(row.name)
-    setIsEncryptModalOpen(true)
-  }
-
-  const handleDeleteIconClick = (row: Connections) => {
-    setShowDeleteConfirmation(true)
-    setSelectedDeleteRow(row)
-  }
-
   const handleTestConnection = (row: Connections) => {
     setConnectionParam(row.name)
 
@@ -146,6 +146,43 @@ function Connection() {
         console.error('Connection test failed', error.message)
       }
     })
+  }
+
+  const handleCopyIconClick = (row: Connections) => {
+    setConnectionParam(row.name)
+
+    setIsCopyCnModalOpen(true)
+  }
+
+  const handleSaveCopy = (newCnName: string) => {
+    if (!connectionParam || !cnData) return
+
+    const newCnDataCopy = newCopyCnData(newCnName, cnData)
+
+    console.log('newCnDataCopy', newCnDataCopy)
+
+    createConnection(newCnDataCopy, {
+      onSuccess: (response) => {
+        console.log('Save connection copy successful', response)
+
+        queryClient.invalidateQueries({
+          queryKey: ['connection', 'search'],
+          exact: false
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['connection'],
+          exact: true
+        })
+      },
+      onError: (error) => {
+        console.error('Error copy connection', error)
+      }
+    })
+  }
+
+  const handleEncryptIconClick = (row: Connections) => {
+    setConnectionParam(row.name)
+    setIsEncryptModalOpen(true)
   }
 
   const handleSaveEncrypt = (updatedSettings: EditSetting[]) => {
@@ -174,6 +211,11 @@ function Connection() {
         setIsEncryptLoading(false)
       }
     })
+  }
+
+  const handleDeleteIconClick = (row: Connections) => {
+    setShowDeleteConfirmation(true)
+    setSelectedDeleteRow(row)
   }
 
   const handleDelete = async (row: Connections) => {
@@ -205,7 +247,7 @@ function Connection() {
       { header: 'Server Type', accessor: 'serverType' },
       { header: 'Connection string', accessor: 'connectionString' },
       { header: 'Links', isLink: 'connectionLink' },
-      { header: 'Actions', isAction: 'testAndEncryptAndDelete' }
+      { header: 'Actions', isAction: 'testAndCopyAndEncryptAndDelete' }
     ],
     []
   )
@@ -224,10 +266,7 @@ function Connection() {
       <ViewBaseLayout>
         <div className="header-container" style={{ paddingBottom: 0 }}>
           <h1>Connection</h1>
-          <ConnectionActions
-            connections={data?.connections}
-            filters={filters}
-          />
+          <ConnectionActions connections={data?.connections} />
         </div>
 
         {/* <div className="filters">
@@ -263,6 +302,7 @@ function Connection() {
                 data={filteredData}
                 isLoading={isSearchLoading}
                 onTestConnection={handleTestConnection}
+                onCopy={handleCopyIconClick}
                 onEncryptCredentials={handleEncryptIconClick}
                 onDelete={handleDeleteIconClick}
                 rowSelection={rowSelection}
@@ -302,6 +342,14 @@ function Connection() {
               setIsTestCnModalOpen(false)
             }}
             isActive={isTestCnModalOpen}
+          />
+        )}
+        {isCopyCnModalOpen && connectionParam && cnData && (
+          <CopyConnectionModal
+            connectionName={connectionParam}
+            isCopyCnModalOpen={isCopyCnModalOpen}
+            onSave={handleSaveCopy}
+            onClose={() => setIsCopyCnModalOpen(false)}
           />
         )}
         {isEncryptModalOpen && connectionParam && (

@@ -1,16 +1,29 @@
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import '../../_shared/tableDetailed/DetailedView.scss'
 import '../../_shared/tableDetailed/settings/TableSettings.scss'
 import { useConnection } from '../../../utils/queries'
 import { connectionCardRenderSettings } from '../../../utils/cardRenderFormatting'
 import CardConnection from './CardConnection'
 import '../../../components/Loading.scss'
+import { useEffect } from 'react'
 
 function ConnectionSettings() {
   const { connection: connectionParam } = useParams<{
     connection: string
   }>()
-  const { data: connection, isError } = useConnection(connectionParam)
+
+  const navigate = useNavigate()
+
+  const { data: connection, isError, error } = useConnection(connectionParam)
+
+  useEffect(() => {
+    if (isError && error.status === 404) {
+      console.log(
+        `GET connection: ${error.message} ${error.response?.statusText}, re-routing to /connection`
+      )
+      navigate(`/connection`, { replace: true })
+    }
+  }, [isError, error, navigate])
 
   if (isError) {
     return <div className="error">Server error occurred.</div>

@@ -144,7 +144,7 @@ const getConnection = async (connection: string) => {
 
 export const useConnection = (
   connection?: string
-): UseQueryResult<Connection, Error> => {
+): UseQueryResult<Connection, AxiosError<ErrorData>> => {
   return useQuery({
     queryKey: ['connection', connection],
     queryFn: () => getConnection(connection!), // We are sure that connection is not null here because of the enabled flag

@@ -260,6 +260,16 @@ export function updateConnectionData(
   return finalConnectionData
 }
 
+// Copy connection
+
+export function newCopyCnData(cnName: string, cnData: Connection) {
+  // Creates a copy of the existing cnData to avoid mutations
+  const cnDataCopy = cloneDeep(cnData)
+
+  const updatedDagData = { ...cnDataCopy, name: cnName }
+  return updatedDagData
+}
+
 // Table
 
 // Not edited read-only fields

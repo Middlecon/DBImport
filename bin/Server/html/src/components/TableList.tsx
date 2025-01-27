@@ -681,6 +681,32 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
+            {column.isAction === 'testAndCopyAndEncryptAndDelete' ? (
+              <button
+                className={`actions-edit-button ${
+                  isFirstActionCell ? 'first' : ''
+                }`}
+                onClick={() => {
+                  if (onTestConnection) {
+                    onTestConnection(row, rowIndex)
+                  }
+                  clearTooltip()
+                }}
+                disabled={!onTestConnection}
+                onMouseEnter={(event) =>
+                  handleMouseEnter(event, 'Test connection')
+                }
+                onMouseLeave={handleMouseLeave}
+              >
+                <TestConnectionIcon />
+                {tooltipPosition && tooltipText && (
+                  <Tooltip
+                    tooltipText={tooltipText}
+                    position={tooltipPosition}
+                  />
+                )}
+              </button>
+            ) : null}
             {column.isAction === 'rename' ||
             column.isAction === 'generateDagAndRename' ||
             column.isAction === 'repairAndResetAndRenameAndCopy' ? (
@@ -709,7 +735,8 @@ function TableList<T extends object>({
             ) : null}
             {column.isAction === 'copy' ||
             column.isAction === 'repairAndResetAndRenameAndCopy' ||
-            column.isAction === 'copyAndDelete' ? (
+            column.isAction === 'copyAndDelete' ||
+            column.isAction === 'testAndCopyAndEncryptAndDelete' ? (
               <button
                 className={`actions-reset-button ${
                   isFirstActionCell ? 'first' : ''
@@ -733,33 +760,8 @@ function TableList<T extends object>({
                 )}
               </button>
             ) : null}
-            {column.isAction === 'testAndEncryptAndDelete' ? (
-              <button
-                className={`actions-edit-button ${
-                  isFirstActionCell ? 'first' : ''
-                }`}
-                onClick={() => {
-                  if (onTestConnection) {
-                    onTestConnection(row, rowIndex)
-                  }
-                  clearTooltip()
-                }}
-                disabled={!onTestConnection}
-                onMouseEnter={(event) =>
-                  handleMouseEnter(event, 'Test connection')
-                }
-                onMouseLeave={handleMouseLeave}
-              >
-                <TestConnectionIcon />
-                {tooltipPosition && tooltipText && (
-                  <Tooltip
-                    tooltipText={tooltipText}
-                    position={tooltipPosition}
-                  />
-                )}
-              </button>
-            ) : null}
-            {column.isAction === 'testAndEncryptAndDelete' ? (
+
+            {column.isAction === 'testAndCopyAndEncryptAndDelete' ? (
               <div>
                 <button
                   className={`actions-reset-button ${
@@ -791,7 +793,7 @@ function TableList<T extends object>({
             {column.isAction === 'delete' ||
             column.isAction === 'editAndDelete' ||
             column.isAction === 'copyAndDelete' ||
-            column.isAction === 'testAndEncryptAndDelete' ? (
+            column.isAction === 'testAndCopyAndEncryptAndDelete' ? (
               <button
                 className={`actions-delete-button ${
                   isFirstActionCell ? 'first' : ''
