@@ -170,7 +170,6 @@ function Export() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.tables)) return []
-    console.log('lastUpdateFromHive', lastUpdateFromHive)
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromHive)
 

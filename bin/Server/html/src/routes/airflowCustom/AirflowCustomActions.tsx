@@ -36,15 +36,15 @@ function AirflowCustomActions({ dags }: AirflowCustomActionsProps) {
       createDAG(
         { type: 'custom', dagData: newCustomAirflowData },
         {
-          onSuccess: (response) => {
+          onSuccess: () => {
             queryClient.invalidateQueries({
               queryKey: ['airflows', 'custom']
             })
-            console.log('Create DAG successful', response)
+            console.log('Create DAG successful')
             setIsCreateModalOpen(false)
           },
           onError: (error) => {
-            console.error('Error creating DAG', error)
+            console.log('Error creating DAG', error.message)
           }
         }
       )

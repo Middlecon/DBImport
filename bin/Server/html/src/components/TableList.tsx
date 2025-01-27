@@ -328,7 +328,6 @@ function TableList<T extends object>({
         } else if (type === 'export') {
           navigate(`/export?connection=${encodedItem}`)
         } else {
-          console.log('item', item)
           window.open(item, '_blank')
         }
       }
@@ -893,7 +892,6 @@ function TableList<T extends object>({
     // },
 
     onRowSelectionChange: (newRowSelection) => {
-      console.log('newRowSelection', newRowSelection)
       // If multi-selection is disabled, only keeps one selected row
       if (!enableMultiSelection) {
         const selectedKeys = Object.keys(newRowSelection)

@@ -43,17 +43,17 @@ function CardConnection({
       editedConnectionData
     )
     updateConnection(editedConnectionData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: ['connection', connectionParam]
         }) // For getting fresh data from database to the cache
-        console.log('Update successful', response)
+        console.log('Update successful')
         setIsEditModalOpen(false)
       },
       onError: (error) => {
         queryClient.setQueryData(['connection', connectionParam], originalData)
 
-        console.error('Error updating connection', error)
+        console.log('Error updating connection', error.message)
       }
     })
   }

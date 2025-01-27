@@ -67,7 +67,6 @@ function BulkEditModal<T>({
   )
 
   const handleSave = () => {
-    console.log('bulkChanges', bulkChanges)
     onSave(bulkChanges)
     onClose()
   }

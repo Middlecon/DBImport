@@ -72,7 +72,6 @@ function AirflowDetailedView({
     if (!dagData) {
       return
     }
-    console.log('item', dagData.airflowLink)
     if (dagData.airflowLink) {
       window.open(dagData.airflowLink, '_blank')
     } else {
@@ -94,18 +93,14 @@ function AirflowDetailedView({
 
   const handleSaveRename = (newDagName: string) => {
     if (!dagName || !dagData) return
-    console.log('old dagName', dagName)
-    console.log('newDagName', newDagName)
 
     const newDagDataCopy = newCopyDagData(newDagName, dagData)
-
-    console.log('newDagDataCopy', newDagDataCopy)
 
     createDAG(
       { type, dagData: newDagDataCopy },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteDag(
             { type, dagName },
@@ -137,13 +132,13 @@ function AirflowDetailedView({
                 )
               },
               onError: (error) => {
-                console.error('Error deleting DAG:', error)
+                console.log('Error deleting DAG:', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error creating DAG:', error)
+          console.log('Error creating rename:', error.message)
         }
       }
     )
@@ -175,7 +170,7 @@ function AirflowDetailedView({
           navigate(`/airflow/${type}`, { replace: true })
         },
         onError: (error) => {
-          console.error('Error deleting DAG:', error)
+          console.log('Error deleting DAG:', error.message)
         }
       }
     )

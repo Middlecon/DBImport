@@ -122,7 +122,6 @@ function AirflowImport() {
   }
 
   const handleRenameIconClick = (row: UiAirflowsImportData) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsRenameAirflowDagModalOpen(true)
   }
@@ -131,18 +130,14 @@ function AirflowImport() {
     if (!selectedRow || !dagData) return
 
     const dagName = selectedRow.name
-    console.log('old dagName', dagName)
-    console.log('newDagName', newDagName)
 
     const newDagDataCopy = newCopyDagData(newDagName, dagData)
-
-    console.log('newDagDataCopy', newDagDataCopy)
 
     createDAG(
       { type: 'import', dagData: newDagDataCopy },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteDag(
             { type: 'import', dagName },
@@ -163,13 +158,13 @@ function AirflowImport() {
                 setIsRenameAirflowDagModalOpen(false)
               },
               onError: (error) => {
-                console.error('Error deleting DAG:', error)
+                console.log('Error deleting DAG:', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error creating DAG:', error)
+          console.log('Error creating rename:', error.message)
         }
       }
     )
@@ -197,7 +192,6 @@ function AirflowImport() {
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => filteredData[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, filteredData])
@@ -230,7 +224,7 @@ function AirflowImport() {
           setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.log('Error updating', error.message)
         }
       }
     )
@@ -253,8 +247,6 @@ function AirflowImport() {
       name
     }))
 
-    console.log(bulkDeleteRowsPks)
-
     bulkDeleteAirflowDags(
       { type: 'import', bulkDeleteRowsPks },
       {
@@ -267,7 +259,7 @@ function AirflowImport() {
           setRowSelection({})
         },
         onError: (error: Error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting', error.message)
         }
       }
     )

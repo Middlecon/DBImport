@@ -25,27 +25,23 @@ function CardConfig({ title, settings, originalData }: CardConfigProps) {
   const handleCloseModal = () => setIsEditModalOpen(false)
 
   const handleSave = (updatedSettings: EditSetting[]) => {
-    console.log('updatedSettings', updatedSettings)
     const originalDataCopy: ConfigGlobal = { ...originalData }
-    console.log('originalDataCopy', originalDataCopy)
 
     const editedGlobalConfigData = updateGlobalConfigData(
       originalDataCopy,
       updatedSettings
     )
 
-    console.log('editedGlobalConfigData', editedGlobalConfigData)
-
     updateGlobalConfig(editedGlobalConfigData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: ['configuration', 'global']
         }) // For getting fresh data from database to the cache
-        console.log('Update successful', response)
+        console.log('Update successful')
         setIsEditModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error updating configuration', error)
+        console.log('Error updating configuration', error.message)
       }
     })
   }

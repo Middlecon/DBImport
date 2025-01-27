@@ -144,7 +144,6 @@ function ExportCnTables({
   }
 
   const handleRenameIconClick = (row: UIExportCnTables) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsRenameTableModalOpen(true)
   }
@@ -153,25 +152,18 @@ function ExportCnTables({
     type: 'import' | 'export',
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
-    console.log('TYPE', type)
-
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData = newCopyExportTableData(
       tableData as UIExportTableWithoutEnum,
       tablePrimaryKeysSettings
     )
 
-    console.log(newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
-          console.log('primaryKeys', primaryKeys)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteTable(
             { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
@@ -187,13 +179,13 @@ function ExportCnTables({
                 setIsRenameTableModalOpen(false)
               },
               onError: (error) => {
-                console.error('Error deleting table', error)
+                console.log('Error deleting table', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error copy table', error.message)
         }
       }
     )
@@ -209,29 +201,25 @@ function ExportCnTables({
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData = newCopyExportTableData(
       tableData as UIExportTableWithoutEnum,
       tablePrimaryKeysSettings
     )
 
-    console.log(newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['export', 'search'],
             exact: false
           })
-          console.log('Save table copy successful', response)
+          console.log('Save table copy successful')
           setIsCopyTableModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error copy table', error.message)
         }
       }
     )
@@ -242,7 +230,6 @@ function ExportCnTables({
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, data])
@@ -259,28 +246,23 @@ function ExportCnTables({
     // For bulkChanges with enum values
     const transformedChanges = transformBulkChanges('export', bulkChanges)
 
-    console.log('bulkChanges', bulkChanges)
-    console.log('transformedChanges', transformedChanges)
-
     const bulkUpdateJson: BulkUpdateExportTables = {
       ...transformedChanges,
       exportTables: exportTablesPks
     }
 
-    console.log(bulkUpdateJson)
-
     bulkUpdateTable(
       { type: 'export', bulkUpdateJson },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['export', 'search', queryKeyFilters]
           })
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.log('Error updating table', error.message)
         }
       }
     )
@@ -306,8 +288,6 @@ function ExportCnTables({
       })
     )
 
-    console.log(bulkDeleteRowsPks)
-
     bulkDeleteTable(
       { type: 'export', bulkDeleteRowsPks },
       {
@@ -320,7 +300,7 @@ function ExportCnTables({
           setRowSelection({})
         },
         onError: (error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting', error.message)
         }
       }
     )

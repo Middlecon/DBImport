@@ -363,7 +363,6 @@ function updateColumnData(
   }
 
   const finalColumnData: Columns = { ...part2, ...part1 }
-  console.log('finalColumnData', finalColumnData)
   tableData.columns[indexInColumns] = finalColumnData
 }
 
@@ -376,7 +375,6 @@ export function updateTableData(
   const updatedTableData: UITableWithoutEnum = {
     ...tableData
   } as UITableWithoutEnum
-  console.log('typeof updatedTableData', typeof updatedTableData)
   const filteredSettings = updatedSettings.filter(
     (setting) => setting.type !== 'groupingSpace'
   )
@@ -547,10 +545,8 @@ function updateExportColumnData(
   indexInColumns: number
 ) {
   if (!tableData.columns) return
-  console.log('tableData', tableData)
-  console.log('indexInColumns', indexInColumns)
+
   const currentColumn = tableData.columns[indexInColumns]
-  console.log('currentColumn', currentColumn)
 
   const part1: {
     targetColumnName: string | null
@@ -595,7 +591,6 @@ function updateExportColumnData(
   }
 
   const finalColumnData: ExportColumns = { ...part2, ...part1 }
-  console.log('finalColumnData', finalColumnData)
   tableData.columns[indexInColumns] = finalColumnData
 }
 
@@ -608,7 +603,6 @@ export function updateExportTableData(
   const updatedTableData: UIExportTableWithoutEnum = {
     ...tableData
   } as UIExportTableWithoutEnum
-  console.log('typeof updatedTableData', typeof updatedTableData)
   const filteredSettings = updatedSettings.filter(
     (setting) => setting.type !== 'groupingSpace'
   )
@@ -841,7 +835,6 @@ function updateTasksData(
   }
 
   const finalTasksData: AirflowTask = { ...part2, ...part1 }
-  console.log('finalTasksData', finalTasksData)
   dagData.tasks[indexInTasks] = finalTasksData
 }
 
@@ -852,11 +845,9 @@ export function updateImportDagData(
   editTask?: boolean,
   indexInTasks?: number
 ): ImportAirflowDAG {
-  console.log('indexInTasks', indexInTasks)
   const updatedDagData: AirflowWithDynamicKeys<ImportAirflowDAG> = {
     ...dagData
   }
-  console.log('typeof updatedTableData', typeof updatedDagData)
   const filteredSettings = updatedSettings.filter(
     (setting) => setting.type !== 'groupingSpace'
   )
@@ -911,8 +902,6 @@ export function updateImportDagData(
         ;(part1[key] as (typeof part1)[typeof key]) = settingValue
       }
     })
-
-    console.log('part1', part1)
 
     const finalTasksData: AirflowTask = { ...part2, ...part1 }
     updatedDagData.tasks.push(finalTasksData)
@@ -978,7 +967,6 @@ export function updateExportDagData(
   const updatedDagData: AirflowWithDynamicKeys<ExportAirflowDAG> = {
     ...dagData
   }
-  console.log('typeof updatedTableData', typeof updatedDagData)
   const filteredSettings = updatedSettings.filter(
     (setting) => setting.type !== 'groupingSpace'
   )
@@ -1260,10 +1248,8 @@ export function createImportDagData(
     const key = labelToKeyMap[setting.label]
 
     if (key) {
-      console.log('key', key)
       if (key === 'name' && typeof value === 'string') {
         part1[key] = value
-        console.log('part1[key]', part1[key])
       } else if (
         key === 'scheduleInterval' &&
         (typeof value === 'string' || value === null)

@@ -56,7 +56,7 @@ function RepairTableModal({
 
   const handleRepairTable = () => {
     if (!tableName) {
-      console.log('No selected row or table name', tableName)
+      console.log('No selected row or table name')
       return
     }
 
@@ -65,18 +65,16 @@ function RepairTableModal({
     repairTable(
       { type, primaryKeys },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           setIsLoading(false)
           setSuccessMessage('Repair table succeeded')
-          console.log('Repair table succeeded, result:', response)
+          console.log('Repair table succeeded')
         },
         onError: (error: AxiosError<ErrorData>) => {
           const errorMessage =
             error.response?.data?.result || 'An unknown error occurred'
           setIsLoading(false)
           setErrorMessage(errorMessage)
-          console.log('error', error)
-          console.error('Repair table failed', error.message)
         }
       }
     )

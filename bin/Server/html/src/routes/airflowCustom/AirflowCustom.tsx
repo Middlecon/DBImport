@@ -119,7 +119,6 @@ function AirflowCustom() {
   }
 
   const handleRenameIconClick = (row: UiAirflowsCustomData) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsRenameAirflowDagModalOpen(true)
   }
@@ -128,18 +127,14 @@ function AirflowCustom() {
     if (!selectedRow || !dagData) return
 
     const dagName = selectedRow.name
-    console.log('old dagName', dagName)
-    console.log('newDagName', newDagName)
 
     const newDagDataCopy = newCopyDagData(newDagName, dagData)
-
-    console.log('newDagDataCopy', newDagDataCopy)
 
     createDAG(
       { type: 'custom', dagData: newDagDataCopy },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteDag(
             { type: 'custom', dagName },
@@ -160,13 +155,13 @@ function AirflowCustom() {
                 setIsRenameAirflowDagModalOpen(false)
               },
               onError: (error) => {
-                console.error('Error deleting DAG:', error)
+                console.log('Error deleting DAG:', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error creating DAG:', error)
+          console.log('Error creating rename:', error.message)
         }
       }
     )
@@ -194,7 +189,6 @@ function AirflowCustom() {
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => filteredData[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, filteredData])
@@ -218,16 +212,16 @@ function AirflowCustom() {
     bulkUpdateDag(
       { type: 'custom', dagData: bulkUpdateJson },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['airflows', 'custom'], // Matches all related queries that starts the queryKey with 'airflows', 'custom'
             exact: false
           })
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.log('Error updating', error.message)
         }
       }
     )
@@ -250,8 +244,6 @@ function AirflowCustom() {
       name
     }))
 
-    console.log(bulkDeleteRowsPks)
-
     bulkDeleteAirflowDags(
       { type: 'custom', bulkDeleteRowsPks },
       {
@@ -264,7 +256,7 @@ function AirflowCustom() {
           setRowSelection({})
         },
         onError: (error: Error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting', error.message)
         }
       }
     )

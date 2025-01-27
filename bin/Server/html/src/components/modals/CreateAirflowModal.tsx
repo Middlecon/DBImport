@@ -110,7 +110,6 @@ function CreateAirflowModal({
   }, [isResizing, handleMouseMove, handleMouseUp])
 
   if (!settings) {
-    console.error('DAG data is not available.')
     return
   }
 

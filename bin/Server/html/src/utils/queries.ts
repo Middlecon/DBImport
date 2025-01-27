@@ -83,7 +83,6 @@ interface SearchConnectionsResult {
 
 const getSearchConnections = async (filters: ConnectionSearchFilter) => {
   const response = await axiosInstance.post('/connection/search', filters)
-  console.log('response.data', response.data)
   return {
     data: response.data,
     headers: response.headers
@@ -106,8 +105,6 @@ export const useSearchConnections = (
         contentRows: headers['content-rows'],
         contentTotalRows: headers['content-total-rows']
       }
-      console.log('Headers:', headers)
-      console.log('headersRowInfo', headersRowInfo)
 
       return { connections: data, headersRowInfo }
     },
@@ -158,7 +155,6 @@ export const useConnection = (
 
 const getDatabases = async () => {
   const response = await axiosInstance.get('/import/db')
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -191,7 +187,6 @@ interface SearchImportTablesResult {
 
 const getSearchImportTables = async (filters: ImportSearchFilter) => {
   const response = await axiosInstance.post('/import/search', filters)
-  console.log('response.data', response.data)
   return {
     data: response.data,
     headers: response.headers
@@ -237,8 +232,6 @@ export const useSearchImportTables = (
         contentRows: headers['content-rows'],
         contentTotalRows: headers['content-total-rows']
       }
-      console.log('Headers:', headers)
-      console.log('headersRowInfo', headersRowInfo)
 
       return { tables: enumMappedData, headersRowInfo }
     },
@@ -251,7 +244,6 @@ export const useSearchImportTables = (
 
 const postDiscoverImportTables = async (filters: ImportDiscoverSearch) => {
   const response = await axiosInstance.post('/import/discover/search', filters)
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -286,7 +278,6 @@ export const fetchTableData = async (
       'Cannot fetch table because database or/and table params are not defined'
     )
   }
-  console.log('fetchTableData table', table)
   const data: Table = await getTable(database, table)
 
   const dataWithEnumTypes: UITable = {
@@ -337,7 +328,6 @@ export const useImportTable = (
 
 const getExportConnections = async () => {
   const response = await axiosInstance.get('/export/connection')
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -376,7 +366,6 @@ const getSearchExportTables = async (filters: ExportSearchFilter) => {
     '/export/search',
     filters
   )
-  console.log('response.data', response.data)
   return {
     data: response.data,
     headers: response.headers
@@ -420,8 +409,6 @@ export const useSearchExportTables = (
         contentRows: headers['content-rows'],
         contentTotalRows: headers['content-total-rows']
       }
-      console.log('Headers:', headers)
-      console.log('headersRowInfo', headersRowInfo)
 
       return { tables: enumMappedData, headersRowInfo }
     },
@@ -498,7 +485,6 @@ export const useExportTable = (
 
 const postDiscoverExportTables = async (filters: ExportDiscoverSearch) => {
   const response = await axiosInstance.post('/export/discover/search', filters)
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -550,7 +536,6 @@ export const useRawTable = ({
 
 const getAllAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags')
-  console.log('getAirflows response.data', response.data)
   return response.data
 }
 
@@ -562,7 +547,7 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
   })
 }
 
-// // Get all type airflows
+// // Get all type airflows WIP
 
 // const getAirflows = async (type: string) => {
 //   const response = await axiosInstance.get(`/airflow/dags/${type}`)
@@ -599,7 +584,6 @@ export const useAllAirflows = (): UseQueryResult<AirflowsData[], Error> => {
 
 const getImportAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/import')
-  console.log('getImportAirflows response.data', response.data)
   return response.data
 }
 
@@ -628,7 +612,6 @@ export const useImportAirflows = (): UseQueryResult<
 
 const getExportAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/export')
-  console.log('getExportAirflows response.data', response.data)
   return response.data
 }
 
@@ -657,7 +640,6 @@ export const useExportAirflows = (): UseQueryResult<
 
 const getCustomAirflows = async () => {
   const response = await axiosInstance.get('/airflow/dags/custom')
-  console.log('getCustomAirflows response.data', response.data)
   return response.data
 }
 

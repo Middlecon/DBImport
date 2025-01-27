@@ -124,7 +124,6 @@ function CopyAirflowTaskModal({
   }, [isResizing, handleMouseMove, handleMouseUp])
 
   if (!settings) {
-    console.error('Task data is not available.')
     return
   }
 

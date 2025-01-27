@@ -266,9 +266,6 @@ function ImportSearchFilterTables({
     keyLabel?: string,
     settingType?: string
   ) => {
-    console.log('keyLabel', keyLabel)
-    console.log('item', item)
-    console.log('settingType', settingType)
     if (!keyLabel) return
 
     if (keyLabel === 'includeInAirflow') {
@@ -302,8 +299,6 @@ function ImportSearchFilterTables({
       setEnumDropdownFilters(updatedFilters)
 
       const key = getKeyFromLabel(keyLabel)
-
-      console.log('key', key)
 
       setFormValues((prev) => ({
         ...prev,

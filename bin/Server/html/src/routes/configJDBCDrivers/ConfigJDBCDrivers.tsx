@@ -33,7 +33,6 @@ function ConfigJDBCDrivers() {
   const handleEditClick = useCallback(
     (row: JDBCdrivers, rowIndex: number | undefined) => {
       if (!originalDriverData) {
-        console.error('Drivers data is not available.')
         return
       }
 
@@ -82,11 +81,11 @@ function ConfigJDBCDrivers() {
 
     queryClient.setQueryData(['configuration', 'jdbcdrivers'], originalDataCopy)
     updateDriver(editedJDBCDriverData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: ['configuration', 'jdbcdrivers']
         }) // For getting fresh data from database to the cache
-        console.log('Update successful', response)
+        console.log('Update successful')
         setIsEditModalOpen(false)
       },
       onError: (error) => {
@@ -95,7 +94,7 @@ function ConfigJDBCDrivers() {
           originalDriverData
         )
 
-        console.error('Error updating JDBC Drivers', error)
+        console.log('Error updating JDBC Drivers', error.message)
       }
     })
   }

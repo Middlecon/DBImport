@@ -108,7 +108,6 @@ export const useHandleLinkClick = (
   } else if (type === 'export') {
     navigate(`/export?connection=${encodedItem}`)
   } else {
-    console.log('item', item)
     window.open(item, '_blank')
   }
 }

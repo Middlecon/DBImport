@@ -76,7 +76,6 @@ function DbTables({
   const getPrimaryKeys = (
     row: UiDbTable | undefined
   ): { database: string; table: string } | null => {
-    console.log('getPrimaryKeys row', row)
     if (!row) return null
     const { database, table } = row
     return { database, table }
@@ -134,7 +133,6 @@ function DbTables({
   }
 
   const handleRenameIconClick = (row: UiDbTable) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsRenameTableModalOpen(true)
   }
@@ -144,22 +142,17 @@ function DbTables({
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData = newCopyImportTableData(
       tableData as UITableWithoutEnum,
       tablePrimaryKeysSettings
     )
 
-    console.log(newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
-          console.log('primaryKeys', primaryKeys)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteTable(
             { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
@@ -181,20 +174,19 @@ function DbTables({
                 setIsRenameTableModalOpen(false)
               },
               onError: (error) => {
-                console.error('Error deleting table', error)
+                console.log('Error deleting table', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error copy table', error.message)
         }
       }
     )
   }
 
   const handleCopyIconClick = (row: UiDbTable) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsCopyTableModalOpen(true)
   }
@@ -204,20 +196,16 @@ function DbTables({
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData = newCopyImportTableData(
       tableData as UITableWithoutEnum,
       tablePrimaryKeysSettings
     )
 
-    console.log('newCopyTableData', newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['import', 'search'],
             exact: false
@@ -226,11 +214,11 @@ function DbTables({
             queryKey: ['databases'],
             exact: false
           })
-          console.log('Save table copy successful', response)
+          console.log('Save table copy successful')
           setIsCopyTableModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error copy table', error.message)
         }
       }
     )
@@ -241,7 +229,6 @@ function DbTables({
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => data[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, data])
@@ -257,9 +244,6 @@ function DbTables({
     // For bulkChanges with enum values
     const transformedChanges = transformBulkChanges('import', bulkChanges)
 
-    console.log('bulkChanges', bulkChanges)
-    console.log('transformedChanges', transformedChanges)
-
     const bulkUpdateJson: BulkUpdateImportTables = {
       ...transformedChanges,
       importTables: importTablesPks
@@ -268,15 +252,15 @@ function DbTables({
     bulkUpdateTable(
       { type: 'import', bulkUpdateJson },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['import', 'search', queryKeyFilters]
           })
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.log('Error updating table', error.message)
         }
       }
     )
@@ -299,8 +283,6 @@ function DbTables({
       table
     }))
 
-    console.log(bulkDeleteRowsPks)
-
     bulkDeleteTable(
       { type: 'import', bulkDeleteRowsPks },
       {
@@ -313,7 +295,7 @@ function DbTables({
           setRowSelection({})
         },
         onError: (error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting item', error.message)
         }
       }
     )

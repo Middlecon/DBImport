@@ -200,13 +200,12 @@ function GenerateConnectionStringModal({
 
     generateConnectionString(generateConnectionStringData, {
       onSuccess: (response) => {
-        console.log('Generate successful', response)
-        console.log('response.connectionString', response.connectionString)
+        console.log('Generate connection string successful')
         setGeneratedConnectionString(response.connectionString)
         onClose()
       },
       onError: (error) => {
-        console.error('Error updating JDBC Drivers', error)
+        console.log('Error updating JDBC Drivers', error.message)
       }
     })
   }

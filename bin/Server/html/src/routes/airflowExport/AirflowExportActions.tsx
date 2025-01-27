@@ -35,15 +35,15 @@ function AirflowExportActions({ dags }: AirflowExportActionsProps) {
     createDAG(
       { type: 'export', dagData: newExportAirflowData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['airflows', 'export']
           })
-          console.log('Create DAG successful', response)
+          console.log('Create DAG successful')
           setIsCreateModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error creating DAG', error)
+          console.log('Error creating DAG', error.message)
         }
       }
     )
@@ -51,7 +51,6 @@ function AirflowExportActions({ dags }: AirflowExportActionsProps) {
 
   const handleShow = (uiFilters: UiAirflowsSearchFilter) => {
     const params = new URLSearchParams(location.search)
-    console.log('uiFilters', uiFilters)
 
     const filterKeys: (keyof UiAirflowsSearchFilter)[] = [
       'name',

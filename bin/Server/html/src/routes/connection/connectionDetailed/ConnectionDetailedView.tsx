@@ -75,24 +75,23 @@ function ConnectionDetailedView() {
 
   const handleTestConnection = () => {
     if (!connectionParam) {
-      console.log('No connectionParam', connectionParam)
+      console.log('No connectionParam')
       return
     }
 
     setIsTestCnModalOpen(true)
 
     testConnection(connectionParam, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         setIsTestLoading(false)
-        console.log('Connection test succeeded, result:', response)
+        console.log('Connection test succeeded')
       },
       onError: (error: AxiosError<ErrorData>) => {
         const errorMessage =
           error.response?.data?.result || 'An unknown error occurred'
         setIsTestLoading(false)
         setErrorMessageTest(errorMessage)
-        console.log('error', error)
-        console.error('Connection test failed', error.message)
+        console.log('Connection test failed', error.message)
       }
     })
   }
@@ -114,11 +113,9 @@ function ConnectionDetailedView() {
 
     const newCnDataCopy = newCopyCnData(newCnName, cnData)
 
-    console.log('newCnDataCopy', newCnDataCopy)
-
     createConnection(newCnDataCopy, {
-      onSuccess: (response) => {
-        console.log('Save connection copy successful', response)
+      onSuccess: () => {
+        console.log('Save connection copy successful')
 
         queryClient.invalidateQueries({
           queryKey: ['connection', 'search'],
@@ -126,31 +123,28 @@ function ConnectionDetailedView() {
         })
       },
       onError: (error) => {
-        console.error('Error copy connection', error)
+        console.log('Error copy connection', error.message)
       }
     })
   }
 
   const handleSave = (updatedSettings: EditSetting[]) => {
     setIsEncryptLoading(true)
-    console.log('updatedSettings', updatedSettings)
     const encryptCredentialsData =
       transformEncryptCredentialsSettings(updatedSettings)
-    console.log('encryptCredentialsData', encryptCredentialsData)
 
     encryptCredentials(encryptCredentialsData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         // For getting fresh data from database to the cache
         queryClient.invalidateQueries({
           queryKey: ['connection'],
           exact: false
         })
-        console.log('Update successful', response)
+        console.log('Update successful')
         setIsEncryptLoading(false)
         setIsEncryptModalOpen(false)
       },
       onError: (error: AxiosError<ErrorData>) => {
-        console.error('Error encrypt credentials', error)
         const errorMessage =
           error.response?.data?.result || 'An unknown error occurred'
 
@@ -190,7 +184,6 @@ function ConnectionDetailedView() {
             'An unknown error occurred'
           setIsDeleteLoading(false)
           setErrorMessageDelete(errorMessage)
-          console.log('error', error)
         }
       }
     )

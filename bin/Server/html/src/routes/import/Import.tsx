@@ -203,7 +203,6 @@ function Import() {
 
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data.tables)) return []
-    console.log('lastUpdateFromSource', lastUpdateFromSource)
     return data.tables.filter((row) => {
       const rowDate = parseTimestamp(row.lastUpdateFromSource)
 

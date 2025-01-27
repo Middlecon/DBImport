@@ -58,7 +58,7 @@ function ResetTableModal({
 
   const handleResetTable = () => {
     if (!tableName) {
-      console.log('No selected row or table name', tableName)
+      console.log('No selected row or table name')
       return
     }
 
@@ -67,18 +67,16 @@ function ResetTableModal({
     resetTable(
       { type, primaryKeys },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           setIsLoading(false)
           setSuccessMessage('Reset table succeeded')
-          console.log('Reset table succeeded, result:', response)
+          console.log('Reset table succeeded')
         },
         onError: (error: AxiosError<ErrorData>) => {
           const errorMessage =
             error.response?.data?.result || 'An unknown error occurred'
           setIsLoading(false)
           setErrorMessage(errorMessage)
-          console.log('error', error)
-          console.error('Reset table failed', error.message)
         }
       }
     )

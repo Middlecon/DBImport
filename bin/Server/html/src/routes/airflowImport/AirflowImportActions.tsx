@@ -35,15 +35,15 @@ function AirflowImportActions({ dags }: AirfloImportActionsProps) {
     createDAG(
       { type: 'import', dagData: newImportAirflowData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['airflows', 'import']
           })
-          console.log('Create DAG successful', response)
+          console.log('Create DAG successful')
           setIsCreateModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error creating DAG', error)
+          console.log('Error creating DAG', error.message)
         }
       }
     )

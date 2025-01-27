@@ -27,18 +27,17 @@ function GenerateDagModal({
 
   const handleGenerateDag = () => {
     if (!dagName) {
-      console.log('No selected row or DAG name', dagName)
+      console.log('No selected row or DAG name')
       return
     }
 
     setIsLoading(true)
 
     generateDag(dagName, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         setIsLoading(false)
         setSuccessMessage('Generate DAG succeeded')
-        console.log('Generating DAG succeeded, result:', response)
-        // setIsGenDagModalOpen(false)
+        console.log('Generating DAG succeeded')
       },
       onError: (error: AxiosError<ErrorData>) => {
         const errorMessage =
@@ -50,8 +49,6 @@ function GenerateDagModal({
             : 'An unknown error occurred'
         setIsLoading(false)
         setErrorMessage(errorMessage)
-        console.log('error', error)
-        console.error('Generate DAG failed', error.message)
       }
     })
   }

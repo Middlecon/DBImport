@@ -111,7 +111,6 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const handleEditClick = useCallback(
     (row: AirflowTask, rowIndex: number | undefined) => {
       if (!originalDagData) {
-        console.error('Task data is not available.')
         return
       }
 
@@ -200,12 +199,12 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       updateDag(
         { type, dagData: editedDagData },
         {
-          onSuccess: (response) => {
+          onSuccess: () => {
             queryClient.invalidateQueries({
               queryKey: ['airflows', type, dagName]
             }) // For getting fresh data from database to the cache
             setDataRefreshTrigger((prev) => prev + 1)
-            console.log('Update successful', response)
+            console.log('Update successful')
             setIsEditModalOpen(false)
           },
           onError: (error) => {
@@ -214,7 +213,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
               originalDagData
             )
 
-            console.error('Error updating table', error)
+            console.log('Error updating DAG', error.message)
           }
         }
       )
@@ -254,12 +253,12 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       updateDag(
         { type, dagData: editedDagData },
         {
-          onSuccess: (response) => {
+          onSuccess: () => {
             queryClient.invalidateQueries({
               queryKey: ['airflows', type, dagName]
             }) // For getting fresh data from database to the cache
             setDataRefreshTrigger((prev) => prev + 1)
-            console.log('Update successful', response)
+            console.log('Update successful')
             setIsEditModalOpen(false)
           },
           onError: (error) => {
@@ -268,7 +267,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
               originalDagData
             )
 
-            console.error('Error updating table', error)
+            console.log('Error updating DAG', error.message)
           }
         }
       )
@@ -276,10 +275,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   }
 
   const handleSaveCopyTask = (updatedSettings: EditSetting[]) => {
-    // const dagDataCopy = { ...originalDagData }
     const dagDataCopy = cloneDeep(originalDagData)
-    console.log('updatedSettings', updatedSettings)
-    console.log('originalDagData', originalDagData)
     let editedDagData:
       | ImportAirflowDAG
       | BaseAirflowDAG
@@ -319,19 +315,17 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       )
     }
 
-    console.log('editedDagData', editedDagData)
-
     if (editedDagData && type) {
       queryClient.setQueryData(['airflows', type, dagName], editedDagData)
       updateDag(
         { type, dagData: editedDagData },
         {
-          onSuccess: (response) => {
+          onSuccess: () => {
             queryClient.invalidateQueries({
               queryKey: ['airflows', type, dagName]
             }) // For getting fresh data from database to the cache
             setDataRefreshTrigger((prev) => prev + 1)
-            console.log('Update successful', response)
+            console.log('Update successful')
             setIsEditModalOpen(false)
           },
           onError: (error) => {
@@ -340,7 +334,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
               originalDagData
             )
 
-            console.error('Error updating table', error)
+            console.log('Error updating DAG', error.message)
           }
         }
       )
@@ -355,7 +349,6 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const handleDelete = async (row: AirflowTask) => {
     if (!dagName) return
     setShowDeleteConfirmation(false)
-    console.log('handleDelete task row', row)
 
     const { name: taskNameDelete } = row
 
@@ -371,7 +364,7 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
           console.log('Delete successful')
         },
         onError: (error: Error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting item: ', error.message)
         }
       }
     )

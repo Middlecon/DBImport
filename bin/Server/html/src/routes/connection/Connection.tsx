@@ -139,9 +139,9 @@ function Connection() {
     setIsTestCnModalOpen(true)
 
     testConnection(row.name, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         setIsTestLoading(false)
-        console.log('Connection test succeeded, result:', response)
+        console.log('Connection test succeeded')
       },
       onError: (error: AxiosError<ErrorData>) => {
         const errorMessage =
@@ -149,8 +149,7 @@ function Connection() {
         setIsTestLoading(false)
         setErrorMessageTest(errorMessage)
         setIsTestCnModalOpen(true)
-        console.log('error', error)
-        console.error('Connection test failed', error.message)
+        console.log('Connection test failed', error.message)
       }
     })
   }
@@ -166,11 +165,9 @@ function Connection() {
 
     const newCnDataCopy = newCopyCnData(newCnName, cnData)
 
-    console.log('newCnDataCopy', newCnDataCopy)
-
     createConnection(newCnDataCopy, {
-      onSuccess: (response) => {
-        console.log('Save connection copy successful', response)
+      onSuccess: () => {
+        console.log('Save connection copy successful')
 
         queryClient.invalidateQueries({
           queryKey: ['connection', 'search'],
@@ -182,7 +179,7 @@ function Connection() {
         })
       },
       onError: (error) => {
-        console.error('Error copy connection', error)
+        console.log('Error copy connection', error.message)
       }
     })
   }
@@ -194,24 +191,21 @@ function Connection() {
 
   const handleSaveEncrypt = (updatedSettings: EditSetting[]) => {
     setIsEncryptLoading(true)
-    console.log('updatedSettings', updatedSettings)
     const encryptCredentialsData =
       transformEncryptCredentialsSettings(updatedSettings)
-    console.log('encryptCredentialsData', encryptCredentialsData)
 
     encryptCredentials(encryptCredentialsData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         // For getting fresh data from database to the cache
         queryClient.invalidateQueries({
           queryKey: ['connection'],
           exact: false
         })
-        console.log('Update successful', response)
+        console.log('Update successful')
         setIsEncryptLoading(false)
         setIsEncryptModalOpen(false)
       },
       onError: (error: AxiosError<ErrorData>) => {
-        console.error('Error encrypt credentials', error)
         const errorMessage =
           error.response?.data?.result || 'An unknown error occurred'
         setErrorMessageEncrypt(errorMessage)
@@ -250,7 +244,6 @@ function Connection() {
             'An unknown error occurred'
           setIsDeleteLoading(false)
           setErrorMessageDelete(errorMessage)
-          console.log('error', error)
         }
       }
     )

@@ -23,7 +23,6 @@ function ConfigGlobalSettings() {
     )
   }
 
-  console.log('globalConfig', globalConfig)
   const globalSettings = configGlobalCardRenderSettings(globalConfig)
 
   const shouldRenderCard = (settings: EditSetting[]) => {

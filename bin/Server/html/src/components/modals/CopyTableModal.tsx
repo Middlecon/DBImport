@@ -253,8 +253,6 @@ function CopyTableModal({
   }
 
   const handleSave = () => {
-    console.log('editedSettings', editedSettings)
-
     onSave(type, editedSettings)
     onClose()
   }

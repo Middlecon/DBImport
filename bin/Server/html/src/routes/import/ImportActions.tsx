@@ -74,23 +74,21 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
   }, [tables])
 
   const handleSave = (newTableData: EditSetting[]) => {
-    console.log('newTableData', newTableData)
     const newTable = createTableData(newTableData)
-    console.log('newTable', newTable)
 
     createTable(newTable, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: ['import', 'search', filters]
         })
         queryClient.invalidateQueries({
           queryKey: ['databases']
         })
-        console.log('Create successful', response)
+        console.log('Create successful')
         setIsCreateModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error creating table', error)
+        console.log('Error creating table', error.message)
       }
     })
   }

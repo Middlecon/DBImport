@@ -55,18 +55,18 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
   const handleSave = (newTableData: EditSetting[]) => {
     const newTable = createExportTableData(newTableData)
     createTable(newTable, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: ['export', 'search', filters]
         })
         queryClient.invalidateQueries({
           queryKey: ['export', 'connections']
         })
-        console.log('Create successful', response)
+        console.log('Create successful')
         setIsCreateModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error creating table', error)
+        console.log('Error creating table', error.message)
       }
     })
   }

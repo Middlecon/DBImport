@@ -37,7 +37,6 @@ function AirflowSettings({ type }: { type: 'import' | 'export' | 'custom' }) {
   const airflowDagSettings = airflowCardRenderSettings(type, dagData)
 
   if (!airflowDagSettings) {
-    console.error('DAG data is not available.')
     return
   }
 

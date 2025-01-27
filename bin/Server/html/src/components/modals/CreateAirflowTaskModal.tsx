@@ -125,7 +125,6 @@ function CreateAirflowTaskModal({
   }, [isResizing, handleMouseMove, handleMouseUp])
 
   if (!settings) {
-    console.error('Task data is not available.')
     return
   }
 

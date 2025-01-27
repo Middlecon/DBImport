@@ -67,7 +67,6 @@ function TableColumns() {
   const handleEditClick = useCallback(
     (row: Columns, rowIndex: number | undefined) => {
       if (!tableData) {
-        console.error('Table data is not available.')
         return
       }
 
@@ -102,19 +101,19 @@ function TableColumns() {
     updateTable(
       { type: 'import', table: editedTableData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['import', database, tableParam]
           })
           setDataRefreshTrigger((prev) => prev + 1)
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsEditModalOpen(false)
         },
         onError: (error) => {
           queryClient.invalidateQueries({
             queryKey: ['import', database, tableParam]
           })
-          console.error('Error updating table', error)
+          console.log('Error updating table', error.message)
         }
       }
     )

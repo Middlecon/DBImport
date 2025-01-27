@@ -58,7 +58,6 @@ function ExportTableColumns() {
   const handleEditClick = useCallback(
     (row: ExportColumns, rowIndex: number | undefined) => {
       if (!tableData) {
-        console.error('Table data is not available.')
         return
       }
 
@@ -93,19 +92,19 @@ function ExportTableColumns() {
     updateTable(
       { type: 'export', table: editedTableData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['export', connection, targetTable]
           })
           setDataRefreshTrigger((prev) => prev + 1)
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsEditModalOpen(false)
         },
         onError: (error) => {
           queryClient.invalidateQueries({
             queryKey: ['export', connection, targetTable]
           })
-          console.error('Error updating table', error)
+          console.log('Error updating table', error.message)
         }
       }
     )

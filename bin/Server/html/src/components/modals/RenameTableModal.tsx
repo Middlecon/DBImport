@@ -252,8 +252,6 @@ function RenameTableModal({
   }
 
   const handleSave = () => {
-    console.log('editedSettings', editedSettings)
-
     onSave(type, editedSettings)
     onClose()
   }

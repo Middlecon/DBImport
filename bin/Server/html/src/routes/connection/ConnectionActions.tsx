@@ -28,10 +28,9 @@ function ConnectionActions({ connections }: ConnectionActionsProps) {
 
   const handleSave = (newConnectionSettings: EditSetting[]) => {
     const newConnectionData = createConnectionData(newConnectionSettings)
-    console.log('newConnectionData', newConnectionData)
 
     createConnection(newConnectionData, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         // For getting fresh data from database to the cache
         queryClient.invalidateQueries({
           queryKey: ['connection', 'search'],
@@ -41,11 +40,11 @@ function ConnectionActions({ connections }: ConnectionActionsProps) {
           queryKey: ['connection'],
           exact: true
         })
-        console.log('Create connection successful', response)
+        console.log('Create connection successful')
         setIsCreateModalOpen(false)
       },
       onError: (error) => {
-        console.error('Error creating connection', error)
+        console.log('Error creating connection', error.message)
       }
     })
   }

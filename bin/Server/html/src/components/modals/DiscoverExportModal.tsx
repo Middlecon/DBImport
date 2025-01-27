@@ -180,14 +180,12 @@ function DiscoverExportModal({
         setRowSelection({})
       },
       onError: (error) => {
-        console.error('Error adding tables', error)
+        console.log('Error adding tables', error.message)
       }
     })
   }
 
   const handleCloseClick = () => {
-    console.log('isRowSelectionEmpty', isRowSelectionEmpty)
-    console.log('rowSelection', rowSelection)
     setShowConfirmation(true)
   }
 

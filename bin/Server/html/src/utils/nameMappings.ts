@@ -551,7 +551,6 @@ export const reverseMapEnumValue = (
       `No backend value found for display value: '${displayValue}' in category: '${category}'`
     )
   }
-  console.log('backendValue', backendValue)
   return backendValue
 }
 

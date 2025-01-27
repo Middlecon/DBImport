@@ -33,12 +33,10 @@ import { AxiosError } from 'axios'
 // Encrypt credentials
 
 const postEncryptCredentials = async (data: EncryptCredentials) => {
-  console.log('post connectionStringData:', data)
   const response = await axiosInstance.post(
     '/connection/encryptCredentials',
     data
   )
-  console.log('post encryptCredentials response', response)
 
   return response.data
 }
@@ -74,7 +72,6 @@ export const useGenerateConnectionString = () => {
 // Test connection
 
 const getTestConnection = async (connection: string) => {
-  console.log('connection', connection)
   const encodedConnection = encodeURIComponent(connection)
   const response = await axiosInstance.get(
     `/connection/testConnection/${encodedConnection}`
@@ -91,9 +88,7 @@ export const useTestConnection = () => {
 // Create or update connection
 
 const postCreateOrUpdateConnection = async (connection: Connection) => {
-  console.log('postUpdateConnection connection', connection)
   const response = await axiosInstance.post('/connection', connection)
-  console.log('postUpdateConnection response.data', response.data)
 
   return response.data
 }
@@ -147,7 +142,6 @@ const postRepairTable = async (
       const encodedTable = encodeURIComponent(table)
 
       const postUrl = `/${type}/table/${encodedDatabase}/${encodedTable}/repair`
-      console.log('postUrl import', postUrl)
 
       const response = await axiosInstance.post(postUrl)
       return response.data
@@ -159,7 +153,6 @@ const postRepairTable = async (
       const encodedTargetTable = encodeURIComponent(targetTable)
 
       const postUrl = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/repair`
-      console.log('postUrl export', postUrl)
 
       const response = await axiosInstance.post(postUrl)
       return response.data
@@ -188,7 +181,6 @@ const postResetTable = async (
       const encodedTable = encodeURIComponent(table)
 
       const postUrl = `/${type}/table/${encodedDatabase}/${encodedTable}/reset`
-      console.log('postUrl import', postUrl)
 
       const response = await axiosInstance.post(postUrl)
       return response.data
@@ -200,7 +192,6 @@ const postResetTable = async (
       const encodedTargetTable = encodeURIComponent(targetTable)
 
       const postUrl = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}/reset`
-      console.log('postUrl export', postUrl)
 
       const response = await axiosInstance.post(postUrl)
       return response.data
@@ -287,10 +278,7 @@ const postUpdateTable = async (
 
   const tableObject = type === 'import' ? importTableObject : exportTableObject
 
-  console.log('postTable type', type)
-  console.log('postTable table', table)
   const response = await axiosInstance.post(postUrl, tableObject)
-  console.log('postTable response.data', response.data)
 
   return response.data
 }
@@ -320,7 +308,6 @@ const deleteTable = async (
       const encodedTable = encodeURIComponent(table)
 
       const url = `/${type}/table/${encodedDatabase}/${encodedTable}`
-      console.log('url import', url)
 
       const response = await axiosInstance.delete(url)
       return response.data
@@ -332,7 +319,6 @@ const deleteTable = async (
       const encodedTargetTable = encodeURIComponent(targetTable)
 
       const url = `/${type}/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`
-      console.log('url export', url)
 
       const response = await axiosInstance.delete(url)
       return response.data
@@ -349,8 +335,6 @@ export const useDeleteTable = () => {
 // Import create table
 
 const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
-  console.log('postTable table', table)
-
   const { database, table: tableName, ...tableObject } = table
   const encodedDatabase = encodeURIComponent(database)
   const encodedTable = encodeURIComponent(tableName)
@@ -359,7 +343,6 @@ const postCreateImportTable = async (table: TableCreateWithoutEnum) => {
     `/import/table/${encodedDatabase}/${encodedTable}`,
     tableObject
   )
-  console.log('postTable response.data', response.data)
   return response.data
 }
 
@@ -375,7 +358,6 @@ export const useCreateImportTable = () => {
 
 const postAddImportTables = async (tables: ImportDiscoverTable[]) => {
   const response = await axiosInstance.post('/import/discover/add', tables)
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -397,7 +379,6 @@ const postCreateExportTable = async (table: ExportTableCreateWithoutEnum) => {
     `/export/table/${encodedConnection}/${encodedTargetSchema}/${encodedTargetTable}`,
     exportTableObject
   )
-  console.log('postTable response.data', response.data)
 
   return response.data
 }
@@ -414,7 +395,6 @@ export const useCreateExportTable = () => {
 
 const postAddExportTables = async (tables: ExportDiscoverTable[]) => {
   const response = await axiosInstance.post('/export/discover/add', tables)
-  console.log('response.data', response.data)
   return response.data
 }
 
@@ -430,9 +410,7 @@ const postBulkUpdateTable = async (
   type: 'import' | 'export',
   bulkUpdateJson: BulkUpdateImportTables | BulkUpdateExportTables
 ) => {
-  console.log('bulkUpdateJson', bulkUpdateJson)
   const response = await axiosInstance.post(`/${type}/table`, bulkUpdateJson)
-  console.log('postBulkUpdateTable response.data', response.data)
 
   return response.data
 }
@@ -482,7 +460,6 @@ export const useBulkDeleteTables = () => {
 // Generate DAG
 
 const getGenerateDag = async (dagName: string) => {
-  console.log('dagName', dagName)
   const encodedDagName = encodeURIComponent(dagName)
   const response = await axiosInstance.get(`/airflow/generate_dag`, {
     params: { dagname: encodedDagName }
@@ -658,9 +635,7 @@ export const useBulkDeleteAirflowDags = () => {
 // CONFIGURATION
 
 const postGlobalConfig = async (config: ConfigGlobalWithIndex) => {
-  console.log('post config:', config)
   const response = await axiosInstance.post('/config/updateConfig', config)
-  console.log('post config response.data', response.data)
 
   return response.data
 }
@@ -674,9 +649,7 @@ export const useUpdateGlobalConfig = () => {
 }
 
 const postJDBCdriver = async (driver: JDBCdriversWithIndex) => {
-  console.log('post driver:', driver)
   const response = await axiosInstance.post('/config/updateJDBCdriver', driver)
-  console.log('post driver response.data', response.data)
 
   return response.data
 }

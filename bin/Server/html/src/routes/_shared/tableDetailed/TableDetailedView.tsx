@@ -83,7 +83,7 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
           navigate(`/${type}`, { replace: true })
         },
         onError: (error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting table', error.message)
         }
       }
     )
@@ -176,8 +176,6 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData =
       type === 'import'
@@ -190,14 +188,11 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             tablePrimaryKeysSettings
           )
 
-    console.log(newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
-          console.log('primaryKeys', primaryKeys)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteTable(
             { type, primaryKeys: primaryKeys as ImportPKs | ExportPKs },
@@ -251,14 +246,14 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
                 }
               },
               onError: (error) => {
-                console.error('Error deleting table', error)
+                console.log('Error deleting table', error.message)
                 setErrorMessage(error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error creating rename', error.message)
           setErrorMessage(error.message)
         }
       }
@@ -274,8 +269,6 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
     tablePrimaryKeysSettings: EditSetting[]
   ) => {
     if (!tableData) return
-    console.log('tablePrimaryKeysSettings', tablePrimaryKeysSettings)
-    console.log('tableData', tableData)
 
     const newCopyTableData =
       type === 'import'
@@ -288,12 +281,10 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             tablePrimaryKeysSettings
           )
 
-    console.log(newCopyTableData)
-
     copyTable(
       { type, table: newCopyTableData },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: [type, 'search'],
             exact: false
@@ -306,12 +297,10 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
             })
           }
 
-          console.log('Save table copy successful', response)
-          handleDeleteTable()
-          // setIsCopyTableModalOpen(false)
+          console.log('Save table copy successful')
         },
         onError: (error) => {
-          console.error('Error copy table', error)
+          console.log('Error copy table', error.message)
         }
       }
     )

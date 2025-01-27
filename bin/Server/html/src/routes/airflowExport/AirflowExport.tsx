@@ -122,7 +122,6 @@ function AirflowExport() {
   }
 
   const handleRenameIconClick = (row: UiAirflowsExportData) => {
-    console.log('row', row)
     setSelectedRow(row)
     setIsRenameAirflowDagModalOpen(true)
   }
@@ -131,18 +130,14 @@ function AirflowExport() {
     if (!selectedRow || !dagData) return
 
     const dagName = selectedRow.name
-    console.log('old dagName', dagName)
-    console.log('newDagName', newDagName)
 
     const newDagDataCopy = newCopyDagData(newDagName, dagData)
-
-    console.log('newDagDataCopy', newDagDataCopy)
 
     createDAG(
       { type: 'export', dagData: newDagDataCopy },
       {
-        onSuccess: (response) => {
-          console.log('Save renamned copy successful', response)
+        onSuccess: () => {
+          console.log('Save renamned copy successful')
 
           deleteDag(
             { type: 'export', dagName },
@@ -163,13 +158,13 @@ function AirflowExport() {
                 setIsRenameAirflowDagModalOpen(false)
               },
               onError: (error) => {
-                console.error('Error deleting DAG:', error)
+                console.log('Error deleting DAG:', error.message)
               }
             }
           )
         },
         onError: (error) => {
-          console.error('Error creating DAG:', error)
+          console.log('Error creating rename:', error.message)
         }
       }
     )
@@ -197,7 +192,6 @@ function AirflowExport() {
       parseInt(id, 10)
     )
     const selectedRows = selectedIndexes.map((index) => filteredData[index])
-    console.log('handleBulkEditClick selectedRows', selectedRows)
     setSelectedRowsBulk(selectedRows)
     setIsBulkEditModalOpen(true)
   }, [rowSelection, filteredData])
@@ -221,15 +215,15 @@ function AirflowExport() {
     bulkUpdateDag(
       { type: 'export', dagData: bulkUpdateJson },
       {
-        onSuccess: (response) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ['airflows', 'export']
           })
-          console.log('Update successful', response)
+          console.log('Update successful')
           setIsBulkEditModalOpen(false)
         },
         onError: (error) => {
-          console.error('Error updating table', error)
+          console.log('Error updating', error.message)
         }
       }
     )
@@ -252,8 +246,6 @@ function AirflowExport() {
       name
     }))
 
-    console.log(bulkDeleteRowsPks)
-
     bulkDeleteAirflowDags(
       { type: 'export', bulkDeleteRowsPks },
       {
@@ -266,7 +258,7 @@ function AirflowExport() {
           setRowSelection({})
         },
         onError: (error: Error) => {
-          console.error('Error deleting item', error)
+          console.log('Error deleting', error.message)
         }
       }
     )

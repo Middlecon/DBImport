@@ -60,9 +60,6 @@ function Card({
     }
 
     if (editedTableData && type) {
-      console.log('updatedSettings', updatedSettings)
-      console.log('editedTableData', editedTableData)
-
       const secondQueryKey = type === 'import' ? database : connection
       const thirdQueryKey = type === 'import' ? tableParam : targetTable
 
@@ -73,12 +70,12 @@ function Card({
       updateTable(
         { type, table: editedTableData },
         {
-          onSuccess: (response) => {
+          onSuccess: () => {
             // For getting fresh data from database to the cache
             queryClient.invalidateQueries({
               queryKey: [type, secondQueryKey, thirdQueryKey]
             })
-            console.log('Update successful', response)
+            console.log('Update successful')
             setIsEditModalOpen(false)
           },
           onError: (error) => {
@@ -87,7 +84,7 @@ function Card({
               tableData
             )
 
-            console.error('Error updating table', error)
+            console.log('Error updating table', error.message)
           }
         }
       )
