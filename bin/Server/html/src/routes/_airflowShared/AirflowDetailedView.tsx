@@ -9,12 +9,12 @@ import { useAirflowDAG } from '../../utils/queries'
 import Button from '../../components/Button'
 import ApacheAirflowIconSmall from '../../assets/icons/ApacheAirflowIconSmall'
 import { useQueryClient } from '@tanstack/react-query'
-import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import { useCreateAirflowDag, useDeleteAirflowDAG } from '../../utils/mutations'
 import DeleteIcon from '../../assets/icons/DeleteIcon'
 import RenameIcon from '../../assets/icons/RenameIcon'
 import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
 import { newCopyDagData } from '../../utils/dataFunctions'
+import DeleteModal from '../../components/modals/DeleteModal'
 
 function AirflowDetailedView({
   type
@@ -253,9 +253,9 @@ function AirflowDetailedView({
           />
         )}
         {showDeleteConfirmation && (
-          <ConfirmationModal
+          <DeleteModal
             title={`Delete ${dagName}`}
-            message={`Are you sure that you want to delete DAG "${dagName}"? \nDelete is irreversable.`}
+            message={`Are you sure that you want to delete DAG "${dagName}"?`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
             onConfirm={handleDeleteDag}

@@ -31,6 +31,7 @@ import DeleteIcon from '../../../assets/icons/DeleteIcon'
 import CopyConnectionModal from '../../../components/modals/CopyConnectionModal'
 import { useConnection } from '../../../utils/queries'
 import CopyIcon from '../../../assets/icons/CopyIcon'
+import DeleteModal from '../../../components/modals/DeleteModal'
 
 function ConnectionDetailedView() {
   const navigate = useNavigate()
@@ -51,8 +52,13 @@ function ConnectionDetailedView() {
 
   const { data: cnData } = useConnection(connectionParam)
 
-  const { mutate: deleteConnection } = useDeleteConnection()
+  const { mutate: deleteConnection, isSuccess: isDeleteSuccess } =
+    useDeleteConnection()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const [errorMessageDelete, setErrorMessageDelete] = useState<string | null>(
+    null
+  )
 
   const [isEncryptModalOpen, setIsEncryptModalOpen] = useState(false)
   const [isEncryptLoading, setIsEncryptLoading] = useState(false)
@@ -85,7 +91,6 @@ function ConnectionDetailedView() {
           error.response?.data?.result || 'An unknown error occurred'
         setIsTestLoading(false)
         setErrorMessageTest(errorMessage)
-        setIsTestCnModalOpen(true)
         console.log('error', error)
         console.error('Connection test failed', error.message)
       }
@@ -148,6 +153,7 @@ function ConnectionDetailedView() {
         console.error('Error encrypt credentials', error)
         const errorMessage =
           error.response?.data?.result || 'An unknown error occurred'
+
         setErrorMessageEncrypt(errorMessage)
         setIsEncryptLoading(false)
       }
@@ -162,8 +168,7 @@ function ConnectionDetailedView() {
 
   const handleDeleteCn = async () => {
     if (!connectionParam) return
-
-    setShowDeleteConfirmation(false)
+    setIsDeleteLoading(true)
 
     deleteConnection(
       { connectionName: connectionParam },
@@ -174,10 +179,18 @@ function ConnectionDetailedView() {
             exact: false
           })
           console.log('Delete successful')
+          setShowDeleteConfirmation(false)
+
           navigate(`/connection`, { replace: true })
         },
-        onError: (error) => {
-          console.error('Error deleting item', error)
+        onError: (error: AxiosError<ErrorData>) => {
+          const errorMessage =
+            error.response?.data?.result ||
+            error.response?.statusText ||
+            'An unknown error occurred'
+          setIsDeleteLoading(false)
+          setErrorMessageDelete(errorMessage)
+          console.log('error', error)
         }
       }
     )
@@ -296,13 +309,18 @@ function ConnectionDetailedView() {
           />
         )}
         {showDeleteConfirmation && connectionParam && (
-          <ConfirmationModal
+          <DeleteModal
             title={`Delete ${connectionParam}`}
-            message={`Are you sure that you want to delete connection "${connectionParam}"? \nDelete is irreversable.`}
+            message={`Are you sure that you want to delete connection "${connectionParam}"?`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
+            isLoading={isDeleteLoading}
+            errorInfo={isDeleteSuccess ? null : errorMessageDelete}
             onConfirm={handleDeleteCn}
-            onCancel={() => setShowDeleteConfirmation(false)}
+            onCancel={() => {
+              setShowDeleteConfirmation(false)
+              setErrorMessageDelete(null)
+            }}
             isActive={showDeleteConfirmation}
           />
         )}

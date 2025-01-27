@@ -27,9 +27,9 @@ import { wildcardMatch } from '../../utils/functions'
 import AirflowExportActions from './AirflowExportActions'
 import GenerateDagModal from '../../components/modals/GenerateDagModal'
 import BulkEditModal from '../../components/modals/BulkEditModal'
-import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
 import { newCopyDagData } from '../../utils/dataFunctions'
+import DeleteModal from '../../components/modals/DeleteModal'
 
 // const checkboxFilters = [
 //   {
@@ -371,13 +371,13 @@ function AirflowExport() {
           />
         )}
         {showBulkDeleteConfirmation && selectedRowsBulk && (
-          <ConfirmationModal
+          <DeleteModal
             title={`Delete the ${selectedRowsLength} selected DAG${
               selectedRowsLength > 1 ? 's' : ''
             }`}
             message={`Are you sure that you want to delete the ${selectedRowsLength} selected DAG${
               selectedRowsLength > 1 ? 's' : ''
-            }? \nDelete is irreversable.`}
+            }?`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
             onConfirm={() => handleBulkDelete(selectedRowsBulk)}

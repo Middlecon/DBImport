@@ -31,6 +31,7 @@ import {
   transformEncryptCredentialsSettings
 } from '../../utils/dataFunctions'
 import CopyConnectionModal from '../../components/modals/CopyConnectionModal'
+import DeleteModal from '../../components/modals/DeleteModal'
 
 // const checkboxFilters = [
 //   {
@@ -93,10 +94,16 @@ function Connection() {
     connectionParam ? connectionParam : undefined
   )
 
-  const { mutate: deleteConnection } = useDeleteConnection()
   const queryClient = useQueryClient()
 
+  const { mutate: deleteConnection, isSuccess: isDeleteSuccess } =
+    useDeleteConnection()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const [errorMessageDelete, setErrorMessageDelete] = useState<string | null>(
+    null
+  )
+
   const [selectedDeleteRow, setSelectedDeleteRow] = useState<Connections>()
   const [rowSelection, setRowSelection] = useState({}) // Not used practically at the moment
 
@@ -218,24 +225,32 @@ function Connection() {
     setSelectedDeleteRow(row)
   }
 
-  const handleDelete = async (row: Connections) => {
-    setShowDeleteConfirmation(false)
+  const handleDeleteCn = async () => {
+    if (!selectedDeleteRow) return
 
-    const { name: connectionDelete } = row
+    setIsDeleteLoading(true)
 
     deleteConnection(
-      { connectionName: connectionDelete },
+      { connectionName: selectedDeleteRow.name },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ['connection'], // Matches all related queries that starts the queryKey with 'connection'
+            queryKey: ['connection', 'search'], // Matches all related queries that starts the queryKey with 'connection'
             exact: false
           })
-          setRowSelection({})
           console.log('Delete successful')
+          setShowDeleteConfirmation(false)
+
+          navigate(`/connection`, { replace: true })
         },
-        onError: (error) => {
-          console.error('Error deleting item', error)
+        onError: (error: AxiosError<ErrorData>) => {
+          const errorMessage =
+            error.response?.data?.result ||
+            error.response?.statusText ||
+            'An unknown error occurred'
+          setIsDeleteLoading(false)
+          setErrorMessageDelete(errorMessage)
+          console.log('error', error)
         }
       }
     )
@@ -369,13 +384,18 @@ function Connection() {
           />
         )}
         {showDeleteConfirmation && selectedDeleteRow && (
-          <ConfirmationModal
+          <DeleteModal
             title={`Delete ${selectedDeleteRow.name}`}
-            message={`Are you sure that you want to delete connection "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
+            message={`Are you sure that you want to delete connection "${selectedDeleteRow.name}"?`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
-            onConfirm={() => handleDelete(selectedDeleteRow)}
-            onCancel={() => setShowDeleteConfirmation(false)}
+            isLoading={isDeleteLoading}
+            errorInfo={isDeleteSuccess ? null : errorMessageDelete}
+            onConfirm={handleDeleteCn}
+            onCancel={() => {
+              setShowDeleteConfirmation(false)
+              setErrorMessageDelete(null)
+            }}
             isActive={showDeleteConfirmation}
           />
         )}

@@ -122,7 +122,7 @@ const deleteConnection = async ({ connectionName }: DeleteConnectionArgs) => {
 }
 
 export const useDeleteConnection = () => {
-  return useMutation({
+  return useMutation<void, AxiosError<ErrorData>, DeleteConnectionArgs>({
     mutationFn: (args: DeleteConnectionArgs) => deleteConnection(args)
   })
 }

@@ -41,12 +41,12 @@ import ListRowsInfo from '../../components/ListRowsInfo'
 import { useAtom } from 'jotai'
 import { clearRowSelectionAtom } from '../../atoms/atoms'
 import BulkEditModal from '../../components/modals/BulkEditModal'
-import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import RepairTableModal from '../../components/modals/RepairTableModal'
 import ResetTableModal from '../../components/modals/ResetTableModal'
 import { useRawTable } from '../../utils/queries'
 import CopyTableModal from '../../components/modals/CopyTableModal'
 import RenameTableModal from '../../components/modals/RenameTableModal'
+import DeleteModal from '../../components/modals/DeleteModal'
 
 function ExportCnTables({
   data,
@@ -404,13 +404,13 @@ function ExportCnTables({
         />
       )}
       {showBulkDeleteConfirmation && selectedRowsBulk && (
-        <ConfirmationModal
+        <DeleteModal
           title={`Delete the ${selectedRowsLength} selected table${
             selectedRowsLength > 1 ? 's' : ''
           }`}
           message={`Are you sure that you want to delete the ${selectedRowsLength} selected table${
             selectedRowsLength > 1 ? 's' : ''
-          }? \nDelete is irreversable.`}
+          }?`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
           onConfirm={() => handleBulkDelete(selectedRowsBulk)}

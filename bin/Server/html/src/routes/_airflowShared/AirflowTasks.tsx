@@ -28,8 +28,8 @@ import {
 } from '../../utils/mutations'
 import Button from '../../components/Button'
 import CreateAirflowTaskModal from '../../components/modals/CreateAirflowTaskModal'
-import ConfirmationModal from '../../components/modals/ConfirmationModal'
 import CopyAirflowTaskModal from '../../components/modals/CopyAirflowTaskModal'
+import DeleteModal from '../../components/modals/DeleteModal'
 
 function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
   const { dagName } = useParams<{
@@ -441,9 +441,9 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
         />
       )}
       {showDeleteConfirmation && selectedDeleteRow && (
-        <ConfirmationModal
+        <DeleteModal
           title={`Delete ${selectedDeleteRow.name}`}
-          message={`Are you sure that you want to delete task "${selectedDeleteRow.name}"? \nDelete is irreversable.`}
+          message={`Are you sure that you want to delete task "${selectedDeleteRow.name}"?`}
           buttonTitleCancel="No, Go Back"
           buttonTitleConfirm="Yes, Delete"
           onConfirm={() => handleDelete(selectedDeleteRow)}

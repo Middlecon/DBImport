@@ -24,9 +24,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRawTable } from '../../../utils/queries'
 import CopyIcon from '../../../assets/icons/CopyIcon'
 import DeleteIcon from '../../../assets/icons/DeleteIcon'
-import ConfirmationModal from '../../../components/modals/ConfirmationModal'
 import RenameIcon from '../../../assets/icons/RenameIcon'
 import RenameTableModal from '../../../components/modals/RenameTableModal'
+import DeleteModal from '../../../components/modals/DeleteModal'
 
 interface TableDetailedViewProps {
   type: 'import' | 'export'
@@ -447,9 +447,9 @@ function TableDetailedView({ type }: TableDetailedViewProps) {
           />
         )}
         {showDeleteConfirmation && (
-          <ConfirmationModal
+          <DeleteModal
             title={`Delete ${tableName}`}
-            message={`Are you sure that you want to delete table "${tableName}"? \nDelete is irreversable.`}
+            message={`Are you sure that you want to delete table "${tableName}"?`}
             buttonTitleCancel="No, Go Back"
             buttonTitleConfirm="Yes, Delete"
             onConfirm={handleDeleteTable}
