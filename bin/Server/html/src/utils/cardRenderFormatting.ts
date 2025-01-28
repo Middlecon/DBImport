@@ -699,7 +699,7 @@ export function encryptCredentialsSettings(connectionName: string) {
     {
       label: 'Password',
       value: '',
-      type: SettingType.Text,
+      type: SettingType.Password,
       maxChar: 256,
       infoText: infoTexts.connectionEncryptCredentials.password,
       isRequired: true

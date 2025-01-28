@@ -259,6 +259,7 @@ function CreateAirflowTaskModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {editedSettings &&

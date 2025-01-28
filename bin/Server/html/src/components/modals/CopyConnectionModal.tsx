@@ -202,6 +202,7 @@ function CopyConnectionModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {editedSettings &&

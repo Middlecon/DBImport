@@ -43,6 +43,10 @@
   min-height: 21px;
 }
 
+.input-fields-text-input::-ms-reveal {
+  display: none;
+}
+
 .input-fields-text-input,
 .input-fields-textarea {
   width: calc(100% - 233px);
@@ -116,6 +120,23 @@
 
 .mixed-values-text {
   color: #952323;
+}
+
+.password-toggle-button {
+  position: absolute;
+  right: 48px;
+  top: 59%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  color: #555;
+}
+
+.password-toggle-button:hover {
+  color: #000;
 }
 
 // .input-fields-changed {

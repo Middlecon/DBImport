@@ -261,6 +261,7 @@ function CreateImportTableModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {editedSettings &&

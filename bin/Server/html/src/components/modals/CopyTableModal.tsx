@@ -345,6 +345,7 @@ function CopyTableModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {editedSettings &&

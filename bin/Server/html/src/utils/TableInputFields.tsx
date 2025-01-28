@@ -7,6 +7,8 @@ import { useAtom } from 'jotai'
 import { airflowTypeAtom } from '../atoms/atoms'
 import { validateEmails } from './functions'
 import { useLocation } from 'react-router-dom'
+import EyeHideIcon from '../assets/icons/EyeHideIcon'
+import EyeIcon from '../assets/icons/EyeIcon'
 
 interface TableInputFieldsProps {
   index: number
@@ -56,6 +58,11 @@ function TableInputFields({
   const pathnames = location.pathname.split('/').filter((x) => x)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isPasswordVisible, setPasswordVisible] = useState(false)
+  const [passwordValue, setPasswordValue] = useState(
+    setting.value ? String(setting.value) : ''
+  )
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -487,7 +494,7 @@ function TableInputFields({
               onChange={(event) => {
                 let value = event.target.value
                 if (maxChar && value.length > maxChar) {
-                  value = value.slice(0, maxChar) // Truncate to maxChar
+                  value = value.slice(0, maxChar) // Truncates to maxChar
                 }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
@@ -532,7 +539,7 @@ function TableInputFields({
               onChange={(event) => {
                 let value = event.target.value
                 if (maxChar && value.length > maxChar) {
-                  value = value.slice(0, maxChar) // Truncate to maxChar
+                  value = value.slice(0, maxChar) // Truncates to maxChar
                 }
                 if (value.includes('*')) {
                   value = value.replace(/\*/g, '')
@@ -579,7 +586,7 @@ function TableInputFields({
               onChange={(event) => {
                 let value = event.target.value
                 if (maxChar && value.length > maxChar) {
-                  value = value.slice(0, maxChar) // Truncate to maxChar
+                  value = value.slice(0, maxChar) // Truncates to maxChar
                 }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
@@ -620,7 +627,7 @@ function TableInputFields({
               onChange={(event) => {
                 let value = event.target.value
                 if (maxChar && value.length > maxChar) {
-                  value = value.slice(0, maxChar) // Truncate to maxChar
+                  value = value.slice(0, maxChar) // Truncates to maxChar
                 }
                 handleInputChange(index, value.trim() === '' ? '' : value)
               }}
@@ -658,7 +665,7 @@ function TableInputFields({
             onChange={(event) => {
               let value = event.target.value
               if (maxChar && value.length > maxChar) {
-                value = value.slice(0, maxChar) // Truncate to maxChar
+                value = value.slice(0, maxChar) // Truncates to maxChar
               }
               handleInputChange(index, value.trim() === '' ? '' : value)
             }}
@@ -672,6 +679,77 @@ function TableInputFields({
             required={isRequired}
             disabled={isFieldDisabled}
           />
+        </>
+      )
+    }
+
+    case 'password': {
+      if (setting.isHidden === true) return null
+
+      const maxChar = setting.maxChar
+
+      const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        // If `isPasswordVisible` is true, works with the actual value
+        let value = isPasswordVisible
+          ? event.target.value
+          : passwordValue + event.target.value.slice(passwordValue.length) // Appends new input character to the actual value
+
+        if (maxChar && value.length > maxChar) {
+          value = value.slice(0, maxChar) // Truncates to maxChar
+        }
+
+        console.log('Actual password value:', value)
+
+        setPasswordValue(value)
+        handleInputChange(index, value.trim() === '' ? '' : value)
+      }
+
+      const getDisplayedValue = () => {
+        return isPasswordVisible
+          ? passwordValue
+          : passwordValue.replace(/./g, '•') // Masks with dots
+      }
+
+      return (
+        <>
+          <label
+            className={isFieldDisabled ? 'input-fields-label-disabled' : ''}
+            htmlFor={`text-input-${index}`}
+          >
+            {setting.label}:
+            {showRequiredIndicator && <span style={{ color: 'red' }}>*</span>}
+          </label>
+
+          <input
+            className="input-fields-text-input"
+            id={`text-input-${index}`}
+            type={'text'}
+            autoComplete="off"
+            value={getDisplayedValue()}
+            onChange={handleChange}
+            onInput={(event) => {
+              const inputElement = event.target as HTMLInputElement
+
+              // Remove spaces from the input value
+              inputElement.value = inputElement.value.replace(/\s/g, '')
+              if (!isPasswordVisible) {
+                event.preventDefault() // Prevents manual modification when masked
+              }
+            }}
+            required={isRequired}
+            disabled={isFieldDisabled}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setPasswordVisible((prev) => !prev)
+              console.log('passwordValue', passwordValue)
+            }}
+            className="password-toggle-button"
+            aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+          >
+            {isPasswordVisible ? <EyeHideIcon /> : <EyeIcon />}
+          </button>
         </>
       )
     }
@@ -700,7 +778,7 @@ function TableInputFields({
             onChange={(event) => {
               let value = event.target.value
               if (maxChar && value.length > maxChar) {
-                value = value.slice(0, maxChar) // Truncate to maxChar
+                value = value.slice(0, maxChar) // Truncates to maxChar
               }
               handleInputChange(index, value.trim() === '' ? '' : value)
             }}
@@ -752,7 +830,7 @@ function TableInputFields({
 
               let value = event.target.value
               if (maxChar && value.length > maxChar) {
-                value = value.slice(0, maxChar) // Truncate to maxChar
+                value = value.slice(0, maxChar) // Truncates to maxChar
               }
               handleInputChange(index, value.trim() === '' ? '' : value)
             }}

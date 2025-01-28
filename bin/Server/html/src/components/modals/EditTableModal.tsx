@@ -347,6 +347,7 @@ function EditTableModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {Array.isArray(editedSettings) &&

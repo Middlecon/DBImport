@@ -161,6 +161,7 @@ function BulkEditModal<T>({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             <BulkInputFieldsTyped

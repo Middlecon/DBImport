@@ -253,6 +253,7 @@ function GenerateConnectionStringModal({
               handleGenerate()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {editedSettings &&

@@ -265,6 +265,7 @@ function EditConnectionModal({
               handleSave()
             }
           }}
+          autoComplete="off"
         >
           <div className="table-modal-body">
             {Array.isArray(editedSettings) &&
