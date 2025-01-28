@@ -18,7 +18,7 @@ import InfoText from '../InfoText'
 import { AirflowDAGTaskType } from '../../utils/enums'
 import { useLocation } from 'react-router-dom'
 import { isValidOctal } from '../../utils/functions'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 import PulseLoader from 'react-spinners/PulseLoader'
@@ -136,15 +136,7 @@ function EditTableModal({
     airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQL &&
     airflowTypeValue?.value !== AirflowDAGTaskType.HiveSQLScript
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredFields = editedSettings.filter(
-      (setting) => setting.isRequired
-    )
-
-    return requiredFields.some(
-      (setting) => setting.value === null || setting.value === ''
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   const handleInputChange = (
     index: number,

@@ -21,7 +21,7 @@ import { initialCreateImportTableSettings } from '../../utils/cardRenderFormatti
 import InfoText from '../InfoText'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../../utils/functions'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 
@@ -71,19 +71,7 @@ function CreateImportTableModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Database',
-      'Table',
-      'Connection',
-      'Source Schema',
-      'Source Table'
-    ]
-
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   // For validating unique combination of pk's so it becomes a create and not an update
   const [filter, setFilter] = useState<ImportSearchFilter>({

@@ -14,7 +14,7 @@ import TableInputFields from '../../utils/TableInputFields'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from '../InfoText'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -74,15 +74,7 @@ function EditConnectionModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredFields = editedSettings.filter(
-      (setting) => setting.isRequired
-    )
-
-    return requiredFields.some(
-      (setting) => setting.value === null || setting.value === ''
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   const airflowEmailOnFailure = editedSettings.find(
     (s) => s.label === 'Email on Failure'

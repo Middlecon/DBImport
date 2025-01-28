@@ -15,7 +15,7 @@ import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
 import InfoText from '../InfoText'
 import { copyConnectionSettings } from '../../utils/cardRenderFormatting'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -51,13 +51,7 @@ function CopyConnectionModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Name', 'Connection string']
-
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   // For unique connection name validation
   const { data: connectionsData } = useConnections(true)

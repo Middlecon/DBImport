@@ -20,7 +20,7 @@ import { copyAirflowTaskSettings } from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
 import { AirflowDAGTaskType } from '../../utils/enums'
 import { useConnections } from '../../utils/queries'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -78,14 +78,7 @@ function CopyAirflowTaskModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Task Name']
-    return editedSettings.some(
-      (setting) =>
-        (requiredLabels.includes(setting.label) && setting.value === null) ||
-        setting.value === ''
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)

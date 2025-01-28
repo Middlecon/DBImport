@@ -16,7 +16,7 @@ import './Modals.scss'
 import InfoText from '../InfoText'
 import { initialCreateConnectionSettings } from '../../utils/cardRenderFormatting'
 import GenerateConnectionStringModal from './GenerateConnectionStringModal'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -54,13 +54,7 @@ function CreateConnectionModal({
   const [generatedConnectionString, setGeneratedConnectionString] =
     useState<string>('')
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Name', 'Connection string']
-
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   // For unique connection name validation
   const { data: connectionsData } = useConnections(true)

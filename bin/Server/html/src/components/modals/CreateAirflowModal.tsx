@@ -15,7 +15,7 @@ import RequiredFieldsInfo from '../RequiredFieldsInfo'
 import './Modals.scss'
 import { initialCreateAirflowSettings } from '../../utils/cardRenderFormatting'
 import InfoText from '../InfoText'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -64,14 +64,7 @@ function CreateAirflowModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['DAG Name']
-    return editedSettings.some(
-      (setting) =>
-        (requiredLabels.includes(setting.label) && setting.value === null) ||
-        setting.value === ''
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   const handleMouseDown = (e: { clientX: SetStateAction<number> }) => {
     setIsResizing(true)

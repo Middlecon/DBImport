@@ -712,20 +712,23 @@ export const generateConnectionStringFields: EditSetting[] = [
   {
     label: 'Database type',
     value: null,
-    type: SettingType.DataReferenceRequired
+    type: SettingType.DataReferenceRequired,
+    isRequired: true
     // infoText:
   }, // Database types from JDBC drivers, enum in database, required
   {
     label: 'Version',
     value: 'default',
-    type: SettingType.Version
+    type: SettingType.Version,
+    isRequired: true
     // infoText:
   }, // Compatible options to selected Database type, 'default' or, only for Database type 'SQL Server': 'default', 'jTDS', set initially to 'default' (varchar(16) in database), required
   {
     label: 'Hostname',
     value: null,
     type: SettingType.Text,
-    maxChar: 256
+    maxChar: 256,
+    isRequired: true
     // infoText:
   }, //  Free-text, varchar(256), required
   {
@@ -739,7 +742,8 @@ export const generateConnectionStringFields: EditSetting[] = [
     label: 'Database',
     value: null,
     type: SettingType.Text,
-    maxChar: 256
+    maxChar: 256,
+    isRequired: true
     // infoText:
   } //  Free-text, varchar(256), required
 ]
@@ -925,7 +929,8 @@ export const initialCreateConnectionSettings: EditSetting[] = [
     value: '',
     type: SettingType.Text,
     maxChar: 256,
-    infoText: infoTexts.connection.name
+    infoText: infoTexts.connection.name,
+    isRequired: true
   }, //Free-text (varchar 256)
   {
     label: 'Connection string',
@@ -978,7 +983,8 @@ export function copyConnectionSettings(connectionName: string) {
       value: connectionName,
       type: SettingType.Text,
       maxChar: 256,
-      infoText: infoTexts.connection.name
+      infoText: infoTexts.connection.name,
+      isRequired: true
     } //Free-text (varchar 256)
   ]
 

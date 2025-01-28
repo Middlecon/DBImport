@@ -30,7 +30,7 @@ import {
 import InfoText from '../InfoText'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../../utils/functions'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 import infoTexts from '../../infoTexts.json'
@@ -92,15 +92,7 @@ function RenameTableModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels =
-      type === 'import'
-        ? ['Database', 'Table']
-        : ['Connection', 'Target Schema', 'Target Table']
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings, type])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   // For validating unique combination of pk's so it becomes a Rename and not an update
   const [filter, setFilter] = useState<

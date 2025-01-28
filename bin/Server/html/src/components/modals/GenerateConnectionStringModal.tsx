@@ -22,7 +22,7 @@ import { useJDBCDrivers } from '../../utils/queries'
 import { generateConnectionStringFields } from '../../utils/cardRenderFormatting'
 import { transformGenerateConnectionSettings } from '../../utils/dataFunctions'
 import { useGenerateConnectionString } from '../../utils/mutations'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { useAtom } from 'jotai'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 
@@ -65,12 +65,7 @@ function GenerateConnectionStringModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = ['Database type', 'Version', 'Hostname', 'Database']
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   const availableVersions = useMemo(() => {
     const selectedDatabaseType = editedSettings.find(

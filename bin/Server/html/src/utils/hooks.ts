@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { EditSetting } from './interfaces'
 
 export function useCustomSelection(
   ref: React.RefObject<HTMLElement>,
@@ -110,4 +111,18 @@ export const useHandleLinkClick = (
   } else {
     window.open(item, '_blank')
   }
+}
+
+export const useIsRequiredFieldsEmpty = (editedSettings: EditSetting[]) => {
+  const isRequiredFieldEmpty = useMemo(() => {
+    const requiredFields = editedSettings.filter(
+      (setting) => setting.isRequired
+    )
+
+    return requiredFields.some(
+      (setting) => setting.value === null || setting.value === ''
+    )
+  }, [editedSettings])
+
+  return isRequiredFieldEmpty
 }

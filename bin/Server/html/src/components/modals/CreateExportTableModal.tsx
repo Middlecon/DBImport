@@ -21,7 +21,7 @@ import { initialCreateExportTableSettings } from '../../utils/cardRenderFormatti
 import { useConnections, useSearchExportTables } from '../../utils/queries'
 import { debounce } from 'lodash'
 import { getUpdatedSettingValue } from '../../utils/functions'
-import { useFocusTrap } from '../../utils/hooks'
+import { useFocusTrap, useIsRequiredFieldsEmpty } from '../../utils/hooks'
 import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useAtom } from 'jotai'
 
@@ -58,18 +58,7 @@ function CreateExportTableModal({
 
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
-  const isRequiredFieldEmpty = useMemo(() => {
-    const requiredLabels = [
-      'Connection',
-      'Target Schema',
-      'Target Table',
-      'Database',
-      'Table'
-    ]
-    return editedSettings.some(
-      (setting) => requiredLabels.includes(setting.label) && !setting.value
-    )
-  }, [editedSettings])
+  const isRequiredFieldEmpty = useIsRequiredFieldsEmpty(editedSettings)
 
   // For validating unique combination of pk's so it becomes a create and not an update
   const [filter, setFilter] = useState<ExportSearchFilter>({
