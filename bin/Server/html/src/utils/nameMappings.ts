@@ -610,7 +610,7 @@ export const labelToImportAirflowKey: {
 
   'Filter Table': 'filterTable',
   'Finish all Import stages first': 'finishAllStage1First',
-  'Run Import and Etl separate': 'runImportAndEtlSeparate',
+  'Run Import and ETL separate': 'runImportAndEtlSeparate',
   'Retries Stage 1': 'retriesStage1',
   'Retries Stage 2': 'retriesStage2',
   'Pool Stage 1': 'poolStage1',
