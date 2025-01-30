@@ -144,7 +144,6 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
   return (
     <>
       <div className="header-buttons">
-        {/* <div className="actions-dropdown-discover-br"> */}
         <DropdownActions
           isDropdownActionsOpen={openDropdown === 'dropdownActions'}
           onToggle={(isDropdownActionsOpen: boolean) =>
@@ -173,7 +172,6 @@ function ImportActions({ tables, filters }: ImportActionsProps) {
           ]}
           disabled={!tables}
         />
-        {/* </div> */}
         <ImportSearchFilterTables
           isSearchFilterOpen={openDropdown === 'searchFilter'}
           onToggle={(isSearchFilterOpen: boolean) =>
