@@ -319,48 +319,46 @@ function ExportSearchFilterTables({
                   className="filter-text-dropdown"
                 >
                   Connection:
-                  {isCnDropdownReady && (
-                    <>
-                      <input
-                        id="searchFilterConnection"
-                        type="text"
-                        value={formValues.connection || ''}
-                        onChange={(event) =>
-                          handleInputDropdownChange(event.target.value)
-                        }
-                        onBlur={handleTrimOnBlur('connection')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault() // Prevents Enter from triggering form submission
-                          }
-                        }}
-                        autoComplete="off"
+                  <input
+                    id="searchFilterConnection"
+                    type="text"
+                    value={formValues.connection || ''}
+                    onChange={(event) =>
+                      handleInputDropdownChange(event.target.value)
+                    }
+                    onBlur={handleTrimOnBlur('connection')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
 
-                        // onKeyDown={handleKeyDownOnInput}
-                        // onKeyUp={handleKeyUpOnInput}
-                      />
-                      <Dropdown
-                        id="searchFilterConnection"
-                        items={
-                          filteredConnectionNames.length > 0
-                            ? filteredConnectionNames
-                            : ['No Connection yet']
-                        }
-                        onSelect={handleInputDropdownSelect}
-                        isOpen={openDropdown === 'cnSearch'}
-                        onToggle={(isOpen: boolean) =>
-                          handleDropdownToggle('cnSearch', isOpen)
-                        }
-                        searchFilter={false}
-                        textInputMode={true}
-                        backgroundColor="inherit"
-                        textColor="black"
-                        border="0.5px solid rgb(42, 42, 42)"
-                        borderRadius="3px"
-                        height="21.5px"
-                        lightStyle={true}
-                      />
-                    </>
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
+                  {isCnDropdownReady && (
+                    <Dropdown
+                      id="searchFilterConnection"
+                      items={
+                        filteredConnectionNames.length > 0
+                          ? filteredConnectionNames
+                          : ['No Connection yet']
+                      }
+                      onSelect={handleInputDropdownSelect}
+                      isOpen={openDropdown === 'cnSearch'}
+                      onToggle={(isOpen: boolean) =>
+                        handleDropdownToggle('cnSearch', isOpen)
+                      }
+                      searchFilter={false}
+                      textInputMode={true}
+                      backgroundColor="inherit"
+                      textColor="black"
+                      border="0.5px solid rgb(42, 42, 42)"
+                      borderRadius="3px"
+                      height="21.5px"
+                      lightStyle={true}
+                    />
                   )}
                 </label>
                 <label htmlFor="searchFilterTargetTable">

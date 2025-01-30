@@ -20,10 +20,7 @@ import {
 } from '../../utils/interfaces'
 import Dropdown from '../Dropdown'
 import { useAtom } from 'jotai'
-import {
-  isCnDropdownReadyAtom,
-  isMainSidebarMinimized
-} from '../../atoms/atoms'
+import { isMainSidebarMinimized } from '../../atoms/atoms'
 import { useDiscoverExportTables, useConnections } from '../../utils/queries'
 import TableList from '../TableList'
 import RequiredFieldsInfo from '../RequiredFieldsInfo'
@@ -92,15 +89,11 @@ function DiscoverExportModal({
 
   const isRowSelectionEmpty = Object.keys(rowSelection).length === 0
 
-  const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
-    isCnDropdownReadyAtom
-  )
-
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const { mutate: addExportTables } = useAddExportTables()
 
-  const { data: connectionsData, isLoading } = useConnections(true)
+  const { data: connectionsData } = useConnections(true)
   const connectionNames = useMemo(() => {
     return Array.isArray(connectionsData)
       ? connectionsData.map((connection) => connection.name)
@@ -124,11 +117,6 @@ function DiscoverExportModal({
     )
     return selectedIndexes.map((index) => uiTables[index])
   }, [uiTables, rowSelection])
-
-  useEffect(() => {
-    if (isLoading || !connectionNames.length) return
-    setIsCnDropdownReady(true)
-  }, [connectionNames.length, isLoading, setIsCnDropdownReady])
 
   const filteredConnectionNames = useMemo(() => {
     if (!formValues.connection) return connectionNames
@@ -282,32 +270,30 @@ function DiscoverExportModal({
                 </span>
 
                 <div style={{ display: 'flex' }}>
-                  {isCnDropdownReady && (
-                    <Dropdown
-                      id="discoverConnection"
-                      keyLabel="connection"
-                      items={
-                        filteredConnectionNames.length > 0
-                          ? filteredConnectionNames
-                          : ['No Connection yet']
-                      }
-                      onSelect={handleInputDropdownSelect}
-                      isOpen={openDropdown === 'cnDiscover'}
-                      onToggle={(isOpen: boolean) =>
-                        handleDropdownToggle('cnDiscover', isOpen)
-                      }
-                      searchFilter={true}
-                      initialTitle={'Select...'}
-                      cross={true}
-                      backgroundColor="inherit"
-                      textColor="black"
-                      border="0.5px solid rgb(42, 42, 42)"
-                      borderRadius="3px"
-                      height="21.5px"
-                      width="100%"
-                      lightStyle={true}
-                    />
-                  )}
+                  <Dropdown
+                    id="discoverConnection"
+                    keyLabel="connection"
+                    items={
+                      filteredConnectionNames.length > 0
+                        ? filteredConnectionNames
+                        : ['No Connection yet']
+                    }
+                    onSelect={handleInputDropdownSelect}
+                    isOpen={openDropdown === 'cnDiscover'}
+                    onToggle={(isOpen: boolean) =>
+                      handleDropdownToggle('cnDiscover', isOpen)
+                    }
+                    searchFilter={true}
+                    initialTitle={'Select...'}
+                    cross={true}
+                    backgroundColor="inherit"
+                    textColor="black"
+                    border="0.5px solid rgb(42, 42, 42)"
+                    borderRadius="3px"
+                    height="21.5px"
+                    width="100%"
+                    lightStyle={true}
+                  />
                   <span style={{ marginLeft: 5 }}>
                     <InfoText
                       label={'Connection'}

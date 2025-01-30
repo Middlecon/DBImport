@@ -363,51 +363,49 @@ function ImportSearchFilterTables({
                   className="filter-text-dropdown"
                 >
                   Connection:
+                  <input
+                    id="searchFilterConnection"
+                    type="text"
+                    value={formValues.connection || ''}
+                    onChange={(event) =>
+                      handleInputDropdownChange(
+                        'connection',
+                        event.target.value
+                      )
+                    }
+                    onBlur={handleTrimOnBlur('connection')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
                   {isCnDropdownReady && (
-                    <>
-                      <input
-                        id="searchFilterConnection"
-                        type="text"
-                        value={formValues.connection || ''}
-                        onChange={(event) =>
-                          handleInputDropdownChange(
-                            'connection',
-                            event.target.value
-                          )
-                        }
-                        onBlur={handleTrimOnBlur('connection')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault() // Prevents Enter from triggering form submission
-                          }
-                        }}
-                        autoComplete="off"
-                        // onKeyDown={handleKeyDownOnInput}
-                        // onKeyUp={handleKeyUpOnInput}
-                      />
-                      <Dropdown
-                        id="searchFilterConnection"
-                        keyLabel="connection"
-                        items={
-                          filteredConnectionNames.length > 0
-                            ? filteredConnectionNames
-                            : ['No Connection yet']
-                        }
-                        onSelect={handleInputDropdownSelect}
-                        isOpen={openDropdown === 'cnSearch'}
-                        onToggle={(isOpen: boolean) =>
-                          handleDropdownToggle('cnSearch', isOpen)
-                        }
-                        searchFilter={false}
-                        textInputMode={true}
-                        backgroundColor="inherit"
-                        textColor="black"
-                        border="0.5px solid rgb(42, 42, 42)"
-                        borderRadius="3px"
-                        height="21.5px"
-                        lightStyle={true}
-                      />
-                    </>
+                    <Dropdown
+                      id="searchFilterConnection"
+                      keyLabel="connection"
+                      items={
+                        filteredConnectionNames.length > 0
+                          ? filteredConnectionNames
+                          : ['No Connection yet']
+                      }
+                      onSelect={handleInputDropdownSelect}
+                      isOpen={openDropdown === 'cnSearch'}
+                      onToggle={(isOpen: boolean) =>
+                        handleDropdownToggle('cnSearch', isOpen)
+                      }
+                      searchFilter={false}
+                      textInputMode={true}
+                      backgroundColor="inherit"
+                      textColor="black"
+                      border="0.5px solid rgb(42, 42, 42)"
+                      borderRadius="3px"
+                      height="21.5px"
+                      lightStyle={true}
+                    />
                   )}
                 </label>
                 <label
@@ -415,51 +413,46 @@ function ImportSearchFilterTables({
                   className="filter-text-dropdown"
                 >
                   Database:
+                  <input
+                    id="searchFilterDatabase"
+                    type="text"
+                    value={formValues.database || ''}
+                    onChange={(event) =>
+                      handleInputDropdownChange('database', event.target.value)
+                    }
+                    onBlur={handleTrimOnBlur('database')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault() // Prevents Enter from triggering form submission
+                      }
+                    }}
+                    autoComplete="off"
+                    // onKeyDown={handleKeyDownOnInput}
+                    // onKeyUp={handleKeyUpOnInput}
+                  />
                   {isDbDropdownReady && (
-                    <>
-                      <input
-                        id="searchFilterDatabase"
-                        type="text"
-                        value={formValues.database || ''}
-                        onChange={(event) =>
-                          handleInputDropdownChange(
-                            'database',
-                            event.target.value
-                          )
-                        }
-                        onBlur={handleTrimOnBlur('database')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault() // Prevents Enter from triggering form submission
-                          }
-                        }}
-                        autoComplete="off"
-                        // onKeyDown={handleKeyDownOnInput}
-                        // onKeyUp={handleKeyUpOnInput}
-                      />
-                      <Dropdown
-                        id="searchFilterDatabase"
-                        keyLabel="database"
-                        items={
-                          filteredDatabaseNames.length > 0
-                            ? filteredDatabaseNames
-                            : ['No DB yet']
-                        }
-                        onSelect={handleInputDropdownSelect}
-                        isOpen={openDropdown === 'dbSearch'}
-                        onToggle={(isOpen: boolean) =>
-                          handleDropdownToggle('dbSearch', isOpen)
-                        }
-                        searchFilter={false}
-                        textInputMode={true}
-                        backgroundColor="inherit"
-                        textColor="black"
-                        border="0.5px solid rgb(42, 42, 42)"
-                        borderRadius="3px"
-                        height="21.5px"
-                        lightStyle={true}
-                      />
-                    </>
+                    <Dropdown
+                      id="searchFilterDatabase"
+                      keyLabel="database"
+                      items={
+                        filteredDatabaseNames.length > 0
+                          ? filteredDatabaseNames
+                          : ['No DB yet']
+                      }
+                      onSelect={handleInputDropdownSelect}
+                      isOpen={openDropdown === 'dbSearch'}
+                      onToggle={(isOpen: boolean) =>
+                        handleDropdownToggle('dbSearch', isOpen)
+                      }
+                      searchFilter={false}
+                      textInputMode={true}
+                      backgroundColor="inherit"
+                      textColor="black"
+                      border="0.5px solid rgb(42, 42, 42)"
+                      borderRadius="3px"
+                      height="21.5px"
+                      lightStyle={true}
+                    />
                   )}
                 </label>
                 <label htmlFor="searchFilterTable">

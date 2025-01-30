@@ -925,9 +925,7 @@ function TableInputFields({
 
           <Dropdown
             keyLabel={setting.label}
-            items={
-              dataNames && dataNames.length > 0 ? dataNames : ['Loading...']
-            }
+            items={dataNames && dataNames.length > 0 ? dataNames : []}
             onSelect={handleSelect}
             isOpen={openDropdown === dropdownId}
             onToggle={(isOpen: boolean) =>
@@ -964,9 +962,7 @@ function TableInputFields({
 
           <Dropdown
             keyLabel={setting.label}
-            items={
-              dataNames && dataNames.length > 0 ? dataNames : ['Loading...']
-            }
+            items={dataNames && dataNames.length > 0 ? dataNames : []}
             onSelect={handleSelect}
             isOpen={openDropdown === dropdownId}
             onToggle={(isOpen: boolean) =>
@@ -1001,11 +997,7 @@ function TableInputFields({
 
           <Dropdown
             keyLabel={setting.label}
-            items={
-              versionNames && versionNames.length > 0
-                ? versionNames
-                : ['Loading...']
-            }
+            items={versionNames && versionNames.length > 0 ? versionNames : []}
             onSelect={handleSelect}
             isOpen={openDropdown === dropdownId}
             onToggle={(isOpen: boolean) =>

@@ -22,7 +22,6 @@ import Dropdown from '../Dropdown'
 import { useAtom } from 'jotai'
 import {
   isDbDropdownReadyAtom,
-  isCnDropdownReadyAtom,
   isMainSidebarMinimized
 } from '../../atoms/atoms'
 import {
@@ -100,15 +99,11 @@ function DiscoverImportModal({
     isDbDropdownReadyAtom
   )
 
-  const [isCnDropdownReady, setIsCnDropdownReady] = useAtom(
-    isCnDropdownReadyAtom
-  )
-
   const [mainSidebarMinimized] = useAtom(isMainSidebarMinimized)
 
   const { mutate: addImportTables } = useAddImportTables()
 
-  const { data: databasesData, isLoading } = useDatabases()
+  const { data: databasesData, isLoading: isDbLoading } = useDatabases()
   const databaseNames = useMemo(() => {
     return Array.isArray(databasesData)
       ? databasesData.map((database) => database.name)
@@ -143,16 +138,9 @@ function DiscoverImportModal({
   }, [uiTables, rowSelection])
 
   useEffect(() => {
-    if (isLoading || !databaseNames.length || !connectionNames.length) return
-    setIsCnDropdownReady(true)
+    if (isDbLoading) return
     setIsDbDropdownReady(true)
-  }, [
-    connectionNames.length,
-    databaseNames.length,
-    isLoading,
-    setIsCnDropdownReady,
-    setIsDbDropdownReady
-  ])
+  }, [isDbLoading, setIsDbDropdownReady])
 
   const filteredDatabaseNames = useMemo(() => {
     if (!formValues.database) return databaseNames
@@ -339,32 +327,30 @@ function DiscoverImportModal({
                 </span>
 
                 <div style={{ display: 'flex' }}>
-                  {isCnDropdownReady && (
-                    <Dropdown
-                      id="discoverConnection"
-                      keyLabel="connection"
-                      items={
-                        filteredConnectionNames.length > 0
-                          ? filteredConnectionNames
-                          : ['No Connection yet']
-                      }
-                      onSelect={handleInputDropdownSelect}
-                      isOpen={openDropdown === 'cnDiscover'}
-                      onToggle={(isOpen: boolean) =>
-                        handleDropdownToggle('cnDiscover', isOpen)
-                      }
-                      searchFilter={true}
-                      initialTitle={'Select...'}
-                      cross={true}
-                      backgroundColor="inherit"
-                      textColor="black"
-                      border="0.5px solid rgb(42, 42, 42)"
-                      borderRadius="3px"
-                      height="21.5px"
-                      width="100%"
-                      lightStyle={true}
-                    />
-                  )}
+                  <Dropdown
+                    id="discoverConnection"
+                    keyLabel="connection"
+                    items={
+                      filteredConnectionNames.length > 0
+                        ? filteredConnectionNames
+                        : ['No Connection yet']
+                    }
+                    onSelect={handleInputDropdownSelect}
+                    isOpen={openDropdown === 'cnDiscover'}
+                    onToggle={(isOpen: boolean) =>
+                      handleDropdownToggle('cnDiscover', isOpen)
+                    }
+                    searchFilter={true}
+                    initialTitle={'Select...'}
+                    cross={true}
+                    backgroundColor="inherit"
+                    textColor="black"
+                    border="0.5px solid rgb(42, 42, 42)"
+                    borderRadius="3px"
+                    height="21.5px"
+                    width="100%"
+                    lightStyle={true}
+                  />
                   <span style={{ marginLeft: 5 }}>
                     <InfoText
                       label={'Connection'}
@@ -445,26 +431,26 @@ function DiscoverImportModal({
                   {isDatabaseEmpty && <span style={{ color: 'red' }}>*</span>}
                 </span>
                 <div style={{ display: 'flex' }}>
-                  {isDbDropdownReady && (
-                    <div style={{ width: '100%' }}>
-                      <input
-                        id="discoverDatabase"
-                        type="text"
-                        value={formValues.database || ''}
-                        onChange={(event) =>
-                          handleInputDropdownChange(
-                            'database',
-                            event.target.value
-                          )
+                  <div style={{ width: '100%' }}>
+                    <input
+                      id="discoverDatabase"
+                      type="text"
+                      value={formValues.database || ''}
+                      onChange={(event) =>
+                        handleInputDropdownChange(
+                          'database',
+                          event.target.value
+                        )
+                      }
+                      onBlur={handleTrimOnBlur('database')}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault() // Prevents Enter from triggering form submission
                         }
-                        onBlur={handleTrimOnBlur('database')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault() // Prevents Enter from triggering form submission
-                          }
-                        }}
-                        autoComplete="off"
-                      />
+                      }}
+                      autoComplete="off"
+                    />
+                    {isDbDropdownReady && (
                       <Dropdown
                         id="discoverDatabase"
                         keyLabel="database"
@@ -487,8 +473,8 @@ function DiscoverImportModal({
                         height="21.5px"
                         lightStyle={true}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <span style={{ marginLeft: 12 }}>
                     <InfoText
                       label={'Database'}
