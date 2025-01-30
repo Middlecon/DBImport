@@ -243,10 +243,10 @@ function EditConnectionModal({
         style={{ width: `${modalWidth}px` }}
         ref={containerRef}
       >
-        <div
+        {/* <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}
-        ></div>
+        ></div> */}
         <div
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}

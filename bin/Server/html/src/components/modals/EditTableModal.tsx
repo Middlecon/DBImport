@@ -314,10 +314,10 @@ function EditTableModal({
         style={{ width: `${modalWidth}px`, minWidth: 'fit-content' }}
         ref={containerRef}
       >
-        <div
+        {/* <div
           className="table-modal-resize-handle left"
           onMouseDown={handleMouseDown}
-        ></div>
+        ></div> */}
         <div
           className="table-modal-resize-handle right"
           onMouseDown={handleMouseDown}
