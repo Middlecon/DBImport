@@ -32,6 +32,8 @@ import {
 } from '../../utils/dataFunctions'
 import CopyConnectionModal from '../../components/modals/CopyConnectionModal'
 import DeleteModal from '../../components/modals/DeleteModal'
+import { useAtom } from 'jotai'
+import { clearRowSelectionAtom } from '../../atoms/atoms'
 
 // const checkboxFilters = [
 //   {
@@ -105,7 +107,7 @@ function Connection() {
   )
 
   const [selectedDeleteRow, setSelectedDeleteRow] = useState<Connections>()
-  const [rowSelection, setRowSelection] = useState({}) // Not used practically at the moment
+  const [rowSelection, setRowSelection] = useState({})
 
   const settings = encryptCredentialsSettings(
     connectionParam ? connectionParam : ''
@@ -268,6 +270,12 @@ function Connection() {
       return row.serverType === serverType
     })
   }, [data, serverType])
+
+  const [clearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
+
+  useEffect(() => {
+    setRowSelection({})
+  }, [clearRowSelectionTrigger])
 
   return (
     <>

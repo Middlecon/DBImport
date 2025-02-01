@@ -30,6 +30,8 @@ import BulkEditModal from '../../components/modals/BulkEditModal'
 import RenameAirflowModal from '../../components/modals/RenameAirflowModal'
 import { newCopyDagData } from '../../utils/dataFunctions'
 import DeleteModal from '../../components/modals/DeleteModal'
+import { useAtom } from 'jotai'
+import { clearRowSelectionAtom } from '../../atoms/atoms'
 
 // const checkboxFilters = [
 //   {
@@ -273,6 +275,12 @@ function AirflowCustom() {
     () => selectedRowsBulkData.length,
     [selectedRowsBulkData]
   )
+
+  const [clearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
+
+  useEffect(() => {
+    setRowSelection({})
+  }, [clearRowSelectionTrigger])
 
   return (
     <>

@@ -375,7 +375,10 @@ function AirflowTasks({ type }: { type: 'import' | 'export' | 'custom' }) {
       <div style={{ display: 'flex', justifyContent: 'end', marginBottom: 15 }}>
         <Button
           title="+ Create"
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => {
+            setRowSelection({})
+            setCreateModalOpen(true)
+          }}
           fontSize="14px"
         />
       </div>

@@ -11,7 +11,10 @@ import {
 } from '../../utils/interfaces'
 import { useCreateAirflowDag } from '../../utils/mutations'
 import { useAtom } from 'jotai'
-import { airflowImportDagsPersistStateAtom } from '../../atoms/atoms'
+import {
+  airflowImportDagsPersistStateAtom,
+  clearRowSelectionAtom
+} from '../../atoms/atoms'
 import AirflowSearchFilterDags from '../_airflowShared/AirflowSearchFilterDags'
 import CreateAirflowModal from '../../components/modals/CreateAirflowModal'
 
@@ -28,6 +31,7 @@ function AirflowImportActions({ dags }: AirfloImportActionsProps) {
   const [, setAirflowImportDagsPersistState] = useAtom(
     airflowImportDagsPersistStateAtom
   )
+  const [, setClearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
 
   const handleSave = (newImportAirflowSettings: EditSetting[]) => {
     const newImportAirflowData = createImportDagData(newImportAirflowSettings)
@@ -94,7 +98,10 @@ function AirflowImportActions({ dags }: AirfloImportActionsProps) {
       <div className="header-buttons">
         <Button
           title="+ Create"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            setClearRowSelectionTrigger((prev) => prev + 1)
+            setIsCreateModalOpen(true)
+          }}
           fontSize="14px"
         />
         <AirflowSearchFilterDags

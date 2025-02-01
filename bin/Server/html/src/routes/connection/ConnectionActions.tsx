@@ -8,7 +8,10 @@ import {
   UiConnectionSearchFilter
 } from '../../utils/interfaces'
 import { useAtom } from 'jotai'
-import { connectionPersistStateAtom } from '../../atoms/atoms'
+import {
+  clearRowSelectionAtom,
+  connectionPersistStateAtom
+} from '../../atoms/atoms'
 import ConnectionSearchFilterCns from './ConnectionSearchFilterCns'
 import CreateConnectionModal from '../../components/modals/CreateConnectionModal'
 import { createConnectionData } from '../../utils/dataFunctions'
@@ -25,6 +28,7 @@ function ConnectionActions({ connections }: ConnectionActionsProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [, setConnectionPersistState] = useAtom(connectionPersistStateAtom)
+  const [, setClearRowSelectionTrigger] = useAtom(clearRowSelectionAtom)
 
   const handleSave = (newConnectionSettings: EditSetting[]) => {
     const newConnectionData = createConnectionData(newConnectionSettings)
@@ -94,7 +98,11 @@ function ConnectionActions({ connections }: ConnectionActionsProps) {
       <div className="header-buttons">
         <Button
           title="+ Create"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            setClearRowSelectionTrigger((prev) => prev + 1)
+
+            setIsCreateModalOpen(true)
+          }}
           fontFamily={`'Work Sans Variable', sans-serif`}
           fontSize="14px"
         />
