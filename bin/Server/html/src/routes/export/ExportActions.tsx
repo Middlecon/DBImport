@@ -17,9 +17,9 @@ import {
 } from '../../atoms/atoms'
 import DiscoverIcon from '../../assets/icons/DiscoverIcon'
 import PlusIcon from '../../assets/icons/PlusIcon'
-import DiscoverImportModal from '../../components/modals/DiscoverImportModal'
 import DropdownActions from '../../components/DropdownActions'
 import ExportSearchFilterTables from './ExportSearchFilterTables'
+import DiscoverExportModal from '../../components/modals/DiscoverExportModal'
 
 interface ExportActionsProps {
   tables: UIExportCnTables[] | undefined
@@ -167,7 +167,7 @@ function ExportActions({ tables, filters }: ExportActionsProps) {
         />
       )}
       {isDiscoverModalOpen && (
-        <DiscoverImportModal
+        <DiscoverExportModal
           title="Discover and Add tables"
           isDiscoverModalOpen={isDiscoverModalOpen}
           onClose={() => setIsDiscoverModalOpen(false)}

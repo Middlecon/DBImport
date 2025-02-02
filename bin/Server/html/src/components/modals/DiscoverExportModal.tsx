@@ -52,6 +52,7 @@ function DiscoverExportModal({
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
+  const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(760)
@@ -134,6 +135,7 @@ function DiscoverExportModal({
   ) => {
     if (!keyLabel) return
     setFormValues((prev) => ({ ...prev, [keyLabel]: item }))
+    setHasChanges(true)
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -174,7 +176,11 @@ function DiscoverExportModal({
   }
 
   const handleCloseClick = () => {
-    setShowConfirmation(true)
+    if (hasChanges) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
   }
 
   const handleConfirmCancel = () => {
@@ -297,7 +303,7 @@ function DiscoverExportModal({
                   <span style={{ marginLeft: 5 }}>
                     <InfoText
                       label={'Connection'}
-                      infoText={infoTexts.discover.import.connection}
+                      infoText={infoTexts.discover.export.connection}
                       isInfoTextPositionRight={true}
                     />
                   </span>
@@ -310,12 +316,13 @@ function DiscoverExportModal({
                     id="discoverDatabaseFilter"
                     type="text"
                     value={formValues.databaseFilter || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         databaseFilter: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('databaseFilter')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
@@ -340,12 +347,13 @@ function DiscoverExportModal({
                     id="discoverTableFilter"
                     type="text"
                     value={formValues.tableFilter || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         tableFilter: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('tableFilter')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
@@ -381,12 +389,13 @@ function DiscoverExportModal({
                       id="discoverTargetSchema"
                       type="text"
                       value={formValues.targetSchema || ''}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setFormValues((prev) => ({
                           ...prev,
                           targetSchema: event.target.value
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                       onBlur={handleTrimOnBlur('targetSchema')}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -414,12 +423,13 @@ function DiscoverExportModal({
                       name={`discover-add-schema-true`}
                       value="true"
                       checked={formValues.addDBToTable === true}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addDBToTable: true
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     True
                   </label>
@@ -429,12 +439,13 @@ function DiscoverExportModal({
                       name={`discover-add-schema-false`}
                       value="false"
                       checked={formValues.addDBToTable === false}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addDBToTable: false
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     False
                   </label>
@@ -456,12 +467,13 @@ function DiscoverExportModal({
                       name={`discover-add-counter-true`}
                       value="true"
                       checked={formValues.addCounterToTable === true}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addCounterToTable: true
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     True
                   </label>
@@ -471,12 +483,13 @@ function DiscoverExportModal({
                       name={`discover-add-counter-false`}
                       value="false"
                       checked={formValues.addCounterToTable === false}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addCounterToTable: false
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     False
                   </label>
@@ -516,6 +529,8 @@ function DiscoverExportModal({
                           ...prev,
                           counterStart: isNaN(Number(value)) ? null : value
                         }))
+
+                        setHasChanges(true)
                       }}
                       onBlur={(event) => {
                         const valueString = event.target.value.trim()
@@ -571,12 +586,13 @@ function DiscoverExportModal({
                     id="discoverCustomText"
                     type="text"
                     value={formValues.addCustomText || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         addCustomText: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('addCustomText')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {

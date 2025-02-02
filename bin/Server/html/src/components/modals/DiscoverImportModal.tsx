@@ -59,6 +59,7 @@ function DiscoverImportModal({
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
+  const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   const [modalWidth, setModalWidth] = useState(760)
@@ -164,6 +165,7 @@ function DiscoverImportModal({
     value: string | null
   ) => {
     setFormValues((prev) => ({ ...prev, [key]: value }))
+    setHasChanges(true)
 
     if (value && value.length > 0) {
       const matches =
@@ -191,6 +193,7 @@ function DiscoverImportModal({
   ) => {
     if (!keyLabel) return
     setFormValues((prev) => ({ ...prev, [keyLabel]: item }))
+    setHasChanges(true)
   }
 
   const handleDropdownToggle = (dropdownId: string, isOpen: boolean) => {
@@ -231,7 +234,13 @@ function DiscoverImportModal({
   }
 
   const handleCloseClick = () => {
-    setShowConfirmation(true)
+    console.log('hasChanges', hasChanges)
+
+    if (hasChanges) {
+      setShowConfirmation(true)
+    } else {
+      onClose()
+    }
   }
 
   const handleConfirmCancel = () => {
@@ -367,12 +376,13 @@ function DiscoverImportModal({
                     id="discoverSchemaFilter"
                     type="text"
                     value={formValues.schemaFilter || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         schemaFilter: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('schemaFilter')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
@@ -397,12 +407,13 @@ function DiscoverImportModal({
                     id="discoverTableFilter"
                     type="text"
                     value={formValues.tableFilter || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         tableFilter: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('tableFilter')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
@@ -493,12 +504,13 @@ function DiscoverImportModal({
                       name={`discover-add-schema-true`}
                       value="true"
                       checked={formValues.addSchemaToTable === true}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addSchemaToTable: true
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     True
                   </label>
@@ -508,12 +520,13 @@ function DiscoverImportModal({
                       name={`discover-add-schema-false`}
                       value="false"
                       checked={formValues.addSchemaToTable === false}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addSchemaToTable: false
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     False
                   </label>
@@ -535,12 +548,13 @@ function DiscoverImportModal({
                       name={`discover-add-counter-true`}
                       value="true"
                       checked={formValues.addCounterToTable === true}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addCounterToTable: true
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     True
                   </label>
@@ -550,12 +564,13 @@ function DiscoverImportModal({
                       name={`discover-add-counter-false`}
                       value="false"
                       checked={formValues.addCounterToTable === false}
-                      onChange={() =>
+                      onChange={() => {
                         setFormValues((prev) => ({
                           ...prev,
                           addCounterToTable: false
                         }))
-                      }
+                        setHasChanges(true)
+                      }}
                     />
                     False
                   </label>
@@ -595,6 +610,7 @@ function DiscoverImportModal({
                           ...prev,
                           counterStart: isNaN(Number(value)) ? null : value
                         }))
+                        setHasChanges(true)
                       }}
                       onBlur={(event) => {
                         const valueString = event.target.value.trim()
@@ -650,12 +666,13 @@ function DiscoverImportModal({
                     id="discoverCustomText"
                     type="text"
                     value={formValues.addCustomText || ''}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setFormValues((prev) => ({
                         ...prev,
                         addCustomText: event.target.value
                       }))
-                    }
+                      setHasChanges(true)
+                    }}
                     onBlur={handleTrimOnBlur('addCustomText')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
