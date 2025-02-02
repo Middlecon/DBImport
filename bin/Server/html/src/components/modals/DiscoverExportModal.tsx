@@ -6,10 +6,10 @@ import {
   useRef,
   useState
 } from 'react'
+import ReactDOM from 'react-dom'
 import Button from '../Button'
 import ConfirmationModal from './ConfirmationModal'
 import './Modals.scss'
-
 import { useFocusTrap } from '../../utils/hooks'
 import { createTrimOnBlurHandler } from '../../utils/functions'
 import {
@@ -222,7 +222,7 @@ function DiscoverExportModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  return (
+  return ReactDOM.createPortal(
     <div className="table-modal-backdrop">
       <div
         className={`table-modal-content ${
@@ -652,7 +652,8 @@ function DiscoverExportModal({
           isActive={showConfirmation}
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 

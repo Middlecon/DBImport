@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from 'react'
+import ReactDOM from 'react-dom'
 import {
   EditSetting,
   EditSettingValueTypes,
@@ -230,7 +231,7 @@ function CreateImportTableModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  return (
+  return ReactDOM.createPortal(
     <div className="table-modal-backdrop">
       <div
         className={`table-modal-content ${
@@ -319,7 +320,8 @@ function CreateImportTableModal({
           isActive={showConfirmation}
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 

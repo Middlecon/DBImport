@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from 'react'
+import ReactDOM from 'react-dom'
 import {
   EditSetting,
   EditSettingValueTypes,
@@ -239,8 +240,8 @@ function CreateExportTableModal({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
-  return (
-    <div className="table-modal-backdrop">
+  return ReactDOM.createPortal(
+    <div className="table-modal-backdrop" style={{ width: '100vw' }}>
       <div
         className={`table-modal-content ${
           mainSidebarMinimized ? 'sidebar-minimized' : ''
@@ -328,7 +329,8 @@ function CreateExportTableModal({
           isActive={showConfirmation}
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 

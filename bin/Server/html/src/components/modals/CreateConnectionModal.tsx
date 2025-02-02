@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from 'react'
+import ReactDOM from 'react-dom'
 import { EditSetting, EditSettingValueTypes } from '../../utils/interfaces'
 import { useConnections } from '../../utils/queries'
 import Button from '../Button'
@@ -189,7 +190,7 @@ function CreateConnectionModal({
     }
   }, [generatedConnectionString])
 
-  return (
+  return ReactDOM.createPortal(
     <div className="table-modal-backdrop">
       <div
         className={`table-modal-content ${
@@ -293,7 +294,8 @@ function CreateConnectionModal({
           isActive={showConfirmation}
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 

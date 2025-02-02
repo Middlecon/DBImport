@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from 'react'
+import ReactDOM from 'react-dom'
 import { EditSetting, EditSettingValueTypes } from '../../utils/interfaces'
 import { useAllAirflows } from '../../utils/queries'
 import Button from '../Button'
@@ -185,7 +186,7 @@ function CreateAirflowModal({
     setShowConfirmation(false)
   }
 
-  return (
+  return ReactDOM.createPortal(
     <div className="table-modal-backdrop">
       <div
         className={`table-modal-content ${
@@ -271,7 +272,8 @@ function CreateAirflowModal({
           isActive={showConfirmation}
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 
