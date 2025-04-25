@@ -2737,6 +2737,18 @@ export function configGlobalCardRenderSettings(config: ConfigGlobal) {
       isHidden: config.timezone === null
     }, // Timezone, varchar(64), Use full text timezone, example Europe/Stockholm
     {
+      label: 'Timestamp with timezone',
+      value: config.timestamp_with_timezone,
+      type: SettingType.Boolean,
+      infoText: infoTexts.configuration.global.timestamp_with_timezone,
+      isHidden: config.timestamp_with_timezone === null
+    }, // Boolean, true or false, required
+    {
+      label: '',
+      value: '',
+      type: SettingType.GroupingSpace
+    }, // Layout space
+    {
       label: 'Atlas Discovery Interval',
       value: config.atlas_discovery_interval,
       type: SettingType.IntegerFromOne,

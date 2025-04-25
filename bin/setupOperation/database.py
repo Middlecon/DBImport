@@ -681,6 +681,14 @@ class initialize(object):
 			session.execute(query)
 			session.commit()
 
+		if 'timestamp_with_timezone' not in listOfConfKeys:
+			query = sa.insert(configSchema.configuration).values(
+				configKey='timestamp_with_timezone', 
+				valueInt='0',
+				description="With Spark as the ETL engine, it's possible to save timestamp columns with or without the timezone")
+			session.execute(query)
+			session.commit()
+
 		if 'cluster_name' not in listOfConfKeys:
 			query = sa.insert(configSchema.configuration).values(
 				configKey='cluster_name', 

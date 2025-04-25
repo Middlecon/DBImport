@@ -1199,6 +1199,7 @@ export interface ConfigGlobal {
   rest_verifyssl: number | null
   spark_max_executors: number | null
   timezone: string | null
+  timestamp_with_timezone: boolean | null
 }
 
 export interface ConfigGlobalWithIndex {

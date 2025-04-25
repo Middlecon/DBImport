@@ -180,6 +180,7 @@ class configuration(BaseModel):
 	rest_verifyssl: Union[bool, None] = None
 	spark_max_executors: Union[int, None] = None
 	timezone: Union[str, None] = None
+	timestamp_with_timezone: Union[bool, None] = None
 
 class discoverImportTable(BaseModel):
 	database: str

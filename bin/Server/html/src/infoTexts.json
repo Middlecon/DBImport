@@ -328,7 +328,8 @@
       "rest_url": "Rest server URL",
       "rest_verifyssl": "If True, the SSL communication should be fully validated with a correct trust certificate. You need to specify a valid trustfile for this",
       "spark_max_executors": "If Spark Dynamic Allocation is set to True in dbimport.cfg, this configuration option will control the maximum dynamic number of Spark executors to use (spark.dynamicAllocation.maxExecutors).\n\nIf Spark Dynamic Allocation is False, this will set the max executors to use for the entire Spark session (spark.executor.instances).\n\nThis should not be mixed up with how many sessions that will be used when transfering data. That is still controlled by Import/Export Max Sessions",
-      "timezone": "The default timezone that the configured times are meant for. Use full text timezone. \n\nExample: Europe/Stockholm"
+      "timezone": "The default timezone that the configured times are meant for. Use full text timezone. \n\nExample: Europe/Stockholm",
+      "timestamp_with_timezone": "With Spark as the ETL engine, it's possible to save timestamp columns with or without the timezone. \n\nThis will only affect new tables. If an already existing table needs to be change, you must drop it manually and then re-run the import."
     },
     "jdbcDrivers": {
       "databaseType": "Database type. This in combination with version creates a uniqe value that the jdbc connection string uses to find the correct driver and classpath",

@@ -358,7 +358,8 @@ export const labelToUIGlobalConfigKey: { [label: string]: keyof ConfigGlobal } =
     'Import Max Sessions': 'import_max_sessions',
     'Export Default Sessions': 'export_default_sessions',
     'Export Max Sessions': 'export_max_sessions',
-    'Spark Max Executors': 'spark_max_executors'
+    'Spark Max Executors': 'spark_max_executors',
+    'Timestamp with timezone': 'timestamp_with_timezone'
   }
 
 export function getKeyFromGlobalConfigLabel(
