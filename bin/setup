@@ -23,11 +23,14 @@ from common import constants as constant
 from common.Exceptions import *
 from DBImportOperation import import_operations
 from setupOperation import database as databaseOperations 
+from setupOperation import webServerOperations 
 
 def printHelp():
 	print ("Options:")
 	print ("  --createDB         Creates the database schema in the DBImport configuration database")
 	print ("  --upgradeDB        Upgrades the configuration database to support a new DBImport version")
+	print ("")
+	print ("  --buildHTML        Installs required npm packages and guild HTML files for DBImport UI")
 	print ("")
 	print ("  --help             Show this help message and exit")
 	print ("  -v, --debug        Turn on extensive debug output. This will print passwords in cleartext, so use with caution")
@@ -36,7 +39,7 @@ def printHelp():
 def main(argv):
 
 	try:
-		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "downgradeDB", "createSchemaRst", "debug"])
+		opts, args = getopt.getopt(argv, "v", ["help", "createDB", "upgradeDB", "downgradeDB", "createSchemaRst", "debug", "buildHTML"])
 	except getopt.GetoptError:
 		printHelp()
 
@@ -61,6 +64,8 @@ def main(argv):
 			operation = "upgradeDB"
 		elif opt == "--downgradeDB":
 			operation = "downgradeDB"
+		elif opt == "--buildHTML":
+			operation = "buildHTML"
 		elif opt == "--createSchemaRst":
 			operation = "createSchemaRst"
 			printHeader = False
@@ -109,6 +114,10 @@ def main(argv):
 	if operation == "createSchemaRst":
 		dbOperations = databaseOperations.initialize()
 		dbOperations.generateSchemaRst()
+
+	if operation == "buildHTML":
+		webOperations = webServerOperations.webServerOperations()
+		webOperations.buildHTML()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

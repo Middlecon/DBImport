@@ -1,0 +1,39 @@
+.breadcrumbs {
+  display: flex;
+  justify-items: center;
+  flex-wrap: wrap;
+  list-style: none;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  padding-right: 2px;
+  display: flex;
+
+  svg {
+    margin-top: 3px;
+    padding-right: 2px;
+  }
+
+  span {
+    word-break: break-all;
+  }
+
+  a {
+    text-decoration: none;
+    color: #2b66ca;
+    // color: inherit;
+    &:hover {
+      text-decoration: none;
+      color: #2b66ca;
+      // color: inherit;
+    }
+  }
+
+  .active {
+    font-weight: bold;
+    color: inherit;
+  }
+}

@@ -30,12 +30,12 @@ from Server import daemon
 
 
 def printHelp():
-	print ("Usage: ./server <action> <options>")
+	print ("Usage: ./mainServer <action> <options>")
 	print ("Actions:")
-	print ("  start              Start the DBImport server")
-	print ("  stop               Stop the DBImport server")
-	print ("  restart            Restart the DBImport server")
-	print ("  status             Check status of DBImport server")
+	print ("  start              Start the DBImport Main server")
+	print ("  stop               Stop the DBImport Main server")
+	print ("  restart            Restart the DBImport Main server")
+	print ("  status             Check status of DBImport Main server")
 	print ("")
 	print ("Options:")
 	print ("  --help             Show this help message and exit")
@@ -120,12 +120,12 @@ def main(argv):
 	d.setConfig(action=action, logFormat=logFormat)
 
 	if action == "start":
-		print("Starting DBImport Server")
+		print("Starting DBImport Main Server")
 		d.start()
 	elif action == "noDaemon":
 		d.run()
 	elif action == "stop":
-		print("Stopping DBImport Server")
+		print("Stopping DBImport Main Server")
 		d.stop()
 	elif action == "restart":
 		d.restart()
@@ -136,13 +136,13 @@ def main(argv):
 			f.close
 
 			if psutil.pid_exists(pid):
-				print("DBImport Server is running with pid %s"%(pid))
+				print("DBImport Main Server is running with pid %s"%(pid))
 				sys.exit(0)
 			else:
-				print("DBImport Server is not running")
+				print("DBImport Main Server is not running")
 				sys.exit(1)
 		else:
-			print("DBImport Server is not running")
+			print("DBImport Main Server is not running")
 			sys.exit(1)
 	else:
 		printHelp()

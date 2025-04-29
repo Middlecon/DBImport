@@ -14,10 +14,12 @@
 *.cert
 *.crt
 *.key
+*.pem
 
 # Misc
 .attach*
 .bash*
+*.cfg
 
 # Directories
 run/

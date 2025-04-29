@@ -1,0 +1,146 @@
+.setting-grouping-space {
+  height: 20px;
+  width: 100%;
+}
+
+.radio-edit {
+  display: inline-flex;
+  align-items: center;
+  align-content: center;
+
+  label {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    width: max-content !important;
+    margin-right: 30px;
+  }
+
+  input[type='radio'] {
+    margin: 0;
+    vertical-align: middle;
+  }
+}
+
+.input-fields-label-disabled {
+  color: rgb(174, 174, 174);
+}
+
+.input-fields-readonly-disabled {
+  color: rgb(84, 84, 84);
+}
+
+.input-fields-number-input {
+  max-width: 120px;
+  margin-right: 5px;
+  min-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.input-fields-text-input {
+  min-height: 21px;
+}
+
+.input-fields-text-input::-ms-reveal {
+  display: none;
+}
+
+.input-fields-text-input,
+.input-fields-textarea {
+  width: calc(100% - 233px);
+  box-sizing: border-box;
+}
+
+.input-fields-textarea {
+  max-width: calc(100% - 233px);
+  min-width: calc(100% - 233px);
+}
+
+.input-fields-textarea,
+.bulk-input-fields-textarea {
+  min-height: 56px;
+  padding: 3px;
+}
+
+.input-fields-number-input,
+.input-fields-textarea,
+.input-fields-text-input,
+.bulk-input-fields-text-input,
+.bulk-input-fields-textarea {
+  border: 0.5px solid rgb(42, 42, 42);
+  padding-left: 4px;
+}
+
+.input-fields-checkbox-container {
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  width: max-content !important;
+}
+
+.bulk-input-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.bulk-input-fields-text-input,
+.bulk-input-fields-textarea {
+  width: calc(100% - 325px);
+  box-sizing: border-box;
+}
+
+.bulk-input-fields-textarea {
+  max-width: calc(100% - 325px);
+  min-width: calc(100% - 325px);
+}
+
+.indication-text-container {
+  width: 80px;
+  height: 14px;
+  margin: 0 0 0 10px;
+}
+
+.mixed-values-text,
+.changed-text {
+  font-size: 12px;
+  margin: 0;
+}
+
+.changed-text {
+  color: #227131;
+}
+
+.mixed-values-text {
+  color: #952323;
+}
+
+.password-toggle-button {
+  position: absolute;
+  right: 48px;
+  top: 59%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  color: #555;
+}
+
+.password-toggle-button:hover {
+  color: #000;
+}
+
+// .input-fields-changed {
+//   background-color: blue;
+//   width: 20px;
+//   color: crimson;
+// }

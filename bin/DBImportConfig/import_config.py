@@ -404,7 +404,7 @@ class config(object, metaclass=Singleton):
 		self.mysql_cursor01.execute(query, (self.Hive_DB, self.Hive_Table))
 		logging.debug("SQL Statement executed: %s" % (self.mysql_cursor01.statement) )
 		if self.mysql_cursor01.rowcount != 1:
-			raise invalidConfiguration("Error: The specified Hive Database and Table can't be found in the configuration database. Please check that you specified the correct database and table and that the configuration exists in the configuration database")
+			raise invalidConfiguration("The specified Hive Database and Table can't be found in the configuration database. Please check that you specified the correct database and table and that the configuration exists in the configuration database")
 
 		row = self.mysql_cursor01.fetchone()
 

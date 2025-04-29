@@ -1,0 +1,14 @@
+.required-info,
+.disabled-required-info {
+  min-height: 14px;
+  font-size: 12px;
+  color: red;
+  display: flex;
+  justify-content: end;
+  visibility: visible;
+  margin: 0px 0 10px 0;
+}
+
+.disabled-required-info {
+  visibility: hidden;
+}

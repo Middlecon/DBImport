@@ -188,6 +188,19 @@ class config(object, metaclass=Singleton):
 		self.sparkExecutorMemory = configuration.get("Spark", "executor_memory")
 		self.sparkHiveLibrary = configuration.get("Spark", "hive_library")
 
+		try:
+			if configuration.get("Spark", "s3_access_to_ozone", exitOnError=False).lower() == "true":
+				self.sparkS3AccessToOzone = True
+			else:
+				self.sparkS3AccessToOzone = False
+			self.sparkS3AccessKeyID = configuration.get("Spark", "s3_access_key_id")
+			self.sparkS3SecretAccessKey = configuration.get("Spark", "s3_secret_access_key")
+
+		except invalidConfiguration:
+			self.sparkS3AccessToOzone = False
+			self.sparkS3AccessKeyID = ""
+			self.sparkS3SecretAccessKey = ""
+
 		self.awsRegion = None
 		try:
 			self.awsRegion = configuration.get("AWS", "region", exitOnError=False)
@@ -578,10 +591,15 @@ class config(object, metaclass=Singleton):
 		if self.kerberosPrincipal == "" and self.kerberosKeytab != "":
 			# There is information about a keytab, but not the principal. So lets grab the first from the file
 			kinitCommandList = ['klist', '-k', self.kerberosKeytab]
-			kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			stdOut, stdErr = kinitProc.communicate()
-			stdOut = stdOut.decode('utf-8').rstrip()
-			stdErr = stdErr.decode('utf-8').rstrip()
+			try:
+				kinitProc = subprocess.Popen(kinitCommandList , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				stdOut, stdErr = kinitProc.communicate()
+				stdOut = stdOut.decode('utf-8').rstrip()
+				stdErr = stdErr.decode('utf-8').rstrip()
+			except FileNotFoundError:
+				logging.error("kinit command was not found. Have you installed and configured Kerberos?")
+				self.remove_temporary_files()
+				sys.exit(1)
 
 			for line in stdOut.splitlines():
 				try:
@@ -744,7 +762,7 @@ class config(object, metaclass=Singleton):
 	
 		logging.debug("Executing common_config.printConnectionAliasDetails() - Finished")
 
-	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True, jdbcURL=None):
+	def lookupConnectionAlias(self, connection_alias, decryptCredentials=True, copySlave=False, exceptionIfFailureToDecrypt=True, jdbcURL=None, quiet=False):
 		logging.debug("Executing common_config.lookupConnectionAlias()")
 	
 		exit_after_function = False
@@ -869,7 +887,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("database=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			try:
@@ -917,7 +936,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("databaseName=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -936,19 +956,22 @@ class config(object, metaclass=Singleton):
 				pattern = r'@ldap://([^:/]+):(\d+)/([^,]+),'
 				r = re.search(pattern, self.jdbc_url)
 				if r is None:
-					logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
+					if quiet == False:
+						logging.error("jdbc_string for ldap must be of the form jdbc:oracle:thin@ldap://<ldap_host>:<ldap_port>/<db>")
 					exit_after_function = True
 			else:
 				try:
 					self.jdbc_hostname = self.jdbc_url.split("(HOST=")[1].split(')')[0]
 				except:
-					logging.error("Cant determine hostname based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine hostname based on jdbc_string")
 					exit_after_function = True
 
 				try:
 					self.jdbc_port = self.jdbc_url.split("(PORT=")[1].split(')')[0]
 				except:
-					logging.error("Cant determine port based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine port based on jdbc_string")
 					exit_after_function = True
 
 				try:
@@ -962,7 +985,8 @@ class config(object, metaclass=Singleton):
 					self.jdbc_oracle_servicename = None
 
 				if self.jdbc_oracle_sid == None and self.jdbc_oracle_servicename == None:
-					logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
+					if quiet == False:
+						logging.error("Cant find either SID or SERVICE_NAME in Oracle URL")
 					exit_after_function = True
 
 
@@ -986,7 +1010,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split('?')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1010,7 +1035,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[18:].split('/')[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1034,7 +1060,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url.split("databaseName=")[1].split(';')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 
@@ -1058,7 +1085,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[11:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			try:
@@ -1098,7 +1126,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'mongo://'): 
@@ -1143,7 +1172,8 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[13:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'jdbc:snowflake://'): 
@@ -1161,13 +1191,15 @@ class config(object, metaclass=Singleton):
 
 			database_pos = self.jdbc_url.split('?')[1].find('db')
 			if database_pos == -1:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 			else:
 				try:
 					self.jdbc_database = self.jdbc_url.split('?')[1][database_pos:].split('=')[1].split('&')[0]
 				except:
-					logging.error("Cant determine database based on jdbc_string")
+					if quiet == False:
+						logging.error("Cant determine database based on jdbc_string")
 					exit_after_function = True
 
 		if self.jdbc_url.startswith( 's3a://'): 
@@ -1194,16 +1226,19 @@ class config(object, metaclass=Singleton):
 			try:
 				self.awsS3fileFormat = self.jdbc_url.split(';format=')[1].split(';')[0]
 				if self.awsS3fileFormat != "parquet":
-					logging.error("Only parquet files are supported for AWS S3")
+					if quiet == False:
+						logging.error("Only parquet files are supported for AWS S3")
 					exit_after_function = True
 			except:
-				logging.error("For AWS S3, you need to specify what file format to use")
+				if quiet == False:
+					logging.error("For AWS S3, you need to specify what file format to use")
 				exit_after_function = True
 
 			try:
 				self.awsS3region = self.jdbc_url.split(';region=')[1].split(';')[0]
 			except:
-				logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
+				if quiet == False:
+					logging.error("For AWS S3, you need to specify what AWS region to work with in the jdbc_url string")
 				exit_after_function = True
 
 			try:
@@ -1231,11 +1266,13 @@ class config(object, metaclass=Singleton):
 			try:
 				self.jdbc_database = self.jdbc_url[21:].split('/')[1].split(';')[0].split(':')[0]
 			except:
-				logging.error("Cant determine database based on jdbc_string")
+				if quiet == False:
+					logging.error("Cant determine database based on jdbc_string")
 				exit_after_function = True
 
 			if not "delimident=" in self.jdbc_url.lower(): 
-				logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
+				if quiet == False:
+					logging.error("Informix requires DELIMIDENT=Y setting on the JDBC connection string")
 				exit_after_function = True
 
 		if self.jdbc_url.startswith( 'jdbc:sybase:Tds:'): 
@@ -1271,7 +1308,8 @@ class config(object, metaclass=Singleton):
 
 		# Check to make sure that we have a supported JDBC string
 		if self.jdbc_servertype == "":
-			logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
+			if quiet == False:
+				logging.error("JDBC Connection '%s' is not supported."%(self.jdbc_url))
 			exit_after_function = True
 
 		if copySlave == True:
@@ -1462,6 +1500,15 @@ class config(object, metaclass=Singleton):
 			try:
 				self.JDBCConn = jaydebeapi.connect(self.jdbc_driver, self.jdbc_url, JDBCCredentials , self.jdbc_classpath_for_python)
 				self.JDBCCursor = self.JDBCConn.cursor()
+			except TypeError as exception:
+				if printError == True:
+					log.error("Connection to database over JDBC failed with the following error:")
+					log.error(str(exception))
+				if exitIfFailure == True:
+					self.remove_temporary_files()
+					sys.exit(1)
+				else:
+					return False
 			except Exception as exception:
 				if printError == True:
 					log.error("Connection to database over JDBC failed with the following error:")
@@ -1856,23 +1903,28 @@ class config(object, metaclass=Singleton):
 		logging.debug("Executing common_config.getJDBCsqlFromTable() - Finished")
 		return fromTable
 
-	def getConfigValueColumn(self, key):
+	def getConfigValueColumn(self, key, ignoreErrorOutput = False):
 		""" Return the type of the column that have the value for the specified key """
 
 		valueColumn = ""
 		boolValue = False
 
-		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task" ):
+		if key in ("hive_remove_locks_by_force", "airflow_disable", "import_start_disable", "import_stage_disable", "export_start_disable", "export_stage_disable", "hive_validate_before_execution", "hive_print_messages", "import_process_empty", "hive_major_compact_after_merge", "hive_insert_only_tables", "hive_acid_with_clusteredby", "post_data_to_kafka", "post_data_to_kafka_extended", "post_data_to_rest", "post_data_to_rest_extended", "post_data_to_awssns", "post_data_to_awssns_extended", "post_airflow_dag_operations", "rest_verifyssl", "impala_invalidate_metadata", "airflow_aws_pool_to_instanceid", "airflow_create_pool_with_task", "timestamp_with_timezone" ):
 			valueColumn = "valueInt"
 			boolValue = True
 		elif key in ("spark_max_executors", "import_default_sessions", "import_max_sessions", "export_default_sessions", "export_max_sessions", "atlas_discovery_interval", "airflow_major_version", "rest_timeout", "airflow_default_pool_size", "restserver_token_ttl"):
 			valueColumn = "valueInt"
-		elif key in ("import_staging_table", "import_staging_database", "import_work_table", "import_work_database", "import_history_table", "import_history_database", "export_staging_database", "hive_validate_table", "airflow_aws_instanceids", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile", "import_columnname_delete", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_update", "import_columnname_histtime", "import_columnname_source", "restserver_secret_key", "restserver_admin_user", "restserver_authentication_method", "post_data_to_awssns_topic"):
+		elif key in ("import_staging_table", "import_staging_database", "import_work_table", "import_work_database", "import_history_table", "import_history_database", "export_staging_database", "hive_validate_table", "airflow_aws_instanceids", "airflow_sudo_user", "airflow_dbimport_commandpath", "airflow_dag_directory", "airflow_dag_staging_directory", "timezone", "airflow_dag_file_group", "airflow_dag_file_permission", "airflow_dummy_task_queue", "airflow_url", "cluster_name", "hdfs_address", "hdfs_blocksize", "hdfs_basedir", "kafka_brokers", "kafka_saslmechanism", "kafka_securityprotocol", "kafka_topic", "kafka_trustcafile", "rest_url", "rest_trustcafile", "import_columnname_delete", "import_columnname_import", "import_columnname_insert", "import_columnname_iud", "import_columnname_update", "import_columnname_histtime", "import_columnname_source", "restserver_secret_key", "restserver_admin_user", "restserver_authentication_method", "post_data_to_awssns_topic"):
 			valueColumn = "valueStr"
 		else:
-			logging.error("There is no configuration with the name '%s'"%(key))
-			self.remove_temporary_files()
-			sys.exit(1)
+			if ignoreErrorOutput == False:
+				# This is needed from the REST interface, as it's parsing everything in the database. And entries may exists that isnt a valid config anymore
+				logging.error("There is no configuration with the name '%s'"%(key))
+				self.remove_temporary_files()
+				sys.exit(1)
+			else:
+				valueColumn = None
+				boolValue = None
 
 		return (valueColumn, boolValue)
 

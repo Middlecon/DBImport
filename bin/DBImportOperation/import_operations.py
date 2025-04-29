@@ -515,7 +515,7 @@ class operation(object, metaclass=Singleton):
 			self.import_config.remove_temporary_files()
 			sys.exit(1)
 
-	def discoverAndAddTablesFromSource(self, dbalias, hiveDB, schemaFilter=None, tableFilter=None, addSchemaToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None):
+	def discoverAndAddTablesFromSource(self, dbalias, hiveDB, schemaFilter=None, tableFilter=None, addSchemaToTable=False, addCustomText=None, addCounterToTable=False, counterStart=None, onlyJsonOutput=False):
 		""" This is the main function to search for tables/view on source database and add them to import_tables """
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource()")
 		errorDuringAdd = False
@@ -581,47 +581,67 @@ class operation(object, metaclass=Singleton):
 			sys.exit(0)
 
 		# At this stage, we have discovered tables in the source system that we dont know about in DBImport
-		print("The following tables and/or views have been discovered in the source database and not found in DBImport")
-		print("")
-		print("%-20s%-40s%-30s%-20s%s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
-		print("=============================================================================================================================")
 
-		for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-			print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
-
-		answer = input("Do you want to add these imports to DBImport? (y/N): ")
-		if answer == "y":
+		if onlyJsonOutput == False:
+			print("The following tables and/or views have been discovered in the source database and not found in DBImport")
 			print("")
+			print("%-20s%-40s%-30s%-20s%s"%("Hive DB", "Hive Table", "Connection Alias", "Schema", "Table/View"))
+			print("=============================================================================================================================")
+
 			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
-				if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
-					addResult = self.import_config.addImportTable(
-			    		hiveDB=hiveDB, 
-			    		hiveTable=row['hiveTable'].lower(),
-			    		dbalias=dbalias,
-			    		schema=row['schema'].strip(),
-			    		table=row['table'].strip(),
-						catalog=constant.CATALOG_HIVE_DIRECT)
+				print("%-20s%-40s%-30s%-20s%s"%(hiveDB, row['hiveTable'].lower(), dbalias, row['schema'], row['table']))
 
-				elif self.common_operations.metastore_type == constant.CATALOG_GLUE:
-					addResult = self.import_config.addImportTable(
-			    		hiveDB=hiveDB, 
-			    		hiveTable=row['hiveTable'].lower(),
-			    		dbalias=dbalias,
-			    		schema=row['schema'].strip(),
-			    		table=row['table'].strip(),
-						catalog=constant.CATALOG_GLUE)
-
-				if addResult == False:
-					errorDuringAdd = True
-
-			if errorDuringAdd == False:
-				print("All tables saved successfully in DBImport")
+			answer = input("Do you want to add these imports to DBImport? (y/N): ")
+#			answer = "N"
+			if answer == "y":
+				print("")
+				for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+					if self.common_operations.metastore_type == constant.CATALOG_HIVE_DIRECT:
+						addResult = self.import_config.addImportTable(
+				    		hiveDB=hiveDB, 
+				    		hiveTable=row['hiveTable'].lower(),
+				    		dbalias=dbalias,
+				    		schema=row['schema'].strip(),
+				    		table=row['table'].strip(),
+							catalog=constant.CATALOG_HIVE_DIRECT)
+	
+					elif self.common_operations.metastore_type == constant.CATALOG_GLUE:
+						addResult = self.import_config.addImportTable(
+				    		hiveDB=hiveDB, 
+				    		hiveTable=row['hiveTable'].lower(),
+				    		dbalias=dbalias,
+				    		schema=row['schema'].strip(),
+				    		table=row['table'].strip(),
+							catalog=constant.CATALOG_GLUE)
+	
+					if addResult == False:
+						errorDuringAdd = True
+	
+				if errorDuringAdd == False:
+					print("All tables saved successfully in DBImport")
+				else:
+					print("")
+					print("Not all tables was saved to DBImport. Please check log and output")
 			else:
 				print("")
-				print("Not all tables was saved to DBImport. Please check log and output")
+				print("Aborting")
+
 		else:
-			print("")
-			print("Aborting")
+			# Only output the json file
+			# This is used by the rest interface to return a list of tables to the webUI
+
+			tableList = []
+			for index, row in mergeDF.loc[mergeDF['Exist'] == 'left_only'].iterrows():
+				resultDict = {}
+				resultDict["database"] = hiveDB
+				resultDict["table"] = row['hiveTable'].lower()
+				resultDict["connection"] = dbalias
+				resultDict["sourceSchema"] = row['schema']
+				resultDict["sourceTable"] = row['table']
+				tableList.append(resultDict)
+
+			jsonResult = json.dumps(tableList)
+			print(jsonResult)
 
 
 		logging.debug("Executing import_operations.discoverAndAddTablesFromSource() - Finished")
@@ -1100,13 +1120,27 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.sql.catalog.glue.catalog-impl', 'org.apache.iceberg.aws.glue.GlueCatalog')
 				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
 			else:
-				conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
-				conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
-				conf.set('spark.sql.catalog.hive.type', 'hive')
-				conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
-				conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
-				conf.set('spark.sql.catalog.local.type', 'hadoop')
-				conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
+				if self.import_config.common_config.sparkS3AccessToOzone == False:
+					conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+					conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
+					conf.set('spark.sql.catalog.hive.type', 'hive')
+					conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
+					conf.set('spark.sql.catalog.local', 'org.apache.iceberg.spark.SparkCatalog')
+					conf.set('spark.sql.catalog.local.type', 'hadoop')
+					conf.set('spark.sql.catalog.local.warehouse', self.import_config.hdfsBaseDir)
+				else:
+					conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+					conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
+					conf.set('spark.sql.catalog.hive.type', 'hive')
+					conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
+					conf.set('spark.sql.catalog.hive.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
+					conf.set('spark.sql.catalog.hive.http-client.type', 'urlconnection')
+					conf.set('spark.sql.catalog.hive.s3.path-style-access', 'true')
+					conf.set('spark.sql.catalog.hive.client.assume-role.region', 'us-east-1')
+					conf.set('spark.sql.catalog.hive.s3.access-key-id', self.import_config.common_config.sparkS3AccessKeyID)
+					conf.set('spark.sql.catalog.hive.s3.secret-access-key', self.import_config.common_config.sparkS3SecretAccessKey)
+					conf.set('spark.hadoop.fs.s3a.access.key', self.import_config.common_config.sparkS3AccessKeyID)
+					conf.set('spark.hadoop.fs.s3a.secret.key', self.import_config.common_config.sparkS3SecretAccessKey)
 
 			conf.set('spark.sql.debug.maxToStringFields', 1000)
 
@@ -1126,21 +1160,30 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.executor.instances', str(self.import_config.sparkMaxExecutors))
 				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
 
+		if self.import_config.common_config.getConfigValue(key = "timestamp_with_timezone") == False:
+			conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
+			conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
+			conf.set('spark.sql.timestampType', 'TIMESTAMP_NTZ')
+
 		sys.stdout.flush()
 		self.sparkContext = pyspark.context.SparkContext(conf=conf)
 		sys.stdout.flush()
 		self.spark = pyspark.sql.SparkSession(self.sparkContext)
 		sys.stdout.flush()
 
-
 		sparkVersionSplit = self.spark.version.split(".")
 		sparkMajorVersion = int(sparkVersionSplit[0])
+		sparkMinorVersion = int(sparkVersionSplit[1])
 		sparkVersion = "%s.%s.%s"%(sparkVersionSplit[0], sparkVersionSplit[1], sparkVersionSplit[2])
 		logging.info("Running with Spark Version %s"%(sparkVersion))
 
 		if sparkMajorVersion == 2 and self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			self.stopSpark()
 			raise invalidConfiguration("Using Spark as the ETL engine is only supported in Spark3.")
+		# elif sparkMajorVersion == 3 and sparkMinorVersion <= 3:
+			# For spark 3.3 and older, you need to set the following config to avoid getting timezone in timestamp. 
+			# self.spark.conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
+			# self.spark.conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
 
 		self.sparkContext.addPyFile("%s/bin/common/sparkUDF2.py"%(os.environ['DBIMPORT_HOME']))
 		import sparkUDF2

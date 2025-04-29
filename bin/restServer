@@ -55,8 +55,9 @@ def printHelp():
 	print ("Usage: ./server <action> <options>")
 	print ("Actions:")
 	print ("  start              Start the DBImport REST server")
-	print ("  noDaemon           Start the DBImport REST server running in foreground")
 	print ("  stop               Stop the DBImport REST server")
+	print ("  restart            Stop and start the DBImport REST server")
+	print ("  noDaemon           Start the DBImport REST server running in foreground")
 	print ("  status             Check status of DBImport REST server")
 	print ("")
 	print ("Options:")
@@ -97,11 +98,11 @@ def main(argv):
 			elif opt in ("-v", "--debug"):
 				loggingLevel = logging.DEBUG
 
-	if action not in ["start", "stop", "status", "noDaemon"]:
+	if action not in ["start", "stop", "restart", "status", "noDaemon"]:
 		printHelp()
 		sys.exit(0)
 
-	if action == "start":
+	if action in ("start", "restart"):
 		daemonMode = True
 
 	if displayVersion == True:
@@ -181,9 +182,22 @@ def main(argv):
 
 	elif action == "stop":
 		print("Stopping DBImport REST Server")
-		for line in os.popen("ps ax|grep -E \"/restServer start$|/restServer noDaemon\"|grep -v grep"):
+		for line in os.popen("ps ax|grep -E \"/restServer restart$|/restServer start$|/restServer noDaemon\"|grep -v grep"):
 			pid = int(line.split()[0])
 			os.kill(pid, signal.SIGTERM)
+
+	elif action == "restart":
+		print("Stopping DBImport REST Server")
+		currentPid = os.getpid()
+		for line in os.popen("ps ax|grep -E \"/restServer restart$|/restServer start$|/restServer noDaemon\"|grep -v grep"):
+			pid = int(line.split()[0])
+			if pid == currentPid:
+				continue
+			os.kill(pid, signal.SIGTERM)
+
+		print("Starting DBImport REST Server")
+		StandaloneApplication("Server.restServer:app", options).run()
+
 
 	elif action == "status":
 		processes = os.popen("ps ax|grep \"/restServer start$\"|grep -v grep").read()

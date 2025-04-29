@@ -1,0 +1,91 @@
+.login-root {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: auto;
+  background-color: rgb(19, 19, 20);
+  color: rgb(255, 255, 255);
+}
+
+.login-form {
+  text-align: center;
+
+  h2 {
+    font-size: 25px;
+    margin-bottom: 30px;
+    margin-top: 100px;
+    margin-left: 65px;
+  }
+}
+
+.login-disabled-label {
+  color: rgb(216, 216, 216);
+}
+
+.form-fields-container {
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  min-width: 376;
+  margin-bottom: 10px;
+}
+
+.input-container {
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  justify-items: baseline;
+  gap: 5px;
+  text-align: left;
+  margin-top: 5px;
+  label {
+    font-size: 19px;
+    padding-right: 2px;
+    min-height: 24.5;
+  }
+  label:first-child {
+    padding-top: 1px;
+    gap: 5px;
+  }
+  label:nth-child(2) {
+    padding-top: 2px;
+    gap: 5px;
+  }
+  input {
+    padding-top: 4px;
+    padding-left: 4px;
+    width: 170px;
+  }
+}
+
+.input-container:nth-child(2) {
+  gap: 5px;
+}
+
+.login-submit-button {
+  height: 30px;
+  width: 70px;
+  margin-left: 65px;
+}
+
+.login-message-placeholder {
+  height: 20px;
+  margin-top: 25px;
+}
+
+.login-error-message {
+  color: rgb(190, 72, 59);
+  font-size: 14px;
+  margin-left: 70px;
+}
+
+.logging-in-message {
+  color: rgb(242, 242, 242);
+  font-size: 14px;
+  margin-left: 79px;
+}
