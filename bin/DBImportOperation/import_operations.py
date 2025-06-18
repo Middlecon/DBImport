@@ -1161,8 +1161,8 @@ class operation(object, metaclass=Singleton):
 				logging.info("Number of executors is fixed at %s"%(self.import_config.sparkMaxExecutors))
 
 		if self.import_config.common_config.getConfigValue(key = "timestamp_with_timezone") == False:
-			conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
-			conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
+			# conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
+			# conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
 			conf.set('spark.sql.timestampType', 'TIMESTAMP_NTZ')
 
 		sys.stdout.flush()
@@ -1180,10 +1180,10 @@ class operation(object, metaclass=Singleton):
 		if sparkMajorVersion == 2 and self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			self.stopSpark()
 			raise invalidConfiguration("Using Spark as the ETL engine is only supported in Spark3.")
-		# elif sparkMajorVersion == 3 and sparkMinorVersion <= 3:
-			# For spark 3.3 and older, you need to set the following config to avoid getting timezone in timestamp. 
-			# self.spark.conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
-			# self.spark.conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
+		elif sparkMajorVersion == 3 and sparkMinorVersion != 4:
+			if self.import_config.common_config.getConfigValue(key = "timestamp_with_timezone") == False:
+				self.spark.conf.set('spark.sql.iceberg.handle-timestamp-without-timezone', 'true')
+				self.spark.conf.set('spark.sql.iceberg.use-timestamp-without-timezone-in-new-tables', 'true')
 
 		self.sparkContext.addPyFile("%s/bin/common/sparkUDF2.py"%(os.environ['DBIMPORT_HOME']))
 		import sparkUDF2
