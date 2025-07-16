@@ -1103,14 +1103,15 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.port.maxRetries', '128')
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		conf.set('spark.driver.log.persistToDfs.enabled', 'false')
-		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
+#		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
 			# This also means we are running with Spark2
+		if self.import_config.common_config.sparkMajorVersion == 2:
 			conf.set('spark.yarn.keytab', self.import_config.common_config.kerberosKeytab)
 			conf.set('spark.yarn.principal', self.import_config.common_config.kerberosPrincipal)
 		else:
 			conf.set('spark.kerberos.keytab', self.import_config.common_config.kerberosKeytab)
 			conf.set('spark.kerberos.principal', self.import_config.common_config.kerberosPrincipal)
-			# conf.set('spark.sql.ansi.enabled', 'false')
+			conf.set('spark.sql.debug.maxToStringFields', 1000)
 
 		if self.import_config.etlEngine == constant.ETL_ENGINE_SPARK:
 			if self.common_operations.metastore_type == constant.CATALOG_GLUE:
@@ -1121,7 +1122,8 @@ class operation(object, metaclass=Singleton):
 				conf.set('spark.sql.catalog.glue.io-impl', 'org.apache.iceberg.aws.s3.S3FileIO')
 			else:
 				if self.import_config.common_config.sparkS3AccessToOzone == False:
-					conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+#					conf.set('spark.sql.extensions', 'com.hortonworks.spark.sql.rule.Extensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
+					conf.set('spark.sql.extensions', 'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions')
 					conf.set('spark.sql.catalog.hive', 'org.apache.iceberg.spark.SparkCatalog')
 					conf.set('spark.sql.catalog.hive.type', 'hive')
 					conf.set('spark.sql.catalog.hive.cache-enabled', 'false')
@@ -1142,7 +1144,6 @@ class operation(object, metaclass=Singleton):
 					conf.set('spark.hadoop.fs.s3a.access.key', self.import_config.common_config.sparkS3AccessKeyID)
 					conf.set('spark.hadoop.fs.s3a.secret.key', self.import_config.common_config.sparkS3SecretAccessKey)
 
-			conf.set('spark.sql.debug.maxToStringFields', 1000)
 
 		if self.import_config.common_config.sparkDynamicAllocation == True:
 			conf.set('spark.shuffle.service.enabled', 'true')

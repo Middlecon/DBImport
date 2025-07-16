@@ -137,6 +137,7 @@ class config(object, metaclass=Singleton):
 		self.sparkPysparkSubmitArgs = None
 		self.sparkJarFiles = None
 		self.sparkPackages = None
+		self.sparkMajorVersion = None
 		self.sparkPyFiles = None
 		self.sparkMaster = None
 		self.sparkDeployMode = None
@@ -175,12 +176,26 @@ class config(object, metaclass=Singleton):
 		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
 		self.kerberosKeytab = configuration.get("Kerberos", "keytab")
 
-		self.sparkPathAppend = configuration.get("Spark", "path_append")
-		self.sparkJarFiles = configuration.get("Spark", "jar_files")
+		try:
+			self.sparkMajorVersion = int(configuration.get("Spark", "spark_major_version", exitOnError=False))
+		except invalidConfiguration:
+			logging.warning("Configuration option 'spark_major_version' under [Spark] in the configuration file is missing. Please update your config file")
+			self.sparkMajorVersion = 3
+		except ValueError:
+			logging.warning("Configuration option 'spark_major_version' under [Spark] in the configuration file must be an integer. Please update your config file")
+			self.sparkMajorVersion = 3
+
+		if self.sparkMajorVersion < 2 or self.sparkMajorVersion > 4:
+			logging.error("Only Spark version 2, 3 and 4 is supported.")
+			sys.exit(1)
+
 		try:
 			self.sparkPackages = configuration.get("Spark", "packages", exitOnError=False)
 		except invalidConfiguration:
 			logging.warning("Configuration option 'packages' under [Spark] in the configuration file is missing. Please update your config file")
+
+		self.sparkPathAppend = configuration.get("Spark", "path_append")
+		self.sparkJarFiles = configuration.get("Spark", "jar_files")
 		self.sparkPyFiles = configuration.get("Spark", "py_files")
 		self.sparkMaster = configuration.get("Spark", "master")
 		self.sparkDeployMode = configuration.get("Spark", "deployMode")

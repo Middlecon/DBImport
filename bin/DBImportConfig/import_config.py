@@ -1429,6 +1429,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
 				column_type = re.sub('^binary\([0-9]*\)$', 'binary', column_type)
+				column_type = re.sub('^blob\([0-9]*\)$', 'binary', column_type)
 				if column_type == "time": 
 					column_type = "string"
 					sqoop_column_type = "String"
