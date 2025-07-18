@@ -22,6 +22,10 @@
 *.cfg
 *.pem
 
+# Symbolic Links
+run
+conf
+
 # Directories
 run/
 /html/

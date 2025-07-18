@@ -1425,6 +1425,7 @@ class config(object, metaclass=Singleton):
 				column_type = re.sub('^mediumtext\([0-9]*\)', 'string', column_type)
 				column_type = re.sub('^tinytext\([0-9]*\)', 'varchar(255)', column_type)
 				column_type = re.sub('^text\([0-9]*\)', 'string', column_type)
+				column_type = re.sub('^json$', 'string', column_type)
 				column_type = re.sub('^datetime$', 'timestamp', column_type)
 				column_type = re.sub('^varbinary$', 'binary', column_type)
 				column_type = re.sub('^varbinary\([0-9]*\)$', 'binary', column_type)
@@ -2172,16 +2173,19 @@ class config(object, metaclass=Singleton):
 					return ""
 				if self.sqoop_incr_mode == "append":
 					self.sqoopIncrMaxvaluePending = maxValue
-				if self.sqoop_incr_mode == "lastmodified":
-					if re.search('\.([0-9]{3}|[0-9]{6})$', maxValue):
-						self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S.%f')
-					else:
-						self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S')
+				try:
+					if self.sqoop_incr_mode == "lastmodified":
+						if re.search('\.([0-9]{3}|[0-9]{6})$', maxValue):
+							self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S.%f')
+						else:
+							self.sqoopIncrMaxvaluePending = datetime.strptime(maxValue, '%Y-%m-%d %H:%M:%S')
 
-					if self.common_config.jdbc_servertype == constant.MSSQL:
-						#MSSQL gets and error if there are microseconds in the timestamp
-						(dt, micro) = self.sqoopIncrMaxvaluePending.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
-						self.sqoopIncrMaxvaluePending = "%s.%03d" % (dt, int(micro) / 1000)
+						if self.common_config.jdbc_servertype == constant.MSSQL:
+							#MSSQL gets and error if there are microseconds in the timestamp
+							(dt, micro) = self.sqoopIncrMaxvaluePending.strftime('%Y-%m-%d %H:%M:%S.%f').split(".")
+							self.sqoopIncrMaxvaluePending = "%s.%03d" % (dt, int(micro) / 1000)
+				except TypeError: 
+					raise invalidConfiguration("Specified column for incremental loads does not look like it's a timestamp. If it's an integer based value, please select 'append' mode instead")
 
 				self.sqoopIncrMinvaluePending = self.sqoop_incr_lastvalue
 

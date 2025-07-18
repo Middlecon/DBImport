@@ -1101,10 +1101,11 @@ class operation(object, metaclass=Singleton):
 		conf.set('spark.executor.memory', self.import_config.common_config.sparkExecutorMemory)
 		conf.set('spark.yarn.queue', self.import_config.common_config.sparkYarnQueue)
 		conf.set('spark.port.maxRetries', '128')
+		if self.import_config.common_config.sparkLogLevel != None:
+			conf.set('spark.log.level', self.import_config.common_config.sparkLogLevel)
 		conf.set('spark.hadoop.yarn.timeline-service.enabled', 'false')
 		conf.set('spark.driver.log.persistToDfs.enabled', 'false')
-#		if self.import_config.etlEngine == constant.ETL_ENGINE_HIVE:
-			# This also means we are running with Spark2
+
 		if self.import_config.common_config.sparkMajorVersion == 2:
 			conf.set('spark.yarn.keytab', self.import_config.common_config.kerberosKeytab)
 			conf.set('spark.yarn.principal', self.import_config.common_config.kerberosPrincipal)
@@ -1371,7 +1372,6 @@ class operation(object, metaclass=Singleton):
 					.option("numPartitions", self.import_config.sqlSessions)
 					.load())
 	
-
 			# Get a Pandas DF with columnames and anonymization function
 			anonymizationFunction = self.import_config.getAnonymizationFunction()
 

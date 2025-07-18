@@ -147,6 +147,7 @@ class config(object, metaclass=Singleton):
 		self.sparkMaxExecutors = None
 		self.sparkExecutorMemory = None
 		self.sparkHiveLibrary = None
+		self.sparkLogLevel = None
 
 		self.operationTimestamp = None
 		self.yarnApplicationStart = None
@@ -188,6 +189,11 @@ class config(object, metaclass=Singleton):
 		if self.sparkMajorVersion < 2 or self.sparkMajorVersion > 4:
 			logging.error("Only Spark version 2, 3 and 4 is supported.")
 			sys.exit(1)
+
+		try:
+			self.sparkLogLevel = configuration.get("Spark", "spark_log_level", exitOnError=False)
+		except invalidConfiguration:
+			pass
 
 		try:
 			self.sparkPackages = configuration.get("Spark", "packages", exitOnError=False)
