@@ -954,18 +954,29 @@ class operation(object, metaclass=Singleton):
 				sts = session.client('sts')
 				roleSessionName='DBImport_export_%s.%s'%(self.hiveDB, self.hiveTable)
 
-				if self.export_config.common_config.awsS3externalId == None:
+				if self.export_config.common_config.awsS3externalId == None and self.export_config.common_config.awsS3assumeRoleDuration == None:
 					response = sts.assume_role(
 						RoleArn=self.export_config.common_config.awsS3assumeRole,
 						RoleSessionName=roleSessionName[0:64]
-						# DurationSeconds=3600  # how many seconds these credentials will work
+						)
+				elif self.export_config.common_config.awsS3externalId == None and self.export_config.common_config.awsS3assumeRoleDuration != None:
+					response = sts.assume_role(
+						RoleArn=self.export_config.common_config.awsS3assumeRole,
+						RoleSessionName=roleSessionName[0:64],
+						DurationSeconds=self.export_config.common_config.awsS3assumeRoleDuration
+						)
+				elif self.export_config.common_config.awsS3externalId != None and self.export_config.common_config.awsS3assumeRoleDuration == None:
+					response = sts.assume_role(
+						RoleArn=self.export_config.common_config.awsS3assumeRole,
+						RoleSessionName=roleSessionName[0:64],
+						ExternalId=self.export_config.common_config.awsS3externalId
 						)
 				else:
 					response = sts.assume_role(
 						RoleArn=self.export_config.common_config.awsS3assumeRole,
 						RoleSessionName=roleSessionName[0:64],
-						ExternalId=self.export_config.common_config.awsS3externalId
-						# DurationSeconds=3600  # how many seconds these credentials will work
+						ExternalId=self.export_config.common_config.awsS3externalId,
+						DurationSeconds=self.export_config.common_config.awsS3assumeRoleDuration
 						)
 
 				credentials = response['Credentials']
@@ -1070,6 +1081,7 @@ class operation(object, metaclass=Singleton):
 		self.kerberosPrincipal = configuration.get("Kerberos", "principal")
 		sparkAuth = HTTPKerberosAuth(force_preemptive=True, principal=self.kerberosPrincipal, mutual_authentication=OPTIONAL)
 
+		requests.packages.urllib3.disable_warnings()        # Disable SSL/Cert warnings for Spark application API call
 		response = requests.get(sparkURL, auth=sparkAuth, verify=False)
 		responseJson = response.json()
 

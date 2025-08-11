@@ -120,6 +120,7 @@ class config(object, metaclass=Singleton):
 		self.mongoDB = None
 		self.mongoAuthSource = None
 		self.awsS3assumeRole = None
+		self.awsS3assumeRoleDuration = None
 		self.awsS3proxyServer = None
 		self.awsS3bucket = None
 		self.awsS3region = None
@@ -1240,6 +1241,11 @@ class config(object, metaclass=Singleton):
 				self.awsS3assumeRole = None
 
 			try:
+				self.awsS3assumeRoleDuration = int(self.jdbc_url.split(';assumeRoleDuration=')[1].split(';')[0])
+			except:
+				self.awsS3assumeRoleDuration = None
+
+			try:
 				self.awsS3proxyServer = self.jdbc_url.split(';proxy=')[1].split(';')[0]
 			except:
 				self.awsS3proxyServer = None
@@ -1370,6 +1376,7 @@ class config(object, metaclass=Singleton):
 		logging.debug("    jdbc_oracle_sid = %s"%(self.jdbc_oracle_sid))
 		logging.debug("    jdbc_oracle_servicename = %s"%(self.jdbc_oracle_servicename))
 		logging.debug("    self.awsS3assumeRole = %s"%(self.awsS3assumeRole))
+		logging.debug("    self.awsS3assumeRoleDuration = %s"%(self.awsS3assumeRoleDuration))
 		logging.debug("    self.awsS3proxyServer = %s"%(self.awsS3proxyServer))
 		logging.debug("    self.awsS3externalId = %s"%(self.awsS3externalId))
 		logging.debug("    self.awsS3region = %s"%(self.awsS3region))
