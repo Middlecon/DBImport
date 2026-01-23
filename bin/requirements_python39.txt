@@ -52,7 +52,7 @@ pandas==2.2.1
 passlib==1.7.4
 Paste==3.7.1
 pendulum==3.0.0
-protobuf==4.25.3
+protobuf==7.34.0rc1
 psutil==5.9.8
 pure-sasl==0.6.2
 pure-transport==0.2.0
