@@ -839,6 +839,7 @@ def main(argv):
 
 					if import_operation.runStage(3060) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
 				if import_operation.runStage(3095) == True: 
