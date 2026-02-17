@@ -936,6 +936,7 @@ def main(argv):
 
 					if import_operation.runStage(3109) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
 				if import_operation.runStage(3145) == True: 
@@ -1040,6 +1041,7 @@ def main(argv):
 
 					if import_operation.runStage(3159) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3160) == True: 
@@ -1177,6 +1179,7 @@ def main(argv):
 
 					if import_operation.runStage(3211) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3212) == True: 
@@ -1304,6 +1307,7 @@ def main(argv):
 
 					if import_operation.runStage(3260) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None or runOnlyFunction == "compaction":
 				if import_operation.runStage(3261) == True: 
@@ -1431,6 +1435,7 @@ def main(argv):
 
 					if import_operation.runStage(3309) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3310) == True: 
@@ -1569,6 +1574,7 @@ def main(argv):
 
 					if import_operation.runStage(3360) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3361) == True: 
@@ -1710,6 +1716,7 @@ def main(argv):
 
 					if import_operation.runStage(3409) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3410) == True: 
@@ -1883,6 +1890,7 @@ def main(argv):
 
 					if import_operation.runStage(3510) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if (runOnlyFunction == None or runOnlyFunction == "invalidateImpala"):
 				if import_operation.runStage(3545) == True: 
@@ -2019,6 +2027,7 @@ def main(argv):
 
 					if import_operation.runStage(3560) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3561) == True: 
@@ -2161,6 +2170,7 @@ def main(argv):
 
 					if import_operation.runStage(3610) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3611) == True: 
@@ -2320,6 +2330,7 @@ def main(argv):
 
 					if import_operation.runStage(3661) == True: 
 						import_operation.validateTargetTable()
+						import_operation.stopSpark()
 
 			if runOnlyFunction == None:
 				if import_operation.runStage(3662) == True: 
